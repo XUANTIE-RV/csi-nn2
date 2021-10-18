@@ -20,8 +20,8 @@
 #include "csi_utils.h"
 
 static int csi_maxpool2d_locat_nhwc_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+                                        struct csi_tensor *output,
+                                        struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -68,8 +68,8 @@ static int csi_maxpool2d_locat_nhwc_f32(struct csi_tensor *input,
 }
 
 static int csi_maxpool2d_locat_nhwc_i32_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+                                           struct csi_tensor *output,
+                                           struct pool_params *params)
 {
     uint8_t *input_data = input->data;
     int32_t *output_data = output->data;
@@ -116,8 +116,8 @@ static int csi_maxpool2d_locat_nhwc_i32_u8(struct csi_tensor *input,
 }
 
 static int csi_maxpool2d_locat_nchw_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+                                        struct csi_tensor *output,
+                                        struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -164,8 +164,8 @@ static int csi_maxpool2d_locat_nchw_f32(struct csi_tensor *input,
 }
 
 static int csi_maxpool2d_locat_nchw_i32_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pool_params *params)
+                                           struct csi_tensor *output,
+                                           struct pool_params *params)
 {
     uint8_t *input_data = input->data;
     int32_t *output_data = output->data;
@@ -211,28 +211,39 @@ static int csi_maxpool2d_locat_nchw_i32_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
+int csi_maxpool2d_locat_f32(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct pool_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_maxpool2d_locat_nchw_f32(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_maxpool2d_locat_nhwc_f32(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_maxpool2d_locat_i32_u8(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct pool_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_maxpool2d_locat_nchw_i32_u8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_maxpool2d_locat_nhwc_i32_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
 int csi_maxpool2d_locat_init(struct csi_tensor *input,
                              struct csi_tensor *output,
                              struct pool_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_maxpool2d_locat_nchw_i32_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_maxpool2d_locat_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_maxpool2d_locat_nhwc_i32_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_maxpool2d_locat_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_MAXPOOL2D_LOCAT, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }

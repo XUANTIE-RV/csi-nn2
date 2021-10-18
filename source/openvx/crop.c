@@ -26,17 +26,16 @@ int csi_ovx_crop(struct csi_tensor *input,
     vsi_nn_node_id_t node_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
+    output->sess = input->sess;
     uint32_t input_num = 1;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_CROP, input_num, output_num, &node_id);
 
-    node->nn_param.crop.axis = axis;
+    node->nn_param.crop.axis = params->axis;
     node->nn_param.crop.dims = output->dim_count;
     for (int i = 0; i < output->dim_count; i++) {
-        node->nn_param.crop.offset[i] = offset[i];
+        node->nn_param.crop.offset[i] = params->offset[i];
     }
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

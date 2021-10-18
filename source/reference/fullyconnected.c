@@ -19,11 +19,11 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_fullyconnected_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct csi_tensor *weights,
-                            struct csi_tensor *bias,
-                            struct fc_params *params)
+int csi_fullyconnected_f32(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct csi_tensor *weights,
+                           struct csi_tensor *bias,
+                           struct fc_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -50,11 +50,11 @@ static int csi_fullyconnected_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_fullyconnected_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct csi_tensor *weights,
-                            struct csi_tensor *bias,
-                            struct fc_params *params)
+int csi_fullyconnected_u8(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct csi_tensor *weights,
+                          struct csi_tensor *bias,
+                          struct fc_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -72,14 +72,14 @@ static int csi_fullyconnected_u8(struct csi_tensor *input,
             for (int d = 0; d < accum_depth; ++d) {
                 int32_t input_val = input_data[b * accum_depth + d];
                 int32_t filter_val = weights_data[out_c * accum_depth + d];
-                acc += (filter_val + weights->offset) * (input_val + input->offset);
+                acc += (filter_val - weights->zero_point) * (input_val - input->zero_point);
             }
             if (bias_data != NULL) {
                 acc += bias_data[out_c];
             }
 
             output_data[out_c + output_depth * b] =
-                csi_quantize_u8(acc, output->offset, output->multiplier, output->shift);
+                csi_quantize_u8(acc, output->zero_point, output->multiplier, output->shift);
         }
     }
     return CSINN_TRUE;
@@ -91,11 +91,8 @@ int csi_fullyconnected_init(struct csi_tensor *input,
                             struct csi_tensor *bias,
                             struct fc_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_fullyconnected_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_fullyconnected_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_FULLYCONNECTED, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

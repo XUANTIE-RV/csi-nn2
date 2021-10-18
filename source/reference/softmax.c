@@ -20,8 +20,8 @@
 #include "csi_utils.h"
 
 static int csi_softmax_nhwc_f32(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct softmax_params *params)
+                                struct csi_tensor *output,
+                                struct softmax_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -57,8 +57,8 @@ static int csi_softmax_nhwc_f32(struct csi_tensor *input,
 }
 
 static int csi_softmax_nhwc_u8(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct softmax_params *params)
+                               struct csi_tensor *output,
+                               struct softmax_params *params)
 {
     float *float_input_data;
     float *float_output_data;
@@ -80,14 +80,14 @@ static int csi_softmax_nhwc_u8(struct csi_tensor *input,
     float_output.data = float_output_data;
 
     for (int i = 0; i < size; i++) {
-        float_input_data[i] = csi_dequantize_f32(input_data[i], input->offset,
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
                                                  input->multiplier, input->shift);
     }
 
     csi_softmax_nhwc_f32(&float_input, &float_output, params);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_input_data);
@@ -95,10 +95,48 @@ static int csi_softmax_nhwc_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
+static int csi_softmax_nhwc_i8(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct softmax_params *params)
+{
+    float *float_input_data;
+    float *float_output_data;
+    struct csi_tensor float_input;
+    struct csi_tensor float_output;
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    int size = 1;
+
+    for (int i = 0; i < input->dim_count; i++) {
+        size *= input->dim[i];
+    }
+
+    memcpy(&float_input, input, sizeof(struct csi_tensor));
+    memcpy(&float_output, output, sizeof(struct csi_tensor));
+    float_input_data = malloc(size * sizeof(float));
+    float_output_data = malloc(size * sizeof(float));
+    float_input.data = float_input_data;
+    float_output.data = float_output_data;
+
+    for (int i = 0; i < size; i++) {
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
+                                                 input->multiplier, input->shift);
+    }
+
+    csi_softmax_nhwc_f32(&float_input, &float_output, params);
+
+    for (int i = 0; i < size; i++) {
+        output_data[i] = csi_quantize_f32_to_i8(float_output_data[i], output->zero_point,
+                                          output->multiplier, output->shift);
+    }
+    free(float_input_data);
+    free(float_output_data);
+    return CSINN_TRUE;
+}
 
 static int csi_softmax_nchw_f32(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct softmax_params *params)
+                                struct csi_tensor *output,
+                                struct softmax_params *params)
 {
     // assert(input->dim_count - 1 >= axis);
 
@@ -165,8 +203,8 @@ static int csi_softmax_nchw_f32(struct csi_tensor *input,
 }
 
 static int csi_softmax_nchw_u8(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct softmax_params *params)
+                               struct csi_tensor *output,
+                               struct softmax_params *params)
 {
     // assert(input->dim_count - 1 == axis);
     float *float_input_data;
@@ -189,14 +227,14 @@ static int csi_softmax_nchw_u8(struct csi_tensor *input,
     float_output.data = float_output_data;
 
     for (int i = 0; i < size; i++) {
-        float_input_data[i] = csi_dequantize_f32(input_data[i], input->offset,
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
                                                  input->multiplier, input->shift);
     }
 
     csi_softmax_nchw_f32(&float_input, &float_output, params);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_input_data);
@@ -205,28 +243,92 @@ static int csi_softmax_nchw_u8(struct csi_tensor *input,
 }
 
 
+static int csi_softmax_nchw_i8(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct softmax_params *params)
+{
+    // assert(input->dim_count - 1 == axis);
+    float *float_input_data;
+    float *float_output_data;
+    struct csi_tensor float_input;
+    struct csi_tensor float_output;
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    int size = 1;
+
+    for (int i = 0; i < input->dim_count; i++) {
+        size *= input->dim[i];
+    }
+
+    memcpy(&float_input, input, sizeof(struct csi_tensor));
+    memcpy(&float_output, output, sizeof(struct csi_tensor));
+    float_input_data = malloc(size * sizeof(float));
+    float_output_data = malloc(size * sizeof(float));
+    float_input.data = float_input_data;
+    float_output.data = float_output_data;
+
+    for (int i = 0; i < size; i++) {
+        float_input_data[i] = csi_dequantize_i8_to_f32(input_data[i], input->zero_point,
+                                                 input->multiplier, input->shift);
+    }
+
+    csi_softmax_nchw_f32(&float_input, &float_output, params);
+
+    for (int i = 0; i < size; i++) {
+        output_data[i] = csi_quantize_f32_to_i8(float_output_data[i], output->zero_point,
+                                          output->multiplier, output->shift);
+    }
+    free(float_input_data);
+    free(float_output_data);
+    return CSINN_TRUE;
+}
+
+int csi_softmax_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct softmax_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_softmax_nchw_f32(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_softmax_nhwc_f32(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_softmax_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct softmax_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_softmax_nchw_u8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_softmax_nhwc_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_softmax_i8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct softmax_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_softmax_nchw_i8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_softmax_nhwc_i8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
 int csi_softmax_init(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct softmax_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_softmax_nchw_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_softmax_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_softmax_nhwc_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_softmax_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_SOFTMAX, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }

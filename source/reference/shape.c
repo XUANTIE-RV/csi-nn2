@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_shape_i32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct shape_params *params)
+int csi_shape_i32(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct shape_params *params)
 {
     int32_t * data = output->data;
     for (int i = 0; i < input->dim_count; i++) {
@@ -30,9 +30,9 @@ static int csi_shape_i32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_shape_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct shape_params *params)
+int csi_shape_u8(struct csi_tensor *input,
+                 struct csi_tensor *output,
+                 struct shape_params *params)
 {
     uint8_t * data = output->data;
     for (int i = 0; i < input->dim_count; i++) {
@@ -45,11 +45,8 @@ int csi_shape_init(struct csi_tensor *input,
                    struct csi_tensor *output,
                    struct shape_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_shape_u8;
-    } else if (input->dtype == CSINN_DTYPE_INT32) {
-        params->bc = csi_shape_i32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SHAPE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

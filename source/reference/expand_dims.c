@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_expand_dims_f32(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct expand_dims_params *params)
+int csi_expand_dims_f32(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct expand_dims_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -35,9 +35,9 @@ static int csi_expand_dims_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_expand_dims_u8(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct expand_dims_params *params)
+int csi_expand_dims_u8(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct expand_dims_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -55,11 +55,8 @@ int csi_expand_dims_init(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct expand_dims_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_expand_dims_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_expand_dims_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_EXPAND_DIMS, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

@@ -20,8 +20,8 @@
 #include "csi_utils.h"
 
 static int csi_pad_nhwc_f32(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct pad_params *params)
+                            struct csi_tensor *output,
+                            struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_height = output->dim[1];
@@ -72,8 +72,8 @@ static int csi_pad_nhwc_f32(struct csi_tensor *input,
 }
 
 static int csi_pad_nhwc_u8(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct pad_params *params)
+                           struct csi_tensor *output,
+                           struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_height = output->dim[1];
@@ -123,8 +123,8 @@ static int csi_pad_nhwc_u8(struct csi_tensor *input,
 }
 
 static int csi_pad_nchw_f32(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct pad_params *params)
+                            struct csi_tensor *output,
+                            struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_depth = output->dim[1];
@@ -175,8 +175,8 @@ static int csi_pad_nchw_f32(struct csi_tensor *input,
 }
 
 static int csi_pad_nchw_u8(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct pad_params *params)
+                           struct csi_tensor *output,
+                           struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_depth = output->dim[1];
@@ -225,28 +225,39 @@ static int csi_pad_nchw_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
+int csi_pad_f32(struct csi_tensor *input,
+                struct csi_tensor *output,
+                struct pad_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_pad_nchw_f32(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_pad_nhwc_f32(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_pad_u8(struct csi_tensor *input,
+               struct csi_tensor *output,
+               struct pad_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_pad_nchw_u8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_pad_nhwc_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
 int csi_pad_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct pad_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_pad_nchw_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_pad_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_pad_nhwc_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_pad_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_PAD, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;     
 }

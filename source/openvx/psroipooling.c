@@ -28,9 +28,8 @@ int csi_ovx_psroipooling(struct csi_tensor *data,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = data->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(data->sess);
+    output->sess = data->sess;
     uint32_t input_num = 2;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_CUSTOM_PSROIPOOLING, input_num, output_num, &node_id);

@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_square_f32(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct siso_params *params)
+int csi_square_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -40,9 +40,8 @@ int csi_square_init(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct siso_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_square_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SQUARE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

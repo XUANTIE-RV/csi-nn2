@@ -20,9 +20,9 @@
 #include "csi_utils.h"
 #include <assert.h>
 
-static int csi_transpose_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct transpose_params *params)
+int csi_transpose_f32(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct transpose_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -68,9 +68,9 @@ static int csi_transpose_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_transpose_u8(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct transpose_params *params)
+int csi_transpose_u8(struct csi_tensor *input,
+                     struct csi_tensor *output,
+                     struct transpose_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -135,15 +135,79 @@ static int csi_transpose_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_transpose_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct transpose_params *params)
+int csi_transpose_i8(struct csi_tensor *input,
+                     struct csi_tensor *output,
+                     struct transpose_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_transpose_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_transpose_f32;
-    } else {
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    const int unextended_output_size = output->dim_count;;
+    assert(unextended_output_size < 8);
+
+    const int input_ext_size = unextended_output_size - input->dim_count;
+    const int output_ext_size = unextended_output_size - unextended_output_size;
+    int extended_perm[unextended_output_size];
+    for (int i = 0; i < output_ext_size; ++i) {
+        extended_perm[i] = i;
+    }
+    for (int i = 0; i < unextended_output_size; ++i) {
+        extended_perm[i + output_ext_size] = params->permute[i] + input_ext_size;
+    }
+    int out_sizes[unextended_output_size];
+    for (int k = 0; k < unextended_output_size; k++) {
+        out_sizes[k] = output->dim[k];
+    }
+    int o[unextended_output_size]; // loop index (on output).
+    int i[unextended_output_size];
+    if (unextended_output_size == 4){
+        // Naive transpose loop (iterate on output index and compute input index).
+        for (o[3] = 0; o[3] < out_sizes[3]; o[3]++) {
+            i[extended_perm[3]] = o[3];
+            for (o[2] = 0; o[2] < out_sizes[2]; o[2]++) {
+                i[extended_perm[2]] = o[2];
+                for (o[1] = 0; o[1] < out_sizes[1]; o[1]++) {
+                    i[extended_perm[1]] = o[1];
+                    for (o[0] = 0; o[0] < out_sizes[0]; o[0]++) {
+                        i[extended_perm[0]] = o[0];
+                        output_data[csi_get_index(output->dim, o[0], o[1], o[2], o[3])] =
+                            input_data[csi_get_index(input->dim, i[0], i[1], i[2], i[3])];
+                    }
+                }
+            }
+        }
+    }
+    else if (unextended_output_size == 6){
+        // Naive transpose loop (iterate on output index and compute input index).
+        for (o[5] = 0; o[5] < out_sizes[5]; o[5]++) {
+            i[extended_perm[5]] = o[5];
+            for (o[4] = 0; o[4] < out_sizes[4]; o[4]++) {
+                i[extended_perm[4]] = o[4];
+                for (o[3] = 0; o[3] < out_sizes[3]; o[3]++) {
+                    i[extended_perm[3]] = o[3];
+                    for (o[2] = 0; o[2] < out_sizes[2]; o[2]++) {
+                        i[extended_perm[2]] = o[2];
+                        for (o[1] = 0; o[1] < out_sizes[1]; o[1]++) {
+                            i[extended_perm[1]] = o[1];
+                            for (o[0] = 0; o[0] < out_sizes[0]; o[0]++) {
+                                i[extended_perm[0]] = o[0];
+                                output_data[csi_get_index_6(output->dim, o[0], o[1], o[2], o[3], o[4], o[5])] =
+                                    input_data[csi_get_index_6(input->dim, i[0], i[1], i[2], i[3], i[4], i[5])];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return CSINN_TRUE;
+}
+
+int csi_transpose_init(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct transpose_params *params)
+{
+    params->bc = csi_bc_map(params->api, CSINN_OP_TRANSPOSE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

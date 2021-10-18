@@ -21,9 +21,9 @@
 
 //tf.nn.space_to_batch:the input mast a  4-D Tensor with shape [batch, height, width, depth].
 
-static int csi_space_to_batch_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct space_to_batch_params *params)
+int csi_space_to_batch_f32(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct space_to_batch_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -71,9 +71,9 @@ static int csi_space_to_batch_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_space_to_batch_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct space_to_batch_params *params)
+int csi_space_to_batch_u8(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct space_to_batch_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -112,8 +112,8 @@ static int csi_space_to_batch_u8(struct csi_tensor *input,
                     int out_start_addr = csi_get_index(output->dim, in_b, out_c, out_h / block_size, out_w / block_size);
                     for(int i = 0; i < block_size2; ++i) {
                         output_data[out_start_addr + i * batch * out_channel * out_height * out_width] =
-                            csi_requantize_u8(temp[i], input->offset, input->multiplier, input->shift,
-                                                       output->offset, output->multiplier, output->shift);
+                            csi_requantize_u8(temp[i], input->zero_point, input->multiplier, input->shift,
+                                                       output->zero_point, output->multiplier, output->shift);
                     }
                     free(temp);
                 }
@@ -128,11 +128,8 @@ int csi_space_to_batch_init(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct space_to_batch_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_space_to_batch_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_space_to_batch_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SPACE_TO_BATCH, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

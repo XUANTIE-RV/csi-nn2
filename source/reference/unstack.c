@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_unstack_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct unstack_params *params)
+int csi_unstack_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct unstack_params *params)
 {
     int axis = params->axis;
     int output_count = input->dim[axis];
@@ -52,9 +51,9 @@ static int csi_unstack_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_unstack_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct unstack_params *params)
+int csi_unstack_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct unstack_params *params)
 {
     int axis = params->axis;
     int output_count = input->dim[axis];
@@ -77,14 +76,14 @@ static int csi_unstack_u8(struct csi_tensor *input,
             struct csi_tensor *output_item = output + j;
             float *output_item_data = (float *)output_item->data;
             float *output_ptr = output_item_data + i * copy_size;
-            if(output_item->offset == input->offset &&
+            if(output_item->zero_point == input->zero_point &&
                 output_item->multiplier == input->multiplier &&
                 output_item->shift == input->shift) {
                 memcpy(output_ptr, input_data, copy_size * sizeof(float));
             } else {
                 for(int n = 0; n < copy_size; n++) {
-                    output_ptr[j] = csi_requantize_u8(input_data[j], input->offset, input->multiplier, input->shift,
-                                                                     output_item->offset, output_item->multiplier, output_item->shift);
+                    output_ptr[j] = csi_requantize_u8(input_data[j], input->zero_point, input->multiplier, input->shift,
+                                                                     output_item->zero_point, output_item->multiplier, output_item->shift);
                 }
             }
             input_data += copy_size;
@@ -94,14 +93,11 @@ static int csi_unstack_u8(struct csi_tensor *input,
 }
 
 int csi_unstack_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct unstack_params *params)
+                     struct csi_tensor *output,
+                     struct unstack_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_unstack_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_unstack_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_UNSTACK, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

@@ -18,7 +18,7 @@
 
 #include "csi_ovx.h"
 
-int csi_ovx_concat(struct csi_tensor *input,
+int csi_ovx_concat(struct csi_tensor **input,
                    struct csi_tensor *output,
                    struct concat_params *params)
 {
@@ -26,13 +26,12 @@ int csi_ovx_concat(struct csi_tensor *input,
     vsi_nn_node_id_t node_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input[0]->sess);
+    output->sess = input[0]->sess;
     uint32_t input_num = params->inputs_count;
     uint32_t output_num = 1;
 
-    uint32_t input_dim_num = input[0].dim_count;
+    uint32_t input_dim_num = input[0]->dim_count;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_CONCAT, input_num, output_num, &node_id);
     node->nn_param.concat.axis = input_dim_num -1 - params->axis;
 
@@ -40,7 +39,7 @@ int csi_ovx_concat(struct csi_tensor *input,
 
     /* input */
     for (int i = 0; i < params->inputs_count; i++) {
-        node->input.tensors[i] = (vsi_nn_tensor_id_t)input[i].data;
+        node->input.tensors[i] = (vsi_nn_tensor_id_t)input[i]->data;
     }
 
     /* output */

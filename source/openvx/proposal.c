@@ -31,9 +31,8 @@ int csi_ovx_proposal(struct csi_tensor *cls_prob,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = cls_prob->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(cls_prob->sess);
+    output->sess = cls_prob->sess;
     uint32_t input_num = 4;
     uint32_t output_num = 2;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_PROPOSAL, input_num, output_num,

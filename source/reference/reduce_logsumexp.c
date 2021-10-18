@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_reduce_logsumexp_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct reduce_params *params)
+int csi_reduce_logsumexp_f32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct reduce_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -67,7 +66,7 @@ static int csi_reduce_logsumexp_f32(struct csi_tensor *input,
 }
 
 
-static int csi_reduce_logsumexp_u8(struct csi_tensor *input,
+int csi_reduce_logsumexp_u8(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct reduce_params *params)
 {
@@ -82,10 +81,10 @@ static int csi_reduce_logsumexp_u8(struct csi_tensor *input,
         }
         float res = 0.0f;
         for(int j = 0; j < size; j++) {
-            float input_temp = csi_dequantize_f32(input_data[j], input->offset, input->multiplier, input->shift);
+            float input_temp = csi_dequantize_u8_to_f32(input_data[j], input->zero_point, input->multiplier, input->shift);
             res = res + exp(input_temp);
         }
-        *output_data = csi_quantize_f32(log(res), output->offset, output->multiplier, output->shift);
+        *output_data = csi_quantize_f32_to_u8(log(res), output->zero_point, output->multiplier, output->shift);
     } else {
         int axis = *(params->axis);
         int64_t outer_size = 1;
@@ -103,10 +102,10 @@ static int csi_reduce_logsumexp_u8(struct csi_tensor *input,
                 float temp = 0.0f;
                 for(int j = 0; j < cnt; j++) {
                     uint8_t input_val = *(input_data + j * inner_size + k);
-                    float input_temp = csi_dequantize_f32(input_val, input->offset, input->multiplier, input->shift);
+                    float input_temp = csi_dequantize_u8_to_f32(input_val, input->zero_point, input->multiplier, input->shift);
                     temp += exp(input_temp);
                 }
-                *(output_data + k) = csi_quantize_f32(log(temp), output->offset, output->multiplier, output->shift);
+                *(output_data + k) = csi_quantize_f32_to_u8(log(temp), output->zero_point, output->multiplier, output->shift);
             }
             input_data += inner_size * cnt;
             output_data += inner_size;
@@ -116,22 +115,19 @@ static int csi_reduce_logsumexp_u8(struct csi_tensor *input,
 }
 
 int csi_reduce_logsumexp_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params)
+                              struct csi_tensor *output,
+                              struct reduce_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_reduce_logsumexp_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_reduce_logsumexp_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_REDUCE_LOGSUMEXP, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_reduce_logsumexp(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params)
+                         struct csi_tensor *output,
+                         struct reduce_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

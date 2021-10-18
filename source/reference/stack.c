@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_stack_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct stack_params *params)
+int csi_stack_f32(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct stack_params *params)
 {
     int input_count = params->inputs_count;
     int axis = params->axis;
@@ -52,9 +51,9 @@ static int csi_stack_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_stack_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct stack_params *params)
+int csi_stack_u8(struct csi_tensor *input,
+                 struct csi_tensor *output,
+                 struct stack_params *params)
 {
     if (params->axis == -1){
         params->axis= input->dim_count -1;
@@ -80,14 +79,14 @@ static int csi_stack_u8(struct csi_tensor *input,
             struct csi_tensor *input_item = input + j;
             uint8_t *input_item_data = (uint8_t *)input_item->data;
             const uint8_t *input_ptr = input_item_data + i * copy_size;
-            if(input_item->offset == output->offset &&
+            if(input_item->zero_point == output->zero_point &&
                 input_item->multiplier == output->multiplier &&
                 input_item->shift == output->shift) {
                 memcpy(output_data, input_ptr, copy_size * sizeof(uint8_t));
             } else {
                 for(int n = 0; n < copy_size; n++) {
-                    output_data[j] = csi_requantize_u8(input_ptr[j], input_item->offset, input_item->multiplier, input_item->shift,
-                                                                     output->offset, output->multiplier, output->shift);
+                    output_data[j] = csi_requantize_u8(input_ptr[j], input_item->zero_point, input_item->multiplier, input_item->shift,
+                                                                     output->zero_point, output->multiplier, output->shift);
                 }
             }
             output_data += copy_size;
@@ -97,22 +96,19 @@ static int csi_stack_u8(struct csi_tensor *input,
 }
 
 int csi_stack_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct stack_params *params)
+                   struct csi_tensor *output,
+                   struct stack_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_stack_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_stack_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_STACK, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_stack(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct stack_params *params)
+              struct csi_tensor *output,
+              struct stack_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

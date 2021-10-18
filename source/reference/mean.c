@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_mean_stride_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct reduce_params *params)
+int csi_mean_stride_f32(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct reduce_params *params)
 {
 
     float *input_data = input->data;
@@ -58,9 +58,9 @@ static int csi_mean_stride_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_mean_stride_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params)
+int csi_mean_stride_u8(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct reduce_params *params)
 {
 
     uint8_t *input_data = input->data;
@@ -88,20 +88,20 @@ static int csi_mean_stride_u8(struct csi_tensor *input,
         {
             int32_t index = out_index + get_reduction_index(inner, params->inner_strides,
                                                             params->inner_extents, params->m);
-            float val = csi_dequantize_f32(input_data[index], input->offset,
+            float val = csi_dequantize_u8_to_f32(input_data[index], input->zero_point,
                                            input->multiplier, input->shift);
             result += val;
         }
 
-        output_data[out] = csi_quantize_f32(result / inner_size, output->offset,
+        output_data[out] = csi_quantize_f32_to_u8(result / inner_size, output->zero_point,
                                             output->multiplier, output->shift);
     }
     return CSINN_TRUE;
 }
 
 static int csi_mean_u8(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct reduce_params *params)
+                       struct csi_tensor *output,
+                       struct reduce_params *params)
 {
     if (params->axis_count != 2 || params->axis[0] != 2 || params->axis[1] != 3 ||
         input->dim_count != 4 || output->dim_count != 4) {
@@ -119,21 +119,13 @@ int csi_mean_init(struct csi_tensor *input,
                   struct reduce_params *params)
 {
     if (params->n == 0 && params->m == 0) {
-        if (params->layout == CSINN_NCHW) {
-            if (input->dtype == CSINN_DTYPE_UINT8) {
-                params->bc = csi_mean_u8;
-            } else {
-                return CSINN_UNSUPPORT_DTYPE;
-            }
-        } else {
-            return CSINN_UNSUPPORT_LAYOUT;
+        params->bc = csi_bc_map(params->api, CSINN_OP_MEAN, input->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
         }
     } else {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_mean_stride_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_mean_stride_f32;
-        } else {
+        params->bc = csi_bc_map(params->api, CSINN_OP_MEAN_STRIDE, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     }

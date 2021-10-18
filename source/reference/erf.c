@@ -22,9 +22,9 @@
 
 #define ERF_PARAM 1.128379167
 
-static int csi_erf_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct siso_params *params)
+int csi_erf_f32(struct csi_tensor *input,
+                struct csi_tensor *output,
+                struct siso_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -36,9 +36,9 @@ static int csi_erf_f32(struct csi_tensor *input,
     return CSINN_FALSE;
 }
 
-static int csi_erf_u8(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct siso_params *params)
+int csi_erf_u8(struct csi_tensor *input,
+               struct csi_tensor *output,
+               struct siso_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -54,11 +54,8 @@ int csi_erf_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct siso_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_erf_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_erf_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_ERF, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

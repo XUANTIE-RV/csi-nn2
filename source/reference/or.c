@@ -19,11 +19,10 @@
 #include "csi_nn.h"
 #include <assert.h>
 
-
-static int csi_or_u32(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct diso_params *params)
+int csi_or_u32(struct csi_tensor *input0,
+               struct csi_tensor *input1,
+               struct csi_tensor *output,
+               struct diso_params *params)
 {
     uint32_t *input0_data = input0->data;
     uint32_t *input1_data = input1->data;
@@ -39,10 +38,10 @@ static int csi_or_u32(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-static int csi_or_u8(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct diso_params *params)
+int csi_or_u8(struct csi_tensor *input0,
+              struct csi_tensor *input1,
+              struct csi_tensor *output,
+              struct diso_params *params)
 {
     uint8_t *input0_data = input0->data;
     uint8_t *input1_data = input1->data;
@@ -59,24 +58,21 @@ static int csi_or_u8(struct csi_tensor *input0,
 }
 
 int csi_or_init(struct csi_tensor *input0,
-                 struct csi_tensor *input1,
-                 struct csi_tensor *output,
-                 struct diso_params *params)
+                struct csi_tensor *input1,
+                struct csi_tensor *output,
+                struct diso_params *params)
 {
-    if (input0->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_or_u8;
-    } else if (input0->dtype == CSINN_DTYPE_UINT32) {
-        params->bc = csi_or_u32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_OR, input0->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_or(struct csi_tensor *input0,
-            struct csi_tensor *input1,
-            struct csi_tensor *output,
-            struct diso_params *params)
+           struct csi_tensor *input1,
+           struct csi_tensor *output,
+           struct diso_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input0, input1, output, params);

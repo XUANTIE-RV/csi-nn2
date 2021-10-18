@@ -71,7 +71,7 @@ static float _bilinear(const float *data, int32_t batch, int32_t channel,
     return val;
 }
 
-static int csi_roi_align_f32(struct csi_tensor *data,
+int csi_roi_align_f32(struct csi_tensor *data,
                        struct csi_tensor *rois,
                        struct csi_tensor *output,
                        struct roi_align_params *params)
@@ -155,9 +155,8 @@ int csi_roi_align_init(struct csi_tensor *data,
                        struct csi_tensor *output,
                        struct roi_align_params *params)
 {
-    if (data->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_roi_align_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_ROIALIGN, data->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

@@ -19,10 +19,10 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_unsorted_segment_min_f32(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_unsorted_segment_min_f32(struct csi_tensor *input,
+                                 struct csi_tensor *segment_ids,
+                                 struct csi_tensor *output,
+                                 struct segment_params *params)
 {
     float *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -67,10 +67,10 @@ static int csi_unsorted_segment_min_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_segment_min_f32(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_segment_min_f32(struct csi_tensor *input,
+                        struct csi_tensor *segment_ids,
+                        struct csi_tensor *output,
+                        struct segment_params *params)
 {
     float *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -118,10 +118,10 @@ static int csi_segment_min_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_unsorted_segment_min_u8(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_unsorted_segment_min_u8(struct csi_tensor *input,
+                                struct csi_tensor *segment_ids,
+                                struct csi_tensor *output,
+                                struct segment_params *params)
 {
     uint8_t *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -166,10 +166,10 @@ static int csi_unsorted_segment_min_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_segment_min_u8(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_segment_min_u8(struct csi_tensor *input,
+                       struct csi_tensor *segment_ids,
+                       struct csi_tensor *output,
+                       struct segment_params *params)
 {
     uint8_t *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -218,24 +218,20 @@ static int csi_segment_min_u8(struct csi_tensor *input,
 }
 
 int csi_segment_min_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params)
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct segment_params *params)
 {
-    if (input0->dtype == CSINN_DTYPE_UINT8) {
-        if (params->unsorted == CSINN_TRUE) {
-            params->bc = csi_unsorted_segment_min_u8;
-        } else {
-            params->bc = csi_segment_min_u8;
-        }
-    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        if (params->unsorted == CSINN_TRUE) {
-            params->bc = csi_unsorted_segment_min_f32;
-        } else {
-            params->bc = csi_segment_min_f32;
-        }
+    if (params->unsorted == CSINN_TRUE) {
+        params->bc = csi_bc_map(params->api, CSINN_OP_UNSORTED_SEGMENT_MIN, input0->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
+        }        
     } else {
-        return CSINN_UNSUPPORT_DTYPE;
+        params->bc = csi_bc_map(params->api, CSINN_OP_SEGMENT_MIN, input0->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
+        } 
     }
     return CSINN_TRUE;
 }

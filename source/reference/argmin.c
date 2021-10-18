@@ -31,11 +31,10 @@ static struct ArgPos fargmin_stride(struct ArgPos lhs, struct ArgPos rhs) {
   return lhs;
 }
 
-static int csi_argmin_stride_i32_f32(struct csi_tensor *input,
-                                      struct csi_tensor *output,
-                                      struct reduce_params *params)
+int csi_argmin_stride_i32_f32(struct csi_tensor *input,
+                              struct csi_tensor *output,
+                              struct reduce_params *params)
 {
-
   float *input_data = input->data;
   float *output_data = output->data;
 
@@ -67,9 +66,9 @@ static int csi_argmin_stride_i32_f32(struct csi_tensor *input,
   return CSINN_TRUE;
 }
 
-static int csi_argmin_stride_i32_u8(struct csi_tensor *input,
-                                     struct csi_tensor *output,
-                                     struct reduce_params *params)
+int csi_argmin_stride_i32_u8(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct reduce_params *params)
 {
 
   uint8_t *input_data = input->data;
@@ -93,7 +92,7 @@ static int csi_argmin_stride_i32_u8(struct csi_tensor *input,
     for (int32_t inner = 0; inner < inner_size; inner++) {
       int32_t index = out_index + get_reduction_index(inner, params->inner_strides,
                                                       params->inner_extents, params->m);
-      float val = csi_dequantize_f32(input_data[index], input->offset,
+      float val = csi_dequantize_u8_to_f32(input_data[index], input->zero_point,
                                      input->multiplier, input->shift);
       struct ArgPos pos = {val, inner};
       result = fargmin_stride(result, pos);
@@ -111,11 +110,8 @@ int csi_argmin_init(struct csi_tensor *input,
     if (params->n == 0 && params->m == 0) {
         return CSINN_FALSE;
     } else {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_argmin_stride_i32_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_argmin_stride_i32_f32;
-        } else {
+        params->bc = csi_bc_map(params->api, CSINN_OP_ARGMIN, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     }

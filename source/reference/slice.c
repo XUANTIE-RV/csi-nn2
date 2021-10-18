@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_strided_slice_f32(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct slice_params *params)
+int csi_slice_f32(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct slice_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -50,9 +50,9 @@ static int csi_strided_slice_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_strided_slice_u8(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct slice_params *params)
+int csi_slice_u8(struct csi_tensor *input,
+                 struct csi_tensor *output,
+                 struct slice_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -70,8 +70,8 @@ static int csi_strided_slice_u8(struct csi_tensor *input,
                 for(int h = params->begin[2]; h < params->end[2]; h++){
                     for(int w = params->begin[3]; w < params->end[3]; w++){
                         int32_t input_index = csi_get_index(input->dim, b, c, h, w);
-                        uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->offset, input->multiplier,
-                            input->shift,  output->offset,  output->multiplier, output->shift);
+                        uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->zero_point, input->multiplier,
+                            input->shift,  output->zero_point,  output->multiplier, output->shift);
                         int32_t out_index = csi_get_index(output->dim, b-params->begin[0], c-params->begin[1], h-params->begin[2], w-params->begin[3]);
                         output_data[out_index] = out_val;
                     }
@@ -93,8 +93,8 @@ static int csi_strided_slice_u8(struct csi_tensor *input,
                     for(int l = params->begin[3]; l < params->end[3]; l++){
                         for(int m = params->begin[4]; m < params->end[4]; m++){
                             int32_t input_index = csi_get_index_5(input->dim, i, j, k, l, m);
-                            uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->offset, input->multiplier,
-                                input->shift,  output->offset,  output->multiplier, output->shift);
+                            uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->zero_point, input->multiplier,
+                                input->shift,  output->zero_point,  output->multiplier, output->shift);
                             int32_t out_index = csi_get_index_5(output->dim, i-params->begin[0], j-params->begin[1], k-params->begin[2], l-params->begin[3], m-params->begin[4]);
                             output_data[out_index] = out_val;
                         }
@@ -112,11 +112,8 @@ int csi_slice_init(struct csi_tensor *input,
                    struct slice_params *params)
 {
     if (params->begin != NULL) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_strided_slice_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_strided_slice_f32;
-        } else {
+        params->bc = csi_bc_map(params->api, CSINN_OP_SLICE, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     } else {

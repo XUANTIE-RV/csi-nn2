@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_l2pool_f32(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params)
+int csi_l2pool_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -67,20 +67,19 @@ static int csi_l2pool_f32(struct csi_tensor *input,
 }
 
 int csi_l2pool_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct pool_params *params)
+                    struct csi_tensor *output,
+                    struct pool_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_l2pool_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_L2POOL2D, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_l2pool(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct pool_params *params)
+               struct csi_tensor *output,
+               struct pool_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

@@ -20,9 +20,9 @@
 #include "csi_utils.h"
 #include <assert.h>
 
-static int csi_cumprod_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct cumprod_params *params)
+int csi_cumprod_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct cumprod_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -59,10 +59,9 @@ static int csi_cumprod_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int csi_cumprod_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct cumprod_params *params)
+int csi_cumprod_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct cumprod_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -86,13 +85,13 @@ static int csi_cumprod_u8(struct csi_tensor *input,
             float temp = 1.0f;
             for(int j = 0; j < cnt; j++) {
                 uint8_t input_val = *(input_data + j * inner_size + k);
-                float input_temp = csi_dequantize_f32(input_val, input->offset, input->multiplier, input->shift);
+                float input_temp = csi_dequantize_u8_to_f32(input_val, input->zero_point, input->multiplier, input->shift);
                 temp *= input_temp;
                 float output_temp = temp;
                 if(!params->exclusive) {
-                    *(output_data + j * inner_size + k) = csi_quantize_f32(output_temp, output->offset, output->multiplier, output->shift);
+                    *(output_data + j * inner_size + k) = csi_quantize_f32_to_u8(output_temp, output->zero_point, output->multiplier, output->shift);
                 } else {
-                    *(output_data + j * inner_size + k) = csi_quantize_f32(output_temp / input_temp, output->offset, output->multiplier, output->shift);
+                    *(output_data + j * inner_size + k) = csi_quantize_f32_to_u8(output_temp / input_temp, output->zero_point, output->multiplier, output->shift);
                 }
             }
         }
@@ -103,14 +102,11 @@ static int csi_cumprod_u8(struct csi_tensor *input,
 }
 
 int csi_cumprod_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct cumprod_params *params)
+                     struct csi_tensor *output,
+                     struct cumprod_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_cumprod_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_cumprod_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_CUMPROD, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

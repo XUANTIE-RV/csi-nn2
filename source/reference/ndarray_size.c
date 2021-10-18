@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_ndarray_size_f32(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct ndarray_size_params *params)
+int csi_ndarray_size_f32(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct ndarray_size_params *params)
 {
     float *output_data = output->data;
     int size = 1;
@@ -33,9 +33,9 @@ static int csi_ndarray_size_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ndarray_size_u8(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct ndarray_size_params *params)
+int csi_ndarray_size_u8(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct ndarray_size_params *params)
 {
     uint8_t *output_data = output->data;
     int size = 1;
@@ -47,9 +47,9 @@ static int csi_ndarray_size_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ndarray_size_i32(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct ndarray_size_params *params)
+int csi_ndarray_size_i32(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct ndarray_size_params *params)
 {
     int32_t *output_data = output->data;
     int size = 1;
@@ -62,24 +62,19 @@ static int csi_ndarray_size_i32(struct csi_tensor *input,
 }
 
 int csi_ndarray_size_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct ndarray_size_params *params)
+                          struct csi_tensor *output,
+                          struct ndarray_size_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_ndarray_size_u8;
-    } else if (input->dtype == CSINN_DTYPE_INT32) {
-        params->bc = csi_ndarray_size_i32;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_ndarray_size_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_NDARRAY_SIZE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_ndarray_size(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct ndarray_size_params *params)
+                     struct csi_tensor *output,
+                     struct ndarray_size_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

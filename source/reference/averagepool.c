@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_averagepool_nhwc_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+int csi_averagepool_nhwc_f32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -67,9 +67,9 @@ static int csi_averagepool_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_averagepool_nhwc_u8(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct pool_params *params)
+int csi_averagepool_nhwc_u8(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct pool_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -80,10 +80,10 @@ static int csi_averagepool_nhwc_u8(struct csi_tensor *input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
 
-    const int32_t input_offset = input->offset;
+    const int32_t input_offset = input->zero_point;
     const int32_t input_multiplier = input->multiplier;
     const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->offset;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -109,14 +109,14 @@ static int csi_averagepool_nhwc_u8(struct csi_tensor *input,
                             const int in_y = in_y_origin + filter_y;
                             uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)];
-                            total += csi_dequantize_f32(input_val, input_offset, input_multiplier,
+                            total += csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
                                                         input_shift);
                             filter_count++;
                         }
                     }
                     float average = filter_count == 0 ? total : total / filter_count;
                     output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32(average, output_offset, output_multiplier, output_shift);
+                        csi_quantize_f32_to_u8(average, output_offset, output_multiplier, output_shift);
                 }
             }
         }
@@ -125,8 +125,8 @@ static int csi_averagepool_nhwc_u8(struct csi_tensor *input,
 }
 
 static int csi_averagepool_nchw_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct pool_params *params)
+                                    struct csi_tensor *output,
+                                    struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -173,13 +173,13 @@ static int csi_averagepool_nchw_f32(struct csi_tensor *input,
 }
 
 static int csi_averagepool_nchw_u8(struct csi_tensor *o_input,
-                        struct csi_tensor *o_output,
-                        struct pool_params *params)
+                                   struct csi_tensor *o_output,
+                                   struct pool_params *params)
 {
     struct csi_tensor* input;
     struct csi_tensor* output;
-    input =  csi_nchw_to_nhwc_u8(o_input);
-    output = csi_nchw_to_nhwc_u8(o_output);
+    input =  csi_nchw_to_nhwc_8(o_input);
+    output = csi_nchw_to_nhwc_8(o_output);
 
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -190,10 +190,10 @@ static int csi_averagepool_nchw_u8(struct csi_tensor *o_input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
 
-    const int32_t input_offset = input->offset;
+    const int32_t input_offset = input->zero_point;
     const int32_t input_multiplier = input->multiplier;
     const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->offset;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -219,45 +219,57 @@ static int csi_averagepool_nchw_u8(struct csi_tensor *o_input,
                             const int in_y = in_y_origin + filter_y;
                             uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)];
-                            total += csi_dequantize_f32(input_val, input_offset, input_multiplier,
+                            total += csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
                                                         input_shift);
                             filter_count++;
                         }
                     }
                     float average = filter_count == 0 ? total : total / filter_count;
                     output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32(average, output_offset, output_multiplier, output_shift);
+                        csi_quantize_f32_to_u8(average, output_offset, output_multiplier, output_shift);
                 }
             }
         }
     }
-    csi_nhwc_to_nchw_u8(o_output, output);
+    csi_nhwc_to_nchw_8(o_output, output);
     return CSINN_TRUE;
+}
+
+int csi_averagepool_f32(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct pool_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_averagepool_nchw_f32(input, output, params);
+    } else if (params->layout = CSINN_NHWC) {
+        csi_averagepool_nhwc_f32(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_averagepool_u8(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct pool_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_averagepool_nchw_u8(input, output, params);
+    } else if (params->layout = CSINN_NHWC) {
+        csi_averagepool_nhwc_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
 }
 
 int csi_averagepool_init(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct pool_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_averagepool_nchw_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_averagepool_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_averagepool_nhwc_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_averagepool_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_AVGPOOL2D, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
+
     return CSINN_TRUE;
 }
 

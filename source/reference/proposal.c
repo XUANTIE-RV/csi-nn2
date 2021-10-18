@@ -30,7 +30,8 @@ struct bbox {
 };
 
 static struct bbox reg_iou(float x1, float y1, float x2, float y2, float dx1,
-                    float dy1, float dx2, float dy2) {
+                           float dy1, float dx2, float dy2)
+{
   struct bbox pred;
   pred.x1 = x1 + dx1;
   pred.y1 = y1 + dy1;
@@ -40,7 +41,8 @@ static struct bbox reg_iou(float x1, float y1, float x2, float y2, float dx1,
 }
 
 static struct bbox reg_bbox(float x1, float y1, float x2, float y2, float dx, float dy,
-                     float dw, float dh) {
+                            float dw, float dh)
+{
   float bbox_w = x2 - x1 + 1.0;
   float bbox_h = y2 - y1 + 1.0;
   float ctr_x = x1 + 0.5 * (bbox_w - 1.0);
@@ -59,7 +61,8 @@ static struct bbox reg_bbox(float x1, float y1, float x2, float y2, float dx, fl
   return pred;
 }
 
-static struct bbox generate_anchor(float ratio, float scale, int32_t base_size) {
+static struct bbox generate_anchor(float ratio, float scale, int32_t base_size)
+{
   float w, h;
   w = h = (float)base_size;
   float x_ctr = 0.5 * (w - 1.0);
@@ -78,11 +81,12 @@ static struct bbox generate_anchor(float ratio, float scale, int32_t base_size) 
 }
 
 static float *predict_bbox(struct csi_tensor *cls_prob_tensor,
-                    struct csi_tensor *bbox_pred_tensor,
-                    struct csi_tensor *im_info_tensor, float *ratios,
-                    int32_t ratios_num, float *scales, int32_t scales_num,
-                    int32_t feature_stride, int32_t iou_loss,
-                    int32_t rpn_min_size) {
+                           struct csi_tensor *bbox_pred_tensor,
+                           struct csi_tensor *im_info_tensor, float *ratios,
+                           int32_t ratios_num, float *scales, int32_t scales_num,
+                           int32_t feature_stride, int32_t iou_loss,
+                           int32_t rpn_min_size)
+{
   int len_scales = scales_num;
   int len_ratios = ratios_num;
   int batch = cls_prob_tensor->dim[0];
@@ -167,11 +171,13 @@ typedef struct {
   float data;
 } index_value;
 
-static int argsort(const void *a, const void *b) {
+static int argsort(const void *a, const void *b)
+{
   return ((((index_value *)a)->data - ((index_value *)b)->data > 0) ? -1 : 1);
 }
 
-static float calculate_overlap(float *out_tensor, int box_a_idx, int box_b_idx) {
+static float calculate_overlap(float *out_tensor, int box_a_idx, int box_b_idx)
+{
   float w =
       MAX(0.0, MIN(out_tensor[box_a_idx + 2], out_tensor[box_b_idx + 2]) -
                    MAX(out_tensor[box_a_idx], out_tensor[box_b_idx]) + 1.0);
@@ -188,7 +194,8 @@ static float calculate_overlap(float *out_tensor, int box_a_idx, int box_b_idx) 
 }
 
 static float *compute_nms(int batch, int num_bbox, float *sorted_bbox,
-                   float threshold) {
+                          float threshold)
+{
   float *out = malloc(batch * num_bbox * sizeof(float));
   for (int b = 0; b < batch; b++) {
     int base_idx = b * num_bbox;
@@ -213,7 +220,8 @@ static float *compute_nms(int batch, int num_bbox, float *sorted_bbox,
 }
 
 static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch,
-                      int num_bbox, int rpn_post_nms_top_n) {
+                             int num_bbox, int rpn_post_nms_top_n)
+{
   int *i = malloc(batch * sizeof(int));
   int *nkeep = malloc(batch * sizeof(int));
   float *output = malloc(batch * rpn_post_nms_top_n * 5 * sizeof(int));
@@ -251,11 +259,11 @@ static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch,
   return output;
 }
 
-static int csi_proposal_f32(struct csi_tensor *cls_prob,
-                            struct csi_tensor *bbox_pred,
-                            struct csi_tensor *im_info,
-                            struct csi_tensor *output,
-                            struct proposal_params *params)
+int csi_proposal_f32(struct csi_tensor *cls_prob,
+                     struct csi_tensor *bbox_pred,
+                     struct csi_tensor *im_info,
+                     struct csi_tensor *output,
+                     struct proposal_params *params)
 {
   float *output_data = output->data;
 
@@ -304,11 +312,11 @@ static int csi_proposal_f32(struct csi_tensor *cls_prob,
   for (int i = 0; i < batch * params->rpn_post_nms_top_n * 5; i++) {
     output_data[i] = nms_out[i];
   }
-  
+
   return CSINN_TRUE;
 }
 
-static int csi_proposal_u8(struct csi_tensor *cls_prob,
+int csi_proposal_u8(struct csi_tensor *cls_prob,
                     struct csi_tensor *bbox_pred,
                     struct csi_tensor *im_info,
                     struct csi_tensor *output,
@@ -361,12 +369,12 @@ static int csi_proposal_u8(struct csi_tensor *cls_prob,
     f_bbox.data = f_bbox_data;
 
     for (int i = 0; i < c_size; i++) {
-        f_cls_data[i] = csi_dequantize_f32(cls_data[i], cls_prob->offset,
+        f_cls_data[i] = csi_dequantize_u8_to_f32(cls_data[i], cls_prob->zero_point,
                                                  cls_prob->multiplier, cls_prob->shift);
     }
 
     for (int i = 0; i < b_size; i++) {
-        f_bbox_data[i] = csi_dequantize_f32(bbox_data[i], bbox_pred->offset,
+        f_bbox_data[i] = csi_dequantize_u8_to_f32(bbox_data[i], bbox_pred->zero_point,
                                                  bbox_pred->multiplier, bbox_pred->shift);
     }
 
@@ -376,7 +384,7 @@ static int csi_proposal_u8(struct csi_tensor *cls_prob,
     csi_proposal_f32(&f_cls, &f_bbox, im_info, &float_output, params);
 
     for (int i = 0; i < out_size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_output_data);
@@ -391,11 +399,8 @@ int csi_proposal_init(struct csi_tensor *cls_prob,
                       struct csi_tensor *output,
                       struct proposal_params *params)
 {
-    if (cls_prob->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_proposal_f32;
-    } else if (cls_prob->dtype == CSINN_DTYPE_UINT8) {
-        params->bc =  csi_proposal_u8;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_PROPOSAL, output->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

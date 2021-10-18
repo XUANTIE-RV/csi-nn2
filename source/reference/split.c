@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_split_u8(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct split_params *params)
+int csi_split_u8(struct csi_tensor *input,
+                 struct csi_tensor **output,
+                 struct split_params *params)
 {
     const int32_t batches = input->dim[0];
     const int32_t input_depth = input->dim[1];
@@ -41,34 +41,33 @@ static int csi_split_u8(struct csi_tensor *input,
         }
         int32_t end[4] = {batches, end_1, input_width, input_height};
         int32_t strides[4] = {1, 1, 1, 1};
-        struct csi_tensor *output_ptr = output + i;
+        struct csi_tensor *output_ptr = output[i];
         struct slice_params sparams;
         sparams.layout = CSINN_NCHW;
         sparams.begin = begin;
         sparams.end = end;
         sparams.strides = strides;
+        sparams.api = CSINN_REF;
         csi_slice_init(input, output_ptr, &sparams);
         csi_slice(input, output_ptr, &sparams);
     }
     return CSINN_TRUE;
 }
 
-
 int csi_split_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct split_params *params)
+                   struct csi_tensor **output,
+                   struct split_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_split_u8;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SPLIT, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_split(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct split_params *params)
+              struct csi_tensor **output,
+              struct split_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

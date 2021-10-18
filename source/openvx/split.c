@@ -19,7 +19,7 @@
 #include "csi_ovx.h"
 
 int csi_ovx_split(struct csi_tensor *input,
-                  struct csi_tensor *output,
+                  struct csi_tensor **output,
                   struct split_params *params)
 {
     vsi_nn_node_t *node;
@@ -27,8 +27,7 @@ int csi_ovx_split(struct csi_tensor *input,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
     uint32_t input_num = 1;
     uint32_t split_count = params->output_num;
     int i = 0;
@@ -54,8 +53,8 @@ int csi_ovx_split(struct csi_tensor *input,
 
     /* output */
     for (i = 0; i < split_count; i++) {
-        attr.dtype.scale = output[i].scale;
-        attr.dtype.zero_point = output[i].zero_point;
+        attr.dtype.scale = output[i]->scale;
+        attr.dtype.zero_point = output[i]->zero_point;
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
         memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
         attr.dim_num = VSI_NN_DIM_AUTO;
@@ -64,7 +63,7 @@ int csi_ovx_split(struct csi_tensor *input,
         attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
         output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
         node->output.tensors[i] = output_id;
-        output[i].data = (void *)output_id;
-        output[i].t_private = td;
+        output[i]->data = (void *)output_id;
+        output[i]->sess = input->sess;
     }
 }

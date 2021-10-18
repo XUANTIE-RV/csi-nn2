@@ -19,11 +19,11 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_select_f32(struct csi_tensor *condition,
-                        struct csi_tensor *input0,
-                        struct csi_tensor *input1,
-                        struct csi_tensor *output,
-                        struct select_params *params)
+int csi_select_f32(struct csi_tensor *condition,
+                   struct csi_tensor *input0,
+                   struct csi_tensor *input1,
+                   struct csi_tensor *output,
+                   struct select_params *params)
 {
     float *input_data0  = input0->data;
     float *input_data1  = input1->data;
@@ -40,11 +40,11 @@ static int csi_select_f32(struct csi_tensor *condition,
     return CSINN_TRUE;
 }
 
-static int csi_select_u8(struct csi_tensor *condition,
-                        struct csi_tensor *input0,
-                        struct csi_tensor *input1,
-                        struct csi_tensor *output,
-                        struct select_params *params)
+int csi_select_u8(struct csi_tensor *condition,
+                  struct csi_tensor *input0,
+                  struct csi_tensor *input1,
+                  struct csi_tensor *output,
+                  struct select_params *params)
 {
     uint8_t *input_data0  = input0->data;
     uint8_t *input_data1  = input1->data;
@@ -67,11 +67,8 @@ int csi_select_init(struct csi_tensor *condition,
                     struct csi_tensor *output,
                     struct select_params *params)
 {
-    if (input0->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_select_u8;
-    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_select_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SELECT, input0->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

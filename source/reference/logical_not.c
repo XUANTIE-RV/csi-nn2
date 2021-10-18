@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_logical_not_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct siso_params *params)
+int csi_logical_not_f32(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct siso_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -35,9 +35,9 @@ static int csi_logical_not_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_logical_not_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct siso_params *params)
+int csi_logical_not_u8(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct siso_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -47,32 +47,29 @@ static int csi_logical_not_u8(struct csi_tensor *input,
     }
 
     for (int i = 0; i < size; i++) {
-        float input_val = csi_dequantize_f32(input_data[i], input->offset, input->multiplier,
+        float input_val = csi_dequantize_u8_to_f32(input_data[i], input->zero_point, input->multiplier,
                                                input->shift);
         float res = !input_val;
 
-        output_data[i] = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+        output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
     }
     return CSINN_TRUE;
 }
 
 int csi_logical_not_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct siso_params *params)
+                         struct csi_tensor *output,
+                         struct siso_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_logical_not_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_logical_not_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_LOGICAL_NOT, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_logical_not(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct siso_params *params)
+                    struct csi_tensor *output,
+                    struct siso_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

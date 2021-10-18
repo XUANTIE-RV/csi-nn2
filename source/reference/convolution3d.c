@@ -19,11 +19,11 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_conv3d_ncdhw_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *kernel,
-                                struct csi_tensor *bias,
-                                struct conv3d_params *params)
+int csi_conv3d_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct csi_tensor *kernel,
+                   struct csi_tensor *bias,
+                   struct conv3d_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -98,12 +98,11 @@ static int csi_conv3d_ncdhw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int csi_conv3d_ncdhw_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *kernel,
-                                struct csi_tensor *bias,
-                                struct conv3d_params *params)
+int csi_conv3d_u8(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct csi_tensor *kernel,
+                  struct csi_tensor *bias,
+                  struct conv3d_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -132,9 +131,9 @@ static int csi_conv3d_ncdhw_u8(struct csi_tensor *input,
     const int32_t dilation_height = params->dilation_height;
     const int32_t dilation_width = params->dilation_width;
 
-    const int32_t input_offset = input->offset;
-    const int32_t filter_offset = kernel->offset;
-    const int32_t output_offset = output->offset;
+    const int32_t input_offset = input->zero_point;
+    const int32_t filter_offset = kernel->zero_point;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -164,7 +163,7 @@ static int csi_conv3d_ncdhw_u8(struct csi_tensor *input,
                                             int32_t input_val = input_data[input_idx];
                                             int32_t filter_idx = csi_get_index_5(kernel->dim, out_ch, in_ch, filter_d, filter_h, filter_w);
                                             int32_t filter_val = kernel_data[filter_idx];
-                                            acc += (input_val+input_offset) * (filter_val+filter_offset);
+                                            acc += (input_val - input_offset) * (filter_val - filter_offset);
                                         }
                                     }
                                 }
@@ -186,49 +185,15 @@ static int csi_conv3d_ncdhw_u8(struct csi_tensor *input,
 }
 
 
-static int csi_conv3d_ndhwc_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *kernel,
-                                struct csi_tensor *bias,
-                                struct conv3d_params *params)
-{
-    float *input_data = (float *)input->data;
-    float *output_data = (float *)output->data;
-
-    return CSINN_FALSE;
-}
-
-
-static int csi_conv3d_ndhwc_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *kernel,
-                                struct csi_tensor *bias,
-                                struct conv3d_params *params)
-{
-
-    return CSINN_FALSE;
-}
-
 int csi_conv3d_init(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct csi_tensor *kernel,
                     struct csi_tensor *bias,
                     struct conv3d_params *params)
 {
-    if(params->layout == CSINN_NCDHW) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_conv3d_ncdhw_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_conv3d_ncdhw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if(params->layout == CSINN_NDHWC) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_conv3d_ndhwc_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_conv3d_ndhwc_f32;
-        } else {
+    if (params->layout == CSINN_NCDHW) {
+        params->bc = csi_bc_map(params->api, CSINN_OP_CONV3D, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     } else {
@@ -238,10 +203,10 @@ int csi_conv3d_init(struct csi_tensor *input,
 }
 
 int csi_conv3d(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct csi_tensor *kernel,
-                struct csi_tensor *bias,
-                struct conv3d_params *params)
+               struct csi_tensor *output,
+               struct csi_tensor *kernel,
+               struct csi_tensor *bias,
+               struct conv3d_params *params)
 {
     if(params->bc != NULL) {
         params->bc(input, output, kernel, bias, params);

@@ -19,7 +19,8 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_arange_f32(struct csi_tensor *output, struct arange_params *params)
+int csi_arange_f32(struct csi_tensor *output,
+                   struct arange_params *params)
 {
     float_t * data = output->data;
     int j = 0;
@@ -40,12 +41,12 @@ static int csi_arange_f32(struct csi_tensor *output, struct arange_params *param
     return CSINN_TRUE;
 }
 
-static int csi_arange_u8(struct csi_tensor *output,
-                          struct arange_params *params)
+int csi_arange_u8(struct csi_tensor *output,
+                  struct arange_params *params)
 {
-    float start = csi_dequantize_f32(1.0, 0, params->start_multiplier, params->start_shift);
-    float stop = csi_dequantize_f32(1.0, 0, params->stop_multiplier, params->stop_shift);
-    float step = csi_dequantize_f32(1.0, 0, params->step_multiplier, params->step_shift);
+    float start = csi_dequantize_u8_to_f32(1.0, 0, params->start_multiplier, params->start_shift);
+    float stop = csi_dequantize_u8_to_f32(1.0, 0, params->stop_multiplier, params->stop_shift);
+    float step = csi_dequantize_u8_to_f32(1.0, 0, params->step_multiplier, params->step_shift);
 
     uint8_t * data = output->data;
     int j = 0;
@@ -59,7 +60,7 @@ static int csi_arange_u8(struct csi_tensor *output,
                 break;
         }
 
-        data[j] = csi_quantize_f32(i, output->offset, output->multiplier, output->shift);
+        data[j] = csi_quantize_f32_to_u8(i, output->zero_point, output->multiplier, output->shift);
         i+=step;
         j++;
     }
@@ -69,11 +70,8 @@ static int csi_arange_u8(struct csi_tensor *output,
 int csi_arange_init(struct csi_tensor *output,
                     struct arange_params *params)
 {
-    if (output->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_arange_u8;
-    } else if (output->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_arange_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_ARANGE, output->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

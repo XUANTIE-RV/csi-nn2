@@ -77,13 +77,13 @@ static int csi_lrn_nhwc_u8(struct csi_tensor *input,
     float_output.dtype = CSINN_DTYPE_FLOAT32;
 
     for (int i = 0; i < size; i++) {
-        float_input_data[i] = csi_dequantize_f32(input_data[i], input->offset,
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
                                                  input->multiplier, input->shift);
     }
 
-    bias_f = csi_dequantize_f32(1, 0, params->bias_multiplier, params->bias_shift);
-    alpha_f = csi_dequantize_f32(1, 0, params->alpha_multiplier, params->alpha_shift);
-    beta_f = csi_dequantize_f32(1, 0, params->beta_multiplier, params->beta_shift);
+    bias_f = csi_dequantize_u8_to_f32(1, 0, params->bias_multiplier, params->bias_shift);
+    alpha_f = csi_dequantize_u8_to_f32(1, 0, params->alpha_multiplier, params->alpha_shift);
+    beta_f = csi_dequantize_u8_to_f32(1, 0, params->beta_multiplier, params->beta_shift);
 
     params->bias = bias_f;
     params->alpha = alpha_f;
@@ -92,7 +92,7 @@ static int csi_lrn_nhwc_u8(struct csi_tensor *input,
     csi_lrn_nhwc_f32(&float_input, &float_output, params);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_input_data);
@@ -164,13 +164,13 @@ static int csi_lrn_nchw_u8(struct csi_tensor *input,
     float_output.dtype = CSINN_DTYPE_FLOAT32;
 
     for (int i = 0; i < size; i++) {
-        float_input_data[i] = csi_dequantize_f32(input_data[i], input->offset,
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
                                                  input->multiplier, input->shift);
     }
 
-    bias_f = csi_dequantize_f32(1, 0, params->bias_multiplier, params->bias_shift);
-    alpha_f = csi_dequantize_f32(1, 0, params->alpha_multiplier, params->alpha_shift);
-    beta_f = csi_dequantize_f32(1, 0, params->beta_multiplier, params->beta_shift);
+    bias_f = csi_dequantize_u8_to_f32(1, 0, params->bias_multiplier, params->bias_shift);
+    alpha_f = csi_dequantize_u8_to_f32(1, 0, params->alpha_multiplier, params->alpha_shift);
+    beta_f = csi_dequantize_u8_to_f32(1, 0, params->beta_multiplier, params->beta_shift);
 
     params->bias = bias_f;
     params->alpha = alpha_f;
@@ -179,7 +179,7 @@ static int csi_lrn_nchw_u8(struct csi_tensor *input,
     csi_lrn_nchw_f32(&float_input, &float_output, params);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_input_data);
@@ -187,30 +187,39 @@ static int csi_lrn_nchw_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
+int csi_lrn_f32(struct csi_tensor *input,
+                struct csi_tensor *output,
+                struct lrn_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_lrn_nchw_f32(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_lrn_nhwc_f32(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
 
+int csi_lrn_u8(struct csi_tensor *input,
+               struct csi_tensor *output,
+               struct lrn_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_lrn_nchw_u8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_lrn_nhwc_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
 
 int csi_lrn_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct lrn_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_lrn_nchw_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_lrn_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_lrn_nhwc_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_lrn_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_LRN, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }

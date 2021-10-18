@@ -187,29 +187,42 @@ static int csi_unpooling_nchw_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
+int csi_unpooling_f32(struct csi_tensor *input,
+                      struct csi_tensor *mask,
+                      struct csi_tensor *output,
+                      struct unpooling_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_unpooling_nchw_f32(input, mask, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_unpooling_nhwc_f32(input, mask, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
+int csi_unpooling_u8(struct csi_tensor *input,
+                     struct csi_tensor *mask,
+                     struct csi_tensor *output,
+                     struct unpooling_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_unpooling_nchw_u8(input, mask, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_unpooling_nhwc_u8(input, mask, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+}
+
 int csi_unpooling_init(struct csi_tensor *input,
                        struct csi_tensor *mask,
                        struct csi_tensor *output,
                        struct unpooling_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_unpooling_nchw_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_unpooling_nchw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_unpooling_nhwc_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_unpooling_nhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_UNPOOLING, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }

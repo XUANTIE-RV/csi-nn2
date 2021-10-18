@@ -29,10 +29,10 @@ static int Multiplication(int *input, int s, int e)
     return res;
 }
 
-static int csi_gather_nd_f32(struct csi_tensor *input,
-                            struct csi_tensor *indices,
-                            struct csi_tensor *output,
-                            struct gather_nd_params *params)
+int csi_gather_nd_f32(struct csi_tensor *input,
+                      struct csi_tensor *indices,
+                      struct csi_tensor *output,
+                      struct gather_nd_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -89,11 +89,10 @@ static int csi_gather_nd_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int csi_gather_nd_u8(struct csi_tensor *input,
-                            struct csi_tensor *indices,
-                            struct csi_tensor *output,
-                            struct gather_nd_params *params)
+int csi_gather_nd_u8(struct csi_tensor *input,
+                     struct csi_tensor *indices,
+                     struct csi_tensor *output,
+                     struct gather_nd_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -138,16 +137,16 @@ static int csi_gather_nd_u8(struct csi_tensor *input,
         }
         if(dim_over_flag == 1) {
             dim_over_flag = 0;
-            uint8_t zero = csi_requantize_u8(0.0f, input->offset, input->multiplier, input->shift, 
-                                                    output->offset, output->multiplier, output->shift);
+            uint8_t zero = csi_requantize_u8(0.0f, input->zero_point, input->multiplier, input->shift, 
+                                                    output->zero_point, output->multiplier, output->shift);
             for(int n = 0; n < input_inner_size; n++) {
                 *(output_data + n) = zero;
             }
         } else {
             in_copy_addr = input_data + input_outer_idx * input_inner_size;
             for(int k = 0; k < input_inner_size; k++) {
-                *(output_data + k) = csi_requantize_u8(*(in_copy_addr + k), input->offset, input->multiplier, input->shift, 
-                                                                            output->offset, output->multiplier, output->shift);
+                *(output_data + k) = csi_requantize_u8(*(in_copy_addr + k), input->zero_point, input->multiplier, input->shift, 
+                                                                            output->zero_point, output->multiplier, output->shift);
             }
         }
         output_data += input_inner_size;
@@ -161,11 +160,8 @@ int csi_gather_nd_init(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct gather_nd_params *params)
 {
-    if(input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_gather_nd_u8;
-    } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_gather_nd_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_GATHER_ND, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

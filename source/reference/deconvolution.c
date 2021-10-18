@@ -39,9 +39,9 @@ static int csi_deconv2d_nhwc_u8(struct csi_tensor *input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
     const int output_batch = output->dim[0];
-    const int32_t input_offset = input->offset;
-    const int32_t filter_offset = kernel->offset;
-    const int32_t output_offset = output->offset;
+    const int32_t input_offset = input->zero_point;
+    const int32_t filter_offset = kernel->zero_point;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int output_shift = output->shift;
 
@@ -77,8 +77,8 @@ static int csi_deconv2d_nhwc_u8(struct csi_tensor *input,
                                         kernel->dim, out_channel, filter_y, filter_x, in_channel)];
                                     scratch_buffer[csi_get_index(output->dim, batch, out_y, out_x,
                                                                  out_channel)] +=
-                                        (input_value + input_offset) *
-                                        (filter_value + filter_offset);
+                                        (input_value - input_offset) *
+                                        (filter_value - filter_offset);
                                 }
                             }
                         }
@@ -103,7 +103,7 @@ static int csi_deconv2d_nhwc_u8(struct csi_tensor *input,
 
     for (int i = 0; i < num_elements; ++i) {
         output_data[i] =
-            csi_quantize_u8(scratch_buffer[i], output->offset, output->multiplier, output->shift);
+            csi_quantize_u8(scratch_buffer[i], output->zero_point, output->multiplier, output->shift);
     }
 
     return CSINN_TRUE;
@@ -115,8 +115,8 @@ static int csi_deconv2d_nchw_u8(struct csi_tensor *o_input,
                                 struct csi_tensor *o_bias,
                                 struct conv2d_params *params)
 {
-    struct csi_tensor* input = csi_nchw_to_nhwc_u8(o_input);
-    struct csi_tensor* output = csi_nchw_to_nhwc_u8(o_output);
+    struct csi_tensor* input = csi_nchw_to_nhwc_8(o_input);
+    struct csi_tensor* output = csi_nchw_to_nhwc_8(o_output);
     int32_t permute[4] = {1, 2, 3, 0};
     struct csi_tensor* kernel = csi_deconv_kernel_nchw_to_nhwc_u8(o_kernel, permute);
     struct csi_tensor* bias = o_bias;
@@ -135,9 +135,9 @@ static int csi_deconv2d_nchw_u8(struct csi_tensor *o_input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
     const int output_batch = output->dim[0];
-    const int32_t input_offset = input->offset;
-    const int32_t filter_offset = kernel->offset;
-    const int32_t output_offset = output->offset;
+    const int32_t input_offset = input->zero_point;
+    const int32_t filter_offset = kernel->zero_point;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int output_shift = output->shift;
 
@@ -173,8 +173,8 @@ static int csi_deconv2d_nchw_u8(struct csi_tensor *o_input,
                                         kernel->dim, out_channel, filter_y, filter_x, in_channel)];
                                     scratch_buffer[csi_get_index(output->dim, batch, out_y, out_x,
                                                                  out_channel)] +=
-                                        (input_value + input_offset) *
-                                        (filter_value + filter_offset);
+                                        (input_value - input_offset) *
+                                        (filter_value - filter_offset);
                                 }
                             }
                         }
@@ -198,21 +198,21 @@ static int csi_deconv2d_nchw_u8(struct csi_tensor *o_input,
 
     for (int i = 0; i < num_elements; ++i) {
         output_data[i] =
-            csi_quantize_u8(scratch_buffer[i], output->offset, output->multiplier, output->shift);
+            csi_quantize_u8(scratch_buffer[i], output->zero_point, output->multiplier, output->shift);
     }
 
-    csi_nhwc_to_nchw_u8(o_output, output);
+    csi_nhwc_to_nchw_8(o_output, output);
     return CSINN_TRUE;
 }
 
-static int csi_depthwise_deconv2d_nchw_u8(struct csi_tensor *o_input,
+int csi_depthwise_deconv2d_u8(struct csi_tensor *o_input,
                                           struct csi_tensor *o_output,
                                           struct csi_tensor *o_kernel,
                                           struct csi_tensor *o_bias,
                                           struct conv2d_params *params)
 {
-    struct csi_tensor* input = csi_nchw_to_nhwc_u8(o_input);
-    struct csi_tensor* output = csi_nchw_to_nhwc_u8(o_output);
+    struct csi_tensor* input = csi_nchw_to_nhwc_8(o_input);
+    struct csi_tensor* output = csi_nchw_to_nhwc_8(o_output);
     int32_t permute[4] = {1, 2, 3, 0};
     struct csi_tensor* kernel = csi_deconv_kernel_nchw_to_nhwc_u8(o_kernel, permute);
     struct csi_tensor* bias = o_bias;
@@ -231,9 +231,9 @@ static int csi_depthwise_deconv2d_nchw_u8(struct csi_tensor *o_input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
     const int output_batch = output->dim[0];
-    const int32_t input_offset = input->offset;
-    const int32_t filter_offset = kernel->offset;
-    const int32_t output_offset = output->offset;
+    const int32_t input_offset = input->zero_point;
+    const int32_t filter_offset = kernel->zero_point;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int output_shift = output->shift;
 
@@ -268,8 +268,8 @@ static int csi_depthwise_deconv2d_nchw_u8(struct csi_tensor *o_input,
 									kernel->dim, 0, filter_y, filter_x, in_channel)];
 								scratch_buffer[csi_get_index(output->dim, batch, out_y, out_x,
 															 in_channel)] +=
-									(input_value + input_offset) *
-									(filter_value + filter_offset);
+									(input_value - input_offset) *
+									(filter_value - filter_offset);
 							}
                         }
                     }
@@ -292,11 +292,26 @@ static int csi_depthwise_deconv2d_nchw_u8(struct csi_tensor *o_input,
 
     for (int i = 0; i < num_elements; ++i) {
         output_data[i] =
-            csi_quantize_u8(scratch_buffer[i], output->offset, output->multiplier, output->shift);
+            csi_quantize_u8(scratch_buffer[i], output->zero_point, output->multiplier, output->shift);
     }
 
-    csi_nhwc_to_nchw_u8(o_output, output);
+    csi_nhwc_to_nchw_8(o_output, output);
     return CSINN_TRUE;
+}
+
+int csi_deconv2d_u8(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct csi_tensor *kernel,
+                    struct csi_tensor *bias,
+                    struct conv2d_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_deconv2d_nchw_u8(input, output, kernel, bias, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_deconv2d_nhwc_u8(input, output, kernel, bias, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
 }
 
 int csi_deconv2d_init(struct csi_tensor *input,
@@ -305,34 +320,18 @@ int csi_deconv2d_init(struct csi_tensor *input,
                       struct csi_tensor *bias,
                       struct conv2d_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (params->group == 1) {
-            if (input->dtype == CSINN_DTYPE_UINT8) {
-                params->bc = csi_deconv2d_nchw_u8;
-            } else {
-                return CSINN_UNSUPPORT_DTYPE;
-            }
-        } else if (params->group == output->dim[1]) {
-            if (input->dtype == CSINN_DTYPE_UINT8) {
-                params->bc = csi_depthwise_deconv2d_nchw_u8;
-            } else {
-                return CSINN_UNSUPPORT_DTYPE;
-            }
-        } else {
-            return CSINN_FALSE;
+    if (params->group == 1) {
+        params->bc = csi_bc_map(params->api, CSINN_OP_DECONV2D, input->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
         }
-    } else if (params->layout == CSINN_NHWC) {
-        if (params->group == 1) {
-            if (input->dtype == CSINN_DTYPE_UINT8) {
-                params->bc = csi_deconv2d_nhwc_u8;
-            } else {
-                return CSINN_UNSUPPORT_DTYPE;
-            }
-        } else {
-            return CSINN_FALSE;
+    } else if (params->group == output->dim[1] && params->layout == CSINN_NCHW) {
+        params->bc = csi_bc_map(params->api, CSINN_OP_DEPTHWISE_DECONV2D, input->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
         }
     } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+        return CSINN_FALSE;
     }
     return CSINN_TRUE;
 }

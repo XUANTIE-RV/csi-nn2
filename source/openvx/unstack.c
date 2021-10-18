@@ -20,7 +20,7 @@
 #include "csi_ovx.h"
 
 int csi_ovx_unstack(struct csi_tensor *input,
-                    struct csi_tensor *outputs,
+                    struct csi_tensor *output,
                     struct unstack_params *params)
 {
     vsi_nn_node_t *node;
@@ -28,14 +28,13 @@ int csi_ovx_unstack(struct csi_tensor *input,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
+    output->sess = input->sess;
     uint32_t input_num = 1;
-    uint32_t output_num = outputs_count;
+    uint32_t output_num = params->outputs_count;
     int i = 0;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_UNSTACK, input_num, output_num, &node_id);
-    node->nn_param.unstack.axis = axis;
+    node->nn_param.unstack.axis = params->axis;
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 
@@ -43,7 +42,7 @@ int csi_ovx_unstack(struct csi_tensor *input,
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output */
-    for (i = 0; i < outputs_count; i++) {
+    for (i = 0; i < output_num; i++) {
         attr.dtype.scale = 1;
         attr.dtype.zero_point = 0;
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
@@ -54,6 +53,6 @@ int csi_ovx_unstack(struct csi_tensor *input,
         attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
         output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
         node->output.tensors[i] = output_id;
-        output[i]->data = (void *)output_id;
+        output[i].data = (void *)output_id;
     }
 }

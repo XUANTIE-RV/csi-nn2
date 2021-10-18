@@ -21,9 +21,9 @@
 
 /* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/image_ops_impl.py#L3279-L3325 line 3279*/
 
-static int csi_yuv_rgb_scale_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct siso_params *params)
+int csi_yuv_rgb_scale_f32(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -51,9 +51,9 @@ static int csi_yuv_rgb_scale_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_yuv_rgb_scale_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct siso_params *params)
+int csi_yuv_rgb_scale_u8(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct siso_params *params)
 {
 
     uint8_t *input_data = input->data;
@@ -62,18 +62,18 @@ static int csi_yuv_rgb_scale_u8(struct csi_tensor *input,
     for(int n = 0; n < input->dim[0]; n++){
         for(int h = 0; h < input->dim[1]; h++){
             for(int w = 0; w < input->dim[2]; w++){
-                float y = csi_dequantize_f32(input_data[0], input->offset, input->multiplier, input->shift);
-                float u = csi_dequantize_f32(input_data[1], input->offset, input->multiplier, input->shift);
-                float v = csi_dequantize_f32(input_data[2], input->offset, input->multiplier, input->shift);
+                float y = csi_dequantize_u8_to_f32(input_data[0], input->zero_point, input->multiplier, input->shift);
+                float u = csi_dequantize_u8_to_f32(input_data[1], input->zero_point, input->multiplier, input->shift);
+                float v = csi_dequantize_u8_to_f32(input_data[2], input->zero_point, input->multiplier, input->shift);
 
                 float r = y + 1.13988303 * v;
                 float g = y - 0.394642334 * u - 0.58062185 * v;
                 float b = y + 2.03206185 * u;
 
                 input_data += 3;
-                output_data[0] = csi_quantize_f32(r, output->offset, output->multiplier, output->shift);
-                output_data[1] = csi_quantize_f32(g, output->offset, output->multiplier, output->shift);
-                output_data[2] = csi_quantize_f32(b, output->offset, output->multiplier, output->shift);
+                output_data[0] = csi_quantize_f32_to_u8(r, output->zero_point, output->multiplier, output->shift);
+                output_data[1] = csi_quantize_f32_to_u8(g, output->zero_point, output->multiplier, output->shift);
+                output_data[2] = csi_quantize_f32_to_u8(b, output->zero_point, output->multiplier, output->shift);
                 output_data += 3;
             }
         }
@@ -83,22 +83,19 @@ static int csi_yuv_rgb_scale_u8(struct csi_tensor *input,
 }
 
 int csi_yuv_rgb_scale_init(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct siso_params *params)
+                           struct csi_tensor *output,
+                           struct siso_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_yuv_rgb_scale_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_yuv_rgb_scale_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_YUV_RGB_SCALE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_yuv_rgb_scale(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params)
+                      struct csi_tensor *output,
+                      struct siso_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

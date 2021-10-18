@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_reduce_max_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct reduce_params *params)
+int csi_reduce_max_f32(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct reduce_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -65,9 +64,9 @@ static int csi_reduce_max_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_reduce_max_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct reduce_params *params)
+int csi_reduce_max_u8(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct reduce_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -78,12 +77,12 @@ static int csi_reduce_max_u8(struct csi_tensor *input,
         for(int i=0; i<input->dim_count; i++) {
             size = size * input->dim[i];
         }
-        float res = csi_dequantize_f32(input_data[0], input->offset, input->multiplier, input->shift);
+        float res = csi_dequantize_u8_to_f32(input_data[0], input->zero_point, input->multiplier, input->shift);
         for(int j = 1; j < size; j++) {
-            float input_temp = csi_dequantize_f32(input_data[j], input->offset, input->multiplier, input->shift);
+            float input_temp = csi_dequantize_u8_to_f32(input_data[j], input->zero_point, input->multiplier, input->shift);
             res = fmax(res, input_temp);
         }
-        *output_data = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+        *output_data = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
     } else {
         int axis = *(params->axis);
         int64_t outer_size = 1;
@@ -98,13 +97,13 @@ static int csi_reduce_max_u8(struct csi_tensor *input,
 
         for(int i = 0; i < outer_size; i++) {
             for(int k = 0; k < inner_size; k++) {
-                float temp = csi_dequantize_f32(input_data[k], input->offset, input->multiplier, input->shift);
+                float temp = csi_dequantize_u8_to_f32(input_data[k], input->zero_point, input->multiplier, input->shift);
                 for(int j = 1; j < cnt; j++) {
                     uint8_t input_val = *(input_data + j * inner_size + k);
-                    float input_temp = csi_dequantize_f32(input_val, input->offset, input->multiplier, input->shift);
+                    float input_temp = csi_dequantize_u8_to_f32(input_val, input->zero_point, input->multiplier, input->shift);
                     temp = fmax(temp, input_temp);
                 }
-                *(output_data + k) = csi_quantize_f32(temp, output->offset, output->multiplier, output->shift);
+                *(output_data + k) = csi_quantize_f32_to_u8(temp, output->zero_point, output->multiplier, output->shift);
             }
             input_data += inner_size * cnt;
             output_data += inner_size;
@@ -117,11 +116,8 @@ int csi_reduce_max_init(struct csi_tensor *input,
                         struct csi_tensor *output,
                         struct reduce_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_reduce_max_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_reduce_max_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_REDUCE_MAX, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

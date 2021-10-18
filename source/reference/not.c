@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include <assert.h>
 
-static int csi_not_u32(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct siso_params *params)
+int csi_not_u32(struct csi_tensor *input,
+                struct csi_tensor *output,
+                struct siso_params *params)
 
 {
     uint32_t *input_data = input->data;
@@ -37,9 +37,9 @@ static int csi_not_u32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_not_u8(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct siso_params *params)
+int csi_not_u8(struct csi_tensor *input,
+               struct csi_tensor *output,
+               struct siso_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -58,11 +58,8 @@ int csi_not_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct siso_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_not_u8;
-    } else if (input->dtype == CSINN_DTYPE_UINT32) {
-        params->bc = csi_not_u32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_NOT, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

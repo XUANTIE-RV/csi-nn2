@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_averagepool3d_ncdhw_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct pool_params *params)
+int csi_averagepool3d_f32(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct pool_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -80,9 +79,9 @@ static int csi_averagepool3d_ncdhw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_averagepool3d_ncdhw_u8(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct pool_params *params)
+int csi_averagepool3d_u8(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct pool_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -124,14 +123,14 @@ static int csi_averagepool3d_ncdhw_u8(struct csi_tensor *input,
                                     int in_h = in_h_origin + filter_h;
                                     int in_w = in_w_origin + filter_w;
                                     uint8_t input_val = input_data[csi_get_index_5(input->dim, in_ch, out_ch, in_d, in_h, in_w)];
-                                    total += csi_dequantize_f32(input_val, input->offset, input->multiplier, input->shift);
+                                    total += csi_dequantize_u8_to_f32(input_val, input->zero_point, input->multiplier, input->shift);
                                     // filter_cnt++;
                                 }
                             }
                         }
                         // float average = filter_cnt==0 ? total : total/filter_cnt;
                         float average = total/filter_cnt;
-                        uint8_t output_val = csi_quantize_f32(average, output->offset, output->multiplier, output->shift);
+                        uint8_t output_val = csi_quantize_f32_to_u8(average, output->zero_point, output->multiplier, output->shift);
                         output_data[csi_get_index_5(output->dim, in_ch, out_ch, out_d, out_h, out_w)] = output_val;
                     }
                 }
@@ -142,57 +141,20 @@ static int csi_averagepool3d_ncdhw_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_averagepool3d_ndhwc_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct pool_params *params)
-{
-    float *input_data = (float *)input->data;
-    float *output_data = (float *)output->data;
-
-    return CSINN_FALSE;
-}
-
-static int csi_averagepool3d_ndhwc_u8(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct pool_params *params)
-{
-    uint8_t *input_data = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-
-    return CSINN_FALSE;
-}
-
-
 int csi_averagepool3d_init(struct csi_tensor *input,
                            struct csi_tensor *output,
                            struct pool_params *params)
 {
-    if(params->layout == CSINN_NCDHW) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_averagepool3d_ncdhw_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_averagepool3d_ncdhw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if(params->layout == CSINN_NDHWC) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_averagepool3d_ndhwc_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_averagepool3d_ndhwc_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_AVGPOOL3D, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
-
 int csi_averagepool3d(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params)
+                      struct csi_tensor *output,
+                      struct pool_params *params)
 {
     if(params->bc !=NULL) {
         params->bc(input, output, params);

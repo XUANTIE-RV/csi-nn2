@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_max_stride_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params)
+int csi_max_stride_f32(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct reduce_params *params)
 {
 
     float *input_data = input->data;
@@ -58,9 +58,9 @@ static int csi_max_stride_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_max_stride_u8(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct reduce_params *params)
+int csi_max_stride_u8(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct reduce_params *params)
 {
 
     uint8_t *input_data = input->data;
@@ -88,12 +88,12 @@ static int csi_max_stride_u8(struct csi_tensor *input,
         {
             int32_t index = out_index + get_reduction_index(inner, params->inner_strides,
                                                             params->inner_extents, params->m);
-            float val = csi_dequantize_f32(input_data[index], input->offset,
+            float val = csi_dequantize_u8_to_f32(input_data[index], input->zero_point,
                                            input->multiplier, input->shift);
             result = fmax(result, val);
         }
 
-        output_data[out] = csi_quantize_f32(result, output->offset,
+        output_data[out] = csi_quantize_f32_to_u8(result, output->zero_point,
                                             output->multiplier, output->shift);
     }
     return CSINN_TRUE;
@@ -106,11 +106,8 @@ int csi_max_init(struct csi_tensor *input,
     if (params->n == 0 && params->m == 0) {
         return CSINN_FALSE;
     } else {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_max_stride_u8;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_max_stride_f32;
-        } else {
+        params->bc = csi_bc_map(params->api, CSINN_OP_MAX, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     }

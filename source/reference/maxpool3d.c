@@ -19,7 +19,7 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_maxpool3d_ncdhw_f32(struct csi_tensor *input,
+int csi_maxpool3d_f32(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct pool_params *params)
 {
@@ -53,7 +53,7 @@ static int csi_maxpool3d_ncdhw_f32(struct csi_tensor *input,
                         const int filter_w_begin = csi_max_internal_s32(0, -in_w_origin);
                         const int filter_w_end = csi_min_internal_s32(params->filter_width, in_width - in_w_origin);
 
-                        float max = -1000;
+                        float max = -FLT_MAX;
                         int filter_cnt = 0;
                         for(int filter_d=filter_d_begin; filter_d<filter_d_end; ++filter_d) {
                             for(int filter_h=filter_h_begin; filter_h<filter_h_end; ++filter_h) {
@@ -78,9 +78,9 @@ static int csi_maxpool3d_ncdhw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_maxpool3d_ncdhw_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+int csi_maxpool3d_u8(struct csi_tensor *input,
+                                  struct csi_tensor *output,
+                                  struct pool_params *params)
 {
     uint8_t *input_data  = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -94,10 +94,10 @@ static int csi_maxpool3d_ncdhw_u8(struct csi_tensor *input,
     const int out_height = output->dim[3];
     const int out_width = output->dim[4];
 
-    const int32_t input_offset = input->offset;
+    const int32_t input_offset = input->zero_point;
     const int32_t input_multiplier = input->multiplier;
     const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->offset;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -146,45 +146,13 @@ static int csi_maxpool3d_ncdhw_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int csi_maxpool3d_ndhwc_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
-{
-    float *input_data  = (float *)input->data;
-    float *output_data = (float *)output->data;
-
-    return CSINN_FALSE;
-}
-
-static int csi_maxpool3d_ndhwc_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
-{
-    uint8_t *input_data  = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-
-    return CSINN_FALSE;
-}
-
 int csi_maxpool3d_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params)
+                       struct csi_tensor *output,
+                       struct pool_params *params)
 {
     if(params->layout == CSINN_NCDHW) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_maxpool3d_ncdhw_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_maxpool3d_ncdhw_f32;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if(params->layout == CSINN_NDHWC) {
-        if(input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_maxpool3d_ndhwc_u8;
-        } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->bc = csi_maxpool3d_ndhwc_f32;
-        } else {
+        params->bc = csi_bc_map(params->api, CSINN_OP_MAXPOOL3D, input->dtype);
+        if (params->bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
     } else {

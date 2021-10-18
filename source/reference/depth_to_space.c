@@ -21,9 +21,9 @@
 
 
 //the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-static int csi_depth_to_space_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct depth_to_space_params *params)
+int csi_depth_to_space_f32(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct depth_to_space_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -65,10 +65,9 @@ static int csi_depth_to_space_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int csi_depth_to_space_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct depth_to_space_params *params)
+int csi_depth_to_space_u8(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct depth_to_space_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -115,11 +114,8 @@ int csi_depth_to_space_init(struct csi_tensor *input,
                              struct csi_tensor *output,
                              struct depth_to_space_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_depth_to_space_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_depth_to_space_f32;
-    } else {
+     params->bc = csi_bc_map(params->api, CSINN_OP_DEPTH_TO_SPACE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

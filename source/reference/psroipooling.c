@@ -20,10 +20,10 @@
 #include "csi_utils.h"
 #include <math.h>
 
-static int csi_psroipooling_f32(struct csi_tensor *data,
-                      struct csi_tensor *rois,
-                      struct csi_tensor *output,
-                    struct psroipooling_params *params)
+int csi_psroipooling_f32(struct csi_tensor *data,
+                         struct csi_tensor *rois,
+                         struct csi_tensor *output,
+                         struct psroipooling_params *params)
 {
     float *output_data = output->data;
     float *bottom_data = data->data;
@@ -93,10 +93,10 @@ static int csi_psroipooling_f32(struct csi_tensor *data,
     return CSINN_TRUE;
 }
 
-static int csi_psroipooling_u8(struct csi_tensor *data,
-                      struct csi_tensor *rois,
-                      struct csi_tensor *output,
-                    struct psroipooling_params *params)
+int csi_psroipooling_u8(struct csi_tensor *data,
+                        struct csi_tensor *rois,
+                        struct csi_tensor *output,
+                        struct psroipooling_params *params)
 {
     uint8_t *output_data = output->data;
 
@@ -122,7 +122,7 @@ static int csi_psroipooling_u8(struct csi_tensor *data,
 
     uint8_t *data_item_data = data->data;
     for (int k = 0; k < size; k++) {
-        float_data_item_data[k] = csi_dequantize_f32(data_item_data[k], data->offset,
+        float_data_item_data[k] = csi_dequantize_u8_to_f32(data_item_data[k], data->zero_point,
                                                 data->multiplier, data->shift);
     }
     float_data.data = float_data_item_data;
@@ -138,17 +138,17 @@ static int csi_psroipooling_u8(struct csi_tensor *data,
 
     uint8_t *rois_item_data = rois->data;
     for (int k = 0; k < size; k++) {
-        float_rois_item_data[k] = csi_dequantize_f32(rois_item_data[k], rois->offset,
+        float_rois_item_data[k] = csi_dequantize_u8_to_f32(rois_item_data[k], rois->zero_point,
                                                 rois->multiplier, rois->shift);
     }
     float_rois.data = float_rois_item_data;
 
-    params->spatial_scale = csi_dequantize_f32(1.0, 0, params->spatial_scale_multiplier, params->spatial_scale_shift);
+    params->spatial_scale = csi_dequantize_u8_to_f32(1.0, 0, params->spatial_scale_multiplier, params->spatial_scale_shift);
 
     csi_psroipooling_f32(&float_data, &float_rois, &float_output, params);
 
     for (int i = 0; i < outer_size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_data_item_data);
@@ -163,11 +163,8 @@ int csi_psroipooling_init(struct csi_tensor *data,
                           struct csi_tensor *output,
                           struct psroipooling_params *params)
 {
-    if (data->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_psroipooling_u8;
-    } else if (data->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_psroipooling_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_PSROIPOOLING, data->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

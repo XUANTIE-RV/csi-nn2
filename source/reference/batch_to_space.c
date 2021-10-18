@@ -20,9 +20,9 @@
 #include "csi_utils.h"
 
 //the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-static int csi_batch_to_space_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct batch_to_space_params *params)
+int csi_batch_to_space_f32(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct batch_to_space_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -69,9 +69,9 @@ static int csi_batch_to_space_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_batch_to_space_u8(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct batch_to_space_params *params)
+int csi_batch_to_space_u8(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct batch_to_space_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -107,8 +107,8 @@ static int csi_batch_to_space_u8(struct csi_tensor *input,
                             if(h_now >= 0 && h_now < out_height && w_now >= 0 && w_now < out_width) {
                                 int out_addr = csi_get_index(output->dim, out_b, out_c, h_now, w_now);
                                 // output_data[out_addr] = temp[h * block_size + w];
-                                output_data[out_addr] = csi_requantize_u8(temp[h * block_size + w], input->offset, input->multiplier, input->shift,
-                                                                     output->offset, output->multiplier, output->shift);
+                                output_data[out_addr] = csi_requantize_u8(temp[h * block_size + w], input->zero_point, input->multiplier, input->shift,
+                                                                     output->zero_point, output->multiplier, output->shift);
                             }
                         }
                     }
@@ -124,11 +124,8 @@ int csi_batch_to_space_init(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct batch_to_space_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_batch_to_space_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_batch_to_space_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_BATCH_TO_SPACE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

@@ -31,9 +31,8 @@ int csi_ovx_deconv2d(struct csi_tensor *input,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
+    output->sess = input->sess;
     uint32_t input_num = 3;
     uint32_t output_num = 1;
 
@@ -100,44 +99,19 @@ int csi_ovx_deconv2d(struct csi_tensor *input,
     output->data = (void *)output_id;
 }
 
-void csi_depthwise_deconv2d_f32(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct csi_tensor *kernel,
-                      struct csi_tensor *bias,
-                      int32_t stride_height,
-                      int32_t stride_width,
-                      int32_t pad_top,
-                      int32_t pad_left,
-                      int32_t pad_down,
-                      int32_t pad_right,
-                      int32_t dilation_height,
-                      int32_t dilation_width)
-{
-    /* unsupport */
-    assert(0);
-}
-
-void csi_depthwise_deconv2d_u8(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct csi_tensor *kernel,
-                     struct csi_tensor *bias,
-                     int32_t stride_height,
-                     int32_t stride_width,
-                     int32_t pad_top,
-                     int32_t pad_left,
-                     int32_t pad_down,
-                     int32_t pad_right,
-                     int32_t dilation_height,
-                     int32_t dilation_width)
+int csi_ovx_depthwise_deconv2d(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct csi_tensor *kernel,
+                                struct csi_tensor *bias,
+                                struct conv2d_params *params)
 {
     vsi_nn_node_t *node;
     vsi_nn_node_id_t node_id;
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
+    output->sess = input->sess;
     uint32_t input_num = 3;
     uint32_t output_num = 1;
 
@@ -145,12 +119,12 @@ void csi_depthwise_deconv2d_u8(struct csi_tensor *input,
     node->nn_param.deconv.ksize[0] = kernel->dim[3];
     node->nn_param.deconv.ksize[1] = kernel->dim[2];
     node->nn_param.deconv.weights = output->dim[1];
-    node->nn_param.deconv.stride[0] = stride_width;
-    node->nn_param.deconv.stride[1] = stride_height;
-    node->nn_param.deconv.pad[0] = pad_left;
-    node->nn_param.deconv.pad[1] = pad_right;
-    node->nn_param.deconv.pad[2] = pad_top;
-    node->nn_param.deconv.pad[3] = pad_down;
+    node->nn_param.deconv.stride[0] = params->stride_width;
+    node->nn_param.deconv.stride[1] = params->stride_height;
+    node->nn_param.deconv.pad[0] = params->pad_left;
+    node->nn_param.deconv.pad[1] = params->pad_right;
+    node->nn_param.deconv.pad[2] = params->pad_top;
+    node->nn_param.deconv.pad[3] = params->pad_down;
     node->nn_param.deconv.group = output->dim[1];
     // node->nn_param.deconv.dilation[0] = dilation_width;
     // node->nn_param.deconv.dilation[1] = dilation_height;

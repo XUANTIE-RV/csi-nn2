@@ -19,10 +19,10 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_mul_f32(struct csi_tensor *input0,
-                 struct csi_tensor *input1,
-                 struct csi_tensor *output,
-                 struct diso_params *params)
+int csi_mul_f32(struct csi_tensor *input0,
+                struct csi_tensor *input1,
+                struct csi_tensor *output,
+                struct diso_params *params)
 {
     float *input0_data = input0->data;
     float *input1_data = input1->data;
@@ -59,10 +59,10 @@ static int csi_mul_f32(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-static int csi_mul_u8(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct diso_params *params)
+int csi_mul_u8(struct csi_tensor *input0,
+               struct csi_tensor *input1,
+               struct csi_tensor *output,
+               struct diso_params *params)
 {
     uint8_t *input0_data = input0->data;
     uint8_t *input1_data = input1->data;
@@ -89,11 +89,11 @@ static int csi_mul_u8(struct csi_tensor *input0,
     if(size0 == size1){
         for (int i = 0; i < size0; i++) {
             float input0_val =
-                csi_dequantize_f32(input0_data[i], input0->offset, input0->multiplier, input0->shift);
+                csi_dequantize_u8_to_f32(input0_data[i], input0->zero_point, input0->multiplier, input0->shift);
             float input1_val =
-                csi_dequantize_f32(input1_data[i], input1->offset, input1->multiplier, input1->shift);
+                csi_dequantize_u8_to_f32(input1_data[i], input1->zero_point, input1->multiplier, input1->shift);
             float res = input0_val * input1_val;
-            output_data[i] = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+            output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
         }
     }
     else if(input1->dim[axis] == channel && size1 == input1->dim[axis]){
@@ -105,13 +105,13 @@ static int csi_mul_u8(struct csi_tensor *input0,
                         else if (params->layout == CSINN_NCHW){channel = h;}
 
                         float input1_val =
-                        csi_dequantize_f32(input1_data[channel], input1->offset, input1->multiplier, input1->shift);
+                        csi_dequantize_u8_to_f32(input1_data[channel], input1->zero_point, input1->multiplier, input1->shift);
 
                         int index = csi_get_index(input0->dim, n, h, w, c);
                         float input0_val =
-                        csi_dequantize_f32(input0_data[index], input0->offset, input0->multiplier, input0->shift);
+                        csi_dequantize_u8_to_f32(input0_data[index], input0->zero_point, input0->multiplier, input0->shift);
                         float res = input0_val * input1_val;
-                        output_data[index] = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+                        output_data[index] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
                     }
                 }
             }
@@ -119,12 +119,12 @@ static int csi_mul_u8(struct csi_tensor *input0,
     }
     else if (input1->dim_count == 0){
         float input1_val =
-                        csi_dequantize_f32(input1_data[0], input1->offset, input1->multiplier, input1->shift);
+                        csi_dequantize_u8_to_f32(input1_data[0], input1->zero_point, input1->multiplier, input1->shift);
         for (int i=0; i< size0; i++){
             float input0_val =
-                        csi_dequantize_f32(input0_data[i], input0->offset, input0->multiplier, input0->shift);
+                        csi_dequantize_u8_to_f32(input0_data[i], input0->zero_point, input0->multiplier, input0->shift);
             float res = input0_val * input1_val;
-            output_data[i] = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+            output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
 
         }
     }
@@ -136,13 +136,13 @@ static int csi_mul_u8(struct csi_tensor *input0,
                         for(int m = 0; m < input0->dim[4]; m++){
                             int in1_index = l * input1->dim[1] + m;
                             float input1_val =
-                            csi_dequantize_f32(input1_data[in1_index], input1->offset, input1->multiplier, input1->shift);
+                            csi_dequantize_u8_to_f32(input1_data[in1_index], input1->zero_point, input1->multiplier, input1->shift);
 
                             int index = csi_get_index_5(input0->dim, i, j, k, l, m);
                             float input0_val =
-                            csi_dequantize_f32(input0_data[index], input0->offset, input0->multiplier, input0->shift);
+                            csi_dequantize_u8_to_f32(input0_data[index], input0->zero_point, input0->multiplier, input0->shift);
                             float res = input0_val * input1_val;
-                            output_data[index] = csi_quantize_f32(res, output->offset, output->multiplier, output->shift);
+                            output_data[index] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
                         }
                     }
                 }
@@ -153,24 +153,21 @@ static int csi_mul_u8(struct csi_tensor *input0,
 }
 
 int csi_mul_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct diso_params *params)
+                 struct csi_tensor *input1,
+                 struct csi_tensor *output,
+                 struct diso_params *params)
 {
-    if (input0->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_mul_u8;
-    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_mul_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_MUL, input0->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_mul(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct diso_params *params)
+            struct csi_tensor *input1,
+            struct csi_tensor *output,
+            struct diso_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input0, input1, output, params);

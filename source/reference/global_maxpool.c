@@ -33,10 +33,10 @@ static int csi_global_maxpool_nhwc_u8(struct csi_tensor *input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
 
-    const int32_t input_offset = input->offset;
+    const int32_t input_offset = input->zero_point;
     const int32_t input_multiplier = input->multiplier;
     const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->offset;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -69,7 +69,7 @@ static int csi_global_maxpool_nhwc_u8(struct csi_tensor *input,
                             const int in_y = in_y_origin + filter_y;
                             uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)];
-                            curr_value = csi_dequantize_f32(input_val, input_offset, input_multiplier,
+                            curr_value = csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
                                                         input_shift);
                             if (curr_value > max_value) {
                                 max_value = curr_value;
@@ -77,7 +77,7 @@ static int csi_global_maxpool_nhwc_u8(struct csi_tensor *input,
                         }
                     }
                     output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32(max_value, output_offset, output_multiplier, output_shift);
+                        csi_quantize_f32_to_u8(max_value, output_offset, output_multiplier, output_shift);
                 }
             }
         }
@@ -91,8 +91,8 @@ static int csi_global_maxpool_nchw_u8(struct csi_tensor *o_input,
 {
     struct csi_tensor* input;
     struct csi_tensor* output;
-    input =  csi_nchw_to_nhwc_u8(o_input);
-    output = csi_nchw_to_nhwc_u8(o_output);
+    input =  csi_nchw_to_nhwc_8(o_input);
+    output = csi_nchw_to_nhwc_8(o_output);
 
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -103,10 +103,10 @@ static int csi_global_maxpool_nchw_u8(struct csi_tensor *o_input,
     const int output_height = output->dim[1];
     const int output_width = output->dim[2];
 
-    const int32_t input_offset = input->offset;
+    const int32_t input_offset = input->zero_point;
     const int32_t input_multiplier = input->multiplier;
     const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->offset;
+    const int32_t output_offset = output->zero_point;
     const int32_t output_multiplier = output->multiplier;
     const int32_t output_shift = output->shift;
 
@@ -139,7 +139,7 @@ static int csi_global_maxpool_nchw_u8(struct csi_tensor *o_input,
                             const int in_y = in_y_origin + filter_y;
                             uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)];
-                            curr_value = csi_dequantize_f32(input_val, input_offset, input_multiplier,
+                            curr_value = csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
                                                         input_shift);
                             if (curr_value > max_value) {
                                 max_value = curr_value;
@@ -147,33 +147,35 @@ static int csi_global_maxpool_nchw_u8(struct csi_tensor *o_input,
                         }
                     }
                     output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32(max_value, output_offset, output_multiplier, output_shift);
+                        csi_quantize_f32_to_u8(max_value, output_offset, output_multiplier, output_shift);
                 }
             }
         }
     }
-    csi_nhwc_to_nchw_u8(o_output, output);
+    csi_nhwc_to_nchw_8(o_output, output);
     return CSINN_TRUE;
+}
+
+int csi_global_maxpool_u8(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct pool_params *params)
+{
+    if (params->layout == CSINN_NCHW) {
+        csi_global_maxpool_nchw_u8(input, output, params);
+    } else if (params->layout == CSINN_NHWC) {
+        csi_global_maxpool_nhwc_u8(input, output, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
 }
 
 int csi_global_maxpool_init(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_global_maxpool_nchw_u8;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else if (params->layout = CSINN_NHWC) {
-        if (input->dtype == CSINN_DTYPE_UINT8) {
-            params->bc = csi_global_maxpool_nhwc_u8;
-        } else {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    params->bc = csi_bc_map(params->api, CSINN_OP_GLOBAL_MAXPOOL2D, input->dtype);
+    if (params->bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }

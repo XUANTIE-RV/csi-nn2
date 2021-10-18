@@ -19,10 +19,10 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_col2im_f32(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct csi_tensor *kernel,
-                           struct col2im_params *params)
+int csi_col2im_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct csi_tensor *kernel,
+                   struct col2im_params *params)
 {
     int32_t height = input->dim[1];
     int32_t width = input->dim[2];
@@ -67,9 +67,8 @@ int csi_col2im_init(struct csi_tensor *input,
                     struct csi_tensor *kernel,
                     struct col2im_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_col2im_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_COL2IM, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
 

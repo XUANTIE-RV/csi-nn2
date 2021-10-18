@@ -221,11 +221,11 @@ static void csi_resize_nearest_neighbor_u8(struct csi_tensor *input, struct csi_
 }
 
 static void csi_resize_nearest_neighbor_nchw_u8(struct csi_tensor *o_input, struct csi_tensor *o_output,
-                                            bool align_corners)
+                                                bool align_corners)
 {
 
-    struct csi_tensor* input = csi_nchw_to_nhwc_u8(o_input);
-    struct csi_tensor* output = csi_nchw_to_nhwc_u8(o_output);
+    struct csi_tensor* input = csi_nchw_to_nhwc_8(o_input);
+    struct csi_tensor* output = csi_nchw_to_nhwc_8(o_output);
 
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -267,7 +267,7 @@ static void csi_resize_nearest_neighbor_nchw_u8(struct csi_tensor *o_input, stru
         }
         input_ptr += batch_offset;
     }
-    csi_nhwc_to_nchw_u8(o_output, output);
+    csi_nhwc_to_nchw_8(o_output, output);
 }
 
 static void csi_resize_nearest_bicubic_u8(struct csi_tensor *input, struct csi_tensor *output,
@@ -277,9 +277,9 @@ static void csi_resize_nearest_bicubic_u8(struct csi_tensor *input, struct csi_t
     assert(0);
 }
 
-static int csi_resize_f32(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct resize_params *params)
+int csi_resize_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct resize_params *params)
 {
     if (params->resize_mode == CSINN_RESIZE_BILINEAR) {
         csi_resize_bilinear_f32(input, output, params->align_corners);
@@ -291,9 +291,9 @@ static int csi_resize_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_resize_u8(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct resize_params *params)
+int csi_resize_u8(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct resize_params *params)
 {
     if (params->resize_mode == CSINN_RESIZE_BILINEAR) {
         csi_resize_bilinear_u8(input, output, params->align_corners);
@@ -313,11 +313,8 @@ int csi_resize_init(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct resize_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_resize_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_resize_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_RESIZE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

@@ -28,26 +28,25 @@ int csi_ovx_pool_with_argmax(struct csi_tensor *input,
     vsi_nn_tensor_id_t input_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    struct __target_data *td = input->t_private;
-    output->t_private = td;
-    vsi_nn_graph_t *graph = td->graph;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
+    output->sess = input->sess;
     uint32_t input_num = 1;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_POOLWITHARGMAX, input_num, output_num, &node_id);
-    node->nn_param.pool.ksize[0] = filter_width;
-    node->nn_param.pool.ksize[1] = filter_height;
-    node->nn_param.pool.stride[0] = stride_width;
-    node->nn_param.pool.stride[1] = stride_height;
+    node->nn_param.pool.ksize[0] = params->filter_width;
+    node->nn_param.pool.ksize[1] = params->filter_height;
+    node->nn_param.pool.stride[0] = params->stride_width;
+    node->nn_param.pool.stride[1] = params->stride_height;
 
-    int ceil_mode_h = csi_get_ceil_mode_fix(input->dim[2], filter_height,
-                                            stride_height, pad_height);
-    int ceil_mode_w = csi_get_ceil_mode_fix(input->dim[3], filter_width,
-                                            stride_width, pad_width);
-    node->nn_param.pool.pad[0] = pad_width;
-    node->nn_param.pool.pad[1] = pad_width + ceil_mode_w;
-    node->nn_param.pool.pad[2] = pad_height;
-    node->nn_param.pool.pad[3] = pad_height + ceil_mode_h;
-    node->nn_param.pool.type = pool_type;
+    int ceil_mode_h = csi_get_ceil_mode_fix(input->dim[2], params->filter_height,
+                                            params->stride_height, params->pad_top);
+    int ceil_mode_w = csi_get_ceil_mode_fix(input->dim[3], params->filter_width,
+                                            params->stride_width, params->pad_right);
+    node->nn_param.pool.pad[0] = params->pad_right;
+    node->nn_param.pool.pad[1] = params->pad_right + ceil_mode_w;
+    node->nn_param.pool.pad[2] = params->pad_top;
+    node->nn_param.pool.pad[3] = params->pad_top + ceil_mode_h;
+    node->nn_param.pool.type = params->pool_type;
     node->nn_param.pool.round_type = VSI_NN_ROUND_CEIL;
     node->vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
 

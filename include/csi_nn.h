@@ -81,16 +81,16 @@ int csi_conv3d_init(struct csi_tensor *input,
                     struct conv3d_params *params);
 
 int csi_conv3d(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct csi_tensor *kernel,
-                struct csi_tensor *bias,
-                struct conv3d_params *params);
+               struct csi_tensor *output,
+               struct csi_tensor *kernel,
+               struct csi_tensor *bias,
+               struct conv3d_params *params);
 
 int csi_deconv3d_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct csi_tensor *kernel,
-                    struct csi_tensor *bias,
-                    struct conv3d_params *params);
+                      struct csi_tensor *output,
+                      struct csi_tensor *kernel,
+                      struct csi_tensor *bias,
+                      struct conv3d_params *params);
 
 int csi_deconv3d(struct csi_tensor *input,
                  struct csi_tensor *output,
@@ -131,12 +131,12 @@ int csi_maxpool(struct csi_tensor *input,
                 struct pool_params *params);
 
 int csi_maxpool3d_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params);
+                       struct csi_tensor *output,
+                       struct pool_params *params);
 
 int csi_maxpool3d(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct pool_params *params);
+                  struct csi_tensor *output,
+                  struct pool_params *params);
 
 int csi_global_maxpool_init(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -159,8 +159,8 @@ int csi_averagepool3d_init(struct csi_tensor *input,
                            struct pool_params *params);
 
 int csi_averagepool3d(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params);
+                      struct csi_tensor *output,
+                      struct pool_params *params);
 
 int csi_global_averagepool_init(struct csi_tensor *input,
                                 struct csi_tensor *output,
@@ -305,12 +305,12 @@ int csi_exp(struct csi_tensor *input,
             struct siso_params *params);
 
 int csi_expm1_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct siso_params *params);
+                   struct csi_tensor *output,
+                   struct siso_params *params);
 
 int csi_expm1(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct siso_params *params);
+              struct csi_tensor *output,
+              struct siso_params *params);
 
 int csi_sin_init(struct csi_tensor *input,
                  struct csi_tensor *output,
@@ -377,12 +377,12 @@ int csi_sigmoid(struct csi_tensor *input,
                 struct sigmoid_params *params);
 
 int csi_hard_sigmoid_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct sigmoid_params *params);
+                          struct csi_tensor *output,
+                          struct sigmoid_params *params);
 
 int csi_hard_sigmoid(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct sigmoid_params *params);
+                     struct csi_tensor *output,
+                     struct sigmoid_params *params);
 
 int csi_elu_init(struct csi_tensor *input,
                  struct csi_tensor *output,
@@ -467,8 +467,8 @@ int csi_softmax(struct csi_tensor *input,
                 struct softmax_params *params);
 
 int csi_log_softmax_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct softmax_params *params);
+                         struct csi_tensor *output,
+                         struct softmax_params *params);
 
 int csi_log_softmax(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -637,37 +637,37 @@ int csi_less(struct csi_tensor *input0,
              struct diso_params *params);
 
 int csi_logical_and_init(struct csi_tensor *input0,
-                  struct csi_tensor *input1,
-                  struct csi_tensor *output,
-                  struct diso_params *params);
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct diso_params *params);
 
 int csi_logical_and(struct csi_tensor *input0,
-             struct csi_tensor *input1,
-             struct csi_tensor *output,
-             struct diso_params *params);
+                    struct csi_tensor *input1,
+                    struct csi_tensor *output,
+                    struct diso_params *params);
 
 int csi_logical_or_init(struct csi_tensor *input0,
-                  struct csi_tensor *input1,
-                  struct csi_tensor *output,
-                  struct diso_params *params);
-
-int csi_logical_or(struct csi_tensor *input0,
-             struct csi_tensor *input1,
-             struct csi_tensor *output,
-             struct diso_params *params);
-
-int csi_logical_not_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct siso_params *params);
-
-int csi_logical_not(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct siso_params *params);
-
-int csi_logical_xor_init(struct csi_tensor *input0,
                         struct csi_tensor *input1,
                         struct csi_tensor *output,
                         struct diso_params *params);
+
+int csi_logical_or(struct csi_tensor *input0,
+                   struct csi_tensor *input1,
+                   struct csi_tensor *output,
+                   struct diso_params *params);
+
+int csi_logical_not_init(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct siso_params *params);
+
+int csi_logical_not(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct siso_params *params);
+
+int csi_logical_xor_init(struct csi_tensor *input0,
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct diso_params *params);
 
 int csi_logical_xor(struct csi_tensor *input0,
                     struct csi_tensor *input1,
@@ -780,11 +780,11 @@ int csi_resize(struct csi_tensor *input,
                struct csi_tensor *output,
                struct resize_params *params);
 
-int csi_concat_init(struct csi_tensor *input,
+int csi_concat_init(struct csi_tensor **input,
                     struct csi_tensor *output,
                     struct concat_params *params);
 
-int csi_concat(struct csi_tensor *input,
+int csi_concat(struct csi_tensor **input,
                struct csi_tensor *output,
                struct concat_params *params);
 
@@ -875,11 +875,11 @@ int csi_slice(struct csi_tensor *input,
               struct slice_params *params);
 
 int csi_split_init(struct csi_tensor *input,
-                   struct csi_tensor *output,
+                   struct csi_tensor **output,
                    struct split_params *params);
 
 int csi_split(struct csi_tensor *input,
-              struct csi_tensor *output,
+              struct csi_tensor **output,
               struct split_params *params);
 
 int csi_stack_init(struct csi_tensor *inputs,
@@ -891,8 +891,8 @@ int csi_stack(struct csi_tensor *inputs,
               struct stack_params *params);
 
 int csi_unstack_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct unstack_params *params);
+                     struct csi_tensor *output,
+                     struct unstack_params *params);
 
 int csi_unstack(struct csi_tensor *input,
                 struct csi_tensor *output,
@@ -933,12 +933,12 @@ int csi_unstack(struct csi_tensor *input,
                 struct unstack_params *params);
 
 int csi_gather_init(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct gather_params *params);
+                    struct csi_tensor *output,
+                    struct gather_params *params);
 
 int csi_gather(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct gather_params *params);
+               struct csi_tensor *output,
+               struct gather_params *params);
 
 int csi_gather_nd_init(struct csi_tensor *input,
                        struct csi_tensor *indices,
@@ -1018,12 +1018,10 @@ int csi_sequence_mask(struct csi_tensor *input0,
 
 int csi_im2col_init(struct csi_tensor *input,
                     struct csi_tensor *output,
-                    struct csi_tensor *kernel,
                     struct im2col_params *params);
 
 int csi_im2col(struct csi_tensor *input,
                struct csi_tensor *output,
-               struct csi_tensor *kernel,
                struct im2col_params *params);
 
 int csi_col2im_init(struct csi_tensor *input,
@@ -1117,149 +1115,149 @@ int csi_reorg(struct csi_tensor *input,
               struct reorg_params *params);
 
 int csi_yuv_rgb_scale_init(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct siso_params *params);
+                           struct csi_tensor *output,
+                           struct siso_params *params);
 
 int csi_yuv_rgb_scale(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                      struct csi_tensor *output,
+                      struct siso_params *params);
 
 int csi_segment_max_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params);
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct segment_params *params);
 
 int csi_segment_max(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct segment_params *params);
+                    struct csi_tensor *input1,
+                    struct csi_tensor *output,
+                    struct segment_params *params);
 
 int csi_segment_min_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params);
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct segment_params *params);
 
 int csi_segment_min(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct segment_params *params);
+                    struct csi_tensor *input1,
+                    struct csi_tensor *output,
+                    struct segment_params *params);
 
 int csi_segment_sum_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params);
+                         struct csi_tensor *input1,
+                         struct csi_tensor *output,
+                         struct segment_params *params);
 
 int csi_segment_sum(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct segment_params *params);
+                    struct csi_tensor *input1,
+                    struct csi_tensor *output,
+                    struct segment_params *params);
 
 int csi_segment_mean_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params);
+                          struct csi_tensor *input1,
+                          struct csi_tensor *output,
+                          struct segment_params *params);
 
 int csi_segment_mean(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct segment_params *params);
-
-int csi_segment_prod_init(struct csi_tensor *input0,
                      struct csi_tensor *input1,
                      struct csi_tensor *output,
                      struct segment_params *params);
 
+int csi_segment_prod_init(struct csi_tensor *input0,
+                          struct csi_tensor *input1,
+                          struct csi_tensor *output,
+                          struct segment_params *params);
+
 int csi_segment_prod(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct segment_params *params);
+                     struct csi_tensor *input1,
+                     struct csi_tensor *output,
+                     struct segment_params *params);
 
 int csi_threshold_relu_init(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct relu_params *params);
+                            struct csi_tensor *output,
+                            struct relu_params *params);
 
 int csi_threshold_relu(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct relu_params *params);
+                       struct csi_tensor *output,
+                       struct relu_params *params);
 
 int csi_acos_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                  struct csi_tensor *output,
+                  struct siso_params *params);
 int csi_acos(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+             struct csi_tensor *output,
+             struct siso_params *params);
 
 int csi_acosh_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                   struct csi_tensor *output,
+                   struct siso_params *params);
 
 int csi_acosh(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+              struct csi_tensor *output,
+              struct siso_params *params);
 
 int csi_asin_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                  struct csi_tensor *output,
+                  struct siso_params *params);
 
 int csi_asin(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+             struct csi_tensor *output,
+             struct siso_params *params);
 
 int csi_asinh_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                   struct csi_tensor *output,
+                   struct siso_params *params);
 
 int csi_asinh(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+              struct csi_tensor *output,
+              struct siso_params *params);
 
 int csi_atan_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                  struct csi_tensor *output,
+                  struct siso_params *params);
 
 int csi_atan(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+             struct csi_tensor *output,
+             struct siso_params *params);
 
 int csi_atanh_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                   struct csi_tensor *output,
+                   struct siso_params *params);
 
 int csi_atanh(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+              struct csi_tensor *output,
+              struct siso_params *params);
 
 int csi_cosh_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                  struct csi_tensor *output,
+                  struct siso_params *params);
 
 int csi_cosh(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+             struct csi_tensor *output,
+             struct siso_params *params);
 
 int csi_sinh_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                  struct csi_tensor *output,
+                  struct siso_params *params);
 
 int csi_sinh(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params);
+             struct csi_tensor *output,
+             struct siso_params *params);
 
 int csi_tan_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct siso_params *params);
 
 int csi_tan(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct siso_params *params);
+            struct csi_tensor *output,
+            struct siso_params *params);
 
 int csi_log1p_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct siso_params *params);
+                   struct csi_tensor *output,
+                   struct siso_params *params);
 
 int csi_log1p(struct csi_tensor *input,
-             struct csi_tensor *output,
-             struct siso_params *params);
+              struct csi_tensor *output,
+              struct siso_params *params);
 
 int csi_softsign_init(struct csi_tensor *input,
                       struct csi_tensor *output,
@@ -1282,12 +1280,12 @@ int csi_cumsum_init(struct csi_tensor *input,
                     struct cumsum_params *params);
 
 int csi_cumsum(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct cumsum_params *params);
+               struct csi_tensor *output,
+               struct cumsum_params *params);
 
 int csi_cumprod_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct cumprod_params *params);
+                     struct csi_tensor *output,
+                     struct cumprod_params *params);
 
 int csi_cumprod(struct csi_tensor *input,
                 struct csi_tensor *output,
@@ -1298,20 +1296,20 @@ int csi_reduce_max_init(struct csi_tensor *input,
                         struct reduce_params *params);
 
 int csi_reduce_max(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct reduce_params *params);
+                   struct csi_tensor *output,
+                   struct reduce_params *params);
 
 int csi_reduce_min_init(struct csi_tensor *input,
                         struct csi_tensor *output,
                         struct reduce_params *params);
 
 int csi_reduce_min(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct reduce_params *params);
+                   struct csi_tensor *output,
+                   struct reduce_params *params);
 
 int csi_reduce_mean_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params);
+                         struct csi_tensor *output,
+                         struct reduce_params *params);
 
 int csi_reduce_mean(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -1322,32 +1320,32 @@ int csi_reduce_sum_init(struct csi_tensor *input,
                         struct reduce_params *params);
 
 int csi_reduce_sum(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                struct reduce_params *params);
+                   struct csi_tensor *output,
+                   struct reduce_params *params);
 
 int csi_reduce_prod_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params);
+                         struct csi_tensor *output,
+                         struct reduce_params *params);
 
 int csi_reduce_prod(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct reduce_params *params);
 
 int csi_reduce_logsumexp_init(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct reduce_params *params);
+                              struct csi_tensor *output,
+                              struct reduce_params *params);
 
 int csi_reduce_logsumexp(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reduce_params *params);
+                         struct csi_tensor *output,
+                         struct reduce_params *params);
 
 int csi_broadcast_to_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct broadcast_to_params *params);
+                          struct csi_tensor *output,
+                          struct broadcast_to_params *params);
 
 int csi_broadcast_to(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct broadcast_to_params *params);
+                     struct csi_tensor *output,
+                     struct broadcast_to_params *params);
 
 int csi_clip_init(struct csi_tensor *input,
                   struct csi_tensor *output,
@@ -1358,11 +1356,49 @@ int csi_clip(struct csi_tensor *input,
              struct clip_params *params);
 
 int csi_strided_slice_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct strided_slice_params *params);
+                           struct csi_tensor *output,
+                           struct strided_slice_params *params);
 
 int csi_strided_slice(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct strided_slice_params *params);
+
+int csi_topk_init(struct csi_tensor *input,
+                  struct csi_tensor *output1,
+                  struct csi_tensor *output2,
+                  struct topk_params *params);
+
+int csi_topk(struct csi_tensor *input,
+             struct csi_tensor *output1,
+             struct csi_tensor *output2,
+             struct topk_params *params);
+
+int csi_non_max_suppression_init(struct csi_tensor *input0,
+                                 struct csi_tensor *input1,
+                                 struct csi_tensor *output,
+                                 struct non_max_suppression_params *params);
+
+int csi_non_max_suppression(struct csi_tensor *input0,
+                            struct csi_tensor *input1,
+                            struct csi_tensor *output,
+                            struct non_max_suppression_params *params);
+
+int csi_shuffle_channel_init(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct shuffle_channel_params *params);
+
+int csi_shuffle_channel(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct shuffle_channel_params *params);
+
+int csi_roipool_init(struct csi_tensor *data,
+                    struct csi_tensor *rois,
                     struct csi_tensor *output,
-                    struct strided_slice_params *params);
+                    struct roi_pool_params *params);
+
+int csi_roipool(struct csi_tensor *data,
+                struct csi_tensor *rois,
+                struct csi_tensor *output,
+                struct roi_pool_params *params);
 
 #endif

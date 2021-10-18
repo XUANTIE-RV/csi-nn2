@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_sigmoid_f32(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct sigmoid_params *params)
+int csi_sigmoid_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct sigmoid_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -37,9 +37,9 @@ static int csi_sigmoid_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_sigmoid_u8(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct sigmoid_params *params)
+int csi_sigmoid_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct sigmoid_params *params)
 {
     float *float_input_data;
     float *float_output_data;
@@ -61,14 +61,14 @@ static int csi_sigmoid_u8(struct csi_tensor *input,
     float_output.data = float_output_data;
 
     for (int i = 0; i < size; i++) {
-        float_input_data[i] = csi_dequantize_f32(input_data[i], input->offset,
+        float_input_data[i] = csi_dequantize_u8_to_f32(input_data[i], input->zero_point,
                                                  input->multiplier, input->shift);
     }
 
     csi_sigmoid_f32(&float_input, &float_output, params);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = csi_quantize_f32(float_output_data[i], output->offset,
+        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
                                           output->multiplier, output->shift);
     }
     free(float_input_data);
@@ -81,11 +81,8 @@ int csi_sigmoid_init(struct csi_tensor *input,
                  struct csi_tensor *output,
                  struct sigmoid_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_sigmoid_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_sigmoid_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_SIGMOID, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

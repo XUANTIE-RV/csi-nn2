@@ -19,9 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_flatten_f32(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct flatten_params *params)
+int csi_flatten_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct flatten_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -39,9 +39,9 @@ static int csi_flatten_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_flatten_u8(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct flatten_params *params)
+int csi_flatten_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct flatten_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -63,11 +63,8 @@ int csi_flatten_init(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct flatten_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_flatten_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_flatten_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_FLATTEN, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

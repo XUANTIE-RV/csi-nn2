@@ -19,10 +19,10 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_matmul_f32(struct csi_tensor *mat0,
-                            struct csi_tensor *mat1,
-                            struct csi_tensor *output,
-                            struct matmul_params *params)
+int csi_matmul_f32(struct csi_tensor *mat0,
+                   struct csi_tensor *mat1,
+                   struct csi_tensor *output,
+                   struct matmul_params *params)
 {
     float *mat0_data = mat0->data;
     float *mat1_data = mat1->data;
@@ -103,10 +103,10 @@ static int csi_matmul_f32(struct csi_tensor *mat0,
     return CSINN_TRUE;
 }
 
-static int csi_matmul_u8(struct csi_tensor *mat0,
-                        struct csi_tensor *mat1,
-                        struct csi_tensor *output,
-                        struct matmul_params *params)
+int csi_matmul_u8(struct csi_tensor *mat0,
+                  struct csi_tensor *mat1,
+                  struct csi_tensor *output,
+                  struct matmul_params *params)
 {
     uint8_t *mat0_data = mat0->data;
     uint8_t *mat1_data = mat1->data;
@@ -134,14 +134,14 @@ static int csi_matmul_u8(struct csi_tensor *mat0,
                     for (int k = 0; k < dim_k; ++k) {
                         int offset0 = mat0_offset * b + i * dim_k + k;
                         int offset1 = mat1_offset * b + k * dim_j + j;
-                        float input_val0 = csi_dequantize_f32(mat0_data[offset0], mat0->offset,
+                        float input_val0 = csi_dequantize_u8_to_f32(mat0_data[offset0], mat0->zero_point,
                                             mat0->multiplier, mat0->shift);
-                        float input_val1 = csi_dequantize_f32(mat1_data[offset1], mat1->offset,
+                        float input_val1 = csi_dequantize_u8_to_f32(mat1_data[offset1], mat1->zero_point,
                                             mat1->multiplier, mat1->shift);
                         total += input_val0 * input_val1;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32(total,
-                                            output->offset, output->multiplier, output->shift);
+                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32_to_u8(total,
+                                            output->zero_point, output->multiplier, output->shift);
                 }
             }
         }
@@ -153,14 +153,14 @@ static int csi_matmul_u8(struct csi_tensor *mat0,
                     for (int k = 0; k < dim_k; ++k) {
                         int offset0 = mat0_offset * b + i * dim_k + k;
                         int offset1 = mat1_offset * b + j * dim_k + k;
-                        float input_val0 = csi_dequantize_f32(mat0_data[offset0], mat0->offset,
+                        float input_val0 = csi_dequantize_u8_to_f32(mat0_data[offset0], mat0->zero_point,
                                             mat0->multiplier, mat0->shift);
-                        float input_val1 = csi_dequantize_f32(mat1_data[offset1], mat1->offset,
+                        float input_val1 = csi_dequantize_u8_to_f32(mat1_data[offset1], mat1->zero_point,
                                             mat1->multiplier, mat1->shift);
                         total += input_val0 * input_val1;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32(total,
-                                            output->offset, output->multiplier, output->shift);
+                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32_to_u8(total,
+                                            output->zero_point, output->multiplier, output->shift);
                 }
             }
         }
@@ -172,14 +172,14 @@ static int csi_matmul_u8(struct csi_tensor *mat0,
                     for (int k = 0; k < dim_k; ++k) {
                         int offset0 = mat0_offset * b + k * dim_i + i;
                         int offset1 = mat1_offset * b + k * dim_j + j;
-                        float input_val0 = csi_dequantize_f32(mat0_data[offset0], mat0->offset,
+                        float input_val0 = csi_dequantize_u8_to_f32(mat0_data[offset0], mat0->zero_point,
                                             mat0->multiplier, mat0->shift);
-                        float input_val1 = csi_dequantize_f32(mat1_data[offset1], mat1->offset,
+                        float input_val1 = csi_dequantize_u8_to_f32(mat1_data[offset1], mat1->zero_point,
                                             mat1->multiplier, mat1->shift);
                         total += input_val0 * input_val1;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32(total,
-                                            output->offset, output->multiplier, output->shift);
+                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32_to_u8(total,
+                                            output->zero_point, output->multiplier, output->shift);
                 }
             }
         }
@@ -191,14 +191,14 @@ static int csi_matmul_u8(struct csi_tensor *mat0,
                     for (int k = 0; k < dim_k; ++k) {
                         int offset0 = mat0_offset * b + k * dim_i + i;
                         int offset1 = mat1_offset * b + j * dim_k + k;
-                        float input_val0 = csi_dequantize_f32(mat0_data[offset0], mat0->offset,
+                        float input_val0 = csi_dequantize_u8_to_f32(mat0_data[offset0], mat0->zero_point,
                                             mat0->multiplier, mat0->shift);
-                        float input_val1 = csi_dequantize_f32(mat1_data[offset1], mat1->offset,
+                        float input_val1 = csi_dequantize_u8_to_f32(mat1_data[offset1], mat1->zero_point,
                                             mat1->multiplier, mat1->shift);
                         total += input_val0 * input_val1;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32(total,
-                                            output->offset, output->multiplier, output->shift);
+                    output_data[b * out_offset + i * dim_j + j] = csi_quantize_f32_to_u8(total,
+                                            output->zero_point, output->multiplier, output->shift);
                 }
             }
         }
@@ -212,11 +212,8 @@ int csi_matmul_init(struct csi_tensor *mat0,
                     struct csi_tensor *output,
                     struct matmul_params *params)
 {
-    if (mat0->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_matmul_u8;
-    } else if (mat0->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_matmul_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_MATMUL, mat0->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

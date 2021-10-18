@@ -19,10 +19,10 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-static int csi_unsorted_segment_prod_f32(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_unsorted_segment_prod_f32(struct csi_tensor *input,
+                                  struct csi_tensor *segment_ids,
+                                  struct csi_tensor *output,
+                                  struct segment_params *params)
 {
     float *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -65,10 +65,10 @@ static int csi_unsorted_segment_prod_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_segment_prod_f32(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_segment_prod_f32(struct csi_tensor *input,
+                         struct csi_tensor *segment_ids,
+                         struct csi_tensor *output,
+                         struct segment_params *params)
 {
     float *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -114,10 +114,10 @@ static int csi_segment_prod_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_unsorted_segment_prod_u8(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_unsorted_segment_prod_u8(struct csi_tensor *input,
+                                 struct csi_tensor *segment_ids,
+                                 struct csi_tensor *output,
+                                 struct segment_params *params)
 {
     uint8_t *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -134,7 +134,7 @@ static int csi_unsorted_segment_prod_u8(struct csi_tensor *input,
             for(int w = 0; w < input->dim[2]; w++) {
                 for(int c = 0; c < input->dim[3]; c++) {
                     int output_index = csi_get_index(input->dim, n, h, w, c);
-                    output_data[output_index] = csi_quantize_f32(1, output->offset,
+                    output_data[output_index] = csi_quantize_f32_to_u8(1, output->zero_point,
                                                 output->multiplier, output->shift);
                 }
             }
@@ -155,11 +155,11 @@ static int csi_unsorted_segment_prod_u8(struct csi_tensor *input,
                         float temp_sum = 1;
                         for(int k = 0; k < num; k++) {
                             int32_t input_index = csi_get_index(input->dim, index[k], h, w, c);
-                            float input_value = csi_dequantize_f32(input_data[input_index], input->offset,
+                            float input_value = csi_dequantize_u8_to_f32(input_data[input_index], input->zero_point,
                                                 input->multiplier, input->shift);
                             temp_sum *= input_value;
                         }
-                        output_data[output_index] = csi_quantize_f32(temp_sum, output->offset,
+                        output_data[output_index] = csi_quantize_f32_to_u8(temp_sum, output->zero_point,
                                                     output->multiplier, output->shift);
                     }
                 }
@@ -171,10 +171,10 @@ static int csi_unsorted_segment_prod_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_segment_prod_u8(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_segment_prod_u8(struct csi_tensor *input,
+                        struct csi_tensor *segment_ids,
+                        struct csi_tensor *output,
+                        struct segment_params *params)
 {
     uint8_t *input_data  = input->data;
     int *segment_data  = segment_ids->data;
@@ -192,7 +192,7 @@ static int csi_segment_prod_u8(struct csi_tensor *input,
             for(int w = 0; w < input->dim[2]; w++) {
                 for(int c = 0; c < input->dim[3]; c++) {
                     int output_index = csi_get_index(input->dim, n, h, w, c);
-                    output_data[output_index] = csi_quantize_f32(1, output->offset,
+                    output_data[output_index] = csi_quantize_f32_to_u8(1, output->zero_point,
                                                 output->multiplier, output->shift);
                 }
             }
@@ -215,11 +215,11 @@ static int csi_segment_prod_u8(struct csi_tensor *input,
                         float temp_sum = 1;
                         for(int k = 0; k < num; k++) {
                             int32_t input_index = csi_get_index(input->dim, index[k], h, w, c);
-                            float input_value = csi_dequantize_f32(input_data[input_index], input->offset,
+                            float input_value = csi_dequantize_u8_to_f32(input_data[input_index], input->zero_point,
                                                 input->multiplier, input->shift);
                             temp_sum *= input_value;
                         }
-                        output_data[output_index] = csi_quantize_f32(temp_sum, output->offset,
+                        output_data[output_index] = csi_quantize_f32_to_u8(temp_sum, output->zero_point,
                                                     output->multiplier, output->shift);
                     }
                 }
@@ -231,24 +231,20 @@ static int csi_segment_prod_u8(struct csi_tensor *input,
 }
 
 int csi_segment_prod_init(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct segment_params *params)
+                          struct csi_tensor *input1,
+                          struct csi_tensor *output,
+                          struct segment_params *params)
 {
-    if (input0->dtype == CSINN_DTYPE_UINT8) {
-        if (params->unsorted == CSINN_TRUE) {
-            params->bc = csi_unsorted_segment_prod_u8;
-        } else {
-            params->bc = csi_segment_prod_u8;
-        }
-    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        if (params->unsorted == CSINN_TRUE) {
-            params->bc = csi_unsorted_segment_prod_f32;
-        } else {
-            params->bc = csi_segment_prod_f32;
+    if (params->unsorted == CSINN_TRUE) {
+        params->bc = csi_bc_map(params->api, CSINN_OP_UNSORTED_SEGMENT_PROD, input0->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
         }
     } else {
-        return CSINN_UNSUPPORT_DTYPE;
+        params->bc = csi_bc_map(params->api, CSINN_OP_SEGMENT_PROD, input0->dtype);
+        if (params->bc == NULL) {
+            return CSINN_UNSUPPORT_DTYPE;
+        }
     }
     return CSINN_TRUE;
 }

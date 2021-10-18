@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_strided_slice_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct strided_slice_params *params)
+int csi_strided_slice_f32(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct strided_slice_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -84,9 +83,9 @@ static int csi_strided_slice_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_strided_slice_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct strided_slice_params *params)
+int csi_strided_slice_u8(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct strided_slice_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -144,31 +143,27 @@ static int csi_strided_slice_u8(struct csi_tensor *input,
     }
     out_size = out_size * inner_size;
     for(int i = 0; i < out_size; i++) {
-        output_data[i] = csi_requantize_u8(input_data[i],input->offset, input->multiplier, input->shift,
-                                                        output->offset, output->multiplier, output->shift);
+        output_data[i] = csi_requantize_u8(input_data[i],input->zero_point, input->multiplier, input->shift,
+                                                        output->zero_point, output->multiplier, output->shift);
     }
     free(input_data);
     return CSINN_TRUE;
 }
 
-
 int csi_strided_slice_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct strided_slice_params *params)
+                           struct csi_tensor *output,
+                           struct strided_slice_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_strided_slice_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_strided_slice_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_STRIDED_SLICE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_strided_slice(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct strided_slice_params *params)
+                      struct csi_tensor *output,
+                      struct strided_slice_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

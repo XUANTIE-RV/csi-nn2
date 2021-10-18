@@ -19,21 +19,6 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-// static void reverse_axis(float *start, float *end, int cnt, int step)
-// {
-//     assert(start!=NULL && end!=NULL);
-//     for(int i=0; i<cnt; i++) {
-//         float *temp = (float *)malloc(step * sizeof(float));
-//         memcpy(temp,  start,      step*sizeof(float));
-//         memcpy(start, end-step+1, step*sizeof(float));
-//         memcpy(end-step+1, temp , step*sizeof(float));
-//         start += step;
-//         end -= step;
-//         free(temp);
-//     }
-// }
-
 static int Multiplication(struct csi_tensor *input, int s, int e)
 {
     int res = 1;
@@ -43,9 +28,9 @@ static int Multiplication(struct csi_tensor *input, int s, int e)
     return res;
 }
 
-static int csi_reverse_f32(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct reverse_params *params)
+int csi_reverse_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct reverse_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -77,9 +62,9 @@ static int csi_reverse_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_reverse_u8(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct reverse_params *params)
+int csi_reverse_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct reverse_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -115,11 +100,8 @@ int csi_reverse_init(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct reverse_params *params)
 {
-    if(input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_reverse_u8;
-    } else if(input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_reverse_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_REVERSE, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;

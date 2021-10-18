@@ -19,10 +19,9 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 
-
-static int csi_gather_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct gather_params *params)
+int csi_gather_f32(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct gather_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -45,9 +44,9 @@ static int csi_gather_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_gather_u8(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct gather_params *params)
+int csi_gather_u8(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct gather_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
@@ -61,11 +60,11 @@ static int csi_gather_u8(struct csi_tensor *input,
         if(params->indices[i] < input->dim[0]) {
             for(int j = 0; j < inner_size; j++) {
                 *(output_data + j) = csi_requantize_u8(*(input_data + params->indices[i] * inner_size + j),
-                input->offset, input->multiplier, input->shift, output->offset, output->multiplier, output->shift);
+                input->zero_point, input->multiplier, input->shift, output->zero_point, output->multiplier, output->shift);
             }
         } else {
-            uint8_t zero = csi_requantize_u8(0.0f, input->offset, input->multiplier, input->shift, 
-                                                    output->offset, output->multiplier, output->shift);
+            uint8_t zero = csi_requantize_u8(0.0f, input->zero_point, input->multiplier, input->shift, 
+                                                    output->zero_point, output->multiplier, output->shift);
             for(int j = 0; j < inner_size; j++) {
                 *(output_data + j) = zero;
             }
@@ -76,22 +75,19 @@ static int csi_gather_u8(struct csi_tensor *input,
 }
 
 int csi_gather_init(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct gather_params *params)
+                    struct csi_tensor *output,
+                    struct gather_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_UINT8) {
-        params->bc = csi_gather_u8;
-    } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->bc = csi_gather_f32;
-    } else {
+    params->bc = csi_bc_map(params->api, CSINN_OP_GATHER, input->dtype);
+    if (params->bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }
     return CSINN_TRUE;
 }
 
 int csi_gather(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct gather_params *params)
+               struct csi_tensor *output,
+               struct gather_params *params)
 {
     if (params->bc != NULL) {
         params->bc(input, output, params);

@@ -52,6 +52,12 @@ int csi_ovx_deconv2d(struct csi_tensor *input,
                      struct csi_tensor *bias,
                      struct conv2d_params *params);
 
+int csi_ovx_depthwise_deconv2d(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct csi_tensor *kernel,
+                                struct csi_tensor *bias,
+                                struct conv2d_params *params);
+
 int csi_ovx_fullyconnected(struct csi_tensor *input,
                            struct csi_tensor *output,
                            struct csi_tensor *weights,
@@ -301,7 +307,7 @@ int csi_ovx_resize(struct csi_tensor *input,
                    struct csi_tensor *output,
                    struct resize_params *params);
 
-int csi_ovx_concat(struct csi_tensor *input,
+int csi_ovx_concat(struct csi_tensor **input,
                    struct csi_tensor *output,
                    struct concat_params *params);
 
@@ -365,7 +371,7 @@ int csi_ovx_slice_tail(struct csi_tensor *input,
                        struct slice_params *params);
 
 int csi_ovx_split(struct csi_tensor *input,
-                  struct csi_tensor *output,
+                  struct csi_tensor **output,
                   struct split_params *params);
 
 int csi_ovx_stack(struct csi_tensor *inputs,
@@ -482,23 +488,20 @@ int csi_ovx_reorg(struct csi_tensor *input,
                   struct reorg_params *params);
 
 int32_t csi_get_ceil_mode_fix(int32_t input, int32_t kernel, int32_t stride, int32_t pad);
-int csi_nn_create_tensor(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         void *td);
-int csi_nn_ovx_create_const(struct csi_tensor *input, void *td);
-uint8_t *csi_nn_input_f32_to_u8(uint32_t idx, float *data, void *td);
-void csi_nn_update_input(uint32_t idx, uint8_t *data, void *td);
-void csi_nn_set_ovx_input(int index, int input, struct __target_data *td);
-void csi_nn_set_ovx_output(int index, struct csi_tensor *output, struct __target_data *td);
 
-int csi_nn_get_output_number(void *td);
-int csi_nn_get_input_number(void *td);
-struct csi_tensor *csi_nn_get_output(void *td, int index);
-struct csi_tensor *csi_nn_get_input(void *td, int index);
-struct csi_tensor *csi_nn_ovx_get_tensor(void *td, int index);
-void csi_nn_save_output(void *td, int index, const char *filename);
-void csi_nn_show_top5(void *td, int index);
-uint64_t csi_get_perf_count();
+struct csi_ovx_target_data {
+    void *graph;
+};
 
-void csi_ovx_free(struct __target_data *td);
+void *csi_ovx_get_graph(struct csi_session *sess);
+
+void csi_ovx_set_tensor(struct csi_tensor *tensor, struct csi_session *sess);
+void csi_ovx_set_const_tensor(struct csi_tensor *tensor, struct csi_session *sess);
+uint8_t *csi_ovx_input_f32_to_u8(uint32_t idx, float *data, struct csi_session *sess);
+int csi_ovx_get_tensor(int index, struct csi_tensor *ret, struct csi_session *sess);
+void csi_ovx_save_output(int index, const char *filename, struct csi_session *sess);
+void csi_ovx_show_top5(int index, struct csi_session *sess);
+void csi_ovx_nbg(struct csi_tensor **input, struct csi_tensor **output,
+                 uint32_t inputs_count, uint32_t outputs_count, const char *url);
+
 #endif
