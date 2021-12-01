@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"

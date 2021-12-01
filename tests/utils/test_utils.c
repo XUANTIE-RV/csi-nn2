@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,36 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "stdint.h"
 #include "stdio.h"
 #include "math.h"
 #include "float.h"
 #include "math_snr.h"
 #include "test_utils.h"
-#include "../testsuite.h"
+
+int test_number = 0;
+int failures = 0;
+
+int done_testing(void)
+{
+    if (0 < failures) {
+		printf("Failed %d tests\n", failures);
+		exit(EXIT_FAILURE);
+	} else {
+		printf("All functions tested sucessfully\n");
+		exit(EXIT_SUCCESS);
+	}
+	return failures;
+}
+
+void init_testsuite(const char* testname)
+{
+	printf("%s", testname);
+	test_number = 0;
+	failures = 0;
+}
 
 uint64_t kSignMask = 0x8000000000000000LL;
 uint64_t kExponentMask = 0x7ff0000000000000LL;
@@ -63,22 +86,23 @@ float compute_kl(float *p, float *q, uint32_t size)
     float p_sum = 0.0f, q_sum = 0.0f, ret = 0.0f;
 
     for (int i = 0; i < size; i++) {
-        p_sum += p[i];
-        q_sum += q[i];
+        p_sum += fabs(p[i]);
+        q_sum += fabs(q[i]);
     }
-
+    float p_tmp = 0.0f, q_tmp = 0.0f;
     for (int i = 0; i < size; i++) {
-        if(p[i] == 0 && q[i] == 0){
-            ret += 0;
-        }else{
-            if(q[i] == 0){
-                q[i] += 1e-9;
-            }
-            p[i] /= p_sum;
-            q[i] /= q_sum;
-            if(p[i] && q[i]) {
-                ret += p[i] * log(p[i] / q[i]);
-            }
+        p_tmp = fabs(p[i]);
+        q_tmp = fabs(q[i]);
+        p_tmp = p_tmp / p_sum;
+        q_tmp = q_tmp / q_sum;
+        if (fabs(p_tmp) <= 1e-9) {
+            p_tmp += 1e-9;
+        }
+        if (fabs(q_tmp) <= 1e-9) {
+            q_tmp += 1e-9;
+        }
+        if (!isnan(p_tmp) && !isnan(q_tmp)) {
+            ret += p_tmp * log(p_tmp / q_tmp);
         }
     }
     return ret;
@@ -109,7 +133,10 @@ void result_verify_int32(int *reference, int *output, int *input, float gap, int
     for (i = 0; i < size; i++) {
         error = abs(reference[i] - output[i]);
 
-        TEST(error <= gap);
+        test_number++;
+        if (error > gap) {
+            failures++;
+        }
 #ifdef BASIC_DEBUG
         if (error > gap)
         {
@@ -138,7 +165,10 @@ void result_verify_f32(float *reference, float *output, float *input, float gap,
             max_error = error;
         }
 
-        TEST(error <= gap);
+        test_number++;
+        if (error > gap) {
+            failures++;
+        }
 #ifdef BASIC_DEBUG
         if (error > gap)
         {
@@ -147,6 +177,12 @@ void result_verify_f32(float *reference, float *output, float *input, float gap,
 #endif
     }
     printf("The max error is %f\n", max_error);
+
+    float kl = compute_kl(output, reference, size);
+    printf("The kl diver is %f.\n", kl);
+
+    float cs = compute_cs(output, reference, size);
+    printf("The cos sim is %f.\n", cs);
 }
 
 
@@ -161,7 +197,10 @@ void result_verify_bool(bool *reference, bool *output, float *input, float gap, 
             error = fabs(reference[i] - output[i])/fabs(reference[i] + 1e-9);
         }
 
-        TEST(error <= gap);
+        test_number++;
+        if (error > gap) {
+            failures++;
+        }
 #ifdef BASIC_DEBUG
         if (error > gap)
         {
@@ -198,7 +237,10 @@ void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input,
             max_error = error;
         }
 
-        TEST(error <= gap);
+        test_number++;
+        if (error > gap) {
+            failures++;
+        }
 #ifdef BASIC_DEBUG
         if (error > gap)
         {
@@ -384,36 +426,25 @@ void find_min_max(float *input, float *max_value, float *min_value, int size)
     *min_value = min_tmp;
 }
 
-struct csi_quant_info *get_quant_info(float *data, int size)
+void get_quant_info(struct csi_tensor *tensor)
 {
-    struct csi_quant_info *ret = malloc(sizeof(struct csi_quant_info));
     float max, min, scale;
     int zp, quantized_multiplier, shift;
-    find_min_max(data, &max, &min, size);
-    get_scale_and_zp(max, min, &scale, &zp);
+    if (tensor->qinfo == NULL) {
+        tensor->qinfo = malloc(sizeof(struct csi_quant_info));
+    }
+    int size = csi_tensor_size(tensor);
+    find_min_max(tensor->data, &max, &min, size);
+    if (tensor->dtype == CSINN_DTYPE_UINT8) {
+        get_scale_and_zp(max, min, &scale, &zp);
+    } else if (tensor->dtype == CSINN_DTYPE_INT8) {
+        get_scale_and_zp_i8(max, min, &scale, &zp);
+    }
     quantize_multiplier(scale, &quantized_multiplier, &shift);
-    ret->max = max;
-    ret->min = min;
-    ret->scale = scale;
-    ret->zero_point = zp;
-    ret->multiplier = quantized_multiplier;
-    ret->shift = shift;
-    return ret;
-}
-
-struct csi_quant_info *get_quant_info_i8(float *data, int size)
-{
-    struct csi_quant_info *ret = malloc(sizeof(struct csi_quant_info));
-    float max, min, scale;
-    int zp, quantized_multiplier, shift;
-    find_min_max(data, &max, &min, size);
-    get_scale_and_zp_i8(max, min, &scale, &zp);
-    quantize_multiplier(scale, &quantized_multiplier, &shift);
-    ret->max = max;
-    ret->min = min;
-    ret->scale = scale;
-    ret->zero_point = zp;
-    ret->multiplier = quantized_multiplier;
-    ret->shift = shift;
-    return ret;
+    tensor->qinfo->max = max;
+    tensor->qinfo->min = min;
+    tensor->qinfo->scale = scale;
+    tensor->qinfo->zero_point = zp;
+    tensor->qinfo->multiplier = quantized_multiplier;
+    tensor->qinfo->shift = shift;
 }

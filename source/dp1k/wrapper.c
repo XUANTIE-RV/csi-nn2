@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_dp1k.h"
 
 static struct csi_session_dp1k *csi_session_dp1k_convert(struct csi_session *sess)
@@ -23,7 +25,7 @@ static struct csi_session_dp1k *csi_session_dp1k_convert(struct csi_session *ses
     struct csi_session_dp1k *ret = calloc(1, sizeof(struct csi_session_dp1k));
     ret->base_api = sess->base_api;
     ret->base_dtype = sess->base_dtype;
-    ret->base_layout = sess->base_layout;
+    ret->base_layout = 0; // NCHW
     ret->input_num = sess->input_num;
     ret->output_num = sess->output_num;
     return ret;
@@ -33,7 +35,7 @@ static struct csi_tensor_dp1k *csi_tensor_dp1k_convert_const(struct csi_tensor *
 {
     struct csi_tensor_dp1k *ret = calloc(1, sizeof(struct csi_tensor_dp1k));
     ret->data = tensor->data;
-    ret->dtype = tensor->dtype;
+    ret->dtype = 0;
     ret->dim[0] = tensor->dim[0];
     ret->dim[1] = tensor->dim[1];
     ret->dim[2] = tensor->dim[2];
@@ -44,7 +46,7 @@ static struct csi_tensor_dp1k *csi_tensor_dp1k_convert_const(struct csi_tensor *
     ret->dim[7] = tensor->dim[7];
     ret->dim_count = tensor->dim_count;
     ret->name = tensor->name;
-    ret->layout = tensor->layout;
+    ret->layout = 0; // NCHW
     ret->quant_channel = tensor->quant_channel;
     ret->qinfo = (struct csi_quant_info_dp1k *)tensor->qinfo;
     ret->sess = tensor->sess->td;
@@ -59,7 +61,7 @@ static struct csi_tensor_dp1k *csi_tensor_dp1k_convert(struct csi_tensor *tensor
     }
     struct csi_tensor_dp1k *ret = calloc(1, sizeof(struct csi_tensor_dp1k));
     ret->data = tensor->data;
-    ret->dtype = tensor->dtype;
+    ret->dtype = 0;
     ret->dim[0] = tensor->dim[0];
     ret->dim[1] = tensor->dim[1];
     ret->dim[2] = tensor->dim[2];
@@ -70,7 +72,7 @@ static struct csi_tensor_dp1k *csi_tensor_dp1k_convert(struct csi_tensor *tensor
     ret->dim[7] = tensor->dim[7];
     ret->dim_count = tensor->dim_count;
     ret->name = tensor->name;
-    ret->layout = tensor->layout;
+    ret->layout = 0; // NCHW
     ret->quant_channel = tensor->quant_channel;
     ret->qinfo = (struct csi_quant_info_dp1k *)tensor->qinfo;
     ret->sess = tensor->sess->td;
@@ -131,7 +133,7 @@ int csi_dp1k_add(struct csi_tensor *input0,
     struct diso_params_dp1k *dpp = calloc(1, sizeof(struct diso_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     csi_dp1000_add(dp_input0, dp_input1, dp_output, dpp);
     return CSINN_TRUE;
 }
@@ -145,7 +147,7 @@ int csi_dp1k_avgpool2d(struct csi_tensor *input,
     struct pool_params_dp1k *dpp = calloc(1, sizeof(struct pool_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     dpp->filter_depth = params->filter_depth;
     dpp->filter_height = params->filter_height;
     dpp->filter_width = params->filter_width;
@@ -172,7 +174,7 @@ int csi_dp1k_concat(struct csi_tensor **input,
     struct concat_params_dp1k *dpp = calloc(1, sizeof(struct concat_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     dpp->axis = params->axis;
     dpp->inputs_count = params->inputs_count;
 
@@ -184,7 +186,7 @@ int csi_dp1k_concat(struct csi_tensor **input,
 
     csi_dp1000_concat(dp_input, dp_output, dpp);
 
-    return CSINN_TRUE; 
+    return CSINN_TRUE;
 }
 
 int csi_dp1k_conv2d(struct csi_tensor *input,
@@ -200,7 +202,7 @@ int csi_dp1k_conv2d(struct csi_tensor *input,
     struct conv2d_params_dp1k *dpp = calloc(1, sizeof(struct conv2d_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     dpp->pad_down = params->pad_down;
     dpp->pad_left = params->pad_left;
     dpp->pad_right = params->pad_right;
@@ -227,7 +229,7 @@ int csi_dp1k_deconv2d(struct csi_tensor *input,
     struct conv2d_params_dp1k *dpp = calloc(1, sizeof(struct conv2d_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     dpp->pad_down = params->pad_down;
     dpp->pad_left = params->pad_left;
     dpp->pad_right = params->pad_right;
@@ -254,7 +256,7 @@ int csi_dp1k_fullyconnected(struct csi_tensor *input,
     struct fc_params_dp1k *dpp = calloc(1, sizeof(struct fc_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout =  0; // NCHW
     csi_dp1000_fullyconnected(dp_input, dp_output, dp_kernel, dp_bias, dpp);
     return CSINN_TRUE;
 }
@@ -268,7 +270,7 @@ int csi_dp1k_leaky_relu(struct csi_tensor *input,
     struct relu_params_dp1k *dpp = calloc(1, sizeof(struct relu_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->n = params->n;
     dpp->n_multiplier = params->n_multiplier;
     dpp->n_shift = params->n_shift;
@@ -285,7 +287,7 @@ int csi_dp1k_maxpool(struct csi_tensor *input,
     struct pool_params_dp1k *dpp = calloc(1, sizeof(struct pool_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->filter_depth = params->filter_depth;
     dpp->filter_height = params->filter_height;
     dpp->filter_width = params->filter_width;
@@ -314,7 +316,7 @@ int csi_dp1k_prelu(struct csi_tensor *input,
     struct prelu_params_dp1k *dpp = calloc(1, sizeof(struct prelu_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->name = params->base.name;
     dpp->axis = params->axis;
     csi_dp1000_prelu(dp_input, dp_alpha, dp_output, dpp);
@@ -332,7 +334,7 @@ int csi_dp1k_mul(struct csi_tensor *input0,
     struct diso_params_dp1k *dpp = calloc(1, sizeof(struct diso_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     csi_dp1000_mul(dp_input0, dp_input1, dp_output, dpp);
     return CSINN_TRUE;
 }
@@ -346,7 +348,7 @@ int csi_dp1k_relu(struct csi_tensor *input,
     struct relu_params_dp1k *dpp = calloc(1, sizeof(struct relu_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->n = params->n;
     dpp->n_multiplier = params->n_multiplier;
     dpp->n_shift = params->n_shift;
@@ -377,7 +379,7 @@ int csi_dp1k_resize(struct csi_tensor *input,
     struct resize_params_dp1k *dpp = calloc(1, sizeof(struct resize_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->align_corners = params->align_corners;
     dpp->resize_mode = params->resize_mode;
     csi_dp1000_resize(dp_input, dp_output, dpp);
@@ -393,7 +395,7 @@ int csi_dp1k_sigmoid(struct csi_tensor *input,
     struct sigmoid_params_dp1k *dpp = calloc(1, sizeof(struct sigmoid_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     csi_dp1000_sigmoid(dp_input, dp_output, dpp);
     return CSINN_TRUE;
 }
@@ -407,7 +409,7 @@ int csi_dp1k_softmax(struct csi_tensor *input,
     struct softmax_params_dp1k *dpp = calloc(1, sizeof(struct softmax_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->axis = params->axis;
     csi_dp1000_softmax(dp_input, dp_output, dpp);
     return CSINN_TRUE;
@@ -422,8 +424,26 @@ int csi_dp1k_transpose(struct csi_tensor *input,
     struct transpose_params_dp1k *dpp = calloc(1, sizeof(struct transpose_params_dp1k));
     dpp->api = params->base.api;
     dpp->bc = params->base.bc;
-    dpp->layout = params->base.layout;
+    dpp->layout = 0; // NCHW
     dpp->permute = params->permute;
     csi_dp1000_transpose(dp_input, dp_output, dpp);
+    return CSINN_TRUE;
+}
+
+int csi_dp1k_strided_slice(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct strided_slice_params *params)
+{
+    struct csi_tensor_dp1k *dp_input = csi_tensor_dp1k_convert(input);
+    struct csi_tensor_dp1k *dp_output = csi_tensor_dp1k_convert(output);
+    struct strided_slice_params_dp1k *dpp = calloc(1, sizeof(struct strided_slice_params_dp1k));
+    dpp->api = params->base.api;
+    dpp->bc = params->base.bc;
+    dpp->layout = 0; // NCHW
+    dpp->begin = params->begin;
+    dpp->end = params->end;
+    dpp->stride = params->stride;
+    dpp->slice_count = params->slice_count;
+    csi_dp1000_strided_slice(dp_input, dp_output, dpp);
     return CSINN_TRUE;
 }

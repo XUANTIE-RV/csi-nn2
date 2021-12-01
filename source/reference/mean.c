@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 
@@ -74,7 +76,7 @@ int csi_ref_mean_quant(struct csi_tensor *input,
         assert(0);
     }
     struct pool_params pparams;
-    pparams.base.layout = CSINN_NCHW;
+    pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
     csi_global_averagepool_init(input, output, &pparams);
     csi_global_averagepool(input, output, &pparams);

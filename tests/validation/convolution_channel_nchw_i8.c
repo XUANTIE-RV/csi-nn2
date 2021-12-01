@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -54,7 +56,7 @@ int main(int argc, char** argv)
     output->dim[1]  = buffer[12];        // out_channel
     output->dim[2]  = buffer[16];        // height
     output->dim[3]  = buffer[15];        // width
-    
+
     params.stride_height = buffer[4];
     params.stride_width  = buffer[5];
     params.pad_left   = buffer[8];
@@ -63,7 +65,7 @@ int main(int argc, char** argv)
     params.pad_down   = buffer[11];
     params.dilation_width  = buffer[13];
     params.dilation_height = buffer[14];
-    params.base.layout     = CSINN_NCHW;
+    params.base.layout     = CSINN_LAYOUT_NCHW;
     params.group      = 1;
     struct ScaleZp szp[kernel->dim[0]];
 
@@ -90,14 +92,15 @@ int main(int argc, char** argv)
     int32_t *bias_tmp   = (int32_t *)malloc(output->dim[1] * sizeof(int32_t));
 
 
-    input->qinfo = get_quant_info_i8(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
     scale1 = input->qinfo->scale;
 
     for(int i = 0; i < in_size; i++) {
         input_tmp[i] = csi_ref_quantize_f32_to_i8(src_in[i], input->qinfo);
     }
 
-    for(int i = 0; i < kernel->dim[0]; i++){       
+    for(int i = 0; i < kernel->dim[0]; i++){
         float *kernel_in  = (float *)(buffer + 17 + in_size + i*per_weight_size);
         kernel->qinfo = get_quant_info_i8(kernel_in, per_weight_size);
         scale2 = kernel->qinfo->scale;
@@ -109,12 +112,13 @@ int main(int argc, char** argv)
 
         szp[i].zero_point = zp;
         szp[i].scale = scale2;
- 
+
     }
     params.scale_zp = szp;
 
-    output->qinfo = get_quant_info_i8(ref, out_size);
-    scale3=output->qinfo->scale; 
+    output->data = ref;
+    get_quant_info(output);
+    scale3=output->qinfo->scale;
     quantize_multiplier(scale3, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;
     output->qinfo->shift      = shift;
@@ -130,7 +134,7 @@ int main(int argc, char** argv)
 
     if (csi_conv2d_init(input, output, kernel, bias, &params) == CSINN_TRUE) {
         csi_conv2d(input, output, kernel, bias, &params);
-    } 
+    }
 
     quantize_multiplier(scale3, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;

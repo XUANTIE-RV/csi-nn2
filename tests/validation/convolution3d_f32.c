@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -48,7 +50,7 @@ int main(int argc, char** argv)
     kernel->dim[0] = buffer[5];      //out_channel
     kernel->dim[1] = buffer[1];      //in_channel
     kernel->dim[2] = buffer[6];      //filter_depth
-    kernel->dim[3] = buffer[7];      //filter_height 
+    kernel->dim[3] = buffer[7];      //filter_height
     kernel->dim[4] = buffer[8];      //filter_width
 
     bias->dim[0]   = buffer[5];
@@ -72,7 +74,7 @@ int main(int argc, char** argv)
     params.dilation_depth  = buffer[21];
     params.dilation_height = buffer[22];
     params.dilation_width  = buffer[23];
-    params.base.layout     = CSINN_NCDHW;
+    params.base.layout     = CSINN_LAYOUT_NCDHW;
     params.group      = 1;
 
     input->dim_count = 5;

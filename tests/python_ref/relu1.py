@@ -15,7 +15,7 @@ def relu1_f32():
     in_size_x   = int(np.random.randint(1, high=5, size=1))
     in_size_y   = int(np.random.randint(1, high=5, size=1))
     in_channel  = int(np.random.randint(1, high=64, size=1))
-    zero_point = int(np.random.randint(-60000, high=60000, size=1))
+    zero_point = int(np.random.randint(-1, high=1, size=1))
     std        = int(np.random.randint(1, high=2, size=1))
 
     src_in = np.random.normal(zero_point, std, (batch, in_size_y, in_size_x, in_channel))

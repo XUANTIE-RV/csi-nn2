@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
@@ -49,7 +51,6 @@ int csi_ovx_reorg(struct csi_tensor *input,
     attr.vtl = TRUE;
     attr.is_const = FALSE;
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
-    node->output.tensors[0] = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     node->output.tensors[0] = output_id;
     output->data = (void *)output_id;

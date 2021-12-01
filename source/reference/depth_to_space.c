@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 //the input->data is a 4-D Tensor with shape [batch, depth, height, width].
@@ -23,6 +25,7 @@ int csi_ref_depth_to_space_f32(struct csi_tensor *input,
                                struct csi_tensor *output,
                                struct depth_to_space_params *params)
 {
+    if (params->mode == CSINN_DEPTHTOSPACE_CRD) return CSINN_FALSE;
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 

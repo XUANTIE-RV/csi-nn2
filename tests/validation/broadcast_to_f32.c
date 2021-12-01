@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -37,27 +39,25 @@ int main(int argc, char** argv)
     params.shape_count = buffer[1];
     output->dim_count = buffer[1];
 
-    int repeat_size = params.shape_count -input->dim_count;
-
     for(int i=0; i<input->dim_count; i++) {
-        input->dim[i] = buffer[2+repeat_size+i];
+        input->dim[i] = buffer[2 + i];
         in_size = in_size * input->dim[i];
     }
 
     params.shape = (int *)malloc(params.shape_count * sizeof(int));
 
     for(int i=0; i<params.shape_count; i++) {
-        output->dim[i] = buffer[2+i];
+        output->dim[i] = buffer[2 + input->dim_count +i];
         out_size = out_size * output->dim[i];
-        params.shape[i] = buffer[2+i];
+        params.shape[i] = output->dim[i];
     }
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
-    input->data = (float *)(buffer + 2 + params.shape_count);
-    reference->data = (float *)(buffer + 2 + params.shape_count + in_size);
+    input->data = (float *)(buffer + 2 + input->dim_count + params.shape_count) ;
+    reference->data = (float *)(buffer + 2 + input->dim_count + params.shape_count + in_size);
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->data  = (float *)malloc(out_size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 1e-6;

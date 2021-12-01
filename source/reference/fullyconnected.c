@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 int csi_ref_fullyconnected_f32(struct csi_tensor *input,
@@ -59,12 +61,7 @@ int csi_ref_fullyconnected_quant(struct csi_tensor *input,
     struct csi_tensor *float_kernel = csi_ref_tensor_transform_f32(weights);
     struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
     struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
-    float *float_bias_data = float_bias->data;
-    int32_t *bias_data = bias->data;
-    int bias_size = csi_tensor_size(bias);
-    for (int i = 0; i < bias_size; i++) {
-        float_bias_data[i] = bias_data[i] * weights->qinfo->scale * input->qinfo->scale;
-    }
+
     int ret = csi_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
     csi_tensor_data_convert(output, float_output);
     csi_ref_tensor_transform_free_f32(float_input);

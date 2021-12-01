@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
@@ -45,12 +47,13 @@ int csi_ovx_l2pool(struct csi_tensor *input,
                                             params->stride_height, params->pad_top);
     int ceil_mode_w = csi_get_ceil_mode_fix(input->dim[3], params->filter_width,
                                             params->stride_width, params->pad_right);
-    node->nn_param.pool.pad[0] = params->pad_right;
+
+    node->nn_param.pool.pad[0] = params->pad_left;
     node->nn_param.pool.pad[1] = params->pad_right + ceil_mode_w;
     node->nn_param.pool.pad[2] = params->pad_top;
-    node->nn_param.pool.pad[3] = params->pad_top + ceil_mode_h;
+    node->nn_param.pool.pad[3] = params->pad_down + ceil_mode_h;
     node->nn_param.pool.type = VX_CONVOLUTIONAL_NETWORK_POOLING_L2;
-    node->nn_param.pool.round_type = VSI_NN_ROUND_CEIL;
+    node->nn_param.pool.round_type = VSI_NN_ROUND_FLOOR;
     node->vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;

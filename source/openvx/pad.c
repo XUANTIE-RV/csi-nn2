@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -32,12 +34,19 @@ int csi_ovx_pad(struct csi_tensor *input,
     uint32_t input_num = 1;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_PAD, input_num, output_num, &node_id);
-    node->nn_param.pad.front_size = params->pad_before;
-    node->nn_param.pad.back_size = params->pad_after;
     node->nn_param.pad.dim_num = input->dim_count;
+
+    uint32_t *pad_before = (uint32_t *)malloc(node->nn_param.pad.dim_num * sizeof(uint32_t));
+    uint32_t *pad_after = (uint32_t *)malloc(node->nn_param.pad.dim_num * sizeof(uint32_t));
+    for (int i = 0; i < node->nn_param.pad.dim_num; i++) {
+        pad_before[i] = params->pad_before[input->dim_count - 1 - i];
+        pad_after[i] = params->pad_after[input->dim_count - 1 - i];
+    }
+    node->nn_param.pad.front_size = pad_before;
+    node->nn_param.pad.back_size = pad_after;
     node->nn_param.pad.const_val = params->pad_value;
 
-    if (params->pad_mode == CSINN_PAD_REFLECT) {
+    if (params->pad_mode == CSINN_PAD_CONSTANT) {
         node->nn_param.pad.mode = VSI_NN_PAD_MODE_CONSTANT;
     } else if (params->pad_mode == CSINN_PAD_REFLECT) {
         node->nn_param.pad.mode = VSI_NN_PAD_MODE_REFLECT;

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
@@ -138,11 +140,11 @@ int csi_ovx_depthwise_deconv2d(struct csi_tensor *input,
     /* input */
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
-    /* kernel */
-    attr.size[0] = kernel->dim[3];
-    attr.size[1] = kernel->dim[2];
-    attr.size[2] = kernel->dim[1];
-    attr.size[3] = kernel->dim[0];
+    /* FIXME: kernel */
+    attr.size[0] = kernel->dim[3];  // kernel_x
+    attr.size[1] = kernel->dim[2];  // kernel_y
+    attr.size[2] = kernel->dim[1];  // 1
+    attr.size[3] = kernel->dim[0];  // channel
     attr.dim_num = 4;
     attr.dtype.scale = kernel->qinfo->scale;
     attr.dtype.zero_point = kernel->qinfo->zero_point;

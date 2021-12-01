@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 int csi_ref_global_averagepool_f32(struct csi_tensor *input,
@@ -31,10 +33,10 @@ int csi_ref_global_averagepool_f32(struct csi_tensor *input,
     params->pad_left = 0;
     params->pad_right = 0;
     params->pad_top = 0;
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         params->filter_height = input->dim[2];
         params->filter_width = input->dim[3];
-    } else if (params->base.layout == CSINN_NHWC) {
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         params->filter_height = input->dim[1];
         params->filter_width = input->dim[2];
     } else {

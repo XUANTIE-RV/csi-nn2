@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_INTERNAL_REF_H
 #define _CSI_INTERNAL_REF_H
 
@@ -443,6 +445,22 @@ int csi_ref_elu_quant(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct relu_params *params);
 
+int csi_ref_fsmn_f32(struct csi_tensor *frame,
+                     struct csi_tensor *l_filter,
+                     struct csi_tensor *r_filter,
+                     struct csi_tensor *frame_sequence,
+                     struct csi_tensor *frame_counter,
+                     struct csi_tensor *output,
+                     struct fsmn_params *params);
+
+int csi_ref_fsmn_quant(struct csi_tensor *frame,
+                     struct csi_tensor *l_filter,
+                     struct csi_tensor *r_filter,
+                     struct csi_tensor *frame_sequence,
+                     struct csi_tensor *frame_counter,
+                     struct csi_tensor *output,
+                     struct fsmn_params *params);
+
 int csi_ref_equal_f32(struct csi_tensor *input0,
                       struct csi_tensor *input1,
                       struct csi_tensor *output,
@@ -488,6 +506,10 @@ int csi_ref_expm1_quant(struct csi_tensor *input,
 int csi_ref_flatten(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct flatten_params *params);
+
+int csi_ref_flatten_requant(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct flatten_params *params);
 
 int csi_ref_floor_divide_f32(struct csi_tensor *input0,
                              struct csi_tensor *input1,
@@ -540,10 +562,12 @@ int csi_ref_gather_nd_quant(struct csi_tensor *input,
                             struct gather_nd_params *params);
 
 int csi_ref_gather_f32(struct csi_tensor *input,
+                       struct csi_tensor *indices,
                        struct csi_tensor *output,
                        struct gather_params *params);
 
 int csi_ref_gather_quant(struct csi_tensor *input,
+                         struct csi_tensor *indices,
                          struct csi_tensor *output,
                          struct gather_params *params);
 
@@ -1023,6 +1047,10 @@ int csi_ref_reshape(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct reshape_params *params);
 
+int csi_ref_reshape_requant(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct reshape_params *params);
+
 int csi_ref_resize_f32(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct resize_params *params);
@@ -1308,9 +1336,13 @@ int csi_ref_space_to_depth_quant(struct csi_tensor *input,
                                  struct csi_tensor *output,
                                  struct space_to_depth_params *params);
 
-int csi_ref_split(struct csi_tensor *input,
-                  struct csi_tensor **output,
-                  struct split_params *params);
+int csi_ref_split_f32(struct csi_tensor *input,
+                      struct csi_tensor **output,
+                      struct split_params *params);
+
+int csi_ref_split_quant(struct csi_tensor *input,
+                        struct csi_tensor **output,
+                        struct split_params *params);
 
 int csi_ref_sqrt_f32(struct csi_tensor *input,
                      struct csi_tensor *output,
@@ -1412,6 +1444,10 @@ int csi_ref_transpose(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct transpose_params *params);
 
+int csi_ref_transpose_requant(struct csi_tensor *input,
+                              struct csi_tensor *output,
+                              struct transpose_params *params);
+
 int csi_ref_trunc_f32(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct siso_params *params);
@@ -1466,7 +1502,6 @@ int32_t csi_ref_min_internal_s32(int32_t a, int32_t b);
 int32_t csi_ref_get_index(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3);
 int32_t csi_ref_get_index_5(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3, int32_t index4);
 int32_t csi_ref_get_index_iter(int32_t *dim, int dim_count, int32_t *index);
-int32_t csi_ref_get_broadcast_index_iter(int32_t *dim, int dim_idx, int32_t *index);
 float csi_ref_get_scale(int32_t multiplier, int32_t shift);
 float csi_ref_dequantize_u8_to_f32(uint8_t input, struct csi_quant_info *qinfo);
 float csi_ref_dequantize_i8_to_f32(int8_t input, struct csi_quant_info *qinfo);
@@ -1489,6 +1524,7 @@ void csi_ref_conv_free_float_tensor(struct csi_tensor *input, struct csi_tensor 
                                     struct csi_tensor *kernel, struct csi_tensor *bias);
 struct csi_tensor *csi_ref_tensor_transform_f32(struct csi_tensor *input);
 int csi_ref_tensor_transform_free_f32(struct csi_tensor *input);
+uint8_t *csi_ref_f32_to_input_dtype(uint32_t index, float *data, struct csi_session *sess);
 
 struct csi_ref_diso_callback
 {
@@ -1499,10 +1535,14 @@ struct csi_ref_diso_callback
     int32_t *input_dim;
 };
 
-int32_t *csi_ref_get_input_dim(struct csi_tensor *input, int dim_count, int32_t *axis, int axis_size);
-void csi_ref_diso_dim_iter(int32_t *dim, int dim_idx, int32_t *index, struct csi_ref_diso_callback *cb);
+void *csi_init_map_ref(int op, int dtype);
+
 int csi_ref_diso_broadcast_base(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
                                 struct diso_params *params, struct csi_ref_diso_callback *cb);
+int csi_ref_broadcast_to_shape(struct csi_tensor *input, struct csi_tensor *output, int32_t *shape, int32_t shape_count);
+int csi_ref_broadcast_to_shape_f32(struct csi_tensor *input, struct csi_tensor *output, int32_t *shape, int32_t shape_count);
+int csi_ref_broadcast_to_shape_quant(struct csi_tensor *input, struct csi_tensor *output, int32_t *shape, int32_t shape_count);
+
 int csi_ref_siso_callback_base(struct csi_tensor *input, struct csi_tensor *output, void *params, void *cb);
 int csi_ref_diso_callback_base(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output, void *params, void *cb);
 int csi_ref_conv_callback_base(struct csi_tensor *input, struct csi_tensor *output, struct csi_tensor *kernel, struct csi_tensor *bias, void *params, void *cb);
@@ -1512,4 +1552,16 @@ void csi_ref_nn_init(struct csi_tensor *input,
 
 void csi_ref_nn_deinit(struct csi_tensor *input,
                        struct csi_tensor *output);
+
+int csi_ref_flatten_init(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct reshape_params *params);
+
+int csi_ref_reshape_init(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct reshape_params *params);
+
+int csi_ref_transpose_init(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct transpose_params *params);
 #endif

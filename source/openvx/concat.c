@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -34,7 +36,7 @@ int csi_ovx_concat(struct csi_tensor **input,
 
     uint32_t input_dim_num = input[0]->dim_count;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_CONCAT, input_num, output_num, &node_id);
-    node->nn_param.concat.axis = input_dim_num -1 - params->axis;
+    node->nn_param.concat.axis = input_dim_num - 1 - params->axis;
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

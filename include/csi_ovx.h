@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_NN_OVX_H
 #define _CSI_NN_OVX_H
 #include "csi_nn.h"
@@ -126,6 +128,10 @@ int csi_ovx_exp(struct csi_tensor *input,
                 struct csi_tensor *output,
                 struct siso_params *params);
 
+int csi_ovx_log(struct csi_tensor *input,
+                struct csi_tensor *output,
+                struct siso_params *params);
+
 int csi_ovx_sin(struct csi_tensor *input,
                 struct csi_tensor *output,
                 struct siso_params *params);
@@ -190,6 +196,10 @@ int csi_ovx_softplus(struct csi_tensor *input,
 int csi_ovx_softmax(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct softmax_params *params);
+
+int csi_ovx_log_softmax(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct softmax_params *params);
 
 int csi_ovx_batch_normalization(struct csi_tensor *input,
                                 struct csi_tensor *mean,
@@ -326,6 +336,11 @@ int csi_ovx_roipool(struct csi_tensor *data,
                     struct csi_tensor *output,
                     struct roi_pool_params *params);
 
+int csi_ovx_roi_align(struct csi_tensor *input,
+                      struct csi_tensor *rois,
+                      struct csi_tensor *output,
+                      struct roi_align_params *params);
+
 int csi_ovx_transpose(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct transpose_params *params);
@@ -382,7 +397,7 @@ int csi_ovx_split(struct csi_tensor *input,
                   struct csi_tensor **output,
                   struct split_params *params);
 
-int csi_ovx_stack(struct csi_tensor *inputs,
+int csi_ovx_stack(struct csi_tensor **inputs,
                   struct csi_tensor *output,
                   struct stack_params *params);
 
@@ -400,8 +415,13 @@ int csi_ovx_where(struct csi_tensor *condition,
                   struct where_params *params);
 
 int csi_ovx_unstack(struct csi_tensor *input,
-                    struct csi_tensor *outputs,
+                    struct csi_tensor **outputs,
                     struct unstack_params *params);
+
+int csi_ovx_gather(struct csi_tensor *input,
+                   struct csi_tensor *indices,
+                   struct csi_tensor *output,
+                   struct gather_params *params);
 
 int csi_ovx_gather_nd(struct csi_tensor *input,
                       struct csi_tensor *indices,
@@ -495,6 +515,19 @@ int csi_ovx_reorg(struct csi_tensor *input,
                   struct csi_tensor *output,
                   struct reorg_params *params);
 
+int csi_ovx_topk(struct csi_tensor *input,
+                 struct csi_tensor *output0,
+                 struct csi_tensor *output1,
+                 struct topk_params *params);
+
+int csi_ovx_clip(struct csi_tensor *input,
+                 struct csi_tensor *output,
+                 struct clip_params *params);
+
+int csi_ovx_shuffle_channel(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct shuffle_channel_params *params);
+
 int32_t csi_get_ceil_mode_fix(int32_t input, int32_t kernel, int32_t stride, int32_t pad);
 
 struct csi_ovx_target_data {
@@ -503,13 +536,11 @@ struct csi_ovx_target_data {
 
 void *csi_ovx_get_graph(struct csi_session *sess);
 
-void csi_ovx_set_tensor(struct csi_tensor *tensor, struct csi_session *sess);
-void csi_ovx_set_const_tensor(struct csi_tensor *tensor, struct csi_session *sess);
 uint8_t *csi_ovx_input_f32_to_u8(uint32_t idx, float *data, struct csi_session *sess);
 int csi_ovx_get_tensor(int index, struct csi_tensor *ret, struct csi_session *sess);
 void csi_ovx_save_output(int index, const char *filename, struct csi_session *sess);
 void csi_ovx_show_top5(int index, struct csi_session *sess);
-void csi_ovx_nbg(struct csi_tensor **input, struct csi_tensor **output,
-                 uint32_t inputs_count, uint32_t outputs_count, const char *url);
+void csi_ovx_set_graph_attribute(struct csi_session *sess, int device_index);
+int csi_ovx_get_device_number();
 
 #endif

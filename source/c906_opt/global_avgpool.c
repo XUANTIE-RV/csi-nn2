@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_c906.h"
 
 int csi_c906_global_avgpool_f32(struct csi_tensor *input,

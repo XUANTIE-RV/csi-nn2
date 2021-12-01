@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #ifdef CSI_AVX_OPT
 #include "conv_avx.c"
@@ -102,10 +104,11 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
     t_input->data = malloc(t_input->dim[0] * t_input->dim[1] *
                            t_input->dim[2] * t_input->dim[3] * 4);
     struct pad_params pparams;
-    pparams.base.layout = CSINN_NCHW;
+    pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
     pparams.pad_before = pad_b;
     pparams.pad_after = pad_a;
+    pparams.pad_num = 4;
     pparams.pad_mode = 0;
     pparams.pad_value = 0;
     pparams.base.name = "tmp_pad";
@@ -349,9 +352,9 @@ int csi_ref_conv2d_f32(struct csi_tensor *input,
                        struct csi_tensor *bias,
                        struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NHWC) {
+    if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_conv2d_nhwc_f32(input, output, kernel, bias, params);
-    } else if (params->base.layout == CSINN_NCHW) {
+    } else if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_conv2d_nchw_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
@@ -373,9 +376,9 @@ int csi_ref_depthwise_conv2d_f32(struct csi_tensor *input,
                                  struct csi_tensor *bias,
                                  struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NHWC) {
+    if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_depthwise_conv2d_nhwc_f32(input, output, kernel, bias, params);
-    } else if (params->base.layout == CSINN_NCHW) {
+    } else if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_depthwise_conv2d_nchw_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
@@ -397,9 +400,9 @@ int csi_ref_group_conv2d_f32(struct csi_tensor *input,
                              struct csi_tensor *bias,
                              struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NHWC) {
+    if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_group_conv2d_nhwc_f32(input, output, kernel, bias, params);
-    } else if (params->base.layout == CSINN_NCHW) {
+    } else if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_group_conv2d_nchw_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;

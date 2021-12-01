@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -34,17 +36,23 @@ int csi_ovx_strided_slice(struct csi_tensor *input,
     int i;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_STRIDED_SLICE, input_num, output_num, &node_id);
 
-    node->nn_param.strided_slice.begin_dims = (uint32_t*)malloc(sizeof(uint32_t) * params->slice_count);
-    node->nn_param.strided_slice.begin_dims_num = params->slice_count;
-    node->nn_param.strided_slice.end_dims = (uint32_t*)malloc(sizeof(uint32_t) * params->slice_count);
-    node->nn_param.strided_slice.end_dims_num = params->slice_count;
-    node->nn_param.strided_slice.stride_dims = (uint32_t*)malloc(sizeof(uint32_t) * params->slice_count);
-    node->nn_param.strided_slice.stride_dims_num = params->slice_count;
+    node->nn_param.strided_slice.begin_dims = (uint32_t*)malloc(sizeof(uint32_t) * input->dim_count);
+    node->nn_param.strided_slice.begin_dims_num = input->dim_count;
+    node->nn_param.strided_slice.end_dims = (uint32_t*)malloc(sizeof(uint32_t) * input->dim_count);
+    node->nn_param.strided_slice.end_dims_num = input->dim_count;
+    node->nn_param.strided_slice.stride_dims = (uint32_t*)malloc(sizeof(uint32_t) * input->dim_count);
+    node->nn_param.strided_slice.stride_dims_num = input->dim_count;
 
-    for (i = 0; i < params->slice_count; i++) {
-        node->nn_param.strided_slice.begin_dims[i] = params->begin[input->dim_count - 1 - i];
-        node->nn_param.strided_slice.end_dims[i] = params->end[input->dim_count - 1 - i];
-        node->nn_param.strided_slice.stride_dims[i] = params->stride[input->dim_count - 1 - i];
+    for (i = 0; i < input->dim_count; i++) {
+        if (i < input->dim_count - params->slice_count) {
+            node->nn_param.strided_slice.begin_dims[i] = 0;
+            node->nn_param.strided_slice.end_dims[i] = input->dim[input->dim_count - 1 - i];
+            node->nn_param.strided_slice.stride_dims[i] = 1;
+        } else {
+            node->nn_param.strided_slice.begin_dims[i] = params->begin[input->dim_count - 1 - i];
+            node->nn_param.strided_slice.end_dims[i] = params->end[input->dim_count - 1 - i];
+            node->nn_param.strided_slice.stride_dims[i] = params->stride[input->dim_count - 1 - i];
+        }
     }
 
     node->nn_param.strided_slice.begin_mask = 0;

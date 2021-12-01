@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_roi_align(struct csi_tensor *data,

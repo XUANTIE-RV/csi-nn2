@@ -13,6 +13,7 @@ objects += ${NN2_ROOT}/source/reference/softsign.o
 objects += ${NN2_ROOT}/source/reference/softmax.o
 objects += ${NN2_ROOT}/source/reference/log_softmax.o
 objects += ${NN2_ROOT}/source/reference/flatten.o
+objects += ${NN2_ROOT}/source/reference/fsmn.o
 objects += ${NN2_ROOT}/source/reference/fullyconnected.o
 objects += ${NN2_ROOT}/source/reference/maxpool.o
 objects += ${NN2_ROOT}/source/reference/maxpool3d.o

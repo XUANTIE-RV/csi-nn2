@@ -16,30 +16,31 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "csi_pnna.h"
 
 int main(int argc, char** argv)
 {
     init_testsuite("Testing function of batch normalization(graph).\n");
 
+    int *buffer = read_input_data_f32(argv[1]);
+    int channel_size = buffer[4];
+
+    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    int in_size = 0, out_size = 0;
+
+    /* session configuration */
     struct csi_session *sess = csi_alloc_session();
-    sess->base_api = CSINN_LIGHT;
-    sess->base_dtype = CSINN_DTYPE_INT8;
+    sess->base_api = CSINN_API;
     csi_session_init(sess);
     csi_set_input_number(1, sess);
     csi_set_output_number(1, sess);
 
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    float min_value, max_value;
-    int in_size = 0, out_size = 0;
 
-    int *buffer = read_input_data_f32(argv[1]);
-    int channel_size = buffer[4];
-
-    // ------------------------ input ----------------------
+    /* input tensor configuration */
     struct csi_tensor *input  = csi_alloc_tensor(sess);
     input->dim[0] = buffer[1];          // batch
     input->dim[1] = buffer[4];          // channel
@@ -47,60 +48,107 @@ int main(int argc, char** argv)
     input->dim[3] = buffer[3];          // width
     input->dim_count = 4;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
-
-    float *input_data = (float *)(buffer + 6);
-    /* get input min max */
-    find_min_max((float *)input_data, &max_value, &min_value, in_size);
-    input->qinfo->min = min_value;
-    input->qinfo->max = max_value;
     input->name = "input";
+    float *input_data = (float *)(buffer + 6);
+    input->data = input_data;
+    get_quant_info(input);
 
-    // ------------------------ mean ----------------------
+    void *src_tmp = malloc(in_size * sizeof(char));
+    for(int i = 0; i < in_size; i++) {
+        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
+            *((uint8_t *)src_tmp + i) = csi_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
+        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
+            *((int8_t *)src_tmp + i) = csi_ref_quantize_f32_to_i8(input_data[i], input->qinfo);
+        }
+    }
+
+    /* mean tensor configuration */
     struct csi_tensor *mean  = csi_alloc_tensor(sess);
-    mean->data = (float *)(buffer + 6 + in_size);
     mean->dim[0] = channel_size;
     mean->dim_count = 1;
-    /* get mean min max */
-    find_min_max((float *)mean->data, &max_value, &min_value, channel_size);
-    mean->qinfo->min = min_value;
-    mean->qinfo->max = max_value;
     mean->name = "mean";
+    float *mean_data = (float *)(buffer + 6 + in_size);
+    mean->data = mean_data;
+    get_quant_info(mean);
 
-    // ------------------------ variance ----------------------
+    void *mean_tmp = malloc(channel_size * sizeof(char));
+    for(int i = 0; i < channel_size; i++) {
+        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
+            *((uint8_t *)mean_tmp + i) = csi_ref_quantize_f32_to_u8(mean_data[i], mean->qinfo);
+        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
+            *((int8_t *)mean_tmp + i) = csi_ref_quantize_f32_to_i8(mean_data[i], mean->qinfo);
+        }
+    }
+    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        mean->data = mean_tmp;
+    }
+
+
+    /* variance tensor configuration */
     struct csi_tensor *variance  = csi_alloc_tensor(sess);
-    variance->data = (float *)(buffer + 6 + in_size + channel_size);
     variance->dim[0] = channel_size;
     variance->dim_count = 1;
-    /* get variance min max */
-    find_min_max((float *)variance->data, &max_value, &min_value, channel_size);
-    variance->qinfo->min = min_value;
-    variance->qinfo->max = max_value;
     variance->name = "variance";
+    float *variance_data = (float *)(buffer + 6 + in_size + channel_size);
+    variance->data = variance_data;
+    get_quant_info(variance);
 
-    // ------------------------ gamma ----------------------
+    void *variance_tmp = malloc(channel_size * sizeof(char));
+    for(int i = 0; i < channel_size; i++) {
+        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
+            *((uint8_t *)variance_tmp + i) = csi_ref_quantize_f32_to_u8(variance_data[i], variance->qinfo);
+        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
+            *((int8_t *)variance_tmp + i) = csi_ref_quantize_f32_to_i8(variance_data[i], variance->qinfo);
+        }
+    }
+    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        variance->data = variance_tmp;
+    }
+
+    /* gamma tensor configuration */
     struct csi_tensor *gamma  = csi_alloc_tensor(sess);
-    gamma->data = (float *)(buffer + 6 + in_size + channel_size * 2);
     gamma->dim[0] = channel_size;
     gamma->dim_count = 1;
-    /* get gamma min max */
-    find_min_max((float *)gamma->data, &max_value, &min_value, channel_size);
-    gamma->qinfo->min = min_value;
-    gamma->qinfo->max = max_value;
     gamma->name = "gamma";
+    float *gamma_data = (float *)(buffer + 6 + in_size + channel_size * 2);
+    gamma->data = gamma_data;
+    get_quant_info(gamma);
 
+    void *gamma_tmp = malloc(channel_size * sizeof(char));
+    for(int i = 0; i < channel_size; i++) {
+        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
+            *((uint8_t *)gamma_tmp + i) = csi_ref_quantize_f32_to_u8(gamma_data[i], gamma->qinfo);
+        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
+            *((int8_t *)gamma_tmp + i) = csi_ref_quantize_f32_to_i8(gamma_data[i], gamma->qinfo);
+        }
+    }
+    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        gamma->data = gamma_tmp;
+    }
 
-    // ------------------------ beta ----------------------
+    /* beta tensor configuration */
     struct csi_tensor *beta  = csi_alloc_tensor(sess);
-    beta->data = (float *)(buffer + 6 + in_size + channel_size * 3);
     beta->dim[0] = channel_size;
     beta->dim_count = 1;
-    /* get gamma min max */
-    find_min_max((float *)beta->data, &max_value, &min_value, channel_size);
-    beta->qinfo->min = min_value;
-    beta->qinfo->max = max_value;
     beta->name = "beta";
+    float *beta_data = (float *)(buffer + 6 + in_size + channel_size * 3);
+    beta->data = beta_data;
+    get_quant_info(beta);
 
-    // ------------------------ output ----------------------
+    /* FIX ME */
+    void *beta_tmp = malloc(channel_size * sizeof(int));
+    for(int i = 0; i < channel_size; i++) {
+        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
+            *((int32_t *)beta_tmp + i) = csi_ref_quantize_f32_to_u8(beta_data[i], beta->qinfo);
+        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
+            *((int32_t *)beta_tmp + i) = csi_ref_quantize_f32_to_i8(beta_data[i], beta->qinfo);
+        }
+    }
+    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        beta->data = beta_tmp;
+    }
+
+    /* output tensor configuration */
     struct csi_tensor *output = csi_alloc_tensor(sess);
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
@@ -108,19 +156,17 @@ int main(int argc, char** argv)
     output->dim[3] = input->dim[3];
     output->dim_count = 4;
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
-
     reference->data = (float *)(buffer + 6 + in_size + channel_size * 4);
-    /* get output min max */
-    find_min_max((float *)reference->data, &max_value, &min_value, out_size);
-    output->qinfo->min = min_value;
-    output->qinfo->max = max_value;
+    output->data = reference->data;
     output->name = "output";
+    get_quant_info(output);
 
 
+    /* operator parameter configuration */
     struct bn_params params;
     params.base.api = CSINN_API;
     params.base.name = "params";
-    params.base.layout = CSINN_NCHW;
+    params.base.layout = CSINN_LAYOUT_NCHW;
     params.base.run_mode = CSINN_RM_NPU_GRAPH;
     params.epsilon = *((float *)buffer + 5);
 
@@ -130,7 +176,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    csi_pnna_input_setup(input, sess);
+    csi_set_tensor_entry(input, sess);
     csi_set_input(0, input, sess);
 
     csi_batch_normalization(input, mean, variance, gamma, beta, output, &params);
@@ -140,26 +186,30 @@ int main(int argc, char** argv)
 
 
     struct csi_tensor *input_tensor = csi_alloc_tensor(NULL);
-    input_tensor->data = input_data;
+    if (sess->base_dtype == CSINN_DTYPE_FLOAT32) {
+        input_tensor->data = input_data;
+    } else if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        input_tensor->data = src_tmp;
+    }
     csi_update_input(0, input_tensor, sess);
     csi_session_run(sess);
 
     struct csi_tensor *output_tensor = csi_alloc_tensor(NULL);
+    output_tensor->data = NULL;
+    output_tensor->dtype = sess->base_dtype;
     output_tensor->is_const = 0;
     int output_num = csi_get_output_number(sess);
     printf("output_num = %d\n", output_num);
     csi_get_output(0, output_tensor, sess);
+    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csi_quant_info));
 
-    /* FIX ME */
+    /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
-    result_verify_f32(reference->data, output_tensor->data, input->data, difference, out_size, false);
-
-    /* evaluate error by kl and cosine similarity */
-    float *output_tensor_data = (float *)output_tensor->data;
-    float kl = compute_kl(output_tensor_data, reference->data, out_size);
-    printf("The kl diver is %f.\n", kl);
-    float cs = compute_cs(output_tensor_data, reference->data, out_size);
-    printf("The cos sim is %f.\n", cs);
+    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
+        result_verify_8(reference->data, output_tensor, input->data, difference, out_size, false);
+    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32) {
+        result_verify_f32(reference->data, output_tensor->data, input->data, difference, out_size, false);
+    }
 
     /* free alloced memory */
     free(buffer);
@@ -167,6 +217,13 @@ int main(int argc, char** argv)
     free(input_tensor);
     free(output_tensor->qinfo);
     free(output_tensor);
+    free(reference->qinfo);
+    free(reference);
+    free(src_tmp);
+    free(mean_tmp);
+    free(variance_tmp);
+    free(gamma_tmp);
+    free(beta_tmp);
 
     csi_session_deinit(sess);
     csi_free_session(sess);

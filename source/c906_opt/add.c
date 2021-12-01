@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_c906.h"
 
 int csi_c906_add_f32(struct csi_tensor *input0,
@@ -23,20 +25,37 @@ int csi_c906_add_f32(struct csi_tensor *input0,
                      struct csi_tensor *output,
                      struct diso_params *params)
 {
-    float *input0_data = input0->data;
-    float *input1_data = input1->data;
+    int out_size = csi_tensor_size(output);
+    float *in0_data_b = malloc(out_size * 4);
+    float *in1_data_b = malloc(out_size * 4);
+
+    struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
+    struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
+    csi_tensor_copy(b_input0, output);
+    csi_tensor_copy(b_input1, output);
+    b_input0->data = in0_data_b;
+    b_input1->data = in1_data_b;
+
+    csi_ref_broadcast_to_shape_f32(input0, b_input0, output->dim, output->dim_count);
+    csi_ref_broadcast_to_shape_f32(input1, b_input1, output->dim, output->dim_count);
+
+    float *input0_data = b_input0->data;
+    float *input1_data = b_input1->data;
     float *output_data = output->data;
     int size0 = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size0 = size0 * input0->dim[i];
+    for (int i = 0; i < b_input0->dim_count; i++) {
+        size0 = size0 * b_input0->dim[i];
     }
 
     int size1 = 1;
-    for (int i = 0; i < input1->dim_count; i++) {
-        size1 = size1 * input1->dim[i];
+    for (int i = 0; i < b_input1->dim_count; i++) {
+        size1 = size1 * b_input1->dim[i];
     }
-
-    if(size0 == size1){
+    if (size1 == 1){
+        for (int i = 0; i< size0; i++){
+            output_data[i] = input0_data[i] + input1_data[0];
+        }
+    } else if(size0 == size1){
 
         asm volatile(
                     "0:\n\t"
@@ -59,10 +78,6 @@ int csi_c906_add_f32(struct csi_tensor *input0,
                     "r"(size0)          // %4
                     : "v2", "v3", "v4", "v5", "v6", "v7", "t0"
         );
-
-        // for (int i = 0; i < size0; i++) {
-        //     output_data[i] = input0_data[i] + input1_data[i];
-        // }
     }
     else if(input1->dim[0] == input0->dim[3] && size1 == input1->dim[0]){
 
@@ -97,16 +112,6 @@ int csi_c906_add_f32(struct csi_tensor *input0,
                     "r"(outer_size)     // %5
                     : "v2", "v3", "v4", "v5", "v6", "v7", "a1", "a2", "t0"
         );
-        // for(int n = 0; n < input0->dim[0]; n++){
-        //     for(int h = 0; h < input0->dim[1]; h++){
-        //         for(int w = 0; w < input0->dim[2]; w++){
-        //             for(int c = 0; c < input0->dim[3]; c++){
-        //                 int index = csi_ref_get_index(input0->dim, n, h, w, c);
-        //                 output_data[index] = input1_data[c] + input0_data[index];
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     return CSINN_TRUE;

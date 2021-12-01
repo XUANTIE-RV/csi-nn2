@@ -9,7 +9,7 @@ import random
 def transpose_f32():
     para = []
     # init the input data and parameters
-    input_dim_count = int(np.random.randint(1, high=6, size=1))
+    input_dim_count = int(np.random.randint(4, high=5, size=1))
     input_shape = []
     for i in range(0, input_dim_count):
         input_shape.append(int(np.random.randint(12, high=24, size=1)))

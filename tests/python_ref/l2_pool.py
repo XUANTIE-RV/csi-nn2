@@ -31,14 +31,17 @@ def l2_pool_f32():
         pad_y      = int((in_size_y - kernel_y) / stride_y) * stride_y + stride_y - (in_size_y - kernel_y)
         pad_top    = int(np.random.randint(0, high=pad_y, size=1))
         pad_down   = pad_y - pad_top
-    zero_point = int(np.random.randint(-60000, high=60000, size=1))
+    zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
     src_in = np.random.normal(zero_point, std, (batch, in_channel, in_size_y, in_size_x))
 
     t_src_in  = tensor(src_in)
     t_src_in  = fn.pad(t_src_in, (pad_left, pad_right, pad_top, pad_down), 'constant', 0)
-    t_src_out = fn.max_pool2d(t_src_in, (kernel_y, kernel_x), stride=(stride_y, stride_x), padding=0).numpy()
+
+    t_src_in = np.square(t_src_in)
+    t_src_out = fn.avg_pool2d(t_src_in, (kernel_y, kernel_x), stride=(stride_y, stride_x), padding=0).numpy()
+    t_src_out = np.sqrt(t_src_out)
 
     #permute nchw to nhwc
     src_in_nhwc = np.transpose(src_in, [3, 1, 0, 2])
@@ -63,7 +66,7 @@ def l2_pool_f32():
     para.append(pad_top)
     para.append(pad_down)
 
-    with open("l2_pool_f32_data.bin", "wb") as fp:
+    with open("l2_pool_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

@@ -16,59 +16,60 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include <assert.h>
 #include <math.h>
 
-static float bilinear_sample_nchw(const float *input, int32_t batch,
-                                  int32_t channel, int32_t height,
-                                  int32_t width, int32_t i, int32_t c, float y,
-                                  float x, const int32_t max_y,
-                                  const int32_t max_x) {
-    float in_y = y;
-    float yf = floor(in_y);
-    int32_t yc = ceil(in_y);
+// https://github.com/AceCoooool/RoIAlign-RoIPool-pytorch/blob/master/roialign/roi_align_cpu.cpp
 
-    int32_t y0 = floor(in_y);
-    int32_t y1 = yc > max_y ? max_y : yc;
-    float y_lerp = in_y - yf;
+struct PreCalc {
+    // left_top, right_top, left_bottom, right_bottom
+    int pos1, pos2, pos3, pos4;
+    float w1, w2, w3, w4;
+};
 
-    float in_x = x;
-    float xf = floor(in_x);
-    int32_t xc = ceil(in_x);
-
-    int32_t x0 = floor(in_x);
-    int32_t x1 = xc > max_x ? max_x : xc;
-    float x_lerp = in_x - xf;
-
-    int32_t s1 = channel * height * width;
-    int32_t s2 = height * width;
-    int32_t s3 = width;
-
-    float A = input[i * s1 + c * s2 + y0 * s3 + x0];
-    float B = input[i * s1 + c * s2 + y0 * s3 + x1];
-    float C = input[i * s1 + c * s2 + y1 * s3 + x0];
-    float D = input[i * s1 + c * s2 + y1 * s3 + x1];
-
-    return A * (1 - x_lerp) * (1 - y_lerp) + B * x_lerp * (1 - y_lerp) +
-          C * (1 - x_lerp) * y_lerp + D * x_lerp * y_lerp;
-}
-
-static float _bilinear(const float *data, int32_t batch, int32_t channel,
-                       int32_t height, int32_t width, int32_t i, int32_t c,
-                       float y, float x) {
-    bool outside = (y < -1.0 || x < -1.0 || y > height || x > width);
-
-    y = fmax(y, 0.0);
-    x = fmax(x, 0.0);
-
-    float val = bilinear_sample_nchw(data, batch, channel, height, width, i, c, y,
-                                    x, height - 1, width - 1);
-
-    if (outside)
-      return 0.0;
-    else
-      return val;
+static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, const int pool_w, int b_grid_h, int b_grid_w,
+                           float start_y, float start_x, float b_size_h, float b_size_w, struct PreCalc *pre_calc) {
+    int idx = 0;
+    for (int ph = 0; ph < pool_h; ++ph) {
+        for (int pw = 0; pw < pool_w; ++pw) {
+            for (int iy = 0; iy < b_grid_h; ++iy) {
+                float yy = start_y + ph * b_size_h + (float)(iy + 0.5f) * b_size_h / (float)(b_grid_h);
+                for (int ix = 0; ix < b_grid_w; ++ix) {
+                    float xx = start_x + pw * b_size_w + (float)(ix + 0.5f) * b_size_w / (float)(b_grid_w);
+                    float x = xx, y = yy;
+                    // situation 1: out of range
+                    if (y < -1.0 || y > h || x < -1.0 || x > w) {
+                        struct PreCalc cc = {0, 0, 0, 0, 0, 0, 0, 0};
+                        pre_calc[idx] = cc;
+                        idx += 1;
+                        continue;
+                    }
+                    // not exceed 1.0
+                    y = y <= 0 ? 0 : (y >= h - 1 ? h - 1 : y);
+                    x = x <= 0 ? 0 : (x >= w - 1 ? w - 1 : x);
+                    int y_low = (int) y;
+                    int x_low = (int) x;
+                    int y_high = y_low >= h - 1 ? y_low : y_low + 1;
+                    int x_high = x_low >= w - 1 ? x_low : x_low + 1;
+                    float ly = y - y_low, lx = x - x_low;
+                    float hy = 1.0 - ly, hx = 1.0 - lx;
+                    float w1 = hy * hx, w2 = hy * lx, w3 = ly * hx, w4 = ly * lx;
+                    // in the feature map's position and correspond weights
+                    struct PreCalc pc;
+                    pc.pos1 = y_low * w + x_low;
+                    pc.pos2 = y_low * w + x_high;
+                    pc.pos3 = y_high * w + x_low;
+                    pc.pos4 = y_high * w + x_high;
+                    pc.w1 = w1, pc.w2 = w2, pc.w3 = w3, pc.w4 = w4;
+                    pre_calc[idx] = pc;
+                    idx += 1;
+                }
+            }
+        }
+    }
 }
 
 int csi_ref_roi_align_f32(struct csi_tensor *data,
@@ -76,72 +77,62 @@ int csi_ref_roi_align_f32(struct csi_tensor *data,
                           struct csi_tensor *output,
                           struct roi_align_params *params)
 {
-    assert(0);
+    float *bottom_rois = (float *)rois->data;
+    float *input_data = (float *)data->data;
+    float *output_data = (float *)output->data;
 
-    float *output_data = output->data;
+    int channel = data->dim[1];
+    int h = data->dim[2];
+    int w = data->dim[3];
 
-    int32_t i_size = output->dim[0];
-    int32_t c_size = output->dim[1];
-    int32_t ph_size = output->dim[2];
-    int32_t pw_size = output->dim[3];
+    int n_rois = rois->dim[0];
+    int pool_h = params->pooled_size_h; // output->dim[2]
+    int pool_w = params->pooled_size_w; // output->dim[3]
+    int ratio = params->sample_ratio;
 
-    int32_t s1 = c_size * ph_size * pw_size;
-    int32_t s2 = ph_size * pw_size;
-    int32_t s3 = pw_size;
+    for (int n = 0; n < n_rois; ++n) {
+        int idx_n = n * channel * pool_h * pool_w;
+        int roi_add = n * 5;
+        int roi_batch_idx = bottom_rois[roi_add];
+        float start_x = bottom_rois[roi_add + 1] * params->spatial_scale;
+        float start_y = bottom_rois[roi_add + 2] * params->spatial_scale;
+        float end_x = bottom_rois[roi_add + 3] * params->spatial_scale;
+        float end_y = bottom_rois[roi_add + 4] * params->spatial_scale;
+        // Force malformed ROIs to be 1x1
+        float roi_w = fmax(end_x - start_x, 1.0f);
+        float roi_h = fmax(end_y - start_y, 1.0f);
+        float bin_size_w = roi_w / (pool_w);
+        float bin_size_h = roi_h / (pool_h);
 
+        // We use roi_bin_grid to sample the grid and mimic integral
+        int bin_grid_h = (ratio > 0) ? ratio : ceil(roi_h / pool_h);
+        int bin_grid_w = (ratio > 0) ? ratio : ceil(roi_w / pool_w);
+        // We do average (integral) pooling inside a bin
+        int count = bin_grid_h * bin_grid_w;
+        // get each bin's corresponding position and weights
+        struct PreCalc pre_calc[count * pool_h * pool_w];
+        pre_calc_for_bilinear(h, w, pool_h, pool_w, bin_grid_h, bin_grid_w, start_y, start_x,
+                                bin_size_h, bin_size_w, pre_calc);
 
-    for (int32_t i = 0; i < i_size; i++) {
-        for (int32_t c = 0; c < c_size; c++) {
-            for (int32_t ph = 0; ph < ph_size; ph++) {
-                for (int32_t pw = 0; pw < pw_size; pw++) {
-                    float *roi = rois->data;
-                    int32_t *roi_int = rois->data;
-                    int32_t batch_index = roi_int[i * 5 + 0];
-                    float roi_start_w = roi[i * 5 + 1];
-                    float roi_start_h = roi[i * 5 + 2];
-                    float roi_end_w = roi[i * 5 + 3];
-                    float roi_end_h = roi[i * 5 + 4];
-
-                    roi_start_h *= params->spatial_scale;
-                    roi_end_h *= params->spatial_scale;
-                    roi_start_w *= params->spatial_scale;
-                    roi_end_w *= params->spatial_scale;
-
-                    // force malformed ROIs to be 1x1
-                    float roi_h = fmax(roi_end_h - roi_start_h, 1.0);
-                    float roi_w = fmax(roi_end_w - roi_start_w, 1.0);
-
-                    float bin_h = roi_h / params->pooled_size_h;
-                    float bin_w = roi_w / params->pooled_size_w;
-
-                    int32_t roi_bin_grid_h = 0;
-                    int32_t roi_bin_grid_w = 0;
-
-                    if (params->sample_ratio > 0) {
-                        roi_bin_grid_h = roi_bin_grid_w = params->sample_ratio;
-                    } else {
-                        roi_bin_grid_h = ceil(roi_h / params->pooled_size_h);
-                        roi_bin_grid_w = ceil(roi_w / params->pooled_size_w);
-                    }
-
-                    int32_t count = roi_bin_grid_h * roi_bin_grid_w;
-                    int32_t rh_size = roi_bin_grid_h;
-                    int32_t rw_size = roi_bin_grid_w;
-                    float result = 0;
-                    for (int32_t rh = 0; rh < rh_size; rh++) {
-                        for (int32_t rw = 0; rw < rw_size; rw++) {
-                            roi_start_h += ph * bin_h;
-                            roi_start_w += pw * bin_w;
-                            float _bv =
-                                _bilinear(data->data, data->dim[0], data->dim[1],
-                                          data->dim[2], data->dim[3], batch_index, c,
-                                          roi_start_h + (rh + 0.5) * bin_h / roi_bin_grid_h,
-                                          roi_start_w + (rw + 0.5) * bin_w / roi_bin_grid_w);
-                            result += _bv / count;
+        // map to feature map
+        for (int c = 0; c < channel; ++c) {
+            int idx_nc = idx_n + c * pool_w * pool_h;
+            float *offset_feat = input_data + (roi_batch_idx * channel + c) * h * w;
+            int pre_calc_idx = 0;
+            for (int ph = 0; ph < pool_h; ++ph) {
+                for (int pw = 0; pw < pool_w; ++pw) {
+                    int idx = idx_nc + ph * pool_w + pw;
+                    float output_val = 0.0;
+                    for (int iy = 0; iy < bin_grid_h; ++iy) {
+                        for (int ix = 0; ix < bin_grid_w; ++ix) {
+                            struct PreCalc pc = pre_calc[pre_calc_idx];
+                            output_val += pc.w1 * offset_feat[pc.pos1] + pc.w2 * offset_feat[pc.pos2] +
+                                          pc.w3 * offset_feat[pc.pos3] + pc.w4 * offset_feat[pc.pos4];
+                            pre_calc_idx += 1;
                         }
                     }
-
-                    output_data[i * s1 + c * s2 + ph * s3 + pw] = result;
+                    output_val /= count;
+                    output_data[idx] = output_val;
                 }
             }
         }

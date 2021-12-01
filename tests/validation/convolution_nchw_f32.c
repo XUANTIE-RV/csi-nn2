@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -51,7 +53,7 @@ int main(int argc, char** argv)
     output->dim[1]  = buffer[12];        // out_channel
     output->dim[2]  = buffer[16];        // height
     output->dim[3]  = buffer[15];        // width
-    
+
     params.stride_height = buffer[4];
     params.stride_width  = buffer[5];
     params.pad_left   = buffer[8];
@@ -60,7 +62,7 @@ int main(int argc, char** argv)
     params.pad_down   = buffer[11];
     params.dilation_width  = buffer[13];
     params.dilation_height = buffer[14];
-    params.base.layout     = CSINN_NCHW;
+    params.base.layout     = CSINN_LAYOUT_NCHW;
     params.group      = 1;
 
     input->dim_count = 4;
@@ -85,12 +87,12 @@ int main(int argc, char** argv)
     reference->data = (float *)(buffer + 17 + in_size + weight_size + output->dim[1]);
     output->data    = malloc(out_size * sizeof(float));
 
-    
+
     float difference = argc > 2 ? atof(argv[2]) : 1e-6;
 
     if (csi_conv2d_init(input, output, kernel, bias, &params) == CSINN_TRUE) {
         csi_conv2d(input, output, kernel, bias, &params);
-    } 
+    }
 
     result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);
 

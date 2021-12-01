@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_graph_insert(struct csi_node *node, struct csi_ref_graph *graph)
@@ -55,7 +57,12 @@ int csi_gref_diso_op(struct csi_tensor *input0,
     struct csi_params_base *ptr = params;
     struct csi_node *layer = csi_node_alloc(op, ptr->name, 2, 1, params);
     struct csi_node *in0 = (struct csi_node *)input0->data;
-    struct csi_node *in1 = (struct csi_node *)input1->data;
+    struct csi_node *in1;
+    if (input1->is_const) {
+        in1 = csi_node_const_var_alloc(input1->name, input1);
+    } else {
+        in1 = (struct csi_node *)input1->data;
+    }
     struct csi_node *out = csi_node_var_alloc(output->name, output);
     csi_node_add_in(layer, in0, 0);
     csi_node_add_in(layer, in1, 1);

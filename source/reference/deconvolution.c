@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input,
@@ -202,9 +204,9 @@ int csi_ref_depthwise_deconv2d_f32(struct csi_tensor *input,
                                    struct csi_tensor *bias,
                                    struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_depthwise_deconv2d_nchw_f32(input, output, kernel, bias, params);
-    } else if (params->base.layout == CSINN_NHWC) {
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
@@ -226,9 +228,9 @@ int csi_ref_deconv2d_f32(struct csi_tensor *input,
                         struct csi_tensor *bias,
                         struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_deconv2d_nchw_f32(input, output, kernel, bias, params);
-    } else if (params->base.layout == CSINN_NHWC) {
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_c906.h"
 
 static int avgpool2x2s2(struct csi_tensor *input,
@@ -1343,30 +1345,33 @@ int csi_c906_avgpool_init(struct csi_tensor *input,
     int32_t pad_top   = params->pad_top;
     int32_t pad_down  = params->pad_down;
 
-    if(stride_h == 2 && stride_w == 2) {
-        if(kernel_h == 2 && kernel_w == 2) {
-            if(pad_left == 0 && pad_top == 0) {
+    params->base.bc = NULL;
+
+    if (stride_h == 2 && stride_w == 2) {
+        if (kernel_h == 2 && kernel_w == 2) {
+            if (pad_left == 0 && pad_top == 0) {
                 params->base.bc = avgpool2x2s2;
-            } else if(pad_left == 1 && pad_top == 1) {
+            } else if (pad_left == 1 && pad_top == 1) {
                 params->base.bc = avgpool2x2s2_p1;
             }
-        } else if(kernel_h == 3 && kernel_w == 3) {
-            if(pad_left == 0 && pad_top == 0) {
+        } else if (kernel_h == 3 && kernel_w == 3) {
+            if (pad_left == 0 && pad_top == 0) {
                 params->base.bc = avgpool3x3s2;
-            } else if(pad_left == 1 && pad_top == 1) {
+            } else if (pad_left == 1 && pad_top == 1) {
                 params->base.bc = avgpool3x3s2_p1;
             }
         }
-    } else if(stride_h == 1 && stride_w == 1) {
-        if(kernel_h == 3 && kernel_w == 3) {
-            if(pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
+    } else if (stride_h == 1 && stride_w == 1) {
+        if (kernel_h == 3 && kernel_w == 3) {
+            if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
                 params->base.bc = avgpool3x3s1_p1;
             }
         }
     }
 
-    if(params->base.bc == NULL) {
-        printf("avgpool func not be find.\n");
+    params->base.bc = csi_ref_averagepool_f32;
+    if (params->base.bc == NULL) {
+        csi_debug_warning("avgpool init fail on C906.\n");
         return CSINN_FALSE;
     }
     return CSINN_TRUE;

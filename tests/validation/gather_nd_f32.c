@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -66,8 +68,8 @@ int main(int argc, char** argv)
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
-    indices->data  = (int *)(buffer + 2 + input->dim_count + indices->dim_count);
-    input->data    = (float *)(buffer + 2 + input->dim_count + indices->dim_count + indices_size);
+    indices->data  = (int *)(buffer + 2 + input->dim_count + indices->dim_count + in_size);
+    input->data    = (float *)(buffer + 2 + input->dim_count + indices->dim_count);
     reference->data = (float *)(buffer + 2 + input->dim_count + indices->dim_count + indices_size + in_size);
     output->data    = (float *)malloc(out_size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 1e-6;

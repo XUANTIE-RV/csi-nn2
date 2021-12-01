@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -47,7 +49,7 @@ int main(int argc, char** argv)
 
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
-    params.base.layout = CSINN_NHWC;
+    params.base.layout = CSINN_LAYOUT_NHWC;
     params.epsilon = *((float *)buffer + 1 + input->dim_count);
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;

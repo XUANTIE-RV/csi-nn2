@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "sgemm.h"
 
 static void conv1x1s1_sgemm_transform_kernel(struct csi_tensor *kernel)

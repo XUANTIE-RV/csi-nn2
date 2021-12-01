@@ -16,7 +16,25 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
+
+int csi_ref_flatten_init(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct reshape_params *params)
+{
+    if (input->quant_channel == output->quant_channel){
+        int quant_size = input->quant_channel * sizeof(struct csi_quant_info);
+        int t = memcmp(input->qinfo, output->qinfo, quant_size);
+        if (t == 0){
+            params->base.bc = csi_ref_flatten;
+            return CSINN_TRUE;
+        }
+    }
+    params->base.bc = csi_ref_flatten_requant;
+    return CSINN_TRUE;
+}
 
 int csi_ref_flatten(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -33,4 +51,11 @@ int csi_ref_flatten(struct csi_tensor *input,
 
     memcpy(output_data, input_data, size);
     return CSINN_TRUE;
+}
+
+int csi_ref_flatten_requant(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct flatten_params *params)
+{
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_flatten);
 }

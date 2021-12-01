@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -31,10 +33,18 @@ int csi_ovx_space_to_batch(struct csi_tensor *input,
     output->sess = input->sess;
     uint32_t input_num = 1;
     uint32_t output_num = 1;
-    node = vsi_nn_AddNode(graph, VSI_NN_OP_REORG, input_num, output_num, &node_id);
+    node = vsi_nn_AddNode(graph, VSI_NN_OP_SPACE2BATCH, input_num, output_num, &node_id);
 
-    /* FIXME */
-    node->nn_param.reorg.stride = output->dim[2] / input->dim[2];
+    /* FIX ME */
+    node->nn_param.space2batch.block_size_num = 2;
+    int32_t *block_size = (int32_t *)malloc(node->nn_param.space2batch.block_size_num * sizeof(int32_t));
+    block_size[0] = params->block_size;
+    block_size[1] = params->block_size;
+    node->nn_param.space2batch.block_size = block_size;
+    node->nn_param.space2batch.pad[0] = params->pad_left;
+    node->nn_param.space2batch.pad[1] = params->pad_right;
+    node->nn_param.space2batch.pad[2] = params->pad_top;
+    node->nn_param.space2batch.pad[3] = params->pad_bottom;
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

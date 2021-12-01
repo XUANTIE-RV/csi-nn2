@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -32,7 +34,11 @@ int csi_ovx_lrn(struct csi_tensor *input,
     uint32_t input_num = 1;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_LRN, input_num, output_num, &node_id);
-    node->nn_param.lrn.type = VX_CONVOLUTIONAL_NETWORK_NORM_ACROSS_MAPS;
+    if (params->norm_region == CSINN_LRN_ACROSS_CHANNELS) {
+        node->nn_param.lrn.type = VX_CONVOLUTIONAL_NETWORK_NORM_ACROSS_MAPS;
+    } else if (params->norm_region == CSINN_LRN_WITHIN_CHANNEL) {
+        node->nn_param.lrn.type = VX_CONVOLUTIONAL_NETWORK_NORM_SAME_MAP;
+    }
     node->nn_param.lrn.size = params->range;
     node->nn_param.lrn.alpha = params->alpha;
     node->nn_param.lrn.beta = params->beta;

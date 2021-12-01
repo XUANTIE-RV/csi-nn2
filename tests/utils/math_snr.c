@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -15,12 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/******************************************************************************
- * @file     math_snr.c
- * @brief    Definition of all helper functions required.
- * @version  V1.0
- * @date     05. Feb 2018
- ******************************************************************************/
+
+/* CSI-NN2 version 1.8.x */
 
 /* ----------------------------------------------------------------------
 *        Include project header files

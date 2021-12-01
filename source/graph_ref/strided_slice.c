@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_strided_slice(struct csi_tensor *input,

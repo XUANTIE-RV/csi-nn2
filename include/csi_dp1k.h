@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_NN_DP1K_H
 #define _CSI_NN_DP1K_H
 #include "csi_nn.h"
@@ -109,6 +111,11 @@ int csi_dp1k_transpose(
     struct csi_tensor *input,
     struct csi_tensor *output,
     struct transpose_params *params);
+
+int csi_dp1k_strided_slice(
+    struct csi_tensor *input,
+    struct csi_tensor *output,
+    struct strided_slice_params *params);
 
 void csi_dp1k_input(struct csi_tensor *tensor, struct csi_session *sess);
 void csi_dp1000_session_init(struct csi_session *sess);
@@ -302,6 +309,18 @@ struct reshape_params_dp1k
     char *name;
 };
 
+struct strided_slice_params_dp1k
+{
+    int (*bc)();
+    int32_t layout;
+    int32_t api;
+    char *name;
+    int32_t *begin;
+    int32_t *end;
+    int32_t *stride;
+    int32_t slice_count;
+};
+
 extern int csi_dp1000_add(
     struct csi_tensor_dp1k *input0,
     struct csi_tensor_dp1k *input1,
@@ -390,6 +409,11 @@ extern int csi_dp1000_transpose(
     struct csi_tensor_dp1k *input,
     struct csi_tensor_dp1k *output,
     struct transpose_params_dp1k *params);
+
+extern int csi_dp1000_strided_slice(
+    struct csi_tensor_dp1k *input,
+    struct csi_tensor_dp1k *output,
+    struct strided_slice_params_dp1k *params);
 
 extern void csi_dp1000_input(struct csi_tensor_dp1k *input);
 

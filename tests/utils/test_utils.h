@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,7 @@
  * limitations under the License.
  */
 
-
-/* vi: set sw=4 ts=4: */
-/*
- * Some simple macros for use in test applications.
- * Copyright (C) 2000-2006 by Erik Andersen <andersen@uclibc.org>
- *
- * Licensed under the LGPL v2.1, see the file COPYING.LIB in this tarball.
- */
+/* CSI-NN2 version 1.8.x */
 
 #ifndef TEST_UTILS_H
 #define TEST_UTILS_H
@@ -47,12 +40,9 @@ void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp);
 void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int *zp);
 void quantize_multiplier(double double_multiplier, int32_t* quantized_multiplier, int* shift);
 void find_min_max(float *input, float *max_value, float *min_value, int size);
-struct csi_quant_info *get_quant_info(float *data, int size);
-struct csi_quant_info *get_quant_info_i8(float *data, int size);
+void get_quant_info(struct csi_tensor *tensor);
 
 extern void init_testsuite(const char* testname);
-extern int  done_testing(void) ;//__attribute__((noreturn));
-extern void success_msg(int result, const char* command);
-extern void error_msg(int result, int line, const char* file, const char* command);
+extern int  done_testing(void);
 
 #endif	/* TEST_UTILS_H */

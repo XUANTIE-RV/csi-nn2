@@ -16,11 +16,13 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
 
-int csi_ovx_stack(struct csi_tensor *input,
+int csi_ovx_stack(struct csi_tensor **input,
                   struct csi_tensor *output,
                   struct stack_params *params)
 {
@@ -28,18 +30,18 @@ int csi_ovx_stack(struct csi_tensor *input,
     vsi_nn_node_id_t node_id;
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t output_id;
-    vsi_nn_graph_t *graph = csi_ovx_get_graph(input->sess);
-    output->sess = input->sess;
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(input[0]->sess);
+    output->sess = input[0]->sess;
     uint32_t input_num = params->inputs_count;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_STACK, input_num, output_num, &node_id);
-    node->nn_param.stack.axis = params->axis;
+    node->nn_param.stack.axis = input[0]->dim_count - params->axis; // or output->dim_count - 1 - params->axis
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 
     /* input */
     for (int i = 0; i < params->inputs_count; i++) {
-        node->input.tensors[i] = (vsi_nn_tensor_id_t)input[i].data;
+        node->input.tensors[i] = (vsi_nn_tensor_id_t)input[i]->data;
     }
 
     /* output */

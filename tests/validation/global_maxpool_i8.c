@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -52,7 +54,7 @@ int main(int argc, char** argv)
     output->dtype = CSINN_DTYPE_INT8;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
-    params.base.layout = CSINN_NHWC;
+    params.base.layout = CSINN_LAYOUT_NHWC;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -62,7 +64,8 @@ int main(int argc, char** argv)
     int8_t *src_tmp = malloc(in_size * sizeof(char));
 
 
-    input->qinfo = get_quant_info_i8(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
 
     for(int i = 0; i < in_size; i++) {
         src_tmp[i] = csi_ref_quantize_f32_to_i8(src_in[i], input->qinfo);
@@ -85,7 +88,8 @@ int main(int argc, char** argv)
         }
     }
 
-    output->qinfo = get_quant_info_i8(ref, out_size);
+    output->data = ref;
+    get_quant_info(output);
 
     input->data     = src_tmp;
     reference->data = ref;

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 
@@ -27,13 +29,18 @@ int csi_ref_minimum_f32(struct csi_tensor *input0,
     float *input0_data = input0->data;
     float *input1_data = input1->data;
     float *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size = size * input0->dim[i];
-    }
+    int size0 = csi_tensor_size(input0);
+    int size1 = csi_tensor_size(input1);
 
-    for (int i = 0; i < size; i++) {
-        output_data[i] = fmin(input0_data[i], input1_data[i]);
+    if (size0 == size1){
+        for (int i = 0; i < size0; i++) {
+            output_data[i] = fmin(input0_data[i], input1_data[i]);
+        }
+    }else{
+        if (size1 != 0 && size1 != 1) return CSINN_FALSE;
+        for (int i = 0; i < size0; i++) {
+            output_data[i] = fmin(input0_data[i], input1_data[0]);
+        }
     }
     return CSINN_TRUE;
 }

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _SGEMM_H
 #define _SGEMM_H
 

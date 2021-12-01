@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -49,7 +51,7 @@ int main(int argc, char** argv)
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
-    params.base.layout = CSINN_NHWC;
+    params.base.layout = CSINN_LAYOUT_NHWC;
 
     input->data      = (float *)(buffer + 7);
     reference->data  = (float *)(buffer + 7 + in_size);
@@ -58,7 +60,7 @@ int main(int argc, char** argv)
 
     if (csi_resize_init(input, output, &params) == CSINN_TRUE) {
         csi_resize(input, output, &params);
-    } 
+    }
 
     result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);
 

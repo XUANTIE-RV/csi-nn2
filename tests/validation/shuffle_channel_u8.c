@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -36,9 +38,9 @@ int main(int argc, char** argv)
     int *buffer = read_input_data_f32(argv[1]);
 
     input->dim[0] = buffer[0];   // batch
-    input->dim[1] = buffer[1];   // channel
-    input->dim[2] = buffer[2];   // height
-    input->dim[3] = buffer[3];   // width
+    input->dim[1] = buffer[1];   // height
+    input->dim[2] = buffer[2];   // width
+    input->dim[3] = buffer[3];   // channel
     params.group = buffer[4];
 
     output->dim[0] = input->dim[0];
@@ -48,7 +50,7 @@ int main(int argc, char** argv)
 
     input->dim_count = 4;
     input->dtype = CSINN_DTYPE_UINT8;
-    params.base.layout = CSINN_NCHW;
+    params.base.layout = CSINN_LAYOUT_NHWC;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -63,7 +65,8 @@ int main(int argc, char** argv)
 
     uint8_t *input_data = (uint8_t *)malloc(in_size * sizeof(uint8_t));
 
-    input->qinfo = get_quant_info(src_in_data, in_size);
+    input->data = src_in_data;
+    get_quant_info(input);
 
     for(int i = 0; i < in_size; i++) {
         input_data[i] = csi_ref_quantize_f32_to_u8(src_in_data[i], input->qinfo);
@@ -86,13 +89,13 @@ int main(int argc, char** argv)
         }
     }
 
-    output->qinfo = get_quant_info(ref_data, out_size);
+    output->data = ref_data;
+    get_quant_info(output);
 
     input->data = input_data;
     reference->data = ref_data;
     output->data = (uint8_t *)malloc(out_size * sizeof(uint8_t));
     float difference = argc > 2 ? atof(argv[2]) : error;
-    printf("The max error is %.6lf.\n", error);
 
     if (csi_shuffle_channel_init(input, output, &params) == CSINN_TRUE) {
         csi_shuffle_channel(input, output, &params);

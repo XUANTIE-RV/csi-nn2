@@ -16,34 +16,20 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 int csi_ref_broadcast_to_f32(struct csi_tensor *input,
                              struct csi_tensor *output,
                              struct broadcast_to_params *params)
 {
-    float *input_data = (float *)input->data;
-    float *output_data = (float *)output->data;
-    int size0 = 1;
-    for(int i=0; i < input->dim_count; i++) {
-        size0 = size0 * input->dim[i];
-    }
-
-    int size1 = 1;
-    for(int i=0; i < params->shape_count - input->dim_count; i++) {
-        size1 = size1 * params->shape[i];
-    }
-
-    for(int i=0; i<size1; i++) {
-        memcpy(output_data, input_data, size0*sizeof(float));
-        output_data = output_data + size0;
-    }
-    return CSINN_TRUE;
+    return csi_ref_broadcast_to_shape_f32(input, output, params->shape, params->shape_count);
 }
 
 int csi_ref_broadcast_to_quant(struct csi_tensor *input,
                                struct csi_tensor *output,
                                struct broadcast_to_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_broadcast_to_f32);
+    return csi_ref_broadcast_to_shape_quant(input, output, params->shape, params->shape_count);
 }

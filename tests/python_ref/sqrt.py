@@ -9,13 +9,14 @@ def sqrt_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(128, high=512, size=1))
-    in_size_y   = int(np.random.randint(128, high=512, size=1))
+    in_size_x   = int(np.random.randint(32, high=64, size=1))
+    in_size_y   = int(np.random.randint(32, high=64, size=1))
     in_channel  = int(np.random.randint(1, high=64, size=1))
-    zero_point = int(np.random.randint(1, high=60000, size=1))
-    std        = int(np.random.randint(1, high=20, size=1))
+    input_min   = int(np.random.randint(1, high=10, size=1))
+    input_max   = int(np.random.randint(20, high=100, size=1))
 
-    src_in = np.random.normal(zero_point, std, (batch, in_size_y, in_size_x, in_channel))
+    src_in = np.random.uniform(input_min, input_max, (batch, in_size_y, in_size_x, in_channel))
+
     src_in = src_in.astype(np.float32)
     src_out = np.sqrt(src_in)
 

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 /**
  *
  * void csi_dequantize_f32_c860(

@@ -10,12 +10,12 @@ def greater_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(128, high=512, size=1))
-    in_size_y   = int(np.random.randint(128, high=512, size=1))
-    in_channel  = int(np.random.randint(1, high=64, size=1))
-    zero_point1 = int(np.random.randint(-60000, high=60000, size=1))
+    in_size_x   = int(np.random.randint(32, high=64, size=1))
+    in_size_y   = int(np.random.randint(32, high=64, size=1))
+    in_channel  = int(np.random.randint(1, high=32, size=1))
+    zero_point1 = int(np.random.randint(-6, high=6, size=1))
     std1        = int(np.random.randint(1, high=20, size=1))
-    zero_point2 = int(np.random.randint(-60000, high=60000, size=1))
+    zero_point2 = int(np.random.randint(-6, high=6, size=1))
     std2        = int(np.random.randint(1, high=20, size=1))
 
     size_all = batch*in_size_y*in_size_x*in_channel

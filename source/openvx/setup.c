@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
@@ -52,7 +54,8 @@ void csi_ovx_show_top5(int index, struct csi_session *sess)
     csi_get_top5(buffer, sz, prob, class);
 
     printf(" --- Top ---\n");
-    for(i = 0; i< 5; i++) {
+    sz = sz > 5? 5 : sz;
+    for(i = 0; i< sz; i++) {
         printf("%3d: %8.6f\n", class[i], prob[i]);
     }
     if (tensor_data) {
@@ -72,29 +75,15 @@ void csi_ovx_save_output(int index, const char *filename, struct csi_session *se
     vsi_nn_SaveTensorToTextByFp32(graph, tensor, filename, NULL);
 }
 
-int csi_ovx_get_output_number(struct csi_session *sess)
-{
-    return sess->output_num;
-}
-
-int csi_ovx_get_input_number(struct csi_session *sess)
-{
-    return sess->input_num;
-}
-
 void csi_ovx_set_output_number(int number, struct csi_session *sess)
 {
     vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
-    sess->output_num = number;
-    sess->output = calloc(sess->output_num, sizeof(struct csi_tensor *));
     vsi_nn_SetGraphOutputs(graph, NULL, number);
 }
 
 void csi_ovx_set_input_number(int number, struct csi_session *sess)
 {
     vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
-    sess->input_num = number;
-    sess->input = calloc(sess->input_num, sizeof(struct csi_tensor *));
     vsi_nn_SetGraphInputs(graph, NULL, number);
 }
 
@@ -129,6 +118,7 @@ static int csi_ovx_get_tensor_internal(struct csi_tensor *ret, vsi_nn_tensor_t *
         } else if (tensor->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32) {
             memcpy(ret->data, data, size * 4);
         }
+        free(data);
     }
     return CSINN_TRUE;
 }
@@ -157,39 +147,7 @@ int csi_ovx_get_input(int index, struct csi_tensor *input, struct csi_session *s
     return csi_ovx_get_tensor_internal(input, tensor, graph);
 }
 
-void csi_ovx_set_tensor(struct csi_tensor *tensor, struct csi_session *sess)
-{
-    vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
-    vsi_nn_tensor_attr_t attr;
-    vsi_nn_tensor_id_t ret;
-
-    int i = 0;
-    for (i = 0; i < tensor->dim_count; i++) {
-        attr.size[i] = tensor->dim[tensor->dim_count - 1 - i];
-    }
-    attr.dim_num = tensor->dim_count;
-    if (tensor->dtype == CSINN_DTYPE_UINT8) {
-        attr.dtype.scale = tensor->qinfo->scale;
-        attr.dtype.zero_point = tensor->qinfo->zero_point;
-        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
-        attr.vtl = FALSE;
-        attr.is_const = FALSE;
-        attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
-    } else if (tensor->dtype == CSINN_DTYPE_FLOAT32) {
-        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
-        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
-        attr.vtl = FALSE;
-        attr.is_const = TRUE;
-    } else {
-        printf("Unsupport for dtype: %d\n", tensor->dtype);
-        exit(-1);
-    }
-    ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
-    tensor->data = (void *)ret;
-    tensor->sess = sess;
-}
-
-void csi_ovx_set_const_tensor(struct csi_tensor *tensor, struct csi_session *sess)
+int csi_ovx_set_tensor(struct csi_tensor *tensor, struct csi_session *sess)
 {
     vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
     vsi_nn_tensor_attr_t attr;
@@ -200,18 +158,32 @@ void csi_ovx_set_const_tensor(struct csi_tensor *tensor, struct csi_session *ses
     }
     attr.dim_num = tensor->dim_count;
     attr.vtl = FALSE;
-    attr.is_const = TRUE;
     if (tensor->dtype == CSINN_DTYPE_UINT8) {
         attr.dtype.scale = tensor->qinfo->scale;
         attr.dtype.zero_point = tensor->qinfo->zero_point;
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
         attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
-    } else {
+    } else if (tensor->dtype == CSINN_DTYPE_FLOAT32) {
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
         attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+    } else if (tensor->dtype == CSINN_DTYPE_INT32) {
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        attr.dtype.vx_type = VSI_NN_TYPE_INT32;
+    } else if(tensor->dtype == CSINN_DTYPE_UINT16) {
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        attr.dtype.vx_type = VSI_NN_TYPE_UINT16;
+    } else {
+        csi_debug_error("Unsupport for dtype: %d\n", tensor->dtype);
+        return CSINN_UNSUPPORT_DTYPE;
+    }
+    if (tensor->is_const == 1) {
+        attr.is_const = TRUE;
+        ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, tensor->data);
+    } else {
+        attr.is_const = FALSE;
+        ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     }
 
-    ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, tensor->data);
     tensor->data = (void *)ret;
     tensor->sess = sess;
 }
@@ -252,6 +224,12 @@ void csi_ovx_session_init(struct csi_session *sess)
     vsi_nn_graph_t *graph;
     vsi_nn_context_t ctx;
     struct csi_ovx_target_data *target_data = calloc(sizeof(struct csi_ovx_target_data), 1);
+    if (sess->model_name && sess->model_save != CSINN_RUN_ONLY) {
+        // create general graph
+        const char value[] = "1";
+        setenv("VIV_VX_ENABLE_SAVE_NETWORK_BINARY", value, 1);
+        setenv("VIV_VX_SAVE_NETWORK_BINARY_PATH", sess->model_name, 1);
+    }
     ctx = vsi_nn_CreateContext();
 #define VNN_VERSION_MAJOR 1
 #define VNN_VERSION_MINOR 1
@@ -263,7 +241,7 @@ void csi_ovx_session_init(struct csi_session *sess)
     target_data->graph = graph;
     sess->td = target_data;
     sess->base_dtype = CSINN_DTYPE_UINT8;
-    sess->base_layout = CSINN_NCHW;
+    sess->base_layout = CSINN_LAYOUT_NCHW;
 }
 
 void csi_ovx_session_setup(struct csi_session *sess)
@@ -275,13 +253,19 @@ void csi_ovx_session_setup(struct csi_session *sess)
 
 void csi_ovx_session_run(struct csi_session *sess)
 {
-    vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
     uint64_t start_time, end_time;
     start_time = csi_get_timespec();
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
     vsi_nn_RunGraph(graph);
     end_time = csi_get_timespec();
     printf("Run graph execution time: %.5fms, FPS=%.2f\n", ((float)(end_time-start_time))/1000000,
                     1000000000.0/((float)(end_time-start_time)));
+    for (int idx = 0; idx < sess->input_num; idx++){
+        sess->input[idx]->data = NULL;
+    }
+    for (int idx = 0; idx < sess->output_num; idx++){
+        sess->output[idx]->data = NULL;
+    }
 }
 
 void csi_ovx_set_input(int index, struct csi_tensor *input, struct csi_session *sess)
@@ -319,236 +303,175 @@ void *csi_ovx_get_graph(struct csi_session *sess)
     return td->graph;
 }
 
-void* csi_bc_map_table_ovx[CSINN_OP_AND_UTILS_SIZE][1] = {
-    {csi_ovx_abs}, /* CSINN_OP_ABS */
-    {NULL}, /* CSINN_OP_ACOS */
-    {NULL}, /* CSINN_OP_ACOSH */
-    {csi_ovx_add}, /* CSINN_OP_ADD */
-    {NULL}, /* CSINN_OP_ALL */
-    {csi_ovx_and}, /* CSINN_OP_AND */
-    {NULL}, /* CSINN_OP_ANY */
-    {NULL}, /* CSINN_OP_ARANGE */
-    {csi_ovx_argmax}, /* CSINN_OP_ARGMAX */
-    {csi_ovx_argmin}, /* CSINN_OP_ARGMIN */
-    {NULL}, /* CSINN_OP_ASIN */
-    {NULL}, /* CSINN_OP_ASINH */
-    {NULL}, /* CSINN_OP_ATAN */
-    {NULL}, /* CSINN_OP_ATANH */
-    {csi_ovx_averagepool}, /* CSINN_OP_AVGPOOL2D */
-    {NULL}, /* CSINN_OP_AVGPOOL3D */
-    {csi_ovx_batch_normalization}, /* CSINN_OP_BN */
-    {csi_ovx_batch_to_space}, /* CSINN_OP_BATCH_TO_SPACE */
-    {NULL}, /* CSINN_OP_BATCH_TO_SPACE_ND */
-    {NULL}, /* CSINN_OP_BROADCOST */
-    {NULL}, /* CSINN_OP_CEIL */
-    {NULL}, /* CSINN_OP_CLIP */
-    {NULL}, /* CSINN_OP_COL2IM */
-    {csi_ovx_concat}, /* CSINN_OP_CONCAT */
-    {csi_ovx_conv2d}, /* CSINN_OP_CONV2D */
-    {csi_ovx_conv2d_relu}, /* CSINN_OP_CONV2D_RELU */
-    {NULL}, /* CSINN_OP_CONV2D_RELU6 */
-    {NULL}, /* CSINN_OP_CONV2D_CHANNEL */
-    {NULL}, /* CSINN_OP_CONV2D_CHANNEL_RELU */
-    {NULL}, /* CSINN_OP_CONV2D_CHANNEL_RELU6 */
-    {csi_ovx_depthwise_conv2d}, /* CSINN_OP_DEPTHWISE_CONV2D */
-    {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_RELU */
-    {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_RELU6 */
-    {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_CHANNEL */
-    {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU */
-    {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6 */
-    {csi_ovx_group_conv2d}, /* CSINN_OP_GROUP_CONV2D */
-    {NULL}, /* CSINN_OP_GROUP_CONV2D_RELU */
-    {NULL}, /* CSINN_OP_GROUP_CONV2D_RELU6 */
-    {NULL}, /* CSINN_OP_GROUP_CONV2D_CHANNEL */
-    {NULL}, /* CSINN_OP_GROUP_CONV2D_CHANNEL_RELU */
-    {NULL}, /* CSINN_OP_CONV3D */
-    {NULL}, /* CSINN_OP_COS */
-    {NULL}, /* CSINN_OP_COSH */
-    {NULL}, /* CSINN_OP_CROP */
-    {NULL}, /* CSINN_OP_CUMPROD */
-    {NULL}, /* CSINN_OP_CUMSUM */
-    {csi_ovx_deconv2d}, /* CSINN_OP_DECONV2D */
-    {csi_ovx_depthwise_deconv2d}, /* CSINN_OP_DEPTHWISE_DECONV2D */
-    {NULL}, /* CSINN_OP_DECONV3D */
-    {csi_ovx_depth_to_space}, /* CSINN_OP_DEPTH_TO_SPACE */
-    {csi_ovx_div}, /* CSINN_OP_DIV */
-    {csi_ovx_elu}, /* CSINN_OP_ELU */
-    {csi_ovx_equal}, /* CSINN_OP_EQUANL */
-    {NULL}, /* CSINN_OP_ERF */
-    {csi_ovx_exp}, /* CSINN_OP_EXP */
-    {csi_ovx_expand_dims_u8}, /* CSINN_OP_EXPAND_DIMS */
-    {NULL}, /* CSINN_OP_EXPM1 */
-    {csi_ovx_flatten}, /* CSINN_OP_FLATTEN */
-    {csi_ovx_floor_divide}, /* CSINN_OP_FLOOR_DIVIDE */
-    {NULL}, /* CSINN_OP_FLOOR_MOD */
-    {csi_ovx_floor}, /* CSINN_OP_FLOOR */
-    {csi_ovx_fullyconnected}, /* CSINN_OP_FULLYCONNECTED */
-    {NULL}, /* CSINN_OP_GATHER_ND */
-    {NULL}, /* CSINN_OP_GATHER */
-    {csi_ovx_global_averagepool}, /* CSINN_OP_GLOBAL_AVGPOOL2D */
-    {csi_ovx_global_maxpool}, /* CSINN_OP_GLOBAL_MAXPOOL2D */
-    {csi_ovx_greater_equal}, /* CSINN_OP_GREATHER_EQUAL */
-    {csi_ovx_greater}, /* CSINN_OP_GREATHER */
-    {NULL}, /* CSINN_OP_HARD_SIGMOID */
-    {NULL}, /* CSINN_OP_IM2COL */
-    {NULL}, /* CSINN_OP_ISNAN */
-    {csi_ovx_l2_normalization}, /* CSINN_OP_L2N */
-    {csi_ovx_l2pool}, /* CSINN_OP_L2POOL2D */
-    {csi_ovx_leaky_relu}, /* CSINN_OP_LEAKY_RELU */
-    {csi_ovx_less_equal}, /* CSINN_OP_LESS_EQUAL */
-    {csi_ovx_less}, /* CSINN_OP_LESS */
-    {NULL}, /* CSINN_OP_LOG_SOFTMAX */
-    {NULL}, /* CSINN_OP_LOG */
-    {NULL}, /* CSINN_OP_LOG1P */
-    {NULL}, /* CSINN_OP_LOGICAL_AND */
-    {NULL}, /* CSINN_OP_LOGICAL_NOT */
-    {NULL}, /* CSINN_OP_LOGICAL_OR */
-    {NULL}, /* CSINN_OP_LOGICAL_XOR */
-    {csi_ovx_lrn},  /* CSINN_OP_LRN */
-    {csi_ovx_matmul}, /* CSINN_OP_MATMUL */
-    {csi_ovx_max}, /* CSINN_OP_MAX */
-    {csi_ovx_maximum}, /* CSINN_OP_MAXINUM */
-    {csi_ovx_maxpool}, /* CSINN_OP_MAXPOOL2D */
-    {csi_ovx_maxpool2d_locat}, /* CSINN_OP_MAXPOOL2D_LOCAT */
-    {NULL}, /* CSINN_OP_MAXPOOL3D */
-    {csi_ovx_mean}, /* CSINN_OP_MEAN */
-    {csi_ovx_mean}, /* CSINN_OP_MEAN_STRIDE */
-    {csi_ovx_min}, /* CSINN_OP_MIN */
-    {NULL}, /* CSINN_OP_MIN_STRIDE */
-    {csi_ovx_minimum}, /* CSINN_OP_MINIMUM */
-    {NULL}, /* CSINN_OP_MOD */
-    {csi_ovx_mul}, /* CSINN_OP_MUL */
-    {NULL}, /* CSINN_OP_NDARRAY_SIZE */
-    {csi_ovx_negative}, /* CSINN_OP_NEGATIIVE */
-    {NULL}, /* CSINN_OP_NON_MAX_SUPPRESSION */
-    {csi_ovx_not_equal}, /* CSINN_OP_NOT_EQUAL */
-    {NULL}, /* CSINN_OP_NOT */
-    {NULL}, /* CSINN_OP_ONE_HOT */
-    {csi_ovx_or}, /* CSINN_OP_OR */
-    {csi_ovx_pad}, /* CSINN_OP_PAD */
-    {csi_ovx_power}, /* CSINN_OP_POWER */
-    {csi_ovx_prelu}, /* CSINN_OP_PRELU */
-    {csi_ovx_prod}, /* CSINN_OP_PROD */
-    {csi_ovx_proposal}, /* CSINN_OP_PROPOSAL */
-    {csi_ovx_psroipooling}, /* CSINN_OP_PSROIPOOLING */
-    {NULL}, /* CSINN_OP_REDUCE_LOGSUMEXP */
-    {NULL}, /* CSINN_OP_REDUCE_MAX */
-    {NULL}, /* CSINN_OP_REDUCE_MEAN */
-    {NULL}, /* CSINN_OP_REDUCE_MIN */
-    {NULL}, /* CSINN_OP_REDUCE_PROD */
-    {NULL}, /* CSINN_OP_REDUCE_SUM */
-    {csi_ovx_relu}, /* CSINN_OP_RELU */
-    {csi_ovx_relu1}, /* CSINN_OP_RELU1 */
-    {csi_ovx_relu6}, /* CSINN_OP_RELU6 */
-    {csi_ovx_relun}, /* CSINN_OP_RELUN */
-    {csi_ovx_reorg}, /* CSINN_OP_REORG */
-    {csi_ovx_reshape}, /* CSINN_OP_RESHAPE */
-    {csi_ovx_resize}, /* CSINN_OP_RESIZE */
-    {csi_ovx_reverse}, /* CSINN_OP_REVERSE */
-    {NULL}, /* CSINN_OP_ROIALIGN */
-    {csi_ovx_roipool}, /* CSINN_OP_ROIPOOL */
-    {NULL}, /* CSINN_OP_ROUND */
-    {csi_ovx_rsqrt}, /* CSINN_OP_RSQRT */
-    {NULL}, /* CSINN_OP_SCATTER_ND */
-    {NULL}, /* CSINN_OP_SEGMENT_MAX */
-    {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_MAX */
-    {NULL}, /* CSINN_OP_SEGMENT_MEAN */
-    {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_MEAN */
-    {NULL}, /* CSINN_OP_SEGMENT_MIN */
-    {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_MIN */
-    {NULL}, /* CSINN_OP_SEGMENT_PROD */
-    {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_PROD */
-    {NULL}, /* CSINN_OP_SEGMENT_SUM */
-    {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_SUM */
-    {csi_ovx_select}, /* CSINN_OP_SELECT */
-    {NULL}, /* CSINN_OP_SEQUENCE_MASK */
-    {NULL}, /* CSINN_OP_SHAPE */
-    {NULL}, /* CSINN_OP_SHUFFLE_CHANNEL */
-    {csi_ovx_sigmoid}, /* CSINN_OP_SIGMOID */
-    {NULL}, /* CSINN_OP_SIGN */
-    {NULL}, /* CSINN_OP_SIN */
-    {NULL}, /* CSINN_OP_SINH */
-    {csi_ovx_slice}, /* CSINN_OP_SLICE */
-    {csi_ovx_softmax}, /* CSINN_OP_SOFTMAX */
-    {csi_ovx_softplus}, /* CSINN_OP_SOFTPLUS */
-    {NULL}, /* CSINN_OP_SOFTRELU */
-    {NULL}, /* CSINN_OP_SOFTSIGN */
-    {csi_ovx_space_to_batch}, /* CSINN_OP_SPACE_TO_BATCH */
-    {NULL}, /* CSINN_OP_SPACE_TO_BATCH_ND */
-    {csi_ovx_space_to_depth}, /* CSINN_OP_SPACE_TO_DEPTH */
-    {csi_ovx_split}, /* CSINN_OP_SPLIT */
-    {csi_ovx_sqrt}, /* CSINN_OP_SQRT */
-    {csi_ovx_square}, /* CSINN_OP_SQUARE */
-    {csi_ovx_squeeze}, /* CSINN_OP_SQUEEZE */
-    {csi_ovx_stack}, /* CSINN_OP_STACK */
-    {csi_ovx_strided_slice}, /* CSINN_OP_STRIDED_SLICE */
-    {csi_ovx_sub}, /* CSINN_OP_SUB */
-    {csi_ovx_sum}, /* CSINN_OP_SUM */
-    {NULL}, /* CSINN_OP_TAN */
-    {csi_ovx_tanh}, /* CSINN_OP_TANH */
-    {NULL}, /* CSINN_OP_THRESHOLD_RELU */
-    {csi_ovx_tile}, /* CSINN_OP_TILE */
-    {NULL}, /* CSINN_OP_TOPK */
-    {csi_ovx_transpose}, /* CSINN_OP_TRANSPOSE */
-    {NULL}, /* CSINN_OP_TRUNC */
-    {csi_ovx_unpooling}, /* CSINN_OP_UNPOOLING */
-    {csi_ovx_unstack}, /* CSINN_OP_UNSTACK */
-    {NULL}, /* CSINN_OP_WHERE */
-    {NULL}, /* CSINN_OP_XOR */
-    {NULL}, /* CSINN_OP_YUV_RGB_SCALE */
-
-    /* utils functions */
-    {csi_ovx_session_init},
-    {csi_ovx_session_deinit},
-    {csi_ovx_session_setup},
-    {csi_ovx_session_run},
-    {csi_ovx_update_input},
-    {NULL},
-    {csi_ovx_set_input_number},
-    {csi_ovx_set_output_number},
-    {csi_ovx_get_input_number},
-    {csi_ovx_get_output_number},
-    {csi_ovx_set_input},
-    {csi_ovx_set_output},
-    {csi_ovx_get_input},
-    {csi_ovx_get_output},
-    {csi_ovx_set_tensor},
-};
-
-void *csi_bc_map_ovx(int op, int dtype)
-{
-    int dt;
-    switch (dtype) {
-        case CSINN_DTYPE_UINT8:
-            dt = 0;
-            break;
-        default:
-            return NULL;
-    }
-
-    return csi_bc_map_table_ovx[op][dt];
-}
-
-void csi_ovx_nbg(struct csi_tensor **input, struct csi_tensor **output,
-                 uint32_t inputs_count, uint32_t outputs_count, const char *url)
+void csi_ovx_nbg(const char *url, struct csi_session *sess)
 {
     vsi_nn_node_t *node;
-    vsi_nn_graph_t *graph = csi_ovx_get_graph(input[0]->sess);
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
 
-    uint32_t input_num = inputs_count;
-    uint32_t output_num = outputs_count;
+    uint32_t input_num = sess->input_num;
+    uint32_t output_num = sess->output_num;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_NBG, input_num, output_num, NULL);
     node->nn_param.nbg.type = VSI_NN_NBG_FILE;
     node->nn_param.nbg.url = url;
 
     /* input */
     for (uint32_t i = 0; i < input_num; i++) {
-        node->input.tensors[i] = (vsi_nn_tensor_id_t)input[i]->data;
+        node->input.tensors[i] = (vsi_nn_tensor_id_t)sess->input[i]->data;
     }
 
     /* output */
     for (uint32_t i = 0; i < output_num; i++) {
-        node->output.tensors[i] = (vsi_nn_tensor_id_t)output[i]->data;
+        node->output.tensors[i] = (vsi_nn_tensor_id_t)sess->output[i]->data;
     }
+
+    csi_ovx_session_setup(sess);
 }
 
+void csi_ovx_set_graph_attribute(struct csi_session *sess, int device_index)
+{
+    vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
+    csi_debug_info("set device :%d\n", device_index);
+    vxSetGraphAttribute(graph->g, VX_GRAPH_DEVICE_INDEX_VIV, &device_index, sizeof(device_index));
+    csi_debug_info("verify...\n");
+}
+
+int csi_ovx_get_device_number()
+{
+    int deviceCount;
+    vsi_nn_context_t context = vsi_nn_CreateContext();
+    vxQueryContext(context->c, VX_CONTEXT_DEVICE_COUNT_VIV, &deviceCount, sizeof(deviceCount));
+    vsi_nn_ReleaseContext(&context);
+    return deviceCount;
+}
+
+static void *setup_bc_map()
+{
+    static void* bc_map[CSINN_OP_AND_UTILS_SIZE];
+
+    bc_map[CSINN_OP_ABS] = csi_ovx_abs;
+    bc_map[CSINN_OP_ADD] = csi_ovx_add;
+    bc_map[CSINN_OP_AND] = csi_ovx_and;
+    bc_map[CSINN_OP_ARGMAX] = csi_ovx_argmax;
+    bc_map[CSINN_OP_ARGMIN] = csi_ovx_argmin;
+    bc_map[CSINN_OP_AVGPOOL2D] = csi_ovx_averagepool;
+    bc_map[CSINN_OP_BN] = csi_ovx_batch_normalization;
+    bc_map[CSINN_OP_BATCH_TO_SPACE] = csi_ovx_batch_to_space;
+    bc_map[CSINN_OP_CLIP] = csi_ovx_clip;
+    bc_map[CSINN_OP_CONCAT] = csi_ovx_concat;
+    bc_map[CSINN_OP_CONV2D] = csi_ovx_conv2d;
+    bc_map[CSINN_OP_DEPTHWISE_CONV2D] = csi_ovx_depthwise_conv2d;
+    bc_map[CSINN_OP_GROUP_CONV2D] = csi_ovx_group_conv2d;
+    bc_map[CSINN_OP_CROP] = csi_ovx_crop;
+    bc_map[CSINN_OP_DECONV2D] = csi_ovx_deconv2d;
+    bc_map[CSINN_OP_DEPTHWISE_DECONV2D] = csi_ovx_depthwise_deconv2d;
+    bc_map[CSINN_OP_DEPTH_TO_SPACE] = csi_ovx_depth_to_space;
+    bc_map[CSINN_OP_DIV] = csi_ovx_div;
+    bc_map[CSINN_OP_ELU] = csi_ovx_elu;
+    bc_map[CSINN_OP_EQUANL] = csi_ovx_equal;
+    bc_map[CSINN_OP_EXP] = csi_ovx_exp;
+    bc_map[CSINN_OP_EXPAND_DIMS] = csi_ovx_expand_dims_u8;
+    bc_map[CSINN_OP_FLATTEN] = csi_ovx_flatten;
+    bc_map[CSINN_OP_FLOOR_DIVIDE] = csi_ovx_floor_divide;
+    bc_map[CSINN_OP_FLOOR] = csi_ovx_floor;
+    bc_map[CSINN_OP_FULLYCONNECTED] = csi_ovx_fullyconnected;
+    bc_map[CSINN_OP_GATHER_ND] = csi_ovx_gather_nd;
+    bc_map[CSINN_OP_GATHER] = csi_ovx_gather;
+    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D] = csi_ovx_global_averagepool;
+    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D] = csi_ovx_global_maxpool;
+    bc_map[CSINN_OP_GREATHER_EQUAL] = csi_ovx_greater_equal;
+    bc_map[CSINN_OP_GREATHER] = csi_ovx_greater;
+    bc_map[CSINN_OP_L2N] = csi_ovx_l2_normalization;
+    bc_map[CSINN_OP_L2POOL2D] = csi_ovx_l2pool;
+    bc_map[CSINN_OP_LEAKY_RELU] = csi_ovx_leaky_relu;
+    bc_map[CSINN_OP_LESS_EQUAL] = csi_ovx_less_equal;
+    bc_map[CSINN_OP_LESS] = csi_ovx_less;
+    bc_map[CSINN_OP_LOG] = csi_ovx_log;
+    bc_map[CSINN_OP_LOG_SOFTMAX] = csi_ovx_log_softmax;
+    bc_map[CSINN_OP_LRN] = csi_ovx_lrn;
+    bc_map[CSINN_OP_MATMUL] = csi_ovx_matmul;
+    bc_map[CSINN_OP_MAX] = csi_ovx_max;
+    bc_map[CSINN_OP_MAXINUM] = csi_ovx_maximum;
+    bc_map[CSINN_OP_MAXPOOL2D] = csi_ovx_maxpool;
+    bc_map[CSINN_OP_MAXPOOL2D_LOCAT] = csi_ovx_maxpool2d_locat;
+    bc_map[CSINN_OP_MEAN] = csi_ovx_mean;
+    bc_map[CSINN_OP_MEAN_STRIDE] = csi_ovx_mean;
+    bc_map[CSINN_OP_MIN] = csi_ovx_min;
+    bc_map[CSINN_OP_MINIMUM] = csi_ovx_minimum;
+    bc_map[CSINN_OP_MIN_STRIDE] = csi_ovx_min;
+    bc_map[CSINN_OP_MUL] = csi_ovx_mul;
+    bc_map[CSINN_OP_NEGATIIVE] = csi_ovx_negative;
+    bc_map[CSINN_OP_NOT_EQUAL] = csi_ovx_not_equal;
+    bc_map[CSINN_OP_OR] = csi_ovx_or;
+    bc_map[CSINN_OP_PAD] = csi_ovx_pad;
+    bc_map[CSINN_OP_POWER] = csi_ovx_power;
+    bc_map[CSINN_OP_PRELU] = csi_ovx_prelu;
+    bc_map[CSINN_OP_PROD] = csi_ovx_prod;
+    bc_map[CSINN_OP_PROPOSAL] = csi_ovx_proposal;
+    bc_map[CSINN_OP_PSROIPOOLING] = csi_ovx_psroipooling;
+    bc_map[CSINN_OP_RELU] = csi_ovx_relu;
+    bc_map[CSINN_OP_RELU1] = csi_ovx_relu1;
+    bc_map[CSINN_OP_RELU6] = csi_ovx_relu6;
+    bc_map[CSINN_OP_RELUN] = csi_ovx_relun;
+    bc_map[CSINN_OP_REORG] = csi_ovx_reorg;
+    bc_map[CSINN_OP_RESHAPE] = csi_ovx_reshape;
+    bc_map[CSINN_OP_RESIZE] = csi_ovx_resize;
+    bc_map[CSINN_OP_REVERSE] = csi_ovx_reverse;
+    bc_map[CSINN_OP_ROIPOOL] = csi_ovx_roipool;
+    bc_map[CSINN_OP_RSQRT] = csi_ovx_rsqrt;
+    bc_map[CSINN_OP_SELECT] = csi_ovx_select;
+    bc_map[CSINN_OP_SHUFFLE_CHANNEL] = csi_ovx_shuffle_channel;
+    bc_map[CSINN_OP_SIGMOID] = csi_ovx_sigmoid;
+    bc_map[CSINN_OP_SIN] = csi_ovx_sin;
+    bc_map[CSINN_OP_SLICE] = csi_ovx_slice;
+    bc_map[CSINN_OP_SOFTMAX] = csi_ovx_softmax;
+    bc_map[CSINN_OP_SOFTPLUS] = csi_ovx_softplus;
+    bc_map[CSINN_OP_SOFTRELU] = csi_ovx_softrelu;
+    bc_map[CSINN_OP_SPACE_TO_BATCH] = csi_ovx_space_to_batch;
+    bc_map[CSINN_OP_SPACE_TO_DEPTH] = csi_ovx_space_to_depth;
+    bc_map[CSINN_OP_SPLIT] = csi_ovx_split;
+    bc_map[CSINN_OP_SQRT] = csi_ovx_sqrt;
+    bc_map[CSINN_OP_SQUARE] = csi_ovx_square;
+    bc_map[CSINN_OP_SQUEEZE] = csi_ovx_squeeze;
+    bc_map[CSINN_OP_STACK] = csi_ovx_stack;
+    bc_map[CSINN_OP_STRIDED_SLICE] = csi_ovx_strided_slice;
+    bc_map[CSINN_OP_SUB] = csi_ovx_sub;
+    bc_map[CSINN_OP_SUM] = csi_ovx_sum;
+    bc_map[CSINN_OP_TANH] = csi_ovx_tanh;
+    bc_map[CSINN_OP_TILE] = csi_ovx_tile;
+    bc_map[CSINN_OP_TOPK] = csi_ovx_topk;
+    bc_map[CSINN_OP_TRANSPOSE] = csi_ovx_transpose;
+    bc_map[CSINN_OP_UNPOOLING] = csi_ovx_unpooling;
+    bc_map[CSINN_OP_UNSTACK] = csi_ovx_unstack;
+
+    /* utils functions */
+    bc_map[CSINN_SESSION_INIT] = csi_ovx_session_init;
+    bc_map[CSINN_SESSION_DEINIT] = csi_ovx_session_deinit;
+    bc_map[CSINN_SESSION_SETUP] = csi_ovx_session_setup;
+    bc_map[CSINN_SESSION_RUN] = csi_ovx_session_run;
+    bc_map[CSINN_UPDATE_INPUT] = csi_ovx_update_input;
+    bc_map[CSINN_SET_INPUT_NUMBER] = csi_ovx_set_input_number;
+    bc_map[CSINN_SET_OUTPUT_NUMBER] = csi_ovx_set_output_number;
+    bc_map[CSINN_SET_INPUT] = csi_ovx_set_input;
+    bc_map[CSINN_SET_OUTPUT] = csi_ovx_set_output;
+    bc_map[CSINN_GET_INPUT] = csi_ovx_get_input;
+    bc_map[CSINN_GET_OUTPUT] = csi_ovx_get_output;
+    bc_map[CSINN_TENSOR_ENTRY] = csi_ovx_set_tensor;
+    bc_map[CSINN_LOAD_BG] = csi_ovx_nbg;
+
+    return bc_map;
+}
+
+static int get_bc_map_index(int op, int dtype)
+{
+    return op;
+}
+
+void *csi_bc_map_ovx(int op, int dtype) {
+    static int has_init;
+    static void **bc_map_table;
+    if (has_init == 0) {
+        bc_map_table = setup_bc_map();
+        has_init = 1;
+    }
+    return bc_map_table[get_bc_map_index(op, dtype)];
+}

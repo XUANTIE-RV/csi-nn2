@@ -16,13 +16,19 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_reorg_init(struct csi_tensor *input,
                    struct csi_tensor *output,
                    struct reorg_params *params)
 {
-    return CSINN_FALSE;
+    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_REORG, input->dtype);
+    if (params->base.bc == NULL) {
+        return CSINN_UNSUPPORT_DTYPE;
+    }
+    return CSINN_TRUE;
 }
 
 int csi_reorg(struct csi_tensor *input,

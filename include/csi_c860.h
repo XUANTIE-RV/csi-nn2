@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_INTERNAL_C860_H
 #define _CSI_INTERNAL_C860_H
 

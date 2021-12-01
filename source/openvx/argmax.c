@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
@@ -33,7 +35,7 @@ int csi_ovx_argmax(struct csi_tensor *input,
     uint32_t input_num = 1;
     uint32_t output_num = 1;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_ARGMAX, input_num, output_num, &node_id);
-    node->nn_param.argmax.axis = *params->axis;
+    node->nn_param.argmax.axis = input->dim_count - 1 - params->axis[0];
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

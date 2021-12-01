@@ -9,24 +9,32 @@ import tensorflow as tf
 
 def broadcast_to_f32():
     para = []
-    input_shape = []
+    broadcast_shape = []
     # init the input data and parameters
-    input_dimcount  = int(np.random.randint(1, high=4, size=1))
+    broadcast_dimcount  = int(np.random.randint(1, high=7, size=1))
 
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=2, size=1))
 
-    for i in range(0, input_dimcount):
-        input_shape.append(int(np.random.randint(1, high=32, size=1)))
+    for i in range(0, broadcast_dimcount):
+        broadcast_shape.append(int(np.random.randint(1, high=32, size=1)))
 
+    input_shape_t = []
+    for i in range(0, broadcast_dimcount):
+        if i != broadcast_dimcount -1 :
+            choice_list = [0, 1, broadcast_shape[i]]
+        else:
+            choice_list = [1, broadcast_shape[i]]
+        input_shape_t.append(int(np.random.choice(choice_list, 1)))
+
+    input_shape = []
+    for i in input_shape_t:
+        if i != 0:
+            input_shape.append(i)
+        else:
+            input_shape.clear()
+    input_dimcount = len(input_shape)
     src_in = np.random.normal(zero_point, std, input_shape)
-
-    broadcast_shape = input_shape
-
-    broadcast_dimcount = input_dimcount + int(np.random.randint(1, high=3, size=1))
-
-    for i in range(0, broadcast_dimcount-input_dimcount):
-        broadcast_shape.insert(0, int(np.random.randint(1, high=16, size=1)))
 
     out_calcu = tf.broadcast_to(src_in, shape=broadcast_shape)
     sess = tf.Session()
@@ -35,14 +43,18 @@ def broadcast_to_f32():
     src_in_1  = src_in.ravel('C')
     src_out_1 = src_out.flatten()
 
-    total_size = (len(src_in_1) + len(src_out_1)) + 2 + broadcast_dimcount
+    total_size = (len(src_in_1) + len(src_out_1)) + 2 + input_dimcount + broadcast_dimcount
 
     para.append(total_size)
     para.append(input_dimcount)
     para.append(broadcast_dimcount)
+    for i in range(0, input_dimcount):
+        para.append(input_shape[i])
     for i in range(0, broadcast_dimcount):
         para.append(broadcast_shape[i])
     print(para)
+    print(input_shape)
+    print(broadcast_shape)
 
     with open("broadcast_to_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)

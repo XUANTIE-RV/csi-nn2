@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 
@@ -127,9 +129,9 @@ int csi_ref_pad_f32(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct pad_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_pad_nchw_f32(input, output, params);
-    } else if (params->base.layout == CSINN_NHWC) {
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         csi_ref_pad_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_batch_normalization_init(struct csi_tensor *input,
@@ -27,7 +29,7 @@ int csi_batch_normalization_init(struct csi_tensor *input,
                                  struct bn_params *params)
 {
     // pnna(light) use bn by nchw layout
-    // if (params->base.layout == CSINN_NCHW) {
+    // if (params->base.layout == CSINN_LAYOUT_NCHW) {
     //     return CSINN_UNSUPPORT_DTYPE;
     // }
     params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_BN, input->dtype);

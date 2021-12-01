@@ -1,0 +1,161 @@
+LIB_DIR = ../../lib
+INCLUDE = -I../../include -I../utils
+CFLAGS = -O0 -g3 -static
+CFLAGS += -march=rv64gcvxthead -mabi=lp64dv
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+CFLAGS += -DCSINN_API=3
+LIB_NAME = csi_nn2_c906
+CC = riscv64-unknown-linux-gnu-gcc
+
+test_objs =
+
+test_objs += sin_f32.o
+test_objs += sin_u8.o
+test_objs += sinh_f32.o
+test_objs += sinh_u8.o
+test_objs += asin_f32.o
+test_objs += asin_u8.o
+test_objs += asinh_f32.o
+test_objs += asinh_u8.o
+test_objs += cos_f32.o
+test_objs += cos_u8.o
+test_objs += cosh_f32.o
+test_objs += cosh_u8.o
+test_objs += acos_f32.o
+test_objs += acos_u8.o
+test_objs += acosh_f32.o
+test_objs += acosh_u8.o
+test_objs += tan_f32.o
+test_objs += tan_u8.o
+test_objs += tanh_f32.o
+test_objs += tanh_u8.o
+test_objs += atan_f32.o
+test_objs += atan_u8.o
+test_objs += atanh_f32.o
+test_objs += atanh_u8.o
+
+test_objs += abs_f32.o
+test_objs += pow_f32.o
+test_objs += mul_f32.o
+test_objs += add_f32.o
+test_objs += sub_f32.o
+test_objs += div_f32.o
+test_objs += greater_f32.o
+test_objs += less_f32.o
+test_objs += less_equal_f32.o
+test_objs += logical_and_f32.o
+test_objs += logical_or_f32.o
+# test_objs += logical_not_f32.o
+# test_objs += logical_xor_f32.o
+test_objs += log1p_f32.o
+test_objs += expm1_f32.o
+test_objs += greater_equal_f32.o
+test_objs += not_equal_f32.o
+test_objs += floor_div_f32.o
+test_objs += floor_mod_f32.o
+test_objs += elu_f32.o
+test_objs += fullyconnected_f32.o
+test_objs += relu_f32.o
+test_objs += relu6_f32.o
+test_objs += rsqrt_f32.o
+test_objs += resize_bilinear_f32.o
+test_objs += resize_nearestneighbor_f32.o
+test_objs += sigmoid_f32.o
+test_objs += hard_sigmoid_f32.o
+test_objs += softmax_f32.o
+test_objs += log_softmax_f32.o
+test_objs += sqrt_f32.o
+test_objs += select_f32.o
+test_objs += leaky_relu_f32.o
+test_objs += prelu_f32.o
+test_objs += floor_f32.o
+test_objs += convolution_f32.o
+test_objs += convolution_nchw_f32.o
+test_objs += group_convolution_f32.o
+test_objs += depthwise_convolution_f32.o
+test_objs += convolution3d_f32.o
+test_objs += deconvolution3d_f32.o
+test_objs += yuv_rgb_scale_f32.o
+test_objs += unsorted_segment_max_f32.o
+test_objs += unsorted_segment_max_u8.o
+test_objs += segment_max_f32.o
+test_objs += segment_max_u8.o
+test_objs += unsorted_segment_min_f32.o
+test_objs += unsorted_segment_min_u8.o
+test_objs += segment_min_f32.o
+test_objs += segment_min_u8.o
+test_objs += unsorted_segment_sum_f32.o
+test_objs += unsorted_segment_sum_u8.o
+test_objs += segment_sum_f32.o
+test_objs += segment_sum_u8.o
+test_objs += unsorted_segment_mean_f32.o
+test_objs += unsorted_segment_mean_u8.o
+test_objs += segment_mean_f32.o
+test_objs += segment_mean_u8.o
+test_objs += unsorted_segment_prod_f32.o
+test_objs += unsorted_segment_prod_u8.o
+test_objs += segment_prod_f32.o
+test_objs += segment_prod_u8.o
+test_objs += threshold_relu_f32.o
+test_objs += threshold_relu_u8.o
+test_objs += matmul_f32.o
+test_objs += matmul_u8.o
+test_objs += batch_norm_f32.o
+test_objs += batch_norm_u8.o
+test_objs += l2_norm_f32.o
+test_objs += l2_norm_u8.o
+
+test_objs += cumsum_f32.o
+test_objs += cumprod_f32.o
+test_objs += reduce_max_f32.o
+test_objs += reduce_min_f32.o
+test_objs += reduce_sum_f32.o
+test_objs += reduce_prod_f32.o
+test_objs += reduce_mean_f32.o
+test_objs += reduce_logsumexp_f32.o
+test_objs += softplus_f32.o
+test_objs += softsign_f32.o
+test_objs += squeeze_f32.o
+test_objs += broadcast_to_f32.o
+test_objs += clip_f32.o
+test_objs += expand_dims_f32.o
+test_objs += reverse_f32.o
+test_objs += depth_to_space_f32.o
+test_objs += space_to_depth_f32.o
+test_objs += tile_f32.o
+test_objs += stack_f32.o
+test_objs += unstack_f32.o
+test_objs += strided_slice_f32.o
+test_objs += batch_to_space_f32.o
+test_objs += space_to_batch_f32.o
+test_objs += gather_f32.o
+test_objs += gather_nd_f32.o
+test_objs += topk_f32.o
+test_objs += topk_u8.o
+test_objs += non_max_suppression_f32.o
+test_objs += shuffle_channel_f32.o
+test_objs += shuffle_channel_u8.o
+
+test_objs += averagepool3d_f32.o
+test_objs += maxpool3d_f32.o
+test_objs += maxpool_nchw_f32.o
+test_objs += averagepool_nchw_f32.o
+
+utils_objs =
+
+utils_objs += ../utils/math_snr.o
+utils_objs += ../utils/test_utils.o
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+	$(CC) $@ $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

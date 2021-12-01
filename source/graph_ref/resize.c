@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_resize(struct csi_tensor *input,

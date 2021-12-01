@@ -38,8 +38,8 @@ do
     echo "Test target $i"
 
     # build the test cases
-    make -f Makefile.$i clean
-    make -f Makefile.$i
+    make clean
+    make test_c$i
 
     # generate the test datas
     cd valid_datas

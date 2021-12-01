@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -40,11 +42,12 @@ int main(int argc, char** argv)
     input->dim[3] = buffer[3];          // channel
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
 
+    params.slice_num = 4;
     params.begin = (int *)malloc(4 * sizeof(int));
     params.end = (int *)malloc(4 * sizeof(int));
     for(int i = 0; i < 4; i++) {
-        params.begin[i] = buffer[4+in_size+i];
-        params.end[i] = buffer[4+in_size+i];
+        params.begin[i] = buffer[4+i];
+        params.end[i] = buffer[8+i];
     }
 
     output->dim[0] = params.end[0] - params.begin[0];
@@ -60,11 +63,12 @@ int main(int argc, char** argv)
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;  
 
-    float *src_in   = (float *)(buffer + 4);
+    float *src_in   = (float *)(buffer + 12);
     float *ref      = (float *)(buffer + 12 + in_size); 
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
-    input->qinfo = get_quant_info(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
 
     for(int i = 0; i < in_size; i++) {
         src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
@@ -87,7 +91,8 @@ int main(int argc, char** argv)
         }
     }
 
-    output->qinfo = get_quant_info(ref, out_size);
+    output->data = ref;
+    get_quant_info(output);
     input->data     = src_tmp;
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));

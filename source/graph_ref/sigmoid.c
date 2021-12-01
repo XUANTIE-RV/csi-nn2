@@ -16,17 +16,14 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_sigmoid(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct sigmoid_params *params)
 {
-    CSI_DEBUG_CALL(csi_sigmoid_debug_info(input, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
+    csi_gref_siso_op(input, output, CSINN_OP_SIGMOID, params);
     return CSINN_TRUE;
 }

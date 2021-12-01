@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 int csi_ref_conv2d_relu6_quant(struct csi_tensor *input,

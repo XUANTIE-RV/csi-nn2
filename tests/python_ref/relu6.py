@@ -11,8 +11,8 @@ def relu6_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(128, high=512, size=1))
-    in_size_y   = int(np.random.randint(128, high=512, size=1))
+    in_size_x   = int(np.random.randint(32, high=64, size=1))
+    in_size_y   = int(np.random.randint(32, high=64, size=1))
     in_channel  = int(np.random.randint(1, high=64, size=1))
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))

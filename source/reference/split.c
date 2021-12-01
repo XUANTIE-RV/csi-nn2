@@ -16,40 +16,61 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_split(struct csi_tensor *input,
+int csi_ref_split_f32(struct csi_tensor *input,
                   struct csi_tensor **output,
                   struct split_params *params)
 {
-    const int32_t batches = input->dim[0];
-    const int32_t input_depth = input->dim[1];
-    const int32_t input_height = input->dim[2];
-    const int32_t input_width = input->dim[3];
+    int32_t inner_size = 1;
+    int32_t out_size = 1;
+    float *input_data = input->data;
 
-    int32_t begin[4] = {0, 0, 0, 0};
-    for(int i = 0; i < params->output_num; i++){
-        if(i != 0){
-            begin[1] = params->split_index[i-1];
-        }
-        int32_t end_1;
-        if(i == params->output_num -1){
-            end_1 = input_depth;
-        }else{
-            end_1 = params->split_index[i];
-        }
-        int32_t end[4] = {batches, end_1, input_width, input_height};
-        int32_t strides[4] = {1, 1, 1, 1};
-        struct csi_tensor *output_ptr = output[i];
-        struct slice_params sparams;
-        sparams.base.layout = CSINN_NCHW;
-        sparams.begin = begin;
-        sparams.end = end;
-        sparams.strides = strides;
-        sparams.base.api = CSINN_REF;
-        csi_slice_init(input, output_ptr, &sparams);
-        csi_slice(input, output_ptr, &sparams);
+    for(int i=0; i< params->axis; i++){
+        out_size *= input->dim[i];
     }
+
+    for(int i = params->axis + 1; i < input->dim_count; i++){
+        inner_size *= input->dim[i];
+    }
+
+    int target_dim = input->dim[params->axis] / params->output_num;
+    inner_size = inner_size * target_dim;
+    for (int i = 0; i< params->output_num; i++){
+        float* output_i_data = output[i]->data;
+        for (int out = 0; out < out_size; out++){
+            int in_index = out * params->output_num * inner_size + i * inner_size;
+            int out_index = out * inner_size;
+            memcpy(output_i_data + out_index, input_data + in_index, inner_size*4);
+        }
+    }
+
+
     return CSINN_TRUE;
+}
+
+
+
+int csi_ref_split_quant(struct csi_tensor *input,
+                        struct csi_tensor **output,
+                        struct split_params *params)
+{
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+
+    struct csi_tensor *foutput[params->output_num];
+    for (int i = 0; i < params->output_num; i++){
+        foutput[i] = csi_ref_tensor_transform_f32(output[i]);
+    }
+    int ret = csi_ref_split_f32(finput, foutput, params);
+
+    for (int i = 0; i < params->output_num; i++){
+        csi_tensor_data_convert(output[i], foutput[i]);
+        csi_ref_tensor_transform_free_f32(foutput[i]);
+    }
+    csi_ref_tensor_transform_free_f32(finput);
+
+    return ret;
 }

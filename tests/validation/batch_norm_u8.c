@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -66,7 +68,7 @@ int main(int argc, char** argv)
     gamma->dtype = CSINN_DTYPE_UINT8;
     beta->dtype = CSINN_DTYPE_UINT8;
 
-    params.base.layout = CSINN_NHWC;
+    params.base.layout = CSINN_LAYOUT_NHWC;
     params.epsilon = *(float *)&buffer[1 + input->dim_count];
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
@@ -83,7 +85,8 @@ int main(int argc, char** argv)
     uint8_t *gamma_tmp = malloc(input->dim[input->dim_count - 1] * sizeof(char));
     uint8_t *beta_tmp  = malloc(input->dim[input->dim_count - 1] * sizeof(char));
 
-    input->qinfo = get_quant_info(src_in, size);
+    input->data = src_in;
+    get_quant_info(input);
 
     for(int i = 0; i < size; i++) {
         input_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
@@ -106,7 +109,8 @@ int main(int argc, char** argv)
         }
     }
 
-    mean->qinfo = get_quant_info(mean_in, input->dim[input->dim_count - 1]);
+    mean->data = mean_in;
+    get_quant_info(mean);
     for(int i = 0; i < input->dim[input->dim_count - 1]; i++) {
         mean_tmp[i] = csi_ref_quantize_f32_to_u8(mean_in[i], mean->qinfo);
     }
@@ -128,12 +132,14 @@ int main(int argc, char** argv)
         }
     }
 
-    variance->qinfo = get_quant_info(var_in, input->dim[input->dim_count - 1]);
+    variance->data = var_in;
+    get_quant_info(variance);
     for(int i = 0; i < input->dim[input->dim_count - 1]; i++) {
         var_tmp[i] = csi_ref_quantize_f32_to_u8(var_in[i], variance->qinfo);
     }
 
-    gamma->qinfo = get_quant_info(gamma_in, input->dim[input->dim_count - 1]);
+    gamma->data = gamma_in;
+    get_quant_info(gamma);
 
     for(int i = 0; i < input->dim[input->dim_count - 1]; i++) {
         gamma_tmp[i] = csi_ref_quantize_f32_to_u8(gamma_in[i], gamma->qinfo);
@@ -158,7 +164,8 @@ int main(int argc, char** argv)
 
     max_error = (error[0] + error[1]) * fabs(max_value);
 
-    beta->qinfo = get_quant_info(beta_in, input->dim[input->dim_count - 1]);
+    beta->data = beta_in;
+    get_quant_info(beta);
     for(int i = 0; i < input->dim[input->dim_count - 1]; i++) {
         beta_tmp[i] = csi_ref_quantize_f32_to_u8(beta_in[i], beta->qinfo);
     }
@@ -181,7 +188,8 @@ int main(int argc, char** argv)
     }
     max_error += error[3];
 
-    output->qinfo = get_quant_info(ref, size);
+    output->data = ref;
+    get_quant_info(output);
 
     input->data     = input_tmp;
     mean->data      = mean_tmp;

@@ -16,12 +16,25 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_split(struct csi_tensor *input,
                    struct csi_tensor **output,
                    struct split_params *params)
 {
-    csi_debug_error("csi_gref_split unsupport\n");
+    struct csi_node *layer = csi_node_alloc(CSINN_OP_SPLIT, params->base.name, 1, params->output_num, params);
+
+    struct csi_node *in_tensor = (struct csi_node *)(input->data);
+    csi_node_add_in(layer, in_tensor, 0);
+
+    for (int i = 0; i< params->output_num; i++){
+        struct csi_node *out = csi_node_var_alloc(output[i]->name, output[i]);
+        csi_node_add_out(layer, out, i);
+        output[i]->data = out;
+    }
+    struct csi_ref_graph *graph = csi_gref_get_graph(input->sess);
+    csi_gref_graph_insert(layer, graph);
     return CSINN_FALSE;
 }

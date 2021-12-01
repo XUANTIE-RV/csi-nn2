@@ -18,7 +18,7 @@ def tanh_f32():
     std         = int(np.random.randint(4, high=5, size=1))
 
     # src_in = np.random.normal(zero_point, std, in_shape)
-    src_in = np.random.uniform(-100, 100, in_shape)
+    src_in = np.random.uniform(-5, 5, in_shape)
     src_in = src_in.astype(np.float32)
 
     out_calcu = tf.tanh(src_in)

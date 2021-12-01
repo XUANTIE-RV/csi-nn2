@@ -16,12 +16,14 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_gref.h"
 
 int csi_gref_log_softmax(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct softmax_params *params)
 {
-    csi_gref_siso_op(input, output, CSINN_OP_SOFTMAX, params);
+    csi_gref_siso_op(input, output, CSINN_OP_LOG_SOFTMAX, params);
     return CSINN_TRUE;
 }

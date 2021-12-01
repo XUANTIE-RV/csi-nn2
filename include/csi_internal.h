@@ -15,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* CSI-NN2 version 1.8.x */
 #ifndef _CSI_INTERNAL_H
 #define _CSI_INTERNAL_H
 
@@ -33,6 +35,17 @@ enum
     CSINN_DTYPE_SIZE,
 };
 
+/* data type */
+enum
+{
+    CSINN_QUANT_UINT8_ASYM = 0,
+    CSINN_QUANT_UINT8_SYM,
+    CSINN_QUANT_INT8_ASYM,
+    CSINN_QUANT_INT8_SYM,
+    CSINN_QUANT_FLOAT32,
+    CSINN_QUANT_SIZE,
+};
+
 /* API type */
 enum
 {
@@ -42,7 +55,7 @@ enum
     CSINN_C906,
     CSINN_C910,
     CSINN_ANOLE,
-    CSINN_TX510,
+    CSINN_CH8601,
     CSINN_LIGHT,
     CSINN_DP1K,
     CSINN_TVMGEN,
@@ -56,6 +69,14 @@ enum
     CSINN_RM_CPU_GRAPH,
     CSINN_RM_NPU_GRAPH,
     CSINN_RUN_MODE_SIZE,
+};
+
+/* model save */
+enum
+{
+    CSINN_SAVE_AND_RUN = 0,
+    CSINN_SAVE_ONLY,
+    CSINN_RUN_ONLY,
 };
 
 /* op and utils */
@@ -123,6 +144,7 @@ enum
     CSINN_OP_FLOOR_DIVIDE,
     CSINN_OP_FLOOR_MOD,
     CSINN_OP_FLOOR,
+    CSINN_OP_FSMN,
     CSINN_OP_FULLYCONNECTED,
     CSINN_OP_GATHER_ND,
     CSINN_OP_GATHER,
@@ -253,6 +275,8 @@ enum
     CSINN_SET_OUTPUT,
     CSINN_GET_INPUT,
     CSINN_GET_OUTPUT,
+    CSINN_TENSOR_ENTRY,
+    CSINN_LOAD_BG,
 
     /* graph */
     CSINN_TENSOR,
@@ -284,12 +308,41 @@ enum
     CSINN_RESIZE_NEAREST_BICUBIC = 0x2,
 };
 
+/* depth2space mode */
 enum
 {
-    CSINN_NCHW = 0x0,
-    CSINN_NHWC = 0x1,
-    CSINN_NCDHW = 0x2,
-    CSINN_NDHWC = 0x3,
+    CSINN_DEPTHTOSPACE_DCR = 0x0,
+    CSINN_DEPTHTOSPACE_CRD = 0x1,
+};
+
+/* local_response_normalization(lrn) mode */
+enum
+{
+    CSINN_LRN_ACROSS_CHANNELS = 0x0,
+    CSINN_LRN_WITHIN_CHANNEL,
+};
+
+enum
+{
+    CSINN_LAYOUT_NULL = 0x0,
+    // NCHW
+    // ACTIVITION
+    CSINN_LAYOUT_N,
+    CSINN_LAYOUT_NC,
+    CSINN_LAYOUT_NCW,
+    CSINN_LAYOUT_NCHW ,
+    CSINN_LAYOUT_NCDHW,
+    // WEIGHT
+    CSINN_LAYOUT_O,
+    CSINN_LAYOUT_OI,
+    CSINN_LAYOUT_OIW,
+    CSINN_LAYOUT_OIHW,
+    CSINN_LAYOUT_OIDHW,
+
+    // NHWC
+    // ACTIVITION
+    CSINN_LAYOUT_NHWC,
+    CSINN_LAYOUT_NDHWC,
 };
 
 enum
@@ -332,6 +385,12 @@ struct csi_scale_zp
     int32_t zero_point;
 };
 
+struct csi_min_max
+{
+    float min;
+    float max;
+};
+
 struct csi_params_base
 {
     int (*bc)();
@@ -339,6 +398,16 @@ struct csi_params_base
     int32_t layout;
     int32_t api;
     int32_t run_mode;
+};
+
+struct fsmn_params
+{
+    struct csi_params_base base;
+    int32_t l_order;
+    int32_t r_order;
+    int32_t l_stride;
+    int32_t r_stride;
+    int32_t unavailable_frames;
 };
 
 struct conv2d_params
@@ -505,6 +574,7 @@ struct lrn_params
     double beta;
     int32_t beta_multiplier;
     int32_t beta_shift;
+    int32_t norm_region;
 };
 
 struct matmul_params
@@ -529,6 +599,7 @@ struct pad_params
     struct csi_params_base base;
     int32_t *pad_before;
     int32_t *pad_after;
+    int32_t pad_num;
     float pad_value;
     int32_t pad_mode;
 };
@@ -582,12 +653,14 @@ struct transpose_params
 {
     struct csi_params_base base;
     int32_t *permute;
+    int32_t permute_num;
 };
 
 struct reshape_params
 {
     struct csi_params_base base;
     int32_t *shape;
+    int32_t shape_num;
 };
 
 struct shape_params
@@ -617,6 +690,7 @@ struct crop_params
     struct csi_params_base base;
     int32_t axis;
     int32_t *offset;
+    int32_t offset_num;
 };
 
 struct slice_params
@@ -625,6 +699,7 @@ struct slice_params
     int32_t *begin;
     int32_t *end;
     int32_t *strides;
+    int32_t slice_num;
 };
 
 struct split_params
@@ -685,8 +760,7 @@ struct take_params
 struct gather_params
 {
     struct csi_params_base base;
-    int32_t *indices;
-    int32_t indices_count;
+    int32_t axis;
 };
 struct gather_nd_params
 {
@@ -697,6 +771,7 @@ struct squeeze_params
 {
     struct csi_params_base base;
     int32_t *axis;
+    int32_t axis_num;
 };
 
 struct ndarray_size_params
@@ -749,6 +824,7 @@ struct space_to_depth_params
 struct depth_to_space_params
 {
     struct csi_params_base base;
+    int32_t mode;
     int32_t block_size;
 };
 

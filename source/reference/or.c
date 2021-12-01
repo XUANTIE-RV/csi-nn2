@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include <assert.h>
 
@@ -30,7 +32,7 @@ int csi_ref_or_u32(struct csi_tensor *input0,
     int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = input0_data[0] | input1_data[0];
+        output_data[i] = input0_data[i] | input1_data[i];
     }
     return CSINN_TRUE;
 }
@@ -46,7 +48,7 @@ int csi_ref_or_u8(struct csi_tensor *input0,
     int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = input0_data[0] | input1_data[0];
+        output_data[i] = input0_data[i] | input1_data[i];
     }
     return CSINN_TRUE;
 }
@@ -62,7 +64,7 @@ int csi_ref_or_i8(struct csi_tensor *input0,
     int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = input0_data[0] | input1_data[0];
+        output_data[i] = input0_data[i] | input1_data[i];
     }
     return CSINN_TRUE;
 }

@@ -14,8 +14,10 @@ def batch_norm_f32():
     # init the input data and parameters
     dim_count   = int(np.random.randint(4, high=5, size=1))
     for i in range(0, dim_count):
-        in_size = int(np.random.randint(1, high=32, size=1))
+        in_size = int(np.random.randint(16, high=32, size=1))
         dim.append(in_size)
+
+    dim[0] = 1  # batch = 1 for anole
 
     zero_point1 = int(np.random.randint(-6, high=6, size=1))
     std1        = int(np.random.randint(1, high=20, size=1))
@@ -32,10 +34,12 @@ def batch_norm_f32():
     # var   = np.random.normal(zero_point3, std3, dim[-1])
     var = np.var(src_in, axis = (0,1,2))    # len(var) = channel_size
 
-    zero_point4 = int(np.random.randint(1, high=2, size=1))
-    std4        = int(np.random.randint(1, high=2, size=1))
-    gamma =  np.random.normal(zero_point4, std4, dim[-1])
-    beta  =  np.random.normal(zero_point4, std4, dim[-1])
+    # zero_point4 = int(np.random.randint(1, high=2, size=1))
+    # std4        = int(np.random.randint(1, high=2, size=1))
+    # gamma =  np.random.normal(zero_point4, std4, dim[-1])
+    # beta  =  np.random.normal(zero_point4, std4, dim[-1])
+    gamma =  np.random.uniform(1.0, 2.0, dim[-1])
+    beta  =  np.random.uniform(5, 9, dim[-1])
 
     value = (1e-05, 1e-04, 1e-03)
     epsi  = random.sample(value, 1)
@@ -47,7 +51,6 @@ def batch_norm_f32():
 
     src_in_nchw = src_in.transpose(0, 3, 1, 2)
     src_out_nchw = src_out.transpose(0, 3, 1, 2)
-
 
     src_in_1  = src_in_nchw.flatten()
     src_out_1 = src_out_nchw.flatten()

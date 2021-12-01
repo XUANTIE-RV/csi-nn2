@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 #include <math.h>
@@ -45,10 +47,10 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
         int roi_add = n * 5;
         int roi_batch_idx = bottom_rois[roi_add];
         assert(roi_batch_idx < batch);
-        float roi_start_w = (float)(round(bottom_rois[roi_add + 1]) * params->spatial_scale);
-        float roi_start_h = (float)(round(bottom_rois[roi_add + 2]) * params->spatial_scale);
-        float roi_end_w   = (float)(round(bottom_rois[roi_add + 3]) * params->spatial_scale);
-        float roi_end_h   = (float)(round(bottom_rois[roi_add + 4]) * params->spatial_scale);
+        float roi_start_w = (float)round(bottom_rois[roi_add + 1] * params->spatial_scale);
+        float roi_start_h = (float)round(bottom_rois[roi_add + 2] * params->spatial_scale);
+        float roi_end_w   = (float)round(bottom_rois[roi_add + 3] * params->spatial_scale);
+        float roi_end_h   = (float)round(bottom_rois[roi_add + 4] * params->spatial_scale);
 
         float roi_height = fmaxf(roi_end_h - roi_start_h + 1, 1);
         float roi_width  = fmaxf(roi_end_w - roi_start_w + 1, 1);
@@ -81,7 +83,7 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
                         for (int w = wstart; w < wend; ++w) {
                             int index = h * width + w;
                             if(*(batch_data + index) > *(output_data + pool_index)) {
-                                *(output_data + pool_index) = *(output_data + pool_index);
+                                *(output_data + pool_index) = *(batch_data + index);
                             }
                         }
                     }
@@ -100,12 +102,6 @@ int csi_ref_roipool_quant(struct csi_tensor *data,
                           struct csi_tensor *output,
                           struct roi_pool_params *params)
 {
-    struct csi_quant_info qinfo;
-    qinfo.zero_point = 0;
-    qinfo.multiplier = params->spatial_scale_multiplier;
-    qinfo.shift = params->spatial_scale_shift;
-    params->spatial_scale = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
-
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(data);
     struct csi_tensor *frois = csi_ref_tensor_transform_f32(rois);

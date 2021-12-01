@@ -13,9 +13,9 @@ def fullconnected_f32():
     in_size     = int(np.random.randint(64, high=256, size=1))
     out_size    = int(np.random.randint(64, high=256, size=1))
 
-    zero_point1 = int(np.random.randint(-6, high=6, size=1))
-    std1        = int(np.random.randint(1, high=20, size=1))
-    zero_point2 = int(np.random.randint(-6, high=6, size=1))
+    zero_point1 = int(np.random.randint(-2, high=2, size=1))
+    std1        = int(np.random.randint(1, high=2, size=1))
+    zero_point2 = int(np.random.randint(-2, high=2, size=1))
     std2        = int(np.random.randint(1, high=20, size=1))
     zero_point3 = int(np.random.randint(-6, high=6, size=1))
     std3        = int(np.random.randint(1, high=20, size=1))

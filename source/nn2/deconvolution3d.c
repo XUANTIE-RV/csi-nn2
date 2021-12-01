@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_deconv3d_init(struct csi_tensor *input,
@@ -24,7 +26,7 @@ int csi_deconv3d_init(struct csi_tensor *input,
                       struct csi_tensor *bias,
                       struct conv3d_params *params)
 {
-    if (params->base.layout == CSINN_NCDHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCDHW) {
         params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_DECONV3D, input->dtype);
         if (params->base.bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;

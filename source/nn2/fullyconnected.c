@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_fullyconnected_init(struct csi_tensor *input,
@@ -37,7 +39,7 @@ int csi_fullyconnected(struct csi_tensor *input,
                        struct csi_tensor *bias,
                        struct fc_params *params)
 {
-    CSI_DEBUG_CALL(csi_fc_debug_info(input, output, weights, bias, params, __func__));
+    CSI_DEBUG_CALL(csi_fullyconnected_debug_info(input, output, weights, bias, params, __func__));
     if (params->base.bc != NULL) {
         params->base.bc(input, output, weights, bias, params);
     } else {

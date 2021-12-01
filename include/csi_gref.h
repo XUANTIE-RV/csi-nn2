@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_NN_GREF_H
 #define _CSI_NN_GREF_H
 #include "csi_nn.h"
@@ -144,6 +146,14 @@ int csi_gref_depthwise_conv2d_relu6(struct csi_tensor *input,
                                     struct csi_tensor *kernel,
                                     struct csi_tensor *bias,
                                     struct conv2d_params *params);
+
+int csi_gref_fsmn(struct csi_tensor *frame,
+                  struct csi_tensor *l_filter,
+                  struct csi_tensor *r_filter,
+                  struct csi_tensor *frame_sequence,
+                  struct csi_tensor *frame_counter,
+                  struct csi_tensor *output,
+                  struct fsmn_params *params);
 
 int csi_gref_fullyconnected(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -572,6 +582,7 @@ int csi_gref_unstack(struct csi_tensor *input,
                      struct unstack_params *params);
 
 int csi_gref_gather(struct csi_tensor *input,
+                    struct csi_tensor *indices,
                     struct csi_tensor *output,
                     struct gather_params *params);
 
@@ -751,8 +762,8 @@ int csi_gref_yuv_rgb_scale(struct csi_tensor *input,
 
 struct csi_ref_graph
 {
-    struct csi_node *input[8];
-    struct csi_node *output[8];
+    struct csi_node **input;
+    struct csi_node **output;
     int input_num;
     int output_num;
     struct csi_node **layer;

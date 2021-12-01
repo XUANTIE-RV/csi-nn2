@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_node.h"
 
 struct csi_node *csi_node_alloc(int node_type, char *name, int in_num, int out_num, void *data)

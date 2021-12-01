@@ -15,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* CSI-NN2 version 1.8.x */
 #ifndef _CSI_DEBUG_H
 #define _CSI_DEBUG_H
 
@@ -30,11 +32,13 @@ enum
 void csi_debug_info(const char *format, ...);
 void csi_debug_warning(const char *format, ...);
 void csi_debug_error(const char *format, ...);
+int csi_debug_callback_unset();
 #else
 #define CSI_DEBUG_CALL(func)
 inline void csi_debug_info(const char *format, ...) {}
 inline void csi_debug_warning(const char *format, ...) {}
 inline void csi_debug_error(const char *format, ...) {}
+inline int csi_debug_callback_unset() {return CSINN_CALLBACK_UNSET;}
 #endif
 
 int csi_debug_get_level();
@@ -54,12 +58,14 @@ int csi_conv3d_debug_info(struct csi_tensor *input,
                           struct conv3d_params *params,
                           const char *name);
 
-int csi_fc_debug_info(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct csi_tensor *weights,
-                      struct csi_tensor *bias,
-                      struct fc_params *params,
-                      const char *name);
+int csi_fsmn_debug_info(struct csi_tensor *frame,
+                        struct csi_tensor *l_filter,
+                        struct csi_tensor *r_filter,
+                        struct csi_tensor *frame_sequence,
+                        struct csi_tensor *frame_counter,
+                        struct csi_tensor *output,
+                        struct fsmn_params *params,
+                        const char *name);
 
 int csi_siso_debug_info(struct csi_tensor *input,
                         struct csi_tensor *output,
@@ -200,6 +206,7 @@ int csi_gather_nd_debug_info(struct csi_tensor *input,
                              const char *name);
 
 int csi_gather_debug_info(struct csi_tensor *input,
+                          struct csi_tensor *indices,
                           struct csi_tensor *output,
                           struct gather_params *params,
                           const char *name);

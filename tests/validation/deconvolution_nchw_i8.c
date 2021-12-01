@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -63,7 +65,7 @@ int main(int argc, char** argv)
     params.pad_down   = buffer[11];
     params.dilation_width  = buffer[12];
     params.dilation_height = buffer[13];
-    params.base.layout     = CSINN_NCHW;
+    params.base.layout     = CSINN_LAYOUT_NCHW;
     params.group      = 1;
 
     input->dim_count = 4;
@@ -89,7 +91,8 @@ int main(int argc, char** argv)
     int8_t *kernel_tmp  = malloc(weight_size * sizeof(char));
     int32_t *bias_tmp   = (int32_t *)malloc(output->dim[3] * sizeof(int32_t));
 
-    input->qinfo = get_quant_info_i8(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
     scale1 = input->qinfo->scale;
 
     for(int i = 0; i < in_size; i++) {
@@ -113,7 +116,8 @@ int main(int argc, char** argv)
         }
     }
 
-    kernel->qinfo = get_quant_info_i8(kernel_in, weight_size);
+    kernel->data = kernel_in;
+    get_quant_info(kernel);
     scale2 = kernel->qinfo->scale;
 
     for(int i = 0; i < weight_size; i++) {
@@ -145,7 +149,8 @@ int main(int argc, char** argv)
         bias_tmp[i] =(int32_t)(bias_in[i]/scale);
     }
 
-    output->qinfo = get_quant_info_i8(ref, out_size);
+    output->data = ref;
+    get_quant_info(output);
     scale3=output->qinfo->scale;
     scale=(scale1*scale2)/scale3;
     quantize_multiplier(scale, &quantized_multiplier, &shift);

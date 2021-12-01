@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_NN_UTIL_H
 #define _CSI_NN_UTIL_H
 
@@ -34,6 +36,9 @@ struct csi_session {
     int32_t base_layout;
     int32_t base_api;
     int32_t base_run_mode;
+    int32_t base_quant_type;
+    char *model_name;
+    int32_t model_save;
     int32_t debug_level;
     int32_t input_num;
     int32_t output_num;
@@ -46,6 +51,7 @@ struct csi_session {
 void csi_get_top5(float *buf, uint32_t size, float *prob, uint32_t *cls);
 void csi_show_top5(struct csi_tensor *output, struct csi_session *sess);
 uint64_t csi_get_timespec();
+void csi_statistical_mean_std(float *data, int sz);
 
 /* tensor */
 int csi_tensor_size(struct csi_tensor *tensor);
@@ -55,7 +61,10 @@ void csi_free_tensor(struct csi_tensor *tensor);
 void csi_realloc_quant_info(struct csi_tensor *tensor, int quant_info_num);
 void csi_tensor_copy(struct csi_tensor *dest, struct csi_tensor *src);
 int csi_tensor_data_convert(struct csi_tensor *dest, struct csi_tensor *src);
-int csi_tensor_channel_setup(struct csi_tensor *tensor, struct csi_scale_zp *sz, int size);
+
+/* op parameters */
+void *csi_alloc_params(int params_size, struct csi_session *session);
+void csi_free_params(void *params);
 
 /* session */
 struct csi_session *csi_alloc_session();
@@ -64,6 +73,7 @@ void csi_session_init(struct csi_session *session);
 void csi_session_deinit(struct csi_session *session);
 int csi_session_setup(struct csi_session *session);
 int csi_session_run(struct csi_session *session);
+int csi_load_binary_model(char *path, struct csi_session *session);
 
 /* input/output */
 void csi_set_input_number(int number, struct csi_session *sess);
@@ -76,11 +86,11 @@ int csi_get_input(int index, struct csi_tensor *input, struct csi_session *sess)
 int csi_get_output(int index, struct csi_tensor *output, struct csi_session *sess);
 int csi_update_input(int index, struct csi_tensor *input, struct csi_session *sess);
 int csi_update_output(int index, struct csi_tensor *output, struct csi_session *sess);
-int csi_set_tensor(struct csi_tensor *tensor, struct csi_session *sess);
+int csi_set_tensor_entry(struct csi_tensor *tensor, struct csi_session *sess);
+
 /*
  * model setup and run
  */
-
 void csi_nn_init(struct csi_tensor *input,
                  struct csi_tensor *output);
 

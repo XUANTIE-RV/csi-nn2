@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -76,7 +78,7 @@ int main(int argc, char** argv)
     params.dilation_depth  = buffer[24];
     params.dilation_height = buffer[25];
     params.dilation_width  = buffer[26];
-    params.base.layout     = CSINN_NCDHW;
+    params.base.layout     = CSINN_LAYOUT_NCDHW;
     params.group      = 1;
 
     input->dim_count = 5;

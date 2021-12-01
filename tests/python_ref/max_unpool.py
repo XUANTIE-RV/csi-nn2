@@ -76,7 +76,7 @@ def max_unpool_f32():
     para.append(pad_top)
     para.append(pad_down)
 
-    with open("max_unpool_f32_data.bin", "wb") as fp:
+    with open("max_unpool_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

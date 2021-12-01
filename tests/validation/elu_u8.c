@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -56,13 +58,15 @@ int main(int argc, char** argv)
     float *ref      = (float *)(buffer + 4 + in_size);
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
-    input->qinfo = get_quant_info(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
 
     for(int i = 0; i < in_size; i++) {
         src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
     }
 
-    output->qinfo = get_quant_info(ref, in_size);
+    output->data = ref;
+    get_quant_info(output);
 
     input->data     = src_tmp;
     reference->data = ref;
@@ -71,8 +75,8 @@ int main(int argc, char** argv)
     float difference = argc > 2 ? atof(argv[2]) : max_error;
 
 
-    if (csi_relu6_init(input, output, &params) == CSINN_TRUE) {
-        csi_relu6(input, output, &params);
+    if (csi_elu_init(input, output, &params) == CSINN_TRUE) {
+        csi_elu(input, output, &params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, in_size, false);

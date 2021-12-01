@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
@@ -37,9 +39,17 @@ int csi_ovx_max(struct csi_tensor *input,
     int i = 0;
     node = vsi_nn_AddNode(graph, VSI_NN_OP_REDUCE, input_num, output_num, &node_id);
     node->nn_param.reduce.type = VSI_NN_REDUCE_MAX;
-    node->nn_param.reduce.axis = params->axis;
     node->nn_param.reduce.axis_num = params->axis_count;
-    node->nn_param.reduce.keep_dim = params->keepdims;
+    node->nn_param.reduce.axis = (uint32_t *)malloc(VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    memset(node->nn_param.reduce.axis, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    for (i = 0; i < params->axis_count; i++) {
+        node->nn_param.reduce.axis[i] = input->dim_count - params->axis[i] - 1;
+    }
+    if (input->dim_count == output->dim_count) {
+        node->nn_param.reduce.keep_dim = vx_true_e;
+    } else {
+        node->nn_param.reduce.keep_dim = vx_false_e;
+    }
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 
@@ -47,8 +57,8 @@ int csi_ovx_max(struct csi_tensor *input,
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output */
-    attr.dtype.scale = 1;
-    attr.dtype.zero_point = 0;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;

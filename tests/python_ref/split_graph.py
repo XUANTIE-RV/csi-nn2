@@ -54,7 +54,7 @@ def split_f32():
     para.append(num_split)
     print(para)
 
-    with open("split_graph_f32_data.bin", "wb") as fp:
+    with open("split_graph_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

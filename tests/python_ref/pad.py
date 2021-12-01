@@ -27,29 +27,27 @@ def pad_f32():
     t_src_out  = fn.pad(t_src_in, (pad_left, pad_right, pad_top, pad_down), 'constant', 0).numpy()
 
     #permute nchw to nhwc
-    src_in_nhwc = np.transpose(src_in, [3, 1, 0, 2])
-    out_nhwc    = np.transpose(t_src_out, [3, 1, 0, 2])
+    src_in_nhwc = np.transpose(src_in, [0, 2, 3, 1])
+    out_nhwc    = np.transpose(t_src_out, [0, 2, 3, 1])
 
-    src_in_nchw = src_in
-    out_nchw = t_src_out
 
     size_all  = batch*in_size_y*in_size_x*in_channel
-    src_in_1  = src_in_nchw.reshape(size_all)
-    src_out_1 = out_nchw.reshape(batch * (in_size_y + pad_top + pad_down) * (in_size_x + pad_left + pad_right) * in_channel)
+    src_in_1  = src_in_nhwc.reshape(size_all)
+    src_out_1 = out_nhwc.reshape(batch * (in_size_y + pad_top + pad_down) * (in_size_x + pad_left + pad_right) * in_channel)
 
     total_size = (len(src_in_1) + len(src_out_1)) + 8
 
     para.append(total_size)
     para.append(batch)
-    para.append(in_channel)
     para.append(in_size_y)
     para.append(in_size_x)
+    para.append(in_channel)
     para.append(pad_left)
     para.append(pad_right)
     para.append(pad_top)
     para.append(pad_down)
 
-    with open("pad_data.bin", "wb") as fp:
+    with open("pad_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

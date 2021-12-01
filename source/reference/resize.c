@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 #include "csi_utils.h"
 
@@ -134,7 +136,7 @@ int csi_ref_resize_f32(struct csi_tensor *input,
     if (params->resize_mode == CSINN_RESIZE_BILINEAR) {
         csi_ref_resize_bilinear_f32(input, output, params->align_corners);
     } else if (params->resize_mode == CSINN_RESIZE_NEAREST_NEIGHBOR) {
-        if (params->base.layout == CSINN_NCHW){
+        if (params->base.layout == CSINN_LAYOUT_NCHW){
             csi_ref_resize_nearest_neighbor_nchw_f32(input, output, params->align_corners);
         }else{
             csi_ref_resize_nearest_neighbor_f32(input, output, params->align_corners);

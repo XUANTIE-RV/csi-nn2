@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -67,14 +69,16 @@ int main(int argc, char** argv)
     uint8_t *weight_tmp = malloc(in_size1 * sizeof(char));
     int32_t *bias_tmp = (int32_t *)malloc(buffer[2] * sizeof(int32_t));
 
-    input->qinfo = get_quant_info(src_in, in_size0);
+    input->data = src_in;
+    get_quant_info(input);
     scale1 = input->qinfo->scale;
 
     for(int i = 0; i < in_size0; i++) {
         input_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
     }
 
-    weight->qinfo = get_quant_info(weight_in, in_size1);
+    weight->data = weight_in;
+    get_quant_info(weight);
     scale2 = weight->qinfo->scale;
 
     for(int i = 0; i < in_size1; i++) {
@@ -88,7 +92,8 @@ int main(int argc, char** argv)
         bias_tmp[i] = (int32_t)(bias_in[i]/scale);
     }
 
-    output->qinfo = get_quant_info(ref, out_size);
+    output->data = ref;
+    get_quant_info(output);
     scale3=output->qinfo->scale; 
     scale=(scale1*scale2)/scale3;
     quantize_multiplier(scale, &quantized_multiplier, &shift);

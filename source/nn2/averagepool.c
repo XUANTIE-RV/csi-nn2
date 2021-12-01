@@ -16,16 +16,20 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_averagepool_init(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct pool_params *params)
 {
-    int (*init_func)();
-    init_func = csi_init_map(params->base.api, CSINN_OP_AVGPOOL2D, input->dtype);
-    if(init_func != NULL) {
-        return init_func(input, output, params);
+    if (params->base.run_mode != CSINN_RM_CPU_GRAPH) {
+        int (*init_func)();
+        init_func = csi_init_map(params->base.api, CSINN_OP_AVGPOOL2D, input->dtype);
+        if(init_func != NULL) {
+            return init_func(input, output, params);
+        }
     }
 
     params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_AVGPOOL2D, input->dtype);

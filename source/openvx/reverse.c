@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
@@ -35,7 +37,7 @@ int csi_ovx_reverse(struct csi_tensor *input,
     node = vsi_nn_AddNode(graph, VSI_NN_OP_REVERSE, input_num, output_num, &node_id);
 
     int32_t* axis_ptr = (int32_t*)malloc(sizeof(int32_t));
-    *axis_ptr = params->axis;
+    *axis_ptr = input->dim_count - 1 - params->axis;
 
     node->nn_param.reverse.axis = axis_ptr;
     node->nn_param.reverse.axis_num = 1;
@@ -47,6 +49,9 @@ int csi_ovx_reverse(struct csi_tensor *input,
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output */
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
+    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;

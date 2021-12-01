@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 //the input->data is a 4-D Tensor with shape [batch, depth, height, width].

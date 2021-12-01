@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -36,12 +38,13 @@ int main(int argc, char** argv)
     input->dim[2] = buffer[2];          // width
     input->dim[3] = buffer[3];          // channel
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
-    input->data    = (float *)(buffer + 4);
+    input->data    = (float *)(buffer + 12);
+    params.slice_num = 4;
     params.begin = (int *)malloc(4 * sizeof(int));
     params.end = (int *)malloc(4 * sizeof(int));
     for(int i = 0; i < 4; i++) {
-        params.begin[i] = buffer[4+in_size+i];
-        params.end[i] = buffer[4+in_size+i];
+        params.begin[i] = buffer[4+i];
+        params.end[i] = buffer[8+i];
     }
 
     output->dim[0] = params.end[0] - params.begin[0];

@@ -11,15 +11,15 @@ def argmax_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=2, size=1))
-    in_size_x  = int(np.random.randint(16, high=32, size=1))
-    in_size_y  = int(np.random.randint(16, high=32, size=1))
-    in_channel = int(np.random.randint(4, high=16, size=1))
+    in_channel = int(np.random.randint(128, high=256, size=1))
+    in_size_y  = int(np.random.randint(128, high=256, size=1))
+    in_size_x  = int(np.random.randint(128, high=256, size=1))
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
     src_in    = np.random.normal(zero_point, std, (batch, in_channel, in_size_y, in_size_x))
 
-    arg_axis  = int(np.random.randint(0, high=4, size=1))
+    arg_axis  = int(np.random.randint(1, high=4, size=1))
     #arg_shape = random.sample(axis, arg_num)
 
     out_calcu = tf.argmax(src_in, axis=arg_axis)
@@ -40,8 +40,9 @@ def argmax_f32():
     para.append(in_size_x)
     para.append(arg_axis)
     print(para)
+    print(src_out.shape)
 
-    with open("argmax_f32_data.bin", "wb") as fp:
+    with open("argmax_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

@@ -1,8 +1,14 @@
 #! /bin/bash
-#! /bin/bash
 # auto run validation test
 
+if [ $# -lt 1 ];then
+	echo "Please input test board args, such as: 860/906"
+	exit 1
+fi
+
 echo "start test"
+
+TEST_TYPE="$1"
 
 if [ ! -d valid_datas ]; then
     mkdir valid_datas
@@ -10,20 +16,31 @@ else
     rm ./valid_datas/*
 fi
 
-# build the test cases
-make clean
-make -f Makefile.860
+if [ "$TEST_TYPE" = "860" ]; then
+    # build the test cases
+    make clean
+    make -f Makefile.860
+    # qemu command
+    QEMU_PATH="qemu-cskyv2 -cpu ck860v"
+elif [[ "$TEST_TYPE" = "906" ]]; then
+    make clean
+    make -f Makefile.906
+    # qemu command
+    QEMU_PATH="qemu-riscv64"
+else
+    echo "${TEST_TYPE} is not in the support board list"
+    exit 1
+fi
+
 
 # generate the test datas
 cd valid_datas
 DATADIR="../python_ref"
 for k in $(ls $DATADIR/*.py)
 do
-    python3 $k
+    python $k
 done
 
-# run the test
-QEMU_PATH="qemu-cskyv2 -cpu ck860v"
 function qemu_p()
 {
     echo "$QEMU_PATH $1 $2 $3"

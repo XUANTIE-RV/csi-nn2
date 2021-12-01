@@ -45,6 +45,7 @@ objects += ${NN2_ROOT}/source/graph_ref/div.o
 objects += ${NN2_ROOT}/source/graph_ref/floor.o
 objects += ${NN2_ROOT}/source/graph_ref/floor_divide.o
 objects += ${NN2_ROOT}/source/graph_ref/floor_mod.o
+objects += ${NN2_ROOT}/source/graph_ref/fsmn.o
 objects += ${NN2_ROOT}/source/graph_ref/maximum.o
 objects += ${NN2_ROOT}/source/graph_ref/minimum.o
 objects += ${NN2_ROOT}/source/graph_ref/power.o

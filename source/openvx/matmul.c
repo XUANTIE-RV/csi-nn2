@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -36,8 +38,12 @@ int csi_ovx_matmul(struct csi_tensor *mat0,
     node = vsi_nn_AddNode(graph, VSI_NN_OP_MATRIXMUL, input_num, output_num, &node_id);
 
     /* FIXME */
-    node->nn_param.matrixmul.transpose[0] = 1;
-    node->nn_param.matrixmul.transpose[1] = 1;
+    node->nn_param.matrixmul.transpose[0] = 0;
+    node->nn_param.matrixmul.transpose[1] = 0;
+
+    node->nn_param.matrixmul.adjoint[0] = 0;
+    node->nn_param.matrixmul.adjoint[1] = 0;
+
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

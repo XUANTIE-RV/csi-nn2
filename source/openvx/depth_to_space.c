@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ovx.h"
 #include "vsi_nn_pub.h"
 
@@ -32,10 +34,15 @@ int csi_ovx_depth_to_space(struct csi_tensor *input,
     output->sess = input->sess;
     uint32_t input_num = 1;
     uint32_t output_num = 1;
-    node = vsi_nn_AddNode(graph, VSI_NN_OP_REORG, input_num, output_num, &node_id);
+    node = vsi_nn_AddNode(graph, VSI_NN_OP_DEPTH2SPACE, input_num, output_num, &node_id);
 
     /* FIXME */
-    node->nn_param.reorg.stride = output->dim[2] / input->dim[2];
+    node->nn_param.depth2space.block_size = params->block_size;
+    if (params->mode == CSINN_DEPTHTOSPACE_DCR){
+        node->nn_param.depth2space.mode = VSI_NN_DEPTH2SPACE_DCR;
+    }else if (params->mode == CSINN_DEPTHTOSPACE_CRD){
+        node->nn_param.depth2space.mode = VSI_NN_DEPTH2SPACE_CRD;
+    }
 
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 

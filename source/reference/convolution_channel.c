@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 static float csi_ref_uint8_to_float_channel(uint8_t i, float scale, int32_t zero_point)
@@ -298,7 +300,7 @@ int csi_ref_conv2d_channel_quant(struct csi_tensor *input,
                                  struct csi_tensor *bias,
                                  struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_conv2d_channel_nchw_quant(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
@@ -340,7 +342,7 @@ int csi_ref_depthwise_conv2d_channel_quant(struct csi_tensor *input,
                                            struct csi_tensor *bias,
                                            struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         if (input->dtype == CSINN_DTYPE_UINT8) {
             csi_ref_depthwise_conv2d_channel_nchw_u8(input, output, kernel, bias, params);
         } else if (input->dtype == CSINN_DTYPE_INT8) {
@@ -385,7 +387,7 @@ int csi_ref_group_conv2d_channel_quant(struct csi_tensor *input,
                                        struct csi_tensor *bias,
                                        struct conv2d_params *params)
 {
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_group_conv2d_channel_nchw_quant(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;

@@ -16,9 +16,12 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_gather_init(struct csi_tensor *input,
+                    struct csi_tensor *indices,
                     struct csi_tensor *output,
                     struct gather_params *params)
 {
@@ -30,12 +33,13 @@ int csi_gather_init(struct csi_tensor *input,
 }
 
 int csi_gather(struct csi_tensor *input,
+               struct csi_tensor *indices,
                struct csi_tensor *output,
                struct gather_params *params)
 {
-    CSI_DEBUG_CALL(csi_gather_debug_info(input, output, params, __func__));
+    CSI_DEBUG_CALL(csi_gather_debug_info(input, indices, output, params, __func__));
     if (params->base.bc != NULL) {
-        params->base.bc(input, output, params);
+        params->base.bc(input, indices, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -40,13 +42,14 @@ int main(int argc, char** argv)
     output->dim[1] = input->dim[1] = buffer[1];          // channel
     output->dim[2] = input->dim[2] = buffer[2];          // height
     output->dim[3] = input->dim[3] = buffer[3];          // width
+    alpha_data->dim[0] = buffer[1];
     input->dim_count = 4;
     alpha_data->dim_count = 1;
     output->dim_count = 4;
     input->dtype = CSINN_DTYPE_INT8;
     alpha_data->dtype = CSINN_DTYPE_INT8;
     output->dtype = CSINN_DTYPE_INT8;
-    params.base.layout = CSINN_NCHW;
+    params.base.layout = CSINN_LAYOUT_NCHW;
 
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = in_size;
@@ -59,7 +62,8 @@ int main(int argc, char** argv)
     int8_t *src_tmp = malloc(in_size * sizeof(char));
     int8_t *alpha_tmp = malloc(input->dim[1] * sizeof(char));
 
-    input->qinfo = get_quant_info_i8(src_in, in_size);
+    input->data = src_in;
+    get_quant_info(input);
 
     for(int i = 0; i < in_size; i++) {
         src_tmp[i] = csi_ref_quantize_f32_to_i8(src_in[i], input->qinfo);
@@ -83,7 +87,8 @@ int main(int argc, char** argv)
     }
 
 
-    alpha_data->qinfo = get_quant_info_i8(alpha_in, input->dim[1]);
+    alpha_data->data = alpha_in;
+    get_quant_info(alpha_data);
 
     for(int i = 0; i < input->dim[1]; i++) {
         alpha_tmp[i] = csi_ref_quantize_f32_to_i8(alpha_in[i], alpha_data->qinfo);
@@ -106,9 +111,11 @@ int main(int argc, char** argv)
         }
     }
 
-    output->qinfo = get_quant_info_i8(ref, out_size);
+    output->data = ref;
+    get_quant_info(output);
 
     input->data     = src_tmp;
+    alpha_data->data = alpha_tmp;
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 

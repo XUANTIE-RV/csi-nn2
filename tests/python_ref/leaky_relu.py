@@ -11,9 +11,9 @@ def leaky_relu_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
-    in_size_x  = int(np.random.randint(128, high=512, size=1))
-    in_size_y  = int(np.random.randint(128, high=512, size=1))
     in_channel = int(np.random.randint(1, high=64, size=1))
+    in_size_y  = int(np.random.randint(32, high=64, size=1))
+    in_size_x  = int(np.random.randint(32, high=64, size=1))
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
     alpha      = np.float32(np.random.random(1))
@@ -35,9 +35,9 @@ def leaky_relu_f32():
 
     para.append(total_size)
     para.append(batch)
+    para.append(in_channel)
     para.append(in_size_y)
     para.append(in_size_x)
-    para.append(in_channel)
     print(para)
 
     with open("leaky_relu_data_f32.bin", "wb") as fp:

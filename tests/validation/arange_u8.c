@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
@@ -60,7 +62,8 @@ int main(int argc, char** argv)
     params.step_multiplier = multiplier;
     params.step_shift = shift;
 
-    output->qinfo = get_quant_info(ref_data, out_size);
+    output->data = ref_data;
+    get_quant_info(output);
     input->data = 0;
     reference->data = ref_data;
     output->data = (uint8_t *)malloc(out_size * sizeof(uint8_t));

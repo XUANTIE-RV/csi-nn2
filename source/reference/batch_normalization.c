@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_ref.h"
 
 /* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/nn_impl.py#L1474-L1542 */
@@ -62,48 +64,6 @@ int csi_ref_batch_normalization_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_batch_normalization_u8(struct csi_tensor *input,
-                                   struct csi_tensor *mean,
-                                   struct csi_tensor *variance,
-                                   struct csi_tensor *gamma,
-                                   struct csi_tensor *beta,
-                                   struct csi_tensor *output,
-                                   struct bn_params *params)
-{
-    uint8_t *input_data  = input->data;
-    uint8_t *mean_data   = mean->data;
-    uint8_t *var_data    = variance->data;
-    uint8_t *beta_data   = beta->data;
-    uint8_t *output_data = output->data;
-    const int dims_count = input->dim_count;
-    int batches = 1;
-
-    /* compute the outer size */
-    for(int i = 0; i < dims_count - 1; i++ ){
-        batches *= input->dim[i];
-    }
-
-    int batch_offset = input->dim[dims_count - 1];
-
-    for (int b = 0; b < batches; ++b) {
-        for (int c = 0; c < input->dim[dims_count - 1]; ++c) {
-            float intput_val = csi_ref_dequantize_u8_to_f32(input_data[b * batch_offset + c], input->qinfo);
-            float mean_val   = csi_ref_dequantize_u8_to_f32(mean_data[c], mean->qinfo);
-            float var_val    = csi_ref_dequantize_u8_to_f32(var_data[c], variance->qinfo);
-            float beta_val   = csi_ref_dequantize_u8_to_f32(beta_data[c], beta->qinfo);
-            float result = 1/sqrt(var_val + params->epsilon);
-            result *= (intput_val - mean_val);
-            if (gamma != NULL) {
-                uint8_t *gamma_data  = gamma->data;
-                result *=  csi_ref_dequantize_u8_to_f32(gamma_data[c], gamma->qinfo);
-            }
-            result += beta_val;
-            output_data[b * batch_offset + c] = csi_ref_quantize_f32_to_u8(result, output->qinfo);
-        }
-    }
-
-    return CSINN_TRUE;
-}
 
 int csi_ref_batch_normalization_quant(struct csi_tensor *input,
                                       struct csi_tensor *mean,

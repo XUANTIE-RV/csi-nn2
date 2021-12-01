@@ -11,8 +11,8 @@ def maxpool_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
-    in_size_x  = int(np.random.randint(64, high=128, size=1))
-    in_size_y  = int(np.random.randint(64, high=128, size=1))
+    in_size_x  = int(np.random.randint(32, high=64, size=1))
+    in_size_y  = int(np.random.randint(32, high=64, size=1))
     in_channel = int(np.random.randint(1, high=32, size=1))
     stride_x   = int(np.random.randint(1, high=3, size=1))
     stride_y   = int(np.random.randint(1, high=3, size=1))

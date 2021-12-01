@@ -17,6 +17,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #include "csi_nn.h"
 
 int csi_conv2d_relu_init(struct csi_tensor *input,
@@ -25,25 +27,7 @@ int csi_conv2d_relu_init(struct csi_tensor *input,
                          struct csi_tensor *bias,
                          struct conv2d_params *params)
 {
-    if(kernel->quant_channel != 1){
-        if (params->base.layout == CSINN_NCHW) {
-            if (params->group == 1) {
-                params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CONV2D_CHANNEL_RELU, input->dtype);
-            } else if (params->group == output->dim[1] && kernel->dim[1] == 1) {
-                params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU, input->dtype);
-            } else {
-                params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_GROUP_CONV2D_CHANNEL_RELU, input->dtype);
-            }
-            if (params->base.bc == NULL) {
-                return CSINN_UNSUPPORT_DTYPE;
-            }
-        } else {
-            return CSINN_UNSUPPORT_LAYOUT;
-        }
-        return CSINN_TRUE;
-    }
-
-    if (params->base.layout == CSINN_NCHW) {
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
         if (params->group == 1) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CONV2D_RELU, input->dtype);
         } else if (params->group == input->dim[1] && kernel->dim[1] == 1) {
@@ -54,7 +38,7 @@ int csi_conv2d_relu_init(struct csi_tensor *input,
         if (params->base.bc == NULL) {
             return CSINN_UNSUPPORT_DTYPE;
         }
-    } else if (params->base.layout == CSINN_NHWC) {
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         if (params->group == 1) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CONV2D_RELU, input->dtype);
         } else if (params->group == input->dim[3] && kernel->dim[0] == 1) {

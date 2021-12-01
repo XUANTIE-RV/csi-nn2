@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+/* CSI-NN2 version 1.8.x */
+
 #ifndef _CSI_NN_H
 #define _CSI_NN_H
 
@@ -98,6 +100,22 @@ int csi_deconv3d(struct csi_tensor *input,
                  struct csi_tensor *kernel,
                  struct csi_tensor *bias,
                  struct conv3d_params *params);
+
+int csi_fsmn_init(struct csi_tensor *frame,
+                  struct csi_tensor *l_filter,
+                  struct csi_tensor *r_filter,
+                  struct csi_tensor *frame_sequence,
+                  struct csi_tensor *frame_counter,
+                  struct csi_tensor *output,
+                  struct fsmn_params *params);
+
+int csi_fsmn(struct csi_tensor *frame,
+             struct csi_tensor *l_filter,
+             struct csi_tensor *r_filter,
+             struct csi_tensor *frame_sequence,
+             struct csi_tensor *frame_counter,
+             struct csi_tensor *output,
+             struct fsmn_params *params);
 
 int csi_fullyconnected_init(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -908,10 +926,12 @@ int csi_where(struct csi_tensor *condition,
               struct where_params *params);
 
 int csi_gather_init(struct csi_tensor *input,
+                    struct csi_tensor *indices,
                     struct csi_tensor *output,
                     struct gather_params *params);
 
 int csi_gather(struct csi_tensor *input,
+               struct csi_tensor *indices,
                struct csi_tensor *output,
                struct gather_params *params);
 
