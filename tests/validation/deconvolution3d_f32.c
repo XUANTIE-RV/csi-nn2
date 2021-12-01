@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"

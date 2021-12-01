@@ -16,11 +16,45 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+
+void op_test_run(struct csi_tensor *input, struct csi_tensor *kernel, struct csi_tensor *bias,
+                 struct csi_tensor *output, struct fc_params *params, struct csi_session *sess,
+                 struct csi_tensor *real_input, float *output_data, float diff)
+{
+    csi_session_init(sess);
+    csi_set_input_number(1, sess);
+    csi_set_output_number(1, sess);
+    csi_fullyconnected_init(input, output, kernel, bias, params);
+
+    csi_set_tensor_entry(input, sess);
+    csi_set_input(0, input, sess);
+
+    csi_fullyconnected(input, output, kernel, bias, params);
+
+    csi_set_output(0, output, sess);
+    csi_session_setup(sess);
+
+    csi_update_input(0, real_input, sess);
+    csi_session_run(sess);
+    csi_get_output(0, output, sess);
+
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    result_verify_f32(output_data, foutput->data, input->data, diff, csi_tensor_size(output),
+                      false);
+
+    free_input(real_input);
+    csi_ref_tensor_transform_free_f32(foutput);
+    csi_session_deinit(sess);
+    csi_free_session(sess);
+}
+
+void test_fc(struct csi_tensor *input, struct csi_tensor *weights, struct csi_tensor *bias,
+             struct csi_tensor *output, struct fc_params *params, float difference);
 
 int main(int argc, char** argv)
 {
@@ -31,16 +65,8 @@ int main(int argc, char** argv)
     struct csi_tensor *reference = csi_alloc_tensor(NULL);
     int in_size = 0, weights_size = 0, bias_size = 0, out_size = 0;
 
-    /* session configuration */
-    struct csi_session *sess = csi_alloc_session();
-    sess->base_api = CSINN_API;
-    csi_session_init(sess);
-    csi_set_input_number(1, sess);
-    csi_set_output_number(1, sess);
-
-
     /* input tensor configuration */
-    struct csi_tensor *input  = csi_alloc_tensor(sess);
+    struct csi_tensor *input  = csi_alloc_tensor(NULL);
     input->dim[0] = buffer[0];          // batch
     input->dim[1] = buffer[1];          // in_nodes
     input->dim_count = 2;
@@ -48,20 +74,11 @@ int main(int argc, char** argv)
     input->name = "input";
     float *input_data = (float *)(buffer + 3);
     input->data = input_data;
-    get_quant_info(input);
-
-    void *src_tmp = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
-            *((uint8_t *)src_tmp + i) = csi_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
-        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
-            *((int8_t *)src_tmp + i) = csi_ref_quantize_f32_to_i8(input_data[i], input->qinfo);
-        }
-    }
-
+    input->dtype = CSINN_DTYPE_FLOAT32;
+    input->layout = CSINN_LAYOUT_NCHW;
 
     /* weight tensor configuration */
-    struct csi_tensor *weights  = csi_alloc_tensor(sess);
+    struct csi_tensor *weights  = csi_alloc_tensor(NULL);
     weights->dim[0] = buffer[2];    // out_nodes
     weights->dim[1] = buffer[1];    // in_nodes
     weights->dim_count = 2;
@@ -69,46 +86,25 @@ int main(int argc, char** argv)
     weights->name = "weights";
     float *weight_data = (float *)(buffer + 3 + in_size);
     weights->data = weight_data;
-    get_quant_info(weights);
-
-    void *weight_tmp = malloc(weights_size * sizeof(char));
-    for(int i = 0; i < weights_size; i++) {
-        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
-            *((uint8_t *)weight_tmp + i) = csi_ref_quantize_f32_to_u8(weight_data[i], weights->qinfo);
-        } else if (sess->base_dtype == CSINN_DTYPE_INT8) {
-            *((int8_t *)weight_tmp + i) = csi_ref_quantize_f32_to_i8(weight_data[i], weights->qinfo);
-        }
-    }
-    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
-        weights->data = weight_tmp;
-    }
+    weights->is_const = true;
+    weights->dtype = CSINN_DTYPE_FLOAT32;
+    weights->layout = CSINN_LAYOUT_OIHW;
 
 
     /* bias tensor configuration */
-    struct csi_tensor *bias  = csi_alloc_tensor(sess);
+    struct csi_tensor *bias  = csi_alloc_tensor(NULL);
     bias->dim[0] = buffer[2];    // out_nodes
     bias->dim_count = 1;
     bias_size = bias->dim[0];
     bias->name = "bias";
     float *bias_data = (float *)(buffer + 3 + in_size + weights_size);
     bias->data = bias_data;
-    // get_quant_info(bias);    // anole:segentation fault
-
-    /* FIX ME */
-    int32_t *bias_tmp = malloc(bias_size * sizeof(int32_t));
-    for(int i = 0; i < bias_size; i++) {
-        if (sess->base_dtype == CSINN_DTYPE_UINT8) {
-            // *((int32_t *)bias_tmp + i) = csi_ref_quantize_f32_to_u8(bias_data[i], bias->qinfo);
-            *((int32_t *)bias_tmp + i) = (int32_t)(bias_data[i] / (input->qinfo->scale * weights->qinfo->scale));
-        }
-    }
-    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
-        bias->data = bias_tmp;
-    }
-
+    bias->is_const = true;
+    bias->dtype = CSINN_DTYPE_FLOAT32;
+    bias->layout = CSINN_LAYOUT_O;
 
     /* output tensor configuration */
-    struct csi_tensor *output = csi_alloc_tensor(sess);
+    struct csi_tensor *output = csi_alloc_tensor(NULL);
     output->dim[0] = buffer[0];     // batch
     output->dim[1] = buffer[2];     // out_nodes
     output->dim_count = 2;
@@ -116,70 +112,19 @@ int main(int argc, char** argv)
     reference->data = (float *)(buffer + 3 + in_size + weights_size + bias_size);
     output->data = reference->data;
     output->name = "output";
-    get_quant_info(output);
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->dtype = CSINN_DTYPE_FLOAT32;
 
     /* operator parameter configuration */
     struct fc_params params;
-    params.base.api = CSINN_API;
     params.base.name = "params";
     params.base.layout = CSINN_LAYOUT_NCHW;
     params.base.run_mode = CSINN_RM_NPU_GRAPH;
     params.units = buffer[2];   // out_nodes
 
-
-    if (csi_fullyconnected_init(input, output, weights, bias, &params) != CSINN_TRUE) {
-        printf("fullyconnected init fail.\n\t");
-        return -1;
-    }
-
-    csi_set_tensor_entry(input, sess);
-    csi_set_input(0, input, sess);
-
-    csi_fullyconnected(input, output, weights, bias, &params);
-
-    csi_set_output(0, output, sess);
-    csi_session_setup(sess);
-
-
-    struct csi_tensor *input_tensor = csi_alloc_tensor(NULL);
-    if (sess->base_dtype == CSINN_DTYPE_FLOAT32) {
-        input_tensor->data = input_data;
-    } else if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
-        input_tensor->data = src_tmp;
-    }
-    csi_update_input(0, input_tensor, sess);
-    csi_session_run(sess);
-
-    struct csi_tensor *output_tensor = csi_alloc_tensor(NULL);
-    output_tensor->data = NULL;
-    output_tensor->dtype = sess->base_dtype;
-    output_tensor->is_const = 0;
-    int output_num = csi_get_output_number(sess);
-    printf("output_num = %d\n", output_num);
-    csi_get_output(0, output_tensor, sess);
-    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csi_quant_info));
-
     /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
-    if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
-        result_verify_8(reference->data, output_tensor, input->data, difference, out_size, false);
-    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32) {
-        result_verify_f32(reference->data, output_tensor->data, input->data, difference, out_size, false);
-    }
+    test_fc(input, weights, bias, output, &params, difference);
 
-    /* free alloced memory */
-    free(buffer);
-    free(input_tensor->qinfo);
-    free(input_tensor);
-    free(output_tensor->qinfo);
-    free(output_tensor);
-    free(reference->qinfo);
-    free(reference);
-    free(src_tmp);
-    free(weight_tmp);
-    free(bias_tmp);
-
-    csi_session_deinit(sess);
-    csi_free_session(sess);
     return done_testing();
 }

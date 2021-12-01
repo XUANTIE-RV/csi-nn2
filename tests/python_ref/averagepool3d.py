@@ -7,7 +7,7 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def averagepool3d_f32():
+def avgpool3d_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
@@ -93,7 +93,7 @@ def averagepool3d_f32():
     para.append(include_pad)# 20
     print(para)
 
-    with open("averagepool3d_data_f32.bin", "wb") as fp:
+    with open("avgpool3d_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
@@ -106,5 +106,5 @@ def averagepool3d_f32():
 
 
 if __name__ == '__main__':
-    averagepool3d_f32()
+    avgpool3d_f32()
     print("end")

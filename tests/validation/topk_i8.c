@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -49,8 +49,20 @@ int main(int argc, char** argv)
 
     out_size = in_size / input->dim[input->dim_count - 1] * params.k;
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output1->dtype = CSINN_DTYPE_INT8;
+    output1->layout = CSINN_LAYOUT_NCHW;
+    output1->is_const = 0;
+    output1->quant_channel = 1;
+
     output2->dtype = CSINN_DTYPE_INT32;
+    output2->layout = CSINN_LAYOUT_NCHW;
+    output2->is_const = 0;
+    output2->quant_channel = 1;
+    
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 

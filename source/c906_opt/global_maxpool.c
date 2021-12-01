@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_c906.h"
 
-int csi_c906_global_maxpool_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+int csi_c906_global_maxpool2d_f32(struct csi_tensor *input,
+                                  struct csi_tensor *output,
+                                  struct pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -33,64 +33,115 @@ int csi_c906_global_maxpool_f32(struct csi_tensor *input,
     int in_w  = input->dim[3];
     int in_hw = in_h * in_w;
 
-    int in_hw8 = in_hw >> 3;
-    int in_hw_tail = in_hw & 7;
+    float max_tmp = -FLT_MAX;
 
-    for(int b = 0; b < batch; b++) {
+    asm volatile(
+        "vsetvli        zero, zero, e32, m2\n\t"
 
-        for(int c = 0; c < in_c; c++) {
+    "1:\n\t"    // batch_loop
+        "mv             t1, %3\n\t"         // t1 = in_c
 
-            float max = -FLT_MAX;
-#if __riscv_vector == 128
-            if(in_hw8 > 0) {
-                asm volatile(
-                    "vsetvli        zero, zero, e32, m1\n\t"
-                    "mv             t0, %1\n\t"
-                    "vfmv.v.f       v2, %2\n\t"     // init res v2[0..3] = -FLT_MAX
-                    "vfmv.s.f       v3, %2\n\t"     // init tmp v3[0] = -FLT_MAX
-                "1:\n\t"
-                    "vlw.v          v0, (%0)\n\t"
-                    "addi           %0, %0, 16\n\t"
-                    "vfmax.vv       v2, v0, v2\n\t"
+        "2:\n\t"    // channel loop
+            "mv             t2, %4\n\t"     // t2 = in_hw
+            "vfmv.s.f       v4, %10\n\t"    // v4[0] = FLT_MAX
+            // "vfmv.v.f       v4, %10\n\t"    // v4[0..7] = FLT_MAX
 
-                    "vlw.v          v1, (%0)\n\t"
-                    "addi           %0, %0, 16\n\t"
-                    "vfmax.vv       v2, v1, v2\n\t"
+            "3:\n\t"
+                "vsetvli        t0, t2, e32, m2\n\t"    // set vl = 8
+                "vle.v          v2, (%0)\n\t"
+                "sub            t2, t2, t0\n\t"
+                "slli           t0, t0, 2\n\t"
+                "vfredmax.vs    v4, v2, v4\n\t"         // v4[0] = unorder_max(v2[0..7], v4[0])
 
-                    "addi           t0, t0, -1\n\t"
-                    "bnez           t0, 1b\n\t"
+                "add            %0, %0, t0\n\t"
+                "bnez           t2, 3b\n\t"
 
-                    "vfredmax.vs    v3, v2, v3\n\t"     // v3[0] = max (max(v2[0..3]), v3[0])
-                    "vfmv.f.s       %2, v3\n\t"         // max = v3[0]
-                    :"=r"(input_data),  // %0
-                    "=r"(in_hw8),       // %1
-                    "=f"(max)           // %2
-                    :"0"(input_data),
-                    "1"(in_hw8),
-                    "2"(max)
-                    :"cc", "memory", "v0", "v1", "v2", "v3", "t0"
-                );
-            }
-#else
-            float tmp[4] = {-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX};
-            for(int i = 0; i < in_hw8; i++) {
-                tmp[0] = fmax(fmax(input_data[0], input_data[1]), tmp[0]);
-                tmp[1] = fmax(fmax(input_data[2], input_data[3]), tmp[1]);
-                tmp[2] = fmax(fmax(input_data[4], input_data[5]), tmp[2]);
-                tmp[3] = fmax(fmax(input_data[6], input_data[7]), tmp[3]);
-                input_data += 8;
-            }
-            max = fmax(tmp[0], tmp[1]);
-            max = fmax(tmp[2], max);
-            max = fmax(tmp[3], max);
-#endif  //__riscv_vector
-            for(int i = 0; i < in_hw_tail; i++) {
-                max = fmax(max, input_data[i]);
-            }
-            input_data += in_hw_tail;
-            output_data[0] = max;
-            output_data++;
-        }
-    }
+            "vfmv.f.s       ft0, v4\n\t"        // max = v4[0]
+            "fsw            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 4\n\t"
+
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
+
+        "addi           %2, %2, -1\n\t"
+        "bnez           %2, 1b\n\t"
+
+        :"=r"(input_data),  // %0
+        "=r"(output_data),  // %1
+        "=r"(batch),        // %2
+        "=r"(in_c),         // %3
+        "=r"(in_hw)         // %4
+        :"0"(input_data),
+        "1"(output_data),
+        "2"(batch),
+        "3"(in_c),
+        "4"(in_hw),
+        "f"(max_tmp)        // %10
+        :"cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0"
+    );
+
+    return CSINN_TRUE;
+}
+
+int csi_c906_global_maxpool2d_fp16(struct csi_tensor *input,
+                                   struct csi_tensor *output,
+                                   struct pool_params *params)
+{
+    __fp16 *input_data  = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+
+    int batch = input->dim[0];
+    int in_c  = input->dim[1];
+    int in_h  = input->dim[2];
+    int in_w  = input->dim[3];
+    int in_hw = in_h * in_w;
+
+    __fp16 max_tmp = -65504;    // TODO: maximum negative ?
+
+    asm volatile(
+        "vsetvli        zero, zero, e16, m2\n\t"
+
+    "1:\n\t"    // batch_loop
+        "mv             t1, %3\n\t"         // t1 = in_c
+
+        "2:\n\t"    // channel loop
+            "mv             t2, %4\n\t"     // t2 = in_hw
+            "vfmv.s.f       v4, %10\n\t"    // v4[0] = -65504
+            // "vfmv.v.f       v4, %10\n\t"    // v4[0..7] = -65504
+
+            "3:\n\t"
+                "vsetvli        t0, t2, e16, m2\n\t"    // set vl = 8
+                "vle.v          v2, (%0)\n\t"
+                "sub            t2, t2, t0\n\t"
+                "slli           t0, t0, 1\n\t"
+                "vfredmax.vs    v4, v2, v4\n\t"         // v4[0] = unorder_max(v2[0..7], v4[0])
+
+                "add            %0, %0, t0\n\t"
+                "bnez           t2, 3b\n\t"
+
+            "vfmv.f.s       ft0, v4\n\t"        // max = v4[0]
+            "fsh            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 2\n\t"
+
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
+
+        "addi           %2, %2, -1\n\t"
+        "bnez           %2, 1b\n\t"
+
+        :"=r"(input_data),  // %0
+        "=r"(output_data),  // %1
+        "=r"(batch),        // %2
+        "=r"(in_c),         // %3
+        "=r"(in_hw)         // %4
+        :"0"(input_data),
+        "1"(output_data),
+        "2"(batch),
+        "3"(in_c),
+        "4"(in_hw),
+        "f"(max_tmp)        // %10
+        :"cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0"
+    );
+
     return CSINN_TRUE;
 }

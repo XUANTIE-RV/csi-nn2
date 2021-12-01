@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-    init_testsuite("Testing function of maxpool(anole).\n");
+    init_testsuite("Testing function of maxpool2d(anole).\n");
 
     int *buffer = read_input_data_f32(argv[1]);
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_gref.h"
 #include "csi_utils.h"
@@ -25,14 +25,14 @@ void csi_gref_set_output_number(int number, struct csi_session *sess)
 {
     struct csi_ref_graph *graph = csi_gref_get_graph(sess);
     graph->output_num = number;
-    graph->output = malloc(sizeof(struct csi_node *) * number);
+    graph->output = csi_mem_alloc(sizeof(struct csi_node *) * number);
 }
 
 void csi_gref_set_input_number(int number, struct csi_session *sess)
 {
     struct csi_ref_graph *graph = csi_gref_get_graph(sess);
     graph->input_num = number;
-    graph->input = malloc(sizeof(struct csi_node *) * number);
+    graph->input = csi_mem_alloc(sizeof(struct csi_node *) * number);
 }
 
 int csi_gref_get_output(int index, struct csi_tensor *output, struct csi_session *sess)
@@ -65,14 +65,14 @@ void csi_gref_update_output(int index, struct csi_tensor *output, struct csi_ses
 
 void csi_gref_session_init(struct csi_session *sess)
 {
-    struct csi_ref_graph *graph = calloc(sizeof(struct csi_ref_graph), 1);
-    struct csi_gref_target_data *target_data = calloc(sizeof(struct csi_gref_target_data), 1);
+    struct csi_ref_graph *graph = csi_mem_alloc(sizeof(struct csi_ref_graph));
+    struct csi_gref_target_data *target_data = csi_mem_alloc(sizeof(struct csi_gref_target_data));
     target_data->graph = graph;
     sess->td = target_data;
     sess->base_layout = CSINN_LAYOUT_NCHW;
 }
 
-static int call_func(void *fn, struct csi_node *node)
+static int call_layer_func(void *fn, struct csi_node *node)
 {
     /* base has same address with params */
     struct csi_params_base *params = node->data;
@@ -203,7 +203,7 @@ static int call_func(void *fn, struct csi_node *node)
     case CSINN_OP_LOGICAL_OR:
     case CSINN_OP_LOGICAL_XOR:
     case CSINN_OP_MATMUL:
-    case CSINN_OP_MAXINUM:
+    case CSINN_OP_MAXIMUM:
     case CSINN_OP_MINIMUM:
     case CSINN_OP_MOD:
     case CSINN_OP_MUL:
@@ -255,20 +255,20 @@ static int call_func(void *fn, struct csi_node *node)
         ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->in[3]->data, node->in[4]->data, node->out[0]->data, params);
         break;
     case CSINN_OP_CONCAT:
-        inputs = malloc(sizeof(struct csi_tensor *) * ((struct concat_params *)params)->inputs_count);
+        inputs = csi_mem_alloc(sizeof(struct csi_tensor *) * ((struct concat_params *)params)->inputs_count);
         for (int i = 0; i < ((struct concat_params *)params)->inputs_count; i++){
             inputs[i] = node->in[i]->data;
         }
         ret = func(inputs, node->out[0]->data, params);
-        free(inputs);
+        csi_mem_free(inputs);
         break;
     case CSINN_OP_SPLIT:
-        outputs = malloc(sizeof(struct csi_tensor *) * ((struct split_params *)params)->output_num);
+        outputs = csi_mem_alloc(sizeof(struct csi_tensor *) * ((struct split_params *)params)->output_num);
         for (int i = 0; i < ((struct split_params *)params)->output_num; i++){
             outputs[i] = node->out[i]->data;
         }
         ret = func(node->in[0]->data, outputs, params);
-        free(outputs);
+        csi_mem_free(outputs);
         break;
     case CSINN_OP_ALL:
         CSI_DEBUG_CALL(printf("unsupported CSINN_OP_ALL\n"));
@@ -316,17 +316,40 @@ static int call_func(void *fn, struct csi_node *node)
     return ret;
 }
 
+
+/*
+ * transform graph as gloal graph and sub graph
+ */
+static struct csi_ref_graph *transform_graph(struct csi_ref_graph *ograph)
+{
+    struct csi_ref_graph *ggraph = csi_mem_alloc(sizeof(struct csi_ref_graph));
+    ggraph->input = ograph->input;
+    ggraph->output = ograph->output;
+    ggraph->input_num = ograph->input_num;
+    ggraph->output_num = ograph->output_num;
+    for (int i = 0; i < ograph->layer_index; i++) {
+        struct csi_node *n = ograph->layer[i];
+        struct csi_params_base *params = n->data;
+
+        if (params->sess->base_api != params->api) {
+            csi_subgraph_alloc(n, ograph, ggraph);
+        } else {
+            csi_gref_graph_insert(n, ggraph);
+        }
+    }
+    return ggraph;
+}
+
 static int init_op(struct csi_node *node)
 {
     /* base has same address with params */
     struct csi_params_base *params = node->data;
     int (*func)();
-
     struct csi_tensor *input = node->in[0]->data;
 
     func = csi_init_map(params->api, node->type, input->dtype);
     if (func != NULL) {
-        if (call_func(func, node) == CSINN_TRUE) {
+        if (call_layer_func(func, node) == CSINN_TRUE) {
             return CSINN_TRUE;
         } else {
             func = NULL;
@@ -334,9 +357,11 @@ static int init_op(struct csi_node *node)
     }
 
     if (func == NULL) {
-        params->bc = csi_bc_map(params->api, CSINN_RM_LAYER, node->type, input->dtype);
+        params->bc = csi_bc_map(params->api, CSINN_RM_LAYER, node->type, params->sess->base_dtype);
         return CSINN_TRUE;
     }
+
+    return CSINN_FALSE;
 }
 
 void csi_gref_session_setup(struct csi_session *sess)
@@ -347,48 +372,66 @@ void csi_gref_session_setup(struct csi_session *sess)
     for (int i = 0; i < graph->layer_index; i++) {
         n = graph->layer[i];
         for (int j = 0; j < n->in_num; j++) {
-            if (n->in[j]->ref_count > 0) {
-                n->in[j]->ref_count++;
+            if (n->in[j]->ref_count_init > 0) {
+                n->in[j]->ref_count_init++;
             }
         }
         for (int k = 0; k < n->out_num; k++) {
-            n->out[k]->ref_count++;
+            n->out[k]->ref_count_init++;
         }
     }
 
     for (int i = 0; i< graph->output_num; i++){
-        graph->output[i]->ref_count++;
+        graph->output[i]->ref_count_init++;
     }
 
-    for (int i = 0; i < graph->layer_index; i++) {
-        struct csi_node *n = graph->layer[i];
+    struct csi_ref_graph *ggraph = transform_graph(graph);
+
+    for (int i = 0; i < ggraph->layer_index; i++) {
+        struct csi_node *n = ggraph->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
-            /* TODO */
+            csi_subgraph_init(n);
         } else if (n->type >= 0 && n->type < CSINN_SESSION_INIT) {
             init_op(n);
         } else {
+            csi_debug_error("Unknown layer\n");
             return;
+        }
+    }
+    struct csi_gref_target_data *td = sess->td;
+    td->graph = ggraph;
+}
+
+static void node_ref_reset(struct csi_session *sess)
+{
+    struct csi_ref_graph *graph = csi_gref_get_graph(sess);
+    struct csi_node *n;
+
+    for (int i = 0; i < graph->layer_index; i++) {
+        n = graph->layer[i];
+        for (int k = 0; k < n->out_num; k++) {
+            n->out[k]->ref_count = n->out[k]->ref_count_init;
         }
     }
 }
 
-static int org_mem_before_run(struct csi_node *node)
+static int op_run_init(struct csi_node *node)
 {
     for (int i = 0; i < node->out_num; i++) {
         struct csi_tensor *t = node->out[i]->data;
-        t->data = malloc(csi_tensor_byte_size(t));
+        t->data = csi_mem_alloc(csi_tensor_byte_size(t));
     }
     return CSINN_TRUE;
 }
 
-static int org_mem_after_run(struct csi_node *node)
+static int op_run_deinit(struct csi_node *node)
 {
     for (int i = 0; i < node->in_num; i++) {
         if (node->in[i]->ref_count > 0) {
             node->in[i]->ref_count--;
             if (node->in[i]->ref_count == 0) {
                 struct csi_tensor *t = node->in[i]->data;
-                free(t->data);
+                csi_mem_free(t->data);
             }
         }
     }
@@ -398,29 +441,31 @@ static int org_mem_after_run(struct csi_node *node)
     return CSINN_TRUE;
 }
 
-static int run_op(struct csi_node *node)
+static int op_run(struct csi_node *node)
 {
     /* base has same address with params */
     struct csi_params_base *params = node->data;
     int (*func)();
 
     func = params->bc;
-
-    return call_func(func, node);
+    return call_layer_func(func, node);
 }
 
 int csi_gref_session_run(struct csi_session *sess)
 {
     struct csi_ref_graph *g = csi_gref_get_graph(sess);
 
+    node_ref_reset(sess);
     for (int i = 0; i < g->layer_index; i++) {
         struct csi_node *n = g->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
-            /* TODO */
+            csi_subgraph_run_init(n);
+            csi_subgraph_run(n);
+            csi_subgraph_run_deinit(n);
         } else if (n->type >= 0 && n->type < CSINN_SESSION_INIT) {
-            org_mem_before_run(n);
-            run_op(n);
-            org_mem_after_run(n);
+            op_run_init(n);
+            op_run(n);
+            op_run_deinit(n);
         } else {
             return CSINN_FALSE;
         }
@@ -444,14 +489,28 @@ void csi_gref_set_input(int index, struct csi_tensor *input, struct csi_session 
 void csi_gref_set_output(int index, struct csi_tensor *output, struct csi_session *sess)
 {
     struct csi_ref_graph *graph = csi_gref_get_graph(sess);
-    graph->output[index] = output->data;
+    /* FIXME: const output's data is real value, not node */
+    if (output->is_const) {
+        struct csi_node *const_output_node = csi_node_const_var_alloc(output->name, output);
+        graph->output[index] = const_output_node;
+    } else {
+        graph->output[index] = output->data;
+    }
 }
 
 void csi_gref_session_deinit(struct csi_session *sess)
 {
+    struct csi_ref_graph *g = csi_gref_get_graph(sess);
+
+    for (int i = 0; i < g->layer_index; i++) {
+        struct csi_node *n = g->layer[i];
+        if (n->type == CSINN_SUBGRAPH) {
+            csi_subgraph_deinit(n);
+        }
+    }
     struct csi_ref_graph *graph = csi_gref_get_graph(sess);
-    free(graph->input);
-    free(graph->output);
+    csi_mem_free(graph->input);
+    csi_mem_free(graph->output);
 }
 
 struct csi_ref_graph *csi_gref_get_graph(struct csi_session *sess)
@@ -478,7 +537,7 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_ASINH] = csi_gref_asinh;
     bc_map[CSINN_OP_ATAN] = csi_gref_atan;
     bc_map[CSINN_OP_ATANH] = csi_gref_atanh;
-    bc_map[CSINN_OP_AVGPOOL2D] = csi_gref_avgpool;
+    bc_map[CSINN_OP_AVGPOOL2D] = csi_gref_avgpool2d;
     bc_map[CSINN_OP_AVGPOOL3D] = csi_gref_avgpool3d;
     bc_map[CSINN_OP_BN] = csi_gref_batch_normalization;
     bc_map[CSINN_OP_BATCH_TO_SPACE] = csi_gref_batch_to_space;
@@ -519,8 +578,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_FULLYCONNECTED] = csi_gref_fullyconnected;
     bc_map[CSINN_OP_GATHER_ND] = csi_gref_gather_nd;
     bc_map[CSINN_OP_GATHER] = csi_gref_gather;
-    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D] = csi_gref_global_avgpool;
-    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D] = csi_gref_global_maxpool;
+    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D] = csi_gref_global_avgpool2d;
+    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D] = csi_gref_global_maxpool2d;
     bc_map[CSINN_OP_GREATHER_EQUAL] = csi_gref_greater_equal;
     bc_map[CSINN_OP_GREATHER] = csi_gref_greater;
     bc_map[CSINN_OP_HARD_SIGMOID] = csi_gref_hard_sigmoid;
@@ -541,8 +600,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_LRN] = csi_gref_lrn;
     bc_map[CSINN_OP_MATMUL] = csi_gref_matmul;
     bc_map[CSINN_OP_MAX] = csi_gref_max;
-    bc_map[CSINN_OP_MAXINUM] = csi_gref_maximum;
-    bc_map[CSINN_OP_MAXPOOL2D] = csi_gref_maxpool;
+    bc_map[CSINN_OP_MAXIMUM] = csi_gref_maximum;
+    bc_map[CSINN_OP_MAXPOOL2D] = csi_gref_maxpool2d;
     bc_map[CSINN_OP_MAXPOOL2D_LOCAT] = csi_gref_maxpool2d_locat;
     bc_map[CSINN_OP_MAXPOOL3D] = csi_gref_maxpool3d;
     bc_map[CSINN_OP_MEAN] = csi_gref_mean;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -56,6 +56,7 @@ int main(int argc, char** argv)
     params.base.run_mode = CSINN_RM_LAYER;
     params.pad_mode = CSINN_PAD_CONSTANT;
     params.pad_value = 0.0f;
+    params.pad_num = input->dim_count;
 
     int32_t pad_left = buffer[4];
     int32_t pad_right = buffer[5];
@@ -71,7 +72,7 @@ int main(int argc, char** argv)
     input->data = (float *)(buffer + 8);
     reference->data = (float *)(buffer + 8 + in_size);
     output->data    = malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? *argv[2] : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_pad_init(input, output, &params) == CSINN_TRUE) {

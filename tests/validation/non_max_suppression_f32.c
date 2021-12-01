@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     input1->data    = (float *)(buffer + 4 + in_size);
     reference->data = (int *)(buffer + 4 + in_size + in_size / 4);
     output->data    = (int *)malloc(out_size * sizeof(int));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_non_max_suppression_init(input0, input1, output, &params) == CSINN_TRUE) {
         csi_non_max_suppression(input0, input1, output, &params);

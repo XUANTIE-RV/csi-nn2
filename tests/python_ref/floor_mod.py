@@ -10,14 +10,14 @@ def floor_mod_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_channel  = int(np.random.randint(16, high=128, size=1))
+    in_channel  = int(np.random.randint(16, high=32, size=1))
 
-    in_height   = int(np.random.randint(128, high=256, size=1))
-    in_width    = int(np.random.randint(128, high=256, size=1))
+    in_height   = int(np.random.randint(16, high=32, size=1))
+    in_width    = int(np.random.randint(16, high=32, size=1))
 
-    zero_point1 = int(np.random.randint(-60, high=60, size=1))
+    zero_point1 = int(np.random.randint(-6, high=6, size=1))
     std1        = int(np.random.randint(1, high=5, size=1))
-    zero_point2 = int(np.random.randint(-40, high=40, size=1))
+    zero_point2 = int(np.random.randint(-4, high=4, size=1))
     std2        = int(np.random.randint(1, high=5, size=1))
 
     size_all = batch*in_channel*in_height*in_width

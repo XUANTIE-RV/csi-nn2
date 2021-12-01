@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_gref.h"
 
-int csi_gref_global_averagepool(struct csi_tensor *input,
+int csi_gref_global_avgpool2d(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct pool_params *params)
 {

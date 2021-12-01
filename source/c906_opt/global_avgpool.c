@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_c906.h"
 
-int csi_c906_global_avgpool_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+int csi_c906_global_avgpool2d_f32(struct csi_tensor *input,
+                                  struct csi_tensor *output,
+                                  struct pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -33,68 +33,123 @@ int csi_c906_global_avgpool_f32(struct csi_tensor *input,
     int in_w  = input->dim[3];
     int in_hw = in_h * in_w;
 
-    int in_hw8 = in_hw >> 3;
-    int in_hw_tail = in_hw & 7;
+    asm volatile(
+        "vsetvli        zero, zero, e32, m2\n\t"
+        "mv             t0, %4\n\t"
+        "li             t1, 1\n\t"
+        "fcvt.s.w       ft0, t0\n\t"
+        "fcvt.s.w       ft1, t1\n\t"
+        "fdiv.s         ft1, ft1, ft0\n\t"  // compute 1 / in_hw  first
 
-    for(int b = 0; b < batch; b++) {
+    "1:\n\t"    // batch_loop
+        "mv             t1, %3\n\t"         // t1 = in_c
 
-        for(int c = 0; c < in_c; c++) {
+        "2:\n\t"    // channel loop
+            "mv             t2, %4\n\t"     // t2 = in_hw
+            "vmv.v.x        v4, zero\n\t"   // clear v4
 
-            float sum = 0.0f;
-#if __riscv_vector == 128
-            if(in_hw8 > 0) {
-                asm volatile(
-                    "vsetvli        zero, zero, e32, m1\n\t"
-                    "mv             t0, %1\n\t"
-                    "vfmv.v.f       v2, %2\n\t"     // init res v2[0..3] = 0.0f
-                    "vfmv.s.f       v3, %2\n\t"     // init tmp v3[0] = 0.0f
-                "2:\n\t"
-                    // "vlseg2e.v      v0, (%0)\n\t"   // v0[0..3] = line0[0,2.4.6]   v1[0..3] = line0[1,3,5,7]
-                    // "vfadd.vv       v2, v2, v0\n\t"
-                    // "vfadd.vv       v2, v2, v1\n\t"
-                    // "addi           %0, %0, 32\n\t"
+            "3:\n\t"
+                "vsetvli        t0, t2, e32, m2\n\t"    // set vl = 8
+                "vle.v          v2, (%0)\n\t"
+                "sub            t2, t2, t0\n\t"
+                "slli           t0, t0, 2\n\t"
+                // "vfadd.vv       v4, v2, v4\n\t"
+                "vfredsum.vs    v4, v2, v4\n\t"         // v4[0] = unorder_sum(v2[0..7]) + v4[0]
 
-                    "vlw.v          v0, (%0)\n\t"
-                    "addi           %0, %0, 16\n\t"
-                    "vfadd.vv       v2, v0, v2\n\t"
+                "add            %0, %0, t0\n\t"
+                "bnez           t2, 3b\n\t"
 
-                    "vlw.v          v1, (%0)\n\t"
-                    "addi           %0, %0, 16\n\t"
-                    "vfadd.vv       v2, v1, v2\n\t"
+            "vfmv.f.s       ft0, v4\n\t"        // sum = v4[0]
+            "fmul.s         ft0, ft0, ft1\n\t"  // sum / in_hw
+            "fsw            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 4\n\t"
 
-                    "addi           t0, t0, -1\n\t"
-                    "bnez           t0, 2b\n\t"
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
 
-                    "vfredsum.vs    v3, v2, v3\n\t"     // v3[0] = unorder_sum(v2[0..3]) + v3[0]
-                    "vfmv.f.s       %2, v3\n\t"         // sum = v3[0]
-                    :"=r"(input_data),  // %0
-                    "=r"(in_hw8),       // %1
-                    "=f"(sum)           // %2
-                    :"0"(input_data),
-                    "1"(in_hw8),
-                    "2"(sum)
-                    :"cc", "memory", "v0", "v1", "v2", "v3", "t0"
-                );
-            }
-#else
-            float tmp[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-            for(int i = 0; i < in_hw8; i++) {
-                tmp[0] += input_data[0] + input_data[1];
-                tmp[1] += input_data[2] + input_data[3];
-                tmp[2] += input_data[4] + input_data[5];
-                tmp[3] += input_data[6] + input_data[7];
-                input_data += 8;
-            }
-            sum += tmp[0] + tmp[1] + tmp[2] + tmp[3];
-#endif  //__riscv_vector
+        "addi           %2, %2, -1\n\t"
+        "bnez           %2, 1b\n\t"
 
-            for(int i = 0; i < in_hw_tail; i++) {
-                sum += input_data[i];
-            }
-            input_data += in_hw_tail;
-            output_data[0] = (float)sum / in_hw;
-            output_data++;
-        }
-    }
+        :"=r"(input_data),  // %0
+        "=r"(output_data),  // %1
+        "=r"(batch),        // %2
+        "=r"(in_c),         // %3
+        "=r"(in_hw)         // %4
+        :"0"(input_data),
+        "1"(output_data),
+        "2"(batch),
+        "3"(in_c),
+        "4"(in_hw)
+        :"cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0", "ft1"
+    );
+
+    return CSINN_TRUE;
+}
+
+
+int csi_c906_global_avgpool2d_fp16(struct csi_tensor *input,
+                                   struct csi_tensor *output,
+                                   struct pool_params *params)
+{
+
+    __fp16 *input_data  = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+
+    int batch = input->dim[0];
+    int in_c  = input->dim[1];
+    int in_h  = input->dim[2];
+    int in_w  = input->dim[3];
+    int in_hw = in_h * in_w;
+
+    asm volatile(
+        "vsetvli        zero, zero, e16, m2\n\t"
+        "mv             t0, %4\n\t"
+        "li             t1, 1\n\t"
+        "fcvt.h.w       ft0, t0\n\t"
+        "fcvt.h.w       ft1, t1\n\t"
+        "fdiv.h         ft1, ft1, ft0\n\t"  // 1 / in_hw
+
+    "1:\n\t"    // batch_loop
+        "mv             t1, %3\n\t"         // t1 = in_c
+
+        "2:\n\t"    // channel loop
+            "mv             t2, %4\n\t"     // t2 = in_hw
+            "vmv.v.x        v4, zero\n\t"   // clear v4
+
+            "3:\n\t"
+                "vsetvli        t0, t2, e16, m2\n\t"    // set vl = 8
+                "vle.v          v2, (%0)\n\t"
+                "sub            t2, t2, t0\n\t"
+                "slli           t0, t0, 1\n\t"
+                // "vfadd.vv       v4, v2, v4\n\t"
+                "vfredsum.vs    v4, v2, v4\n\t"         // v4[0] = unorder_sum(v2[0..7]) + v4[0]
+
+                "add            %0, %0, t0\n\t"
+                "bnez           t2, 3b\n\t"
+
+            "vfmv.f.s       ft0, v4\n\t"        // sum = v4[0]
+            "fmul.h         ft0, ft0, ft1\n\t"  // sum / in_hw
+            "fsh            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 2\n\t"
+
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
+
+        "addi           %2, %2, -1\n\t"
+        "bnez           %2, 1b\n\t"
+
+        :"=r"(input_data),  // %0
+        "=r"(output_data),  // %1
+        "=r"(batch),        // %2
+        "=r"(in_c),         // %3
+        "=r"(in_hw)         // %4
+        :"0"(input_data),
+        "1"(output_data),
+        "2"(batch),
+        "3"(in_c),
+        "4"(in_hw)
+        :"cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0", "ft1"
+    );
+
     return CSINN_TRUE;
 }

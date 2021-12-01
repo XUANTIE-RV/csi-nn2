@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 
-int csi_maxpool_init(struct csi_tensor *input,
+int csi_maxpool2d_init(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct pool_params *params)
 {
@@ -39,7 +39,7 @@ int csi_maxpool_init(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_maxpool(struct csi_tensor *input,
+int csi_maxpool2d(struct csi_tensor *input,
                 struct csi_tensor *output,
                 struct pool_params *params)
 {

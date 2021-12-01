@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -47,7 +47,7 @@ int csi_ref_space_to_depth_f32(struct csi_tensor *input,
             for(int out_w=0; out_w<out_width; ++out_w) {
                 for(int in_c=0; in_c<in_channel; ++in_c) {
 
-                    float *temp = (float *)malloc(block_size2 * sizeof(float));
+                    float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
                     int in_start_addr = csi_ref_get_index(input->dim, out_b, in_c, out_h*block_size, out_w*block_size);
                     for(int h=0; h<block_size; h++) {
                         for(int w=0; w<block_size; w++) {
@@ -58,7 +58,7 @@ int csi_ref_space_to_depth_f32(struct csi_tensor *input,
                     for(int i=0; i<block_size2; i++) {
                         output_data[out_start_addr + i*in_channel*out_height*out_width] = temp[i];
                     }
-                    free(temp);
+                    csi_mem_free(temp);
                 }
             }
         }

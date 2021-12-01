@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -67,12 +67,19 @@ int main(int argc, char** argv)
 
     out_size = indices_outer_size * input_inner_size;
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
-    indices->data  = (int *)(buffer + 2 + input->dim_count + indices->dim_count + in_size);
-    float *src_in   = (float *)(buffer + 2 + input->dim_count + indices->dim_count);
+    indices->data  = (uint32_t *)(buffer + 2 + input->dim_count + indices->dim_count);
+    float *src_in   = (float *)(buffer + 2 + input->dim_count + indices->dim_count + indices_size);
     float *ref      = (float *)(buffer + 2 + input->dim_count + indices->dim_count + indices_size + in_size);
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
@@ -107,7 +114,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_gather_nd_init(input, indices, output, &params) == CSINN_TRUE) {

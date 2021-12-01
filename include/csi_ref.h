@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_INTERNAL_REF_H
 #define _CSI_INTERNAL_REF_H
@@ -142,19 +142,19 @@ int csi_ref_atanh_quant(struct csi_tensor *input,
                         struct csi_tensor *output,
                         struct siso_params *params);
 
-int csi_ref_averagepool_f32(struct csi_tensor *input,
+int csi_ref_avgpool2d_f32(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params);
 
-int csi_ref_averagepool_quant(struct csi_tensor *input,
+int csi_ref_avgpool2d_quant(struct csi_tensor *input,
                               struct csi_tensor *output,
                               struct pool_params *params);
 
-int csi_ref_averagepool3d_f32(struct csi_tensor *input,
+int csi_ref_avgpool3d_f32(struct csi_tensor *input,
                               struct csi_tensor *output,
                               struct pool_params *params);
 
-int csi_ref_averagepool3d_quant(struct csi_tensor *input,
+int csi_ref_avgpool3d_quant(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct pool_params *params);
 
@@ -237,6 +237,12 @@ int csi_ref_conv2d_channel_quant(struct csi_tensor *input,
                                  struct csi_tensor *bias,
                                  struct conv2d_params *params);
 
+int csi_ref_conv2d_relu_f32(struct csi_tensor *o_input,
+                            struct csi_tensor *o_output,
+                            struct csi_tensor *o_kernel,
+                            struct csi_tensor *o_bias,
+                            struct conv2d_params *params);
+
 int csi_ref_conv2d_relu_quant(struct csi_tensor *o_input,
                               struct csi_tensor *o_output,
                               struct csi_tensor *o_kernel,
@@ -278,6 +284,12 @@ int csi_ref_depthwise_conv2d_channel_quant(struct csi_tensor *input,
                                            struct csi_tensor *kernel,
                                            struct csi_tensor *bias,
                                            struct conv2d_params *params);
+
+int csi_ref_depthwise_conv2d_relu_f32(struct csi_tensor *o_input,
+                                      struct csi_tensor *o_output,
+                                      struct csi_tensor *o_kernel,
+                                      struct csi_tensor *o_bias,
+                                      struct conv2d_params *params);
 
 int csi_ref_depthwise_conv2d_relu_quant(struct csi_tensor *o_input,
                                         struct csi_tensor *o_output,
@@ -571,19 +583,19 @@ int csi_ref_gather_quant(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct gather_params *params);
 
-int csi_ref_global_averagepool_f32(struct csi_tensor *input,
+int csi_ref_global_avgpool2d_f32(struct csi_tensor *input,
                                    struct csi_tensor *output,
                                    struct pool_params *params);
 
-int csi_ref_global_averagepool_quant(struct csi_tensor *input,
+int csi_ref_global_avgpool2d_quant(struct csi_tensor *input,
                                      struct csi_tensor *output,
                                      struct pool_params *params);
 
-int csi_ref_global_maxpool_f32(struct csi_tensor *input,
+int csi_ref_global_maxpool2d_f32(struct csi_tensor *input,
                               struct csi_tensor *output,
                               struct pool_params *params);
 
-int csi_ref_global_maxpool_quant(struct csi_tensor *input,
+int csi_ref_global_maxpool2d_quant(struct csi_tensor *input,
                                  struct csi_tensor *output,
                                  struct pool_params *params);
 
@@ -765,11 +777,11 @@ int csi_ref_maximum_quant(struct csi_tensor *input0,
                           struct csi_tensor *output,
                           struct diso_params *params);
 
-int csi_ref_maxpool_f32(struct csi_tensor *input,
+int csi_ref_maxpool2d_f32(struct csi_tensor *input,
                         struct csi_tensor *output,
                         struct pool_params *params);
 
-int csi_ref_maxpool_quant(struct csi_tensor *input,
+int csi_ref_maxpool2d_quant(struct csi_tensor *input,
                           struct csi_tensor *output,
                           struct pool_params *params);
 
@@ -1511,6 +1523,8 @@ uint8_t csi_ref_quantize_channel_u8(int32_t data, struct csi_tensor *input, stru
 int8_t csi_ref_quantize_channel_i8(int32_t data, struct csi_tensor *input, struct csi_tensor *output, float wscale);
 float csi_ref_uint8_to_float(uint8_t i, struct csi_tensor *t);
 float csi_ref_int8_to_float(int8_t i, struct csi_tensor *t);
+int16_t csi_ref_float32_to_float16(float value);
+float csi_ref_float16_to_float32(int16_t value);
 struct csi_tensor *csi_ref_nchw_to_nhwc_8(struct csi_tensor *t);
 void csi_ref_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t);
 struct csi_tensor *csi_ref_deconv_kernel_nchw_to_nhwc_f32(struct csi_tensor *t, int32_t permute[4]);

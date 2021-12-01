@@ -11,8 +11,8 @@ def group_convolution_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
-    in_size_x  = int(np.random.randint(32, high=64, size=1))
-    in_size_y  = int(np.random.randint(32, high=64, size=1))
+    in_size_x  = int(np.random.randint(32, high=33, size=1))
+    in_size_y  = int(np.random.randint(32, high=33, size=1))
     in_channel = int(np.random.randint(8, high=16, size=1))
     stride_x   = int(np.random.randint(1, high=3, size=1))
     stride_y   = int(np.random.randint(1, high=3, size=1))

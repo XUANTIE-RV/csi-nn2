@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -69,7 +69,7 @@ int csi_ref_non_max_suppression_std(struct csi_tensor *input0,
     int box_num = input1->dim[0];
     int box_num_exist = box_num;
 
-    int *flag = (int *)calloc(box_num, sizeof(int));
+    int *flag = (int *)csi_mem_alloc(box_num * sizeof(int));
 
     int box_cnt = 0;
     while(box_num_exist) {
@@ -93,6 +93,6 @@ int csi_ref_non_max_suppression_std(struct csi_tensor *input0,
             }
         }
     }
-    free(flag);
+    csi_mem_free(flag);
     return CSINN_TRUE;
 }

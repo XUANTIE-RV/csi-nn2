@@ -23,10 +23,10 @@ import tensorflow as tf
 def stride_slice_f32():
     para = []
     # init the input data and parameters
-    in_dim   = int(np.random.randint(1, high=6, size=1))
+    in_dim   = int(np.random.randint(1, high=4, size=1))
     in_shape = []
     for i in range(0, in_dim):
-        in_shape.append(int(np.random.randint(10, high=20, size=1)))
+        in_shape.append(int(np.random.randint(5, high=10, size=1)))
 
     slice_count = int(np.random.randint(1, high=in_dim+1, size=1))
     begin = []

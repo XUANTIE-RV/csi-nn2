@@ -1,0 +1,52 @@
+#activation
+objects += ${NN2_ROOT}/source/i805_ref/activation/csi_nn_activations_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/activation/csi_nn_activations_q7.o
+objects += ${NN2_ROOT}/source/i805_ref/activation/csi_relu_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/activation/csi_relu_q7.o
+
+#convolution
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_1x1_HWC_q7_fast.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q15_basic.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q15_fast.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q7_RGB.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q7_basic.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q7_fast.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_convolve_HWC_q7_fast_nonsquare.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_depthwise_separable_conv_HWC_q7.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_depthwise_separable_conv_HWC_q7_nonsquare.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_nn_mat_mult_kernel_q7_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/convolution/csi_nn_mat_mult_kernel_q7_q15_reordered.o
+
+#fully-connect
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_mat_q7_vec_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_mat_q7_vec_q15_opt.o
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_q15_opt.o
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_q7.o
+objects += ${NN2_ROOT}/source/i805_ref/fully-connect/csi_fully_connected_q7_opt.o
+
+#nn-support
+objects += ${NN2_ROOT}/source/i805_ref/nn-support/csi_nntables.o
+objects += ${NN2_ROOT}/source/i805_ref/nn-support/csi_q7_to_q15_no_shift.o
+objects += ${NN2_ROOT}/source/i805_ref/nn-support/csi_q7_to_q15_reordered_no_shift.o
+
+#pooling
+objects += ${NN2_ROOT}/source/i805_ref/pooling/csi_pool_q7_HWC.o
+objects += ${NN2_ROOT}/source/i805_ref/pooling/csi_avepool_q7_HWC_nonsquare.o
+
+#softmax
+objects += ${NN2_ROOT}/source/i805_ref/softmax/csi_softmax_q15.o
+objects += ${NN2_ROOT}/source/i805_ref/softmax/csi_softmax_q7.o
+
+
+objects += ${NN2_ROOT}/source/i805_ref/convolution.o
+objects += ${NN2_ROOT}/source/i805_ref/fullyconnected.o
+objects += ${NN2_ROOT}/source/i805_ref/avgpool.o
+objects += ${NN2_ROOT}/source/i805_ref/maxpool.o
+objects += ${NN2_ROOT}/source/i805_ref/softmax.o
+objects += ${NN2_ROOT}/source/i805_ref/relu.o
+objects += ${NN2_ROOT}/source/i805_ref/sigmoid.o
+objects += ${NN2_ROOT}/source/i805_ref/tanh.o
+
+objects += ${NN2_ROOT}/source/i805_ref/setup.o
+

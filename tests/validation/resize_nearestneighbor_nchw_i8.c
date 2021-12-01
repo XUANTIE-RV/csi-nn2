@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -50,7 +50,14 @@ int main(int argc, char** argv)
     params.resize_mode = CSINN_RESIZE_NEAREST_NEIGHBOR;
     params.align_corners = buffer[6];
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.layout = CSINN_LAYOUT_NCHW;
     in_size  = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
@@ -92,13 +99,13 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     // input->data      = (float *)(buffer + 7);
     // reference->data  = (float *)(buffer + 7 + in_size);
     // output->data     = malloc(out_size * sizeof(float));
-    // float difference = argc > 2 ? *argv[2] : 0;
+    // float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_resize_init(input, output, &params) == CSINN_TRUE) {
         csi_resize(input, output, &params);

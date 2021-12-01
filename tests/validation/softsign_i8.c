@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -36,10 +36,10 @@ int main(int argc, char** argv)
     float max_error = 0.0f;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // height
-    input->dim[2] = buffer[2];          // width
-    input->dim[3] = buffer[3];          // channel
+    input->dim[0] = buffer[0];         
+    input->dim[1] = buffer[1];          
+    input->dim[2] = buffer[2];          
+    input->dim[3] = buffer[3];          
 
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
@@ -49,8 +49,15 @@ int main(int argc, char** argv)
     input->dim_count = 4;
     output->dim_count = 4;
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
-    params.base.layout = CSINN_LAYOUT_NHWC;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+    params.base.layout = CSINN_LAYOUT_NCHW;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
@@ -90,7 +97,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(in_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_softsign_init(input, output, &params) == CSINN_TRUE) {

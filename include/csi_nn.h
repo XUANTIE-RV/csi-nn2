@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_H
 #define _CSI_NN_H
@@ -28,6 +28,7 @@
 #include "csi_internal.h"
 #include "csi_utils.h"
 #include "csi_debug.h"
+#include "csi_memory.h"
 
 int csi_conv2d_init(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -141,11 +142,11 @@ int csi_fullyconnected_relu(struct csi_tensor *input,
                             struct csi_tensor *bias,
                             struct fc_params *params);
 
-int csi_maxpool_init(struct csi_tensor *input,
+int csi_maxpool2d_init(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct pool_params *params);
 
-int csi_maxpool(struct csi_tensor *input,
+int csi_maxpool2d(struct csi_tensor *input,
                 struct csi_tensor *output,
                 struct pool_params *params);
 
@@ -157,35 +158,35 @@ int csi_maxpool3d(struct csi_tensor *input,
                   struct csi_tensor *output,
                   struct pool_params *params);
 
-int csi_global_maxpool_init(struct csi_tensor *input,
+int csi_global_maxpool2d_init(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params);
 
-int csi_global_maxpool(struct csi_tensor *input,
+int csi_global_maxpool2d(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct pool_params *params);
 
-int csi_averagepool_init(struct csi_tensor *input,
+int csi_avgpool2d_init(struct csi_tensor *input,
                          struct csi_tensor *output,
                          struct pool_params *params);
 
-int csi_averagepool(struct csi_tensor *input,
+int csi_avgpool2d(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct pool_params *params);
 
-int csi_averagepool3d_init(struct csi_tensor *input,
+int csi_avgpool3d_init(struct csi_tensor *input,
                            struct csi_tensor *output,
                            struct pool_params *params);
 
-int csi_averagepool3d(struct csi_tensor *input,
+int csi_avgpool3d(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct pool_params *params);
 
-int csi_global_averagepool_init(struct csi_tensor *input,
+int csi_global_avgpool2d_init(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct pool_params *params);
 
-int csi_global_averagepool(struct csi_tensor *input,
+int csi_global_avgpool2d(struct csi_tensor *input,
                            struct csi_tensor *output,
                            struct pool_params *params);
 

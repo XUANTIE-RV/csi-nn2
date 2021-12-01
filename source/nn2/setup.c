@@ -16,19 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 #include "csi_utils.h"
 
 struct csi_session *csi_alloc_session()
 {
-    return calloc(1, sizeof(struct csi_session));
+    return csi_mem_alloc(sizeof(struct csi_session));
 }
 
 void csi_free_session(struct csi_session *sess)
 {
-    free(sess);
+    csi_mem_free(sess);
 }
 
 void *csi_bc_map_ref(int op, int dtype);
@@ -38,6 +38,9 @@ void *csi_bc_map_c906(int op, int dtype);
 void *csi_bc_map_pnna(int op, int dtype);
 void *csi_bc_map_dp1k(int op, int dtype);
 void *csi_bc_map_ch8601(int op, int dtype);
+void *csi_bc_map_i805(int op, int dtype);
+void *csi_bc_map_e804(int op, int dtype);
+void *csi_bc_map_ref_i805(int op, int dtype);
 void *csi_bc_func_table[CSINN_API_SIZE] = {
 #ifdef CSI_BUILD_REF
     csi_bc_map_ref,
@@ -76,6 +79,21 @@ void *csi_bc_func_table[CSINN_API_SIZE] = {
 #else
     NULL, /* dp1000 */
 #endif
+#ifdef CSI_BUILD_I805
+    csi_bc_map_i805,
+#else
+    NULL, /* xt800v : i805/ck805 */
+#endif
+#ifdef CSI_BUILD_E804
+    csi_bc_map_e804,
+#else
+    NULL, /* xt800p : e804d/ck804 */
+#endif
+#ifdef CSI_BUILD_REF_I805
+    csi_bc_map_ref_i805,
+#else
+    NULL,
+#endif
     NULL, /* tvmgen */
 };
 
@@ -92,6 +110,9 @@ void *csi_bc_map(int api, int rmode, int op, int dtype)
 
 void *csi_init_map_c906(int op, int dtype);
 void *csi_init_map_ref(int op, int dtype);
+void *csi_init_map_i805(int op, int dtype);
+void *csi_init_map_e804(int op, int dtype);
+void *csi_init_map_ref_i805(int op, int dtype);
 void *csi_init_func_table[CSINN_API_SIZE] = {
 #ifdef CSI_BUILD_REF
     csi_init_map_ref,/* c code */
@@ -109,6 +130,22 @@ void *csi_init_func_table[CSINN_API_SIZE] = {
     NULL, /* anole */
     NULL, /* ch8601 */
     NULL, /* light */
+    NULL, /* dp1000 */
+#ifdef CSI_BUILD_I805
+    csi_init_map_i805,
+#else
+    NULL,
+#endif
+#ifdef CSI_BUILD_E804
+    csi_init_map_e804,
+#else
+    NULL,
+#endif
+#ifdef CSI_BUILD_REF_I805
+    csi_init_map_ref_i805,
+#else
+    NULL,
+#endif
     NULL, /* tvmgen */
 };
 
@@ -145,7 +182,7 @@ void csi_session_deinit(struct csi_session *sess)
 void csi_set_output_number(int number, struct csi_session *sess)
 {
     sess->output_num = number;
-    sess->output = calloc(sess->output_num, sizeof(struct csi_tensor *));
+    sess->output = csi_mem_alloc(sess->output_num * sizeof(struct csi_tensor *));
     void (*func)();
     func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_OUTPUT_NUMBER, sess->base_dtype);
     if (func != NULL) {
@@ -156,7 +193,7 @@ void csi_set_output_number(int number, struct csi_session *sess)
 void csi_set_input_number(int number, struct csi_session *sess)
 {
     sess->input_num = number;
-    sess->input = calloc(sess->input_num, sizeof(struct csi_tensor *));
+    sess->input = csi_mem_alloc(sess->input_num * sizeof(struct csi_tensor *));
     void (*func)();
     func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_INPUT_NUMBER, sess->base_dtype);
     if (func != NULL) {

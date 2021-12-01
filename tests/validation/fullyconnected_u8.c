@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -53,9 +53,24 @@ int main(int argc, char** argv)
     in_size1 = weight->dim[0] * weight->dim[1];
     out_size = output->dim[0] * output->dim[1];
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NC;
+    input->is_const = 0;
+    input->quant_channel = 1;
+    
     weight->dtype = CSINN_DTYPE_UINT8;
-    bias->dtype = CSINN_DTYPE_UINT8;    // FIX ME
+    weight->layout = CSINN_LAYOUT_OI;
+    weight->is_const = 1;
+    weight->quant_channel = 1;
+
+    bias->dtype = CSINN_DTYPE_UINT8;  
+    bias->layout = CSINN_LAYOUT_O;
+    bias->is_const = 1;
+    bias->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NC;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -94,11 +109,6 @@ int main(int argc, char** argv)
 
     output->data = ref;
     get_quant_info(output);
-    scale3=output->qinfo->scale; 
-    scale=(scale1*scale2)/scale3;
-    quantize_multiplier(scale, &quantized_multiplier, &shift);
-    output->qinfo->multiplier = quantized_multiplier;
-    output->qinfo->shift      = shift;
 
     input->data     = input_tmp;
     weight->data    = weight_tmp;
@@ -113,9 +123,6 @@ int main(int argc, char** argv)
         csi_fullyconnected(input, output, weight, bias, &params);
     }
  
-    quantize_multiplier(scale3, &quantized_multiplier, &shift);
-    output->qinfo->multiplier = quantized_multiplier;
-    output->qinfo->shift      = shift;
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);
 

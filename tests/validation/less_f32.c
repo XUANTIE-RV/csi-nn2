@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -35,10 +35,10 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
     int flag  = buffer[4];
-    input0->dim[0] = buffer[0];          // batch
-    input0->dim[1] = buffer[1];          // height
-    input0->dim[2] = buffer[2];          // width
-    input0->dim[3] = buffer[3];          // channel
+    input0->dim[0] = buffer[0];          
+    input0->dim[1] = buffer[1];          
+    input0->dim[2] = buffer[2];          
+    input0->dim[3] = buffer[3];          
 
     output->dim[0] = input0->dim[0];
     output->dim[1] = input0->dim[1];
@@ -54,12 +54,13 @@ int main(int argc, char** argv)
     output->dtype = CSINN_DTYPE_FLOAT32;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
+    params.base.layout = CSINN_LAYOUT_NCHW;
 
     input0->data    = (float *)(buffer + 4);
     input1->data    = (float *)(buffer + 4 + in_size);
     reference->data = (float *)(buffer + 4 + 2 * in_size);
     output->data    = malloc(in_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_less_init(input0, input1, output, &params) == CSINN_TRUE) {
         csi_less(input0, input1, output, &params);

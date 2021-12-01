@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     inner_extents_0 = (int32_t *)(buffer + 7 + in_size + 2 * n + m);
     reference->data = (float *)(buffer + 7 + in_size + 2 * n + 2 * m);
     output->data    = malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     params.axis = &axis;

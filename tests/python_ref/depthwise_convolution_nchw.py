@@ -37,7 +37,7 @@ def depthwise_convolution_f32():
     std1        = int(np.random.randint(1, high=3, size=1))
     zero_point2 = int(np.random.randint(-2, high=2, size=1))
     std2        = int(np.random.randint(1, high=3, size=1))
-    zero_point3 = int(np.random.randint(-6, high=6, size=1))
+    zero_point3 = int(np.random.randint(-3, high=3, size=1))
     std3        = int(np.random.randint(1, high=20, size=1))
 
     src_in = np.random.normal(zero_point1, std1, (batch, in_channel, in_size_y, in_size_x))

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -79,9 +79,24 @@ int main(int argc, char** argv)
     bias->dim_count = 1;
     output->dim_count = 4;
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     kernel->dtype = CSINN_DTYPE_UINT8;
+    kernel->layout = CSINN_LAYOUT_OIHW;
+    kernel->is_const = 1;
+    kernel->quant_channel = 1;
+
     bias->dtype = CSINN_DTYPE_UINT8;
+    bias->layout = CSINN_LAYOUT_O;
+    bias->is_const = 0;
+    bias->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
 
     in_size  = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];

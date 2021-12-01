@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
     output->data = ref;
     get_quant_info(output);
     scale3=output->qinfo->scale;
-    quantize_multiplier(scale3, &quantized_multiplier, &shift);
+    csi_quantize_multiplier(scale3, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;
     output->qinfo->shift      = shift;
 
@@ -130,13 +130,13 @@ int main(int argc, char** argv)
     output->data    = malloc(out_size * sizeof(char));
 
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_conv2d_init(input, output, kernel, bias, &params) == CSINN_TRUE) {
         csi_conv2d(input, output, kernel, bias, &params);
     }
 
-    quantize_multiplier(scale3, &quantized_multiplier, &shift);
+    csi_quantize_multiplier(scale3, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;
     output->qinfo->shift      = shift;
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

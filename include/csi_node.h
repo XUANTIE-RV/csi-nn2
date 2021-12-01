@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_NODE_H
 #define _CSI_NN_NODE_H
@@ -32,6 +32,7 @@ struct csi_node {
     char *name;
     void *data;
     int ref_count;
+    int ref_count_init;
 };
 
 /* node */

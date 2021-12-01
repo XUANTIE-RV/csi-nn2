@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-static void csi_ref_resize_bilinear_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                        bool align_corners)
+static void csi_ref_resize_bilinear_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                             bool align_corners)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -127,6 +127,17 @@ static void csi_ref_resize_nearest_neighbor_nchw_f32(struct csi_tensor *o_input,
     struct csi_tensor* output = csi_ref_nchw_to_nhwc_f32(o_output);
     csi_ref_resize_nearest_neighbor_f32(input, output, align_corners);
     csi_ref_nhwc_to_nchw_f32(o_output, output);
+    csi_ref_free_float_tensor(input);
+}
+
+static void csi_ref_resize_bilinear_nchw_f32(struct csi_tensor *o_input, struct csi_tensor *o_output,
+                                             bool align_corners)
+{
+    struct csi_tensor *input = csi_ref_nchw_to_nhwc_f32(o_input);
+    struct csi_tensor *output = csi_ref_nchw_to_nhwc_f32(o_output);
+    csi_ref_resize_bilinear_nhwc_f32(input, output, align_corners);
+    csi_ref_nhwc_to_nchw_f32(o_output, output);
+    csi_ref_free_float_tensor(input);
 }
 
 int csi_ref_resize_f32(struct csi_tensor *input,
@@ -134,7 +145,11 @@ int csi_ref_resize_f32(struct csi_tensor *input,
                        struct resize_params *params)
 {
     if (params->resize_mode == CSINN_RESIZE_BILINEAR) {
-        csi_ref_resize_bilinear_f32(input, output, params->align_corners);
+        if (params->base.layout == CSINN_LAYOUT_NCHW){
+            csi_ref_resize_bilinear_nchw_f32(input, output, params->align_corners);
+        }else{
+            csi_ref_resize_bilinear_nhwc_f32(input, output, params->align_corners);
+        }
     } else if (params->resize_mode == CSINN_RESIZE_NEAREST_NEIGHBOR) {
         if (params->base.layout == CSINN_LAYOUT_NCHW){
             csi_ref_resize_nearest_neighbor_nchw_f32(input, output, params->align_corners);

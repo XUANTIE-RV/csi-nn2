@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -60,7 +60,7 @@ int csi_ref_strided_slice_f32(struct csi_tensor *input,
         inner_size_copy_num = 1 + (end -1 - begin) / stride;
         out_size *= inner_size_copy_num;
 
-        float *temp = (float *)malloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
+        float *temp = (float *)csi_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
         float *temp_copy = NULL;
         float *temp_addr = temp;
         for(int n = 0; n < outer_size; n++) {
@@ -71,17 +71,17 @@ int csi_ref_strided_slice_f32(struct csi_tensor *input,
             input_data += inner_size * input->dim[slice_dim];
         }
         if(temp != NULL) {
-            free(temp_copy);
+            csi_mem_free(temp_copy);
         }
-        temp_copy = (float *)malloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
+        temp_copy = (float *)csi_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
         memcpy(temp_copy, temp, outer_size * inner_size * inner_size_copy_num * sizeof(float));
         input_data = temp_copy;
-        free(temp);
+        csi_mem_free(temp);
         temp = NULL;
     }
     out_size = out_size * inner_size;
     memcpy(output_data, input_data, out_size * sizeof(float));
-    free(input_data);
+    csi_mem_free(input_data);
     return CSINN_TRUE;
 }
 

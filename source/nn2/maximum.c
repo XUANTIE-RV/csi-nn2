@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 
@@ -25,7 +25,7 @@ int csi_maximum_init(struct csi_tensor *input0,
                      struct csi_tensor *output,
                      struct diso_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_MAXINUM, input0->dtype);
+    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_MAXIMUM, input0->dtype);
     if (params->base.bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
     }

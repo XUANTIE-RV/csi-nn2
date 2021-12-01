@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 
@@ -26,6 +26,13 @@ int csi_fullyconnected_init(struct csi_tensor *input,
                             struct csi_tensor *bias,
                             struct fc_params *params)
 {
+    if (params->base.run_mode != CSINN_RM_CPU_GRAPH) {
+        int (*init_func)();
+        init_func = csi_init_map(params->base.api, CSINN_OP_FULLYCONNECTED, input->dtype);
+        if (init_func != NULL) {
+            return init_func(input, output, weights, bias, params);
+        }
+    }
     params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_FULLYCONNECTED, input->dtype);
     if (params->base.bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;

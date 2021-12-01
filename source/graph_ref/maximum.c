@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_gref.h"
 
@@ -25,6 +25,6 @@ int csi_gref_maximum(struct csi_tensor *input0,
                      struct csi_tensor *output,
                      struct diso_params *params)
 {
-    csi_gref_diso_op(input0, input1, output, CSINN_OP_MAXINUM, params);
+    csi_gref_diso_op(input0, input1, output, CSINN_OP_MAXIMUM, params);
     return CSINN_TRUE;
 }

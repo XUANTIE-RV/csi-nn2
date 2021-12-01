@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -46,7 +46,15 @@ int main(int argc, char** argv)
 
     out_size = in_size;
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+    
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -86,7 +94,7 @@ int main(int argc, char** argv)
     reference->data = ref_data;
     output->data = (uint8_t *)malloc(out_size * sizeof(uint8_t));
     // max error: 10000 for input [-1.57, 1.57]
-    float difference = argc > 2 ? atof(argv[2]) : error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_tan_init(input, output, &params) == CSINN_TRUE) {

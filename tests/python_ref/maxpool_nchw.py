@@ -7,7 +7,7 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def maxpool_f32():
+def maxpool2d_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
@@ -72,7 +72,7 @@ def maxpool_f32():
     para.append(out_width)
     print(para)
 
-    with open("maxpool_nchw_data_f32.bin", "wb") as fp:
+    with open("maxpool2d_nchw_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
@@ -85,5 +85,5 @@ def maxpool_f32():
 
 
 if __name__ == '__main__':
-    maxpool_f32()
+    maxpool2d_f32()
     print("end")

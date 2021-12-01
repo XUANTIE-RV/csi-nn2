@@ -96,8 +96,9 @@ def compile_execute(cmdopt):
     return qemu, accuracy
 
 
-@conftest.custom_parametrize('elf_data', numberOffile(elf_path, "elf"))
+@conftest.custom_parametrize('elf_data', numberOffile(elf_path, "c"))
 def test_inference(cmdopt, elf_data, compile_execute):
+    elf_data = elf_data.replace(".c", ".o.elf")
     if "nchw" or "nhwc" in elf_data:
         python_data = "_".join(elf_data.split("/")[-1].split("_")[:-1])
     else:

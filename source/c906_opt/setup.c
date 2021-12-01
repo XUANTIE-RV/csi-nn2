@@ -16,18 +16,26 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_c906.h"
 
 void *csi_init_map_c906(int op, int dtype)
 {
-    if (op == CSINN_OP_CONV2D) {
+    if (op == CSINN_OP_CONV2D || op == CSINN_OP_GROUP_CONV2D) {
         return csi_c906_conv2d_init;
     } else if (op == CSINN_OP_MAXPOOL2D) {
-        return csi_c906_maxpool_init;
+        return csi_c906_maxpool2d_init;
     } else if(op == CSINN_OP_AVGPOOL2D) {
-        return csi_c906_avgpool_init;
+        return csi_c906_avgpool2d_init;
+    } else if (op == CSINN_OP_DEPTHWISE_CONV2D) {
+        return csi_c906_depthwise_conv2d_init;
+    } else if (op == CSINN_OP_CONV2D_RELU) {
+        return csi_c906_conv2d_relu_init;
+    } else if (op == CSINN_OP_DEPTHWISE_CONV2D_RELU) {
+        return csi_c906_depthwise_conv2d_relu_init;
+    } else if (op == CSINN_OP_FULLYCONNECTED) {
+        return csi_c906_fullyconnected_init;
     }
 
     return NULL;
@@ -37,10 +45,10 @@ static void *setup_bc_map()
 {
     static void* bc_map[CSINN_OP_AND_UTILS_SIZE][2];
 
-    bc_map[CSINN_OP_ABS][0] = csi_ref_abs_quant;
+    bc_map[CSINN_OP_ABS][0] = csi_c906_abs_fp16;
     bc_map[CSINN_OP_ACOS][0] = csi_ref_acos_quant;
     bc_map[CSINN_OP_ACOSH][0] = csi_ref_acosh_quant;
-    bc_map[CSINN_OP_ADD][0] = csi_ref_add_quant;
+    bc_map[CSINN_OP_ADD][0] = csi_c906_add_fp16;
     bc_map[CSINN_OP_AND][0] = csi_ref_and_i8;
     bc_map[CSINN_OP_ARANGE][0] = csi_ref_arange_quant;
     bc_map[CSINN_OP_ARGMAX][0] = csi_ref_argmax_stride_quant;
@@ -49,14 +57,14 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_ASINH][0] = csi_ref_asinh_quant;
     bc_map[CSINN_OP_ATAN][0] = csi_ref_atan_quant;
     bc_map[CSINN_OP_ATANH][0] = csi_ref_atanh_quant;
-    bc_map[CSINN_OP_AVGPOOL2D][0] = csi_ref_averagepool_quant;
-    bc_map[CSINN_OP_AVGPOOL3D][0] = csi_ref_averagepool3d_quant;
+    bc_map[CSINN_OP_AVGPOOL2D][0] = csi_ref_avgpool2d_quant;
+    bc_map[CSINN_OP_AVGPOOL3D][0] = csi_ref_avgpool3d_quant;
     bc_map[CSINN_OP_BN][0] = csi_ref_batch_normalization_quant;
     bc_map[CSINN_OP_BATCH_TO_SPACE][0] = csi_ref_batch_to_space_quant;
     bc_map[CSINN_OP_BROADCOST][0] = csi_ref_broadcast_to_quant;
     bc_map[CSINN_OP_CEIL][0] = csi_ref_ceil_quant;
-    bc_map[CSINN_OP_CLIP][0] = csi_ref_clip_quant;
-    bc_map[CSINN_OP_CONCAT][0] = csi_ref_concat_quant;
+    bc_map[CSINN_OP_CLIP][0] = csi_c906_clip_fp16;
+    bc_map[CSINN_OP_CONCAT][0] = csi_c906_concat_fp16;
     bc_map[CSINN_OP_CONV2D][0] = csi_ref_conv2d_quant;
     bc_map[CSINN_OP_CONV2D_RELU][0] = csi_ref_conv2d_relu_quant;
     bc_map[CSINN_OP_CONV2D_RELU6][0] = csi_ref_conv2d_relu6_quant;
@@ -85,17 +93,17 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_FLOOR_MOD][0] = csi_ref_floor_mod_quant;
     bc_map[CSINN_OP_FLOOR][0] = csi_ref_floor_quant;
     bc_map[CSINN_OP_FSMN][0] = csi_ref_fsmn_quant;
-    bc_map[CSINN_OP_FULLYCONNECTED][0] = csi_ref_fullyconnected_quant;
+    bc_map[CSINN_OP_FULLYCONNECTED][0] = csi_c906_fullyconnected_fp16;
     bc_map[CSINN_OP_GATHER_ND][0] = csi_ref_gather_nd_quant;
     bc_map[CSINN_OP_GATHER][0] = csi_ref_gather_quant;
-    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][0] = csi_ref_global_averagepool_quant;
-    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][0] = csi_ref_global_maxpool_quant;
+    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][0] = csi_ref_global_avgpool2d_quant;
+    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][0] = csi_ref_global_maxpool2d_quant;
     bc_map[CSINN_OP_GREATHER_EQUAL][0] = csi_ref_greater_equal_quant;
     bc_map[CSINN_OP_GREATHER][0] = csi_ref_greater_quant;
     bc_map[CSINN_OP_HARD_SIGMOID][0] = csi_ref_hard_sigmoid_quant;
     bc_map[CSINN_OP_IM2COL][0] = csi_ref_im2col_quant;
     bc_map[CSINN_OP_L2N][0] = csi_ref_l2_normalization_quant;
-    bc_map[CSINN_OP_LEAKY_RELU][0] = csi_ref_leaky_relu_quant;
+    bc_map[CSINN_OP_LEAKY_RELU][0] = csi_c906_leaky_relu_fp16;
     bc_map[CSINN_OP_LESS_EQUAL][0] = csi_ref_less_equal_quant;
     bc_map[CSINN_OP_LESS][0] = csi_ref_less_quant;
     bc_map[CSINN_OP_LOG_SOFTMAX][0] = csi_ref_log_softmax_quant;
@@ -108,16 +116,16 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_LRN][0] = csi_ref_lrn_quant;
     bc_map[CSINN_OP_MATMUL][0] = csi_ref_matmul_quant;
     bc_map[CSINN_OP_MAX][0] = csi_ref_max_stride_quant;
-    bc_map[CSINN_OP_MAXINUM][0] = csi_ref_maximum_quant;
-    bc_map[CSINN_OP_MAXPOOL2D][0] = csi_ref_maxpool_quant;
+    bc_map[CSINN_OP_MAXIMUM][0] = csi_ref_maximum_quant;
+    bc_map[CSINN_OP_MAXPOOL2D][0] = csi_ref_maxpool2d_quant;
     bc_map[CSINN_OP_MAXPOOL2D_LOCAT][0] = csi_ref_maxpool2d_locat_quant;
     bc_map[CSINN_OP_MAXPOOL3D][0] = csi_ref_maxpool3d_quant;
     bc_map[CSINN_OP_MEAN][0] = csi_ref_mean_stride_quant;
     bc_map[CSINN_OP_MEAN_STRIDE][0] = csi_ref_mean_stride_quant;
     bc_map[CSINN_OP_MIN][0] = csi_ref_min_stride_quant;
-    bc_map[CSINN_OP_MINIMUM][0] = csi_ref_minimum_quant;
+    bc_map[CSINN_OP_MINIMUM][0] = csi_c906_minimum_fp16;
     bc_map[CSINN_OP_MOD][0] = csi_ref_mod_quant;
-    bc_map[CSINN_OP_MUL][0] = csi_ref_mul_quant;
+    bc_map[CSINN_OP_MUL][0] = csi_c906_mul_fp16;
     bc_map[CSINN_OP_NDARRAY_SIZE][0] = csi_ref_ndarray_size_i8;
     bc_map[CSINN_OP_NEGATIIVE][0] = csi_ref_negative_quant;
     bc_map[CSINN_OP_NOT_EQUAL][0] = csi_ref_not_equal_quant;
@@ -125,7 +133,7 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_OR][0] = csi_ref_or_i8;
     bc_map[CSINN_OP_PAD][0] = csi_ref_pad_quant;
     bc_map[CSINN_OP_POWER][0] = csi_ref_power_quant;
-    bc_map[CSINN_OP_PRELU][0] = csi_ref_prelu_quant;
+    bc_map[CSINN_OP_PRELU][0] = csi_c906_prelu_fp16;
     bc_map[CSINN_OP_PROD][0] = csi_ref_prod_stride_quant;
     bc_map[CSINN_OP_PROPOSAL][0] = csi_ref_proposal_quant;
     bc_map[CSINN_OP_PSROIPOOLING][0] = csi_ref_psroipooling_quant;
@@ -135,9 +143,9 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_REDUCE_MIN][0] = csi_ref_reduce_min_quant;
     bc_map[CSINN_OP_REDUCE_PROD][0] = csi_ref_reduce_prod_quant;
     bc_map[CSINN_OP_REDUCE_SUM][0] = csi_ref_reduce_sum_quant;
-    bc_map[CSINN_OP_RELU][0] = csi_ref_relu_quant;
-    bc_map[CSINN_OP_RELU1][0] = csi_ref_relu1_quant;
-    bc_map[CSINN_OP_RELU6][0] = csi_ref_relu6_quant;
+    bc_map[CSINN_OP_RELU][0] = csi_c906_relu_fp16;
+    bc_map[CSINN_OP_RELU1][0] = csi_c906_relu1_fp16;
+    bc_map[CSINN_OP_RELU6][0] = csi_c906_relu6_fp16;
     bc_map[CSINN_OP_RELUN][0] = csi_ref_relun_quant;
     bc_map[CSINN_OP_RESHAPE][0] = csi_ref_reshape;
     bc_map[CSINN_OP_RESIZE][0] = csi_ref_resize_quant;
@@ -170,12 +178,12 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_SOFTSIGN][0] = csi_ref_softsign_quant;
     bc_map[CSINN_OP_SPACE_TO_BATCH][0] = csi_ref_space_to_batch_quant;
     bc_map[CSINN_OP_SPACE_TO_DEPTH][0] = csi_ref_space_to_depth_quant;
-    bc_map[CSINN_OP_SPLIT][0] = csi_ref_split_quant;
+    bc_map[CSINN_OP_SPLIT][0] = csi_c906_split_fp16;
     bc_map[CSINN_OP_SQRT][0] = csi_ref_sqrt_quant;
     bc_map[CSINN_OP_SQUEEZE][0] = csi_ref_squeeze;
     bc_map[CSINN_OP_STACK][0] = csi_ref_stack_quant;
     bc_map[CSINN_OP_STRIDED_SLICE][0] = csi_ref_strided_slice_quant;
-    bc_map[CSINN_OP_SUB][0] = csi_ref_sub_quant;
+    bc_map[CSINN_OP_SUB][0] = csi_c906_sub_fp16;
     bc_map[CSINN_OP_SUM][0] = csi_ref_sum_stride_quant;
     bc_map[CSINN_OP_TAN][0] = csi_ref_tan_quant;
     bc_map[CSINN_OP_TANH][0] = csi_ref_tanh_quant;
@@ -183,7 +191,7 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_TILE][0] = csi_ref_tile_quant;
     bc_map[CSINN_OP_TOPK][0] = csi_ref_topk_quant;
     bc_map[CSINN_OP_TRUNC][0] = csi_ref_trunc_quant;
-    bc_map[CSINN_OP_TRANSPOSE][0] = csi_ref_transpose;
+    bc_map[CSINN_OP_TRANSPOSE][0] = csi_ref_transpose_requant;
     bc_map[CSINN_OP_TRUNC][0] = csi_ref_trunc_quant;
     bc_map[CSINN_OP_UNPOOLING][0] = csi_ref_unpooling_quant;
     bc_map[CSINN_OP_UNSTACK][0] = csi_ref_unstack_qunat;
@@ -201,17 +209,19 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_ASINH][1] = csi_ref_asinh_f32;
     bc_map[CSINN_OP_ATAN][1] = csi_ref_atan_f32;
     bc_map[CSINN_OP_ATANH][1] = csi_ref_atanh_f32;
-    bc_map[CSINN_OP_AVGPOOL2D][1] = csi_ref_averagepool_f32;
-    bc_map[CSINN_OP_AVGPOOL3D][1] = csi_ref_averagepool3d_f32;
+    bc_map[CSINN_OP_AVGPOOL2D][1] = csi_ref_avgpool2d_f32;
+    bc_map[CSINN_OP_AVGPOOL3D][1] = csi_ref_avgpool3d_f32;
     bc_map[CSINN_OP_BN][1] = csi_ref_batch_normalization_f32;
     bc_map[CSINN_OP_BATCH_TO_SPACE][1] = csi_ref_batch_to_space_f32;
     bc_map[CSINN_OP_BROADCOST][1] = csi_ref_broadcast_to_f32;
     bc_map[CSINN_OP_CEIL][1] = csi_ref_ceil_f32;
     bc_map[CSINN_OP_CLIP][1] = csi_c906_clip_f32;
     bc_map[CSINN_OP_COL2IM][1] = csi_ref_col2im_f32;
-    bc_map[CSINN_OP_CONCAT][1] = csi_ref_concat_f32;
+    bc_map[CSINN_OP_CONCAT][1] = csi_c906_concat_f32;
     bc_map[CSINN_OP_CONV2D][1] = csi_ref_conv2d_f32;
+    bc_map[CSINN_OP_CONV2D_RELU][1] = csi_ref_conv2d_relu_f32;
     bc_map[CSINN_OP_DEPTHWISE_CONV2D][1] = csi_ref_depthwise_conv2d_f32;
+    bc_map[CSINN_OP_DEPTHWISE_CONV2D_RELU][1] = csi_ref_depthwise_conv2d_relu_f32;
     bc_map[CSINN_OP_GROUP_CONV2D][1] = csi_ref_group_conv2d_f32;
     bc_map[CSINN_OP_CONV3D][1] = csi_ref_conv3d_f32;
     bc_map[CSINN_OP_DECONV2D][1] = csi_ref_deconv2d_f32;
@@ -237,8 +247,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_FULLYCONNECTED][1] = csi_c906_fullyconnected_f32;
     bc_map[CSINN_OP_GATHER_ND][1] = csi_ref_gather_nd_f32;
     bc_map[CSINN_OP_GATHER][1] = csi_ref_gather_f32;
-    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][1] = csi_c906_global_avgpool_f32;
-    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][1] = csi_c906_global_maxpool_f32;
+    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][1] = csi_c906_global_avgpool2d_f32;
+    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][1] = csi_c906_global_maxpool2d_f32;
     bc_map[CSINN_OP_GREATHER_EQUAL][1] = csi_ref_greater_equal_f32;
     bc_map[CSINN_OP_GREATHER][1] = csi_ref_greater_f32;
     bc_map[CSINN_OP_HARD_SIGMOID][1] = csi_ref_hard_sigmoid_f32;
@@ -259,15 +269,15 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_LRN][1] = csi_ref_lrn_f32;
     bc_map[CSINN_OP_MATMUL][1] = csi_ref_matmul_f32;
     bc_map[CSINN_OP_MAX][1] = csi_ref_max_stride_f32;
-    bc_map[CSINN_OP_MAXINUM][1] = csi_ref_maximum_f32;
-    bc_map[CSINN_OP_MAXPOOL2D][1] = csi_ref_maxpool_f32;
+    bc_map[CSINN_OP_MAXIMUM][1] = csi_ref_maximum_f32;
+    bc_map[CSINN_OP_MAXPOOL2D][1] = csi_ref_maxpool2d_f32;
     bc_map[CSINN_OP_MAXPOOL2D_LOCAT][1] = csi_ref_maxpool2d_locat_f32;
     bc_map[CSINN_OP_MAXPOOL3D][1] = csi_ref_maxpool3d_f32;
     bc_map[CSINN_OP_MEAN][1] = csi_ref_mean_stride_f32;
     bc_map[CSINN_OP_MEAN_STRIDE][1] = csi_ref_mean_stride_f32;
-    bc_map[CSINN_OP_MINIMUM][1] = csi_ref_minimum_f32;
+    bc_map[CSINN_OP_MINIMUM][1] = csi_c906_minimum_f32;
     bc_map[CSINN_OP_MOD][1] = csi_ref_mod_f32;
-    bc_map[CSINN_OP_MUL][1] = csi_ref_mul_f32;
+    bc_map[CSINN_OP_MUL][1] = csi_c906_mul_f32;
     bc_map[CSINN_OP_NDARRAY_SIZE][1] = csi_ref_ndarray_size_f32;
     bc_map[CSINN_OP_NEGATIIVE][1] = csi_ref_negative_f32;
     bc_map[CSINN_OP_NOT_EQUAL][1] = csi_ref_not_equal_f32;
@@ -318,13 +328,13 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_SOFTSIGN][1] = csi_ref_softsign_f32;
     bc_map[CSINN_OP_SPACE_TO_BATCH][1] = csi_ref_space_to_batch_f32;
     bc_map[CSINN_OP_SPACE_TO_DEPTH][1] = csi_ref_space_to_depth_f32;
-    bc_map[CSINN_OP_SPLIT][1] = csi_ref_split_f32;
+    bc_map[CSINN_OP_SPLIT][1] = csi_c906_split_f32;
     bc_map[CSINN_OP_SQRT][1] = csi_ref_sqrt_f32;
     bc_map[CSINN_OP_SQUARE][1] = csi_ref_square_f32;
     bc_map[CSINN_OP_SQUEEZE][1] = csi_ref_squeeze;
     bc_map[CSINN_OP_STACK][1] = csi_ref_stack_f32;
     bc_map[CSINN_OP_STRIDED_SLICE][1] = csi_ref_strided_slice_f32;
-    bc_map[CSINN_OP_SUB][1] = csi_ref_sub_f32;
+    bc_map[CSINN_OP_SUB][1] = csi_c906_sub_f32;
     bc_map[CSINN_OP_SUM][1] = csi_ref_sum_stride_f32;
     bc_map[CSINN_OP_TAN][1] = csi_ref_tan_f32;
     bc_map[CSINN_OP_TANH][1] = csi_ref_tanh_f32;
@@ -344,7 +354,7 @@ static void *setup_bc_map()
 static int get_bc_map_index(int op, int dtype)
 {
     switch (dtype) {
-    case CSINN_DTYPE_INT8:
+    case CSINN_DTYPE_FLOAT16:
         return op * 2;
         break;
     case CSINN_DTYPE_FLOAT32:

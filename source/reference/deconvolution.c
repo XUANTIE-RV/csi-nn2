@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 
@@ -108,6 +108,7 @@ static int csi_ref_deconv2d_nchw_f32(struct csi_tensor *o_input,
     csi_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
 
     csi_ref_nhwc_to_nchw_f32(o_output, output);
+    csi_ref_free_float_tensor(input);
     return CSINN_TRUE;
 }
 
@@ -195,6 +196,7 @@ int csi_ref_depthwise_deconv2d_nchw_f32(struct csi_tensor *o_input,
     csi_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
 
     csi_ref_nhwc_to_nchw_f32(o_output, output);
+    csi_ref_free_float_tensor(input);
     return CSINN_TRUE;
 }
 

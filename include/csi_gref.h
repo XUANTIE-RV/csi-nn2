@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_GREF_H
 #define _CSI_NN_GREF_H
@@ -167,7 +167,7 @@ int csi_gref_fullyconnected_relu(struct csi_tensor *input,
                                  struct csi_tensor *bias,
                                  struct fc_params *params);
 
-int csi_gref_maxpool(struct csi_tensor *input,
+int csi_gref_maxpool2d(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct pool_params *params);
 
@@ -175,11 +175,7 @@ int csi_gref_maxpool3d(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct pool_params *params);
 
-int csi_gref_global_maxpool(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pool_params *params);
-
-int csi_gref_avgpool(struct csi_tensor *input,
+int csi_gref_avgpool2d(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct pool_params *params);
 
@@ -191,11 +187,11 @@ int csi_gref_global_avgpool3d(struct csi_tensor *input,
                               struct csi_tensor *output,
                               struct pool_params *params);
 
-int csi_gref_global_avgpool(struct csi_tensor *input,
+int csi_gref_global_avgpool2d(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params);
 
-int csi_gref_global_maxpool(struct csi_tensor *input,
+int csi_gref_global_maxpool2d(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params);
 
@@ -791,4 +787,10 @@ int csi_gref_get_tensor(int index, struct csi_tensor *ret, struct csi_session *s
 void csi_gref_nbg(struct csi_tensor **input, struct csi_tensor **output,
                   uint32_t inputs_count, uint32_t outputs_count, const char *url);
 
+void csi_subgraph_alloc(struct csi_node *node, struct csi_ref_graph *ograph, struct csi_ref_graph *ggraph);
+int csi_subgraph_init(struct csi_node *n);
+int csi_subgraph_deinit(struct csi_node *n);
+int csi_subgraph_run_init(struct csi_node *n);
+int csi_subgraph_run(struct csi_node *n);
+int csi_subgraph_run_deinit(struct csi_node *n);
 #endif

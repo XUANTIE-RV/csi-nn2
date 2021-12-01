@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 
@@ -28,7 +28,23 @@ int csi_conv2d_init(struct csi_tensor *input,
 {
     if (params->base.run_mode != CSINN_RM_CPU_GRAPH) {
         int (*init_func)();
-        init_func = csi_init_map(params->base.api, CSINN_OP_CONV2D, input->dtype);
+        if (params->base.layout == CSINN_LAYOUT_NCHW) {
+            if (params->group == 1) {
+                init_func = csi_init_map(params->base.api, CSINN_OP_CONV2D, input->dtype);
+            } else if (params->group == input->dim[1] && kernel->dim[1] == 1) {
+                init_func = csi_init_map(params->base.api, CSINN_OP_DEPTHWISE_CONV2D, input->dtype);
+            } else {
+                init_func = csi_init_map(params->base.api, CSINN_OP_GROUP_CONV2D, input->dtype);
+            }
+        } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
+            if (params->group == 1) {
+                init_func = csi_init_map(params->base.api, CSINN_OP_CONV2D, input->dtype);
+            } else if (params->group == input->dim[3] && kernel->dim[0] == 1) {
+                init_func = csi_init_map(params->base.api, CSINN_OP_DEPTHWISE_CONV2D, input->dtype);
+            } else {
+                init_func = csi_init_map(params->base.api, CSINN_OP_GROUP_CONV2D, input->dtype);
+            }
+        }
         if (init_func != NULL) {
             return init_func(input, output, kernel, bias, params);
         }
@@ -37,7 +53,7 @@ int csi_conv2d_init(struct csi_tensor *input,
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
         if (params->group == 1) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CONV2D, input->dtype);
-        } else if (params->group == input->dim[1] && kernel->dim[1] == 1) {
+        } else if (params->group == input->dim[1]) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_DEPTHWISE_CONV2D, input->dtype);
         } else {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_GROUP_CONV2D, input->dtype);
@@ -48,7 +64,7 @@ int csi_conv2d_init(struct csi_tensor *input,
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
         if (params->group == 1) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CONV2D, input->dtype);
-        } else if (params->group == input->dim[3] && kernel->dim[0] == 1) {
+        } else if (params->group == input->dim[3]) {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_DEPTHWISE_CONV2D, input->dtype);
         } else {
             params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_GROUP_CONV2D, input->dtype);
@@ -73,8 +89,8 @@ int csi_conv2d(struct csi_tensor *input,
     if (params->base.bc != NULL) {
         if (params->conv_extra.kernel_tm != NULL && params->conv_extra.conv_mode == CSINN_WINOGRAD) {
             params->base.bc(input, output, params->conv_extra.kernel_tm, bias, params);
-            free(params->conv_extra.kernel_tm->data);
-            free(params->conv_extra.kernel_tm);
+            csi_mem_free(params->conv_extra.kernel_tm->data);
+            csi_mem_free(params->conv_extra.kernel_tm);
         } else {
             params->base.bc(input, output, kernel, bias, params);
         }

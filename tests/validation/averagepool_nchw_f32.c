@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-    init_testsuite("Testing function of averagepool nchw f32.\n");
+    init_testsuite("Testing function of avgpool2d nchw f32.\n");
 
     struct csi_tensor *input = csi_alloc_tensor(NULL);
     struct csi_tensor *output = csi_alloc_tensor(NULL);
@@ -69,10 +69,10 @@ int main(int argc, char** argv)
     reference->data = (float *)(buffer + 14 + in_size);
 
     output->data  = (float *)malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_averagepool_init(input, output, &params) == CSINN_TRUE) {
-        csi_averagepool(input, output, &params);
+    if (csi_avgpool2d_init(input, output, &params) == CSINN_TRUE) {
+        csi_avgpool2d(input, output, &params);
     }
 
     result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);

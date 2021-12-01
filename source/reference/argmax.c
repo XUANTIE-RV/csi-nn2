@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 
@@ -38,7 +38,7 @@ int csi_ref_argmax_stride_i32_f32(struct csi_tensor *input,
                                   struct reduce_params *params)
 {
     float *input_data = input->data;
-    float *output_data = output->data;
+    int32_t *output_data = output->data;
 
     int32_t inner_size = 1;
     int32_t out_size = 1;
@@ -71,6 +71,11 @@ int csi_ref_argmax_stride_quant(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct reduce_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_argmax_stride_i32_f32);
+    int ret;
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+    ret = csi_ref_argmax_stride_i32_f32(finput, output, params);
+    csi_ref_tensor_transform_free_f32(finput);
+    return ret;
+
 }
 

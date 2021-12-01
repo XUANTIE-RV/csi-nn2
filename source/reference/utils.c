@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -66,7 +66,7 @@ int32_t csi_ref_get_index_iter(int32_t *dim, int dim_idx, int32_t *index)
 int32_t *csi_ref_get_input_dim(struct csi_tensor *input, int dim_count, int32_t *axis, int axis_size)
 {
     int8_t alloc_size = dim_count * sizeof(int32_t *);
-    int32_t *ret = malloc(alloc_size);
+    int32_t *ret = csi_mem_alloc(alloc_size);
 
     for (int i = 0; i < dim_count; i++) {
         ret[i] = 1;
@@ -103,8 +103,8 @@ int csi_ref_diso_broadcast_base(struct csi_tensor *input0,
     cb->output = output;
 
     int out_size = csi_tensor_size(output);
-    float *in0_data_b = malloc(out_size * 4);
-    float *in1_data_b = malloc(out_size * 4);
+    float *in0_data_b = csi_mem_alloc(out_size * 4);
+    float *in1_data_b = csi_mem_alloc(out_size * 4);
 
     struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
     struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
@@ -113,8 +113,16 @@ int csi_ref_diso_broadcast_base(struct csi_tensor *input0,
     b_input0->data = in0_data_b;
     b_input1->data = in1_data_b;
 
-    csi_ref_broadcast_to_shape(input0, b_input0, output->dim, output->dim_count);
-    csi_ref_broadcast_to_shape(input1, b_input1, output->dim, output->dim_count);
+    if (csi_ref_broadcast_to_shape(input0, b_input0, output->dim, output->dim_count) == CSINN_FALSE)
+    {
+        CSI_DEBUG_CALL(csi_debug_info("%s: broadcast input0 failed.", __func__));
+        return CSINN_FALSE;
+    };
+    if (csi_ref_broadcast_to_shape(input1, b_input1, output->dim, output->dim_count) == CSINN_FALSE)
+    {
+        CSI_DEBUG_CALL(csi_debug_info("%s: broadcast input1 failed.", __func__));
+        return CSINN_FALSE;
+    };
 
     int size0 = csi_tensor_size(b_input0);
     int size1 = csi_tensor_size(b_input1);
@@ -126,8 +134,8 @@ int csi_ref_diso_broadcast_base(struct csi_tensor *input0,
     }else{
         return CSINN_FALSE;
     }
-    free(in0_data_b);
-    free(in1_data_b);
+    csi_mem_free(in0_data_b);
+    csi_mem_free(in1_data_b);
     return CSINN_TRUE;
 }
 
@@ -230,14 +238,13 @@ struct csi_tensor *csi_ref_deconv_kernel_nchw_to_nhwc_f32(struct csi_tensor *t, 
     nt->dim[2] = t->dim[permute[2]];
     nt->dim[3] = t->dim[permute[3]];
 
-    nt->data = malloc(size);
+    nt->data = csi_mem_alloc(size);
 
     struct transpose_params tparams;
     tparams.permute = permute;
     tparams.base.api = CSINN_REF;
     tparams.base.name = "internal_transpose";
-    csi_transpose_init(t, nt, &tparams);
-    csi_transpose(t, nt, &tparams);
+    csi_ref_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
@@ -264,15 +271,14 @@ struct csi_tensor *csi_ref_nchw_to_nhwc_8(struct csi_tensor *t)
     nt->dim[2] = t->dim[3];
     nt->dim[3] = t->dim[1];
 
-    nt->data = malloc(size);
+    nt->data = csi_mem_alloc(size);
     int32_t permute[4] = {0, 2, 3, 1};
 
     struct transpose_params tparams;
     tparams.permute = permute;
     tparams.base.api = CSINN_REF;
     tparams.base.name = "internal_transpose";
-    csi_transpose_init(t, nt, &tparams);
-    csi_transpose(t, nt, &tparams);
+    csi_ref_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
@@ -292,13 +298,12 @@ void csi_ref_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t)
     tparams.permute = permute;
     tparams.base.api = CSINN_REF;
     tparams.base.name = "internal_transpose";
-    csi_transpose_init(t, nt, &tparams);
-    csi_transpose(t, nt, &tparams);
+    csi_ref_transpose(t, nt, &tparams);
 
     nt->dim_count = nt_dim;
 
-    free(t->data);
-    free(t);
+    csi_mem_free(t->data);
+    csi_mem_free(t);
 }
 
 struct csi_tensor *csi_ref_nchw_to_nhwc_f32(struct csi_tensor *t)
@@ -324,7 +329,7 @@ struct csi_tensor *csi_ref_nchw_to_nhwc_f32(struct csi_tensor *t)
     nt->dim[2] = t->dim[3];
     nt->dim[3] = t->dim[1];
 
-    nt->data = malloc(size * 4);
+    nt->data = csi_mem_alloc(size * 4);
     int32_t permute[4] = {0, 2, 3, 1};
 
     struct transpose_params tparams;
@@ -332,8 +337,7 @@ struct csi_tensor *csi_ref_nchw_to_nhwc_f32(struct csi_tensor *t)
     tparams.permute_num = 4;
     tparams.base.api = CSINN_REF;
     tparams.base.name = "internal_transpose";
-    csi_transpose_init(t, nt, &tparams);
-    csi_transpose(t, nt, &tparams);
+    csi_ref_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
@@ -354,13 +358,16 @@ void csi_ref_nhwc_to_nchw_f32(struct csi_tensor *nt, struct csi_tensor *t)
     tparams.permute_num = 4;
     tparams.base.api = CSINN_REF;
     tparams.base.name = "internal_transpose";
-    csi_transpose_init(t, nt, &tparams);
-    csi_transpose(t, nt, &tparams);
+    csi_ref_transpose(t, nt, &tparams);
 
     nt->dim_count = nt_dim;
 
-    free(t->data);
-    free(t);
+    if (t->qinfo != NULL) {
+        csi_mem_free(t->qinfo);
+        t->qinfo = NULL;
+    }
+    csi_mem_free(t->data);
+    csi_mem_free(t);
 }
 
 int32_t csi_ref_get_reduction_index(int32_t k, const int32_t *strides,
@@ -392,20 +399,55 @@ float csi_ref_int8_to_float(int8_t i, struct csi_tensor *t)
     return ((float)i - t->qinfo->zero_point) * t->qinfo->scale;
 }
 
+int16_t csi_ref_float32_to_float16(float value)
+{
+    int16_t ret;
+    if (value > -6.1e-5 && value < 6.1e-5) {
+        /* to small for f16, ignore to 0 */
+        return 0;
+    }
+    if (value > 65504) {
+        csi_debug_error("too large f32 to f16\n");
+        /* saturate to f16 max value: 65504 */
+        value = 65504;
+    }
+    int32_t org_format = *(int32_t *)&value;
+    int16_t sign = (org_format & 0x80000000) >> 16;
+    int16_t frac = (org_format & 0x7fffff) >> 13;
+    int16_t exp = (((((org_format >> 23) & 0xff) - 128) + 16) & 0x1f) << 10;
+    ret = sign | frac | exp;
+    return ret;
+}
+
+float csi_ref_float16_to_float32(int16_t value)
+{
+    float ret;
+    if (value == 0 || value == 0x8000) {
+      return 0;
+    }
+    int32_t ret_format = 0;
+    int32_t sign = (value & 0x8000) << 16;
+    int32_t frac = (value & 0x3ff) << 13;
+    int32_t exp = (((((value >> 10) & 0x1f) - 16) + 128) & 0xff) << 23;
+    ret_format = sign | frac | exp;
+    ret = *(float *)&ret_format;
+    return ret;
+}
+
 struct csi_tensor *csi_ref_alloc_float_tensor(struct csi_tensor *src)
 {
     struct csi_tensor *ret = csi_alloc_tensor(NULL);
     csi_tensor_copy(ret, src);
     ret->dtype = CSINN_DTYPE_FLOAT32;
     int size = csi_tensor_byte_size(ret);
-    float *data = malloc(size);
+    float *data = csi_mem_alloc(size);
     ret->data = data;
     return ret;
 }
 
 void csi_ref_free_float_tensor(struct csi_tensor *src)
 {
-    free(src->data);
+    csi_mem_free(src->data);
     csi_free_tensor(src);
 }
 
@@ -446,10 +488,16 @@ struct csi_tensor *csi_ref_tensor_transform_f32(struct csi_tensor *input)
 {
     struct csi_tensor *ret = csi_alloc_tensor(NULL);
     csi_tensor_copy(ret, input);
-    ret->qinfo = NULL;
+    if (ret->qinfo != NULL) {
+        csi_mem_free(ret->qinfo);
+        ret->qinfo = NULL;
+    }
     ret->quant_channel = 0;
     ret->dtype = CSINN_DTYPE_FLOAT32;
-    ret->data = malloc(csi_tensor_size(input) * 4);
+    if (ret->dim_count == 0) {
+        return ret;
+    }
+    ret->data = csi_mem_alloc(csi_tensor_size(input) * 4);
     if (csi_tensor_data_convert(ret, input) == CSINN_TRUE) {
         return ret;
     }
@@ -458,7 +506,7 @@ struct csi_tensor *csi_ref_tensor_transform_f32(struct csi_tensor *input)
 
 int csi_ref_tensor_transform_free_f32(struct csi_tensor *input)
 {
-    free(input->data);
+    csi_mem_free(input->data);
     csi_free_tensor(input);
     return CSINN_TRUE;
 }
@@ -527,7 +575,7 @@ uint8_t *csi_ref_f32_to_input_dtype(uint32_t index, float *data, struct csi_sess
     ftmp->dtype = CSINN_DTYPE_FLOAT32;
     struct csi_tensor *ret = csi_alloc_tensor(NULL);
     csi_tensor_copy(ret, sess->input[index]);
-    ret->data = malloc(csi_tensor_size(ret));
+    ret->data = csi_mem_alloc(csi_tensor_byte_size(ret));
     csi_tensor_data_convert(ret, ftmp);
     uint8_t *ret_data = ret->data;
     csi_free_tensor(ret);
@@ -587,7 +635,7 @@ int csi_ref_broadcast_to_shape_f32(struct csi_tensor *input,
 
     int data_size = csi_tensor_size(input);
     int out_size = csi_tensor_size(output);
-    float *output_data_t = malloc(out_size * 4);
+    float *output_data_t = csi_mem_alloc(out_size * 4);
     memcpy(output_data_t, input_data, data_size * 4);
     memcpy(output_data, input_data, data_size * 4);
 
@@ -627,7 +675,7 @@ int csi_ref_broadcast_to_shape_f32(struct csi_tensor *input,
             memcpy(output_data_t, output_data, out_size * 4);
         }
     }
-    free(output_data_t);
+    csi_mem_free(output_data_t);
     return CSINN_TRUE;
 }
 

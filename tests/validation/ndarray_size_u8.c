@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -45,29 +45,49 @@ int main(int argc, char** argv)
     output->dim[0] = 1;
 
     out_size = 1;
+    output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_N;
+    output->is_const = 0;
+    output->quant_channel = 1;
+
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
+    params.base.layout = CSINN_LAYOUT_NCHW;
 
-    input->data    = (float *)(buffer + 1 + input->dim_count);
-    reference->data = (float *)(buffer + 1 + input->dim_count + in_size);
-    output->data    = (float *)malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float *src_in     = (float *)(buffer + 1 + input->dim_count);
+    float *ref = (float *)(buffer + 1 + input->dim_count + in_size);
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
+    uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
-    // quantize_multiplier(in_size, &quantized_multiplier, &shift);
-    // output.multiplier = quantized_multiplier;
-    // output.shift      = shift;
-    // output.zero_point = zp;
 
+    input->data = src_in;
+    get_quant_info(input);
+
+    for(int i = 0; i < in_size; i++) {
+        src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
+    }
+
+
+    output->data = ref;
+    get_quant_info(output);
+    input->data     = src_tmp;
+    reference->data = ref;
+    output->data    = malloc(out_size * sizeof(char));
 
 
     if (csi_ndarray_size_init(input, output, &params) == CSINN_TRUE) {
         csi_ndarray_size(input, output, &params);
     }
 
-    result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);
+    result_verify_8(reference->data, output, input->data, difference, out_size, false);
 
     free(buffer);
+    free(src_tmp);
     free(output->data);
     return done_testing();
 }

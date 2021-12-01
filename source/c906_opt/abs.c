@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_c906.h"
 
@@ -32,26 +32,61 @@ int csi_c906_abs_f32(struct csi_tensor *input,
     }
 
     asm volatile(
-                "loop:\n\t"
+                "1:\n\t"
                 "vsetvli        t0, %3, e32, m2\n\t"
-                "vlw.v          v2, (%2)\n\t"
+                "vlw.v          v8, (%2)\n\t"
                 "slli           t1, t0, 2\n\t"
                 "add            %2, %2, t1\n\t"
-                "vfsgnjx.vv     v4, v2, v2\n\t"
-                "vsw.v          v4, (%0)\n\t"
+                "vfsgnjx.vv     v8, v8, v8\n\t"
+                "vsw.v          v8, (%0)\n\t"
                 "add            %0, %0, t1\n\t"
                 "sub            %3, %3, t0\n\t"
-                "bnez           %3, loop\n\t"
+                "bnez           %3, 1b\n\t"
 
                 :"=r"(output_data)  // %0
                 :"0"(output_data),  // %1
                 "r"(input_data),    // %2
                 "r"(size)           // %3
-                : "v2", "v3", "v4", "v5", "t0", "t1"
+                : "v8", "v9", "t0", "t1"
     );
 
     // for (int i = 0; i < size; i++) {
     //     output_data[i] = fabs(input_data[i]);
     // }
+    return CSINN_TRUE;
+}
+
+
+int csi_c906_abs_fp16(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct siso_params *params)
+{
+    __fp16 *input_data = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+
+    int size = 1;
+    for (int i = 0; i < input->dim_count; i++) {
+        size = size * input->dim[i];
+    }
+
+    asm volatile(
+                "1:\n\t"
+                "vsetvli        t0, %3, e16, m2\n\t"
+                "vle.v          v8, (%2)\n\t"
+                "slli           t1, t0, 1\n\t"
+                "add            %2, %2, t1\n\t"
+                "vfsgnjx.vv     v8, v8, v8\n\t"
+                "vse.v          v8, (%0)\n\t"
+                "add            %0, %0, t1\n\t"
+                "sub            %3, %3, t0\n\t"
+                "bnez           %3, 1b\n\t"
+
+                :"=r"(output_data)  // %0
+                :"0"(output_data),  // %1
+                "r"(input_data),    // %2
+                "r"(size)           // %3
+                : "v8", "v9", "t0", "t1"
+    );
+
     return CSINN_TRUE;
 }

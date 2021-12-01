@@ -42,8 +42,8 @@ def prod_f32():
     in_size_y   = int(np.random.randint(16, high=32, size=1))
     in_channel  = int(np.random.randint(1, high=16, size=1))
 
-    zero_point1 = int(np.random.randint(-6, high=6, size=1))
-    std1        = int(np.random.randint(1, high=20, size=1))
+    zero_point1 = int(np.random.randint(-3, high=3, size=1))
+    std1        = int(np.random.randint(1, high=10, size=1))
 
     src_in1 = np.random.normal(zero_point1, std1, (batch, in_channel, in_size_y, in_size_x, ))
     src_in1 = src_in1.astype(np.float32)

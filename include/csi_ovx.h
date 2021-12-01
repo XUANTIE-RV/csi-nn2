@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_OVX_H
 #define _CSI_NN_OVX_H
@@ -71,25 +71,21 @@ int csi_ovx_fullyconnected_relu(struct csi_tensor *input,
                                 struct csi_tensor *bias,
                                 struct fc_params *params);
 
-int csi_ovx_maxpool(struct csi_tensor *input,
+int csi_ovx_maxpool2d(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct pool_params *params);
 
-int csi_ovx_global_maxpool(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pool_params *params);
+int csi_ovx_avgpool2d(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct pool_params *params);
 
-int csi_ovx_averagepool(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params);
+int csi_ovx_global_avgpool2d(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct pool_params *params);
 
-int csi_ovx_global_averagepool(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct pool_params *params);
-
-int csi_ovx_global_maxpool(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pool_params *params);
+int csi_ovx_global_maxpool2d(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct pool_params *params);
 
 int csi_ovx_l2pool(struct csi_tensor *input,
                    struct csi_tensor *output,

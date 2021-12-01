@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 
@@ -57,7 +57,7 @@ void csi_ref_nn_init(struct csi_tensor *input,
                 output_data[index] = input_val;
             }
         }
-    }else if (output->dtype == CSINN_DTYPE_INT8){
+    } else if (output->dtype == CSINN_DTYPE_INT8){
         float *input_data = input->data;
         int8_t *output_data = output->data;
         for (int i = 0; i < q_size; i++) {
@@ -72,6 +72,17 @@ void csi_ref_nn_init(struct csi_tensor *input,
                 output_data[index] = input_val;
             }
         }
+    } else if (output->dtype == CSINN_DTYPE_FLOAT16) {
+        float *input_data = input->data;
+        int16_t *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                output_data[index] = csi_ref_float32_to_float16(input_data[index]);
+            }
+        }
+    } else {
+        csi_debug_error("csi_ref_nn_init: unsupport dtype\n");
     }
 }
 
@@ -106,6 +117,23 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
                 output_data[index] = x * input->qinfo[i].scale;
             }
         }
+    } else if (input->dtype == CSINN_DTYPE_INT32){
+        int size = csi_tensor_size(input);
+        memcpy(output->data, input->data, size*4);
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        int16_t *input_data = input->data;
+        float *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                output_data[index] = csi_ref_float16_to_float32(input_data[index]);
+            }
+        }
+    } else if (input->dtype == CSINN_DTYPE_BOOL) {
+        int size = csi_tensor_size(input);
+        memcpy(output->data, input->data, size);
+    } else {
+        csi_debug_error("csi_ref_nn_deinit: unsupport dtype\n");
     }
 }
 
@@ -124,8 +152,8 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_ASINH][i] = csi_ref_asinh_quant;
         bc_map[CSINN_OP_ATAN][i] = csi_ref_atan_quant;
         bc_map[CSINN_OP_ATANH][i] = csi_ref_atanh_quant;
-        bc_map[CSINN_OP_AVGPOOL2D][i] = csi_ref_averagepool_quant;
-        bc_map[CSINN_OP_AVGPOOL3D][i] = csi_ref_averagepool3d_quant;
+        bc_map[CSINN_OP_AVGPOOL2D][i] = csi_ref_avgpool2d_quant;
+        bc_map[CSINN_OP_AVGPOOL3D][i] = csi_ref_avgpool3d_quant;
         bc_map[CSINN_OP_BN][i] = csi_ref_batch_normalization_quant;
         bc_map[CSINN_OP_BATCH_TO_SPACE][i] = csi_ref_batch_to_space_quant;
         bc_map[CSINN_OP_BROADCOST][i] = csi_ref_broadcast_to_quant;
@@ -151,8 +179,8 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_FSMN][i] = csi_ref_fsmn_quant;
         bc_map[CSINN_OP_GATHER_ND][i] = csi_ref_gather_nd_quant;
         bc_map[CSINN_OP_GATHER][i] = csi_ref_gather_quant;
-        bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][i] = csi_ref_global_averagepool_quant;
-        bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][i] = csi_ref_global_maxpool_quant;
+        bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][i] = csi_ref_global_avgpool2d_quant;
+        bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][i] = csi_ref_global_maxpool2d_quant;
         bc_map[CSINN_OP_GREATHER_EQUAL][i] = csi_ref_greater_equal_quant;
         bc_map[CSINN_OP_GREATHER][i] = csi_ref_greater_quant;
         bc_map[CSINN_OP_HARD_SIGMOID][i] = csi_ref_hard_sigmoid_quant;
@@ -171,8 +199,8 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_LRN][i] = csi_ref_lrn_quant;
         bc_map[CSINN_OP_MATMUL][i] = csi_ref_matmul_quant;
         bc_map[CSINN_OP_MAX][i] = csi_ref_max_stride_quant;
-        bc_map[CSINN_OP_MAXINUM][i] = csi_ref_maximum_quant;
-        bc_map[CSINN_OP_MAXPOOL2D][i] = csi_ref_maxpool_quant;
+        bc_map[CSINN_OP_MAXIMUM][i] = csi_ref_maximum_quant;
+        bc_map[CSINN_OP_MAXPOOL2D][i] = csi_ref_maxpool2d_quant;
         bc_map[CSINN_OP_MAXPOOL2D_LOCAT][i] = csi_ref_maxpool2d_locat_quant;
         bc_map[CSINN_OP_MAXPOOL3D][i] = csi_ref_maxpool3d_quant;
         bc_map[CSINN_OP_MEAN][i] = csi_ref_mean_stride_quant;
@@ -241,9 +269,6 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_TRUNC][i] = csi_ref_trunc_quant;
         bc_map[CSINN_OP_UNPOOLING][i] = csi_ref_unpooling_quant;
         bc_map[CSINN_OP_YUV_RGB_SCALE][i] = csi_ref_yuv_rgb_scale_quant;
-    }
-
-    for (int i = CSINN_DTYPE_UINT8; i <= CSINN_DTYPE_INT8; i++) {
         bc_map[CSINN_OP_CONV2D][i] = csi_ref_conv2d_quant;
         bc_map[CSINN_OP_CONV2D_RELU][i] = csi_ref_conv2d_relu_quant;
         bc_map[CSINN_OP_CONV2D_RELU6][i] = csi_ref_conv2d_relu6_quant;
@@ -308,8 +333,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_ASINH][CSINN_DTYPE_FLOAT32] = csi_ref_asinh_f32;
     bc_map[CSINN_OP_ATAN][CSINN_DTYPE_FLOAT32] = csi_ref_atan_f32;
     bc_map[CSINN_OP_ATANH][CSINN_DTYPE_FLOAT32] = csi_ref_atanh_f32;
-    bc_map[CSINN_OP_AVGPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_averagepool_f32;
-    bc_map[CSINN_OP_AVGPOOL3D][CSINN_DTYPE_FLOAT32] = csi_ref_averagepool3d_f32;
+    bc_map[CSINN_OP_AVGPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_avgpool2d_f32;
+    bc_map[CSINN_OP_AVGPOOL3D][CSINN_DTYPE_FLOAT32] = csi_ref_avgpool3d_f32;
     bc_map[CSINN_OP_BN][CSINN_DTYPE_FLOAT32] = csi_ref_batch_normalization_f32;
     bc_map[CSINN_OP_BATCH_TO_SPACE][CSINN_DTYPE_FLOAT32] = csi_ref_batch_to_space_f32;
     bc_map[CSINN_OP_BROADCOST][CSINN_DTYPE_FLOAT32] = csi_ref_broadcast_to_f32;
@@ -343,8 +368,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_FULLYCONNECTED][CSINN_DTYPE_FLOAT32] = csi_ref_fullyconnected_f32;
     bc_map[CSINN_OP_GATHER_ND][CSINN_DTYPE_FLOAT32] = csi_ref_gather_nd_f32;
     bc_map[CSINN_OP_GATHER][CSINN_DTYPE_FLOAT32] = csi_ref_gather_f32;
-    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_global_averagepool_f32;
-    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_global_maxpool_f32;
+    bc_map[CSINN_OP_GLOBAL_AVGPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_global_avgpool2d_f32;
+    bc_map[CSINN_OP_GLOBAL_MAXPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_global_maxpool2d_f32;
     bc_map[CSINN_OP_GREATHER_EQUAL][CSINN_DTYPE_FLOAT32] = csi_ref_greater_equal_f32;
     bc_map[CSINN_OP_GREATHER][CSINN_DTYPE_FLOAT32] = csi_ref_greater_f32;
     bc_map[CSINN_OP_HARD_SIGMOID][CSINN_DTYPE_FLOAT32] = csi_ref_hard_sigmoid_f32;
@@ -363,8 +388,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_LRN][CSINN_DTYPE_FLOAT32] = csi_ref_lrn_f32;
     bc_map[CSINN_OP_MATMUL][CSINN_DTYPE_FLOAT32] = csi_ref_matmul_f32;
     bc_map[CSINN_OP_MAX][CSINN_DTYPE_FLOAT32] = csi_ref_max_stride_f32;
-    bc_map[CSINN_OP_MAXINUM][CSINN_DTYPE_FLOAT32] = csi_ref_maximum_f32;
-    bc_map[CSINN_OP_MAXPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_maxpool_f32;
+    bc_map[CSINN_OP_MAXIMUM][CSINN_DTYPE_FLOAT32] = csi_ref_maximum_f32;
+    bc_map[CSINN_OP_MAXPOOL2D][CSINN_DTYPE_FLOAT32] = csi_ref_maxpool2d_f32;
     bc_map[CSINN_OP_MAXPOOL2D_LOCAT][CSINN_DTYPE_FLOAT32] = csi_ref_maxpool2d_locat_f32;
     bc_map[CSINN_OP_MAXPOOL3D][CSINN_DTYPE_FLOAT32] = csi_ref_maxpool3d_f32;
     bc_map[CSINN_OP_MEAN][CSINN_DTYPE_FLOAT32] = csi_ref_mean_stride_f32;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -54,7 +54,7 @@ int csi_ref_tile_f32(struct csi_tensor *input,
         int reps_num = params->reps[dim_idx];
         int num = Multiplication(input->dim, 0, dim_idx) / (input->dim[dim_idx]);
         int step = Multiplication(input->dim, dim_idx, input->dim_count - 1) * Multiplication(params->reps, dim_idx, reps_count - 1) / (params->reps[dim_idx]);
-        float *temp = (float *)malloc(reps_num * num * step * sizeof(float));
+        float *temp = (float *)csi_mem_alloc(reps_num * num * step * sizeof(float));
         float *temp_cpy_addr = temp;
         for (int input_pre_i = 0; input_pre_i < num; input_pre_i++) {
             for (int rep_i = 0; rep_i < reps_num; rep_i++) {
@@ -65,7 +65,7 @@ int csi_ref_tile_f32(struct csi_tensor *input,
         }
         memcpy(output_data, temp, reps_num * num * step * sizeof(float));
         input_data = output_data;
-        free(temp);
+        csi_mem_free(temp);
         temp = NULL;
     }
     memcpy(output_data, input_data, out_size * sizeof(float));

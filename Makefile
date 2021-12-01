@@ -12,12 +12,7 @@ endif
 export CROSS_COMPILE INSTALL_DIR
 
 
-all: nn2_ref_x86 nn2_ref
-
-nn2_ref:
-	DSP_LIB="libcsi_nn2_ref" CFLAGS="-mcpu=c860v -DCSI_BUILD_REF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-linux-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+all: nn2_ref_x86
 
 nn2_c860:
 	DSP_LIB="libcsi_nn2_c860" CFLAGS="-mcpu=c860v -DCSI_BUILD_REF $(EXTRA_CFLAGS)" \
@@ -37,48 +32,28 @@ nn2_ref_x86:
 	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref nn2_shared -j8
 	cd source/; find . -name *.o | xargs rm; cd -
 
-nn2_openvx:
-	DSP_LIB="libcsi_nn2_openvx.a" CFLAGS="-mcpu=c860v -DCSI_BUILD_OPENVX -mhard-float $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-linux-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_openvx -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-	DSP_LIB="libcsi_nn2_openvx.so" CFLAGS="-mcpu=c860v -fPIC -DCSI_BUILD_OPENVX -mhard-float $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-linux-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_openvx nn2_shared -j8
+nn2_ref_i805:
+	DSP_LIB="libcsi_nn2_ref_i805.a" CFLAGS="-DCSI_BUILD_REF_I805 -DCSI_MATH_DSP -mcpu=i805 $(EXTRA_CFLAGS)" \
+	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref_i805 -j8
 	cd source/; find . -name *.o | xargs rm; cd -
 
-nn2_pnna:
-	DSP_LIB="libcsi_nn2_pnna.a" CFLAGS="-DCSI_BUILD_PNNA $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="riscv64-unknown-linux-gnu-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_pnna -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-	DSP_LIB="libcsi_nn2_pnna.so" CFLAGS="-fPIC -DCSI_BUILD_PNNA $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="riscv64-unknown-linux-gnu-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_pnna nn2_shared -j8
+nn2_e804:
+	DSP_LIB="libcsi_nn2_e804.a" CFLAGS="-DCSI_BUILD_E804 -mcpu=e804d -mno-required-attr-fpu-abi $(EXTRA_CFLAGS)" \
+	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_e804 -j8
 	cd source/; find . -name *.o | xargs rm; cd -
 
-nn2_pnna_x86:
-	DSP_LIB="libcsi_nn2_pnna_x86.a" CFLAGS="-DCSI_BUILD_PNNA $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_pnna -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-	DSP_LIB="libcsi_nn2_pnna_x86.so" CFLAGS="-fPIC -DCSI_BUILD_PNNA $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_pnna nn2_shared_x86 -j8
+nn2_i805:
+	DSP_LIB="libcsi_nn2_i805.a" CFLAGS="-DCSI_BUILD_I805 -DCSI_BUILD_REF -DCSI_BUILD_GREF -mcpu=ck805ef -mhard-float $(EXTRA_CFLAGS)" \
+	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_i805 -j8
 	cd source/; find . -name *.o | xargs rm; cd -
 
-nn2_gref:
-	DSP_LIB="libcsi_nn2_gref.a" CFLAGS="-DCSI_BUILD_REF -DCSI_BUILD_GREF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_gref -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-	DSP_LIB="libcsi_nn2_gref.so" CFLAGS="-fPIC -DCSI_BUILD_REF -DCSI_BUILD_GREF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_gref nn2_shared -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-
-nn2_dp1k:
-	DSP_LIB="libcsi_nn2_dp1000.so" CFLAGS="-fPIC -DCSI_BUILD_DP1K -DCSI_BUILD_REF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_dp1k nn2_shared -j8
-	cd source/; find . -name *.o | xargs rm; cd -
 
 .PHONY: install_nn2
 install_nn2: include
 	mkdir -p install_nn2/lib
 	cp include install_nn2 -r
 	cp lib/libcsi_nn2_* install_nn2/lib -rf
+	cp version install_nn2/ -rf
 
 
 clean:

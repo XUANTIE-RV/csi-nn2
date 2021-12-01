@@ -11,9 +11,9 @@ def batch_norm_f32():
     para = []
     dim  = []
     # init the input data and parameters
-    dim_count   = int(np.random.randint(4, high=8, size=1))
+    dim_count   = int(np.random.randint(4, high=5, size=1))
     for i in range(0, dim_count):
-        in_size = int(np.random.randint(1, high=32, size=1))
+        in_size = int(np.random.randint(16, high=32, size=1))
         dim.append(in_size)
 
     zero_point = int(np.random.randint(-6, high=6, size=1))
@@ -21,13 +21,10 @@ def batch_norm_f32():
     src_in = np.random.normal(zero_point, std, size=dim)
     src_in = src_in.astype(np.float32)
 
-    mean   = np.random.normal(zero_point, std, dim[-1])
-
-    zero_point = int(np.random.randint(1, high=20, size=1))
-    std        = int(np.random.randint(1, high=20, size=1))
-    var   = np.random.normal(zero_point, std, dim[-1])
-    gamma =  np.random.normal(zero_point, std, dim[-1])
-    beta  =  np.random.normal(zero_point, std, dim[-1])
+    mean = np.mean(src_in, axis = (0,1,2))
+    var = np.var(src_in, axis = (0,1,2)) 
+    gamma =  np.random.uniform(1.0, 2.0, dim[-1])
+    beta  =  np.random.uniform(5, 9, dim[-1])
 
     value = (1e-05, 1e-04, 1e-03)
     epsi  = random.sample(value, 1)

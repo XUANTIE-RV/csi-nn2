@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -36,6 +36,10 @@ int main(int argc, char** argv)
     /* get the dim para */
     output->dim_count = input->dim_count = buffer[0];
     params.epsilon = *(float *)&buffer[1];
+    int32_t axis[] = {1};
+    params.axis = axis;
+    params.n = 1;
+    
     for (int i = 0; i < input->dim_count; ++i) {
         output->dim[i] = input->dim[i] = buffer[2 + i];
     }
@@ -53,7 +57,7 @@ int main(int argc, char** argv)
     input->data     = (float *)(buffer + 2 + input->dim_count);
     reference->data = (float *)(buffer + 2 + input->dim_count + size);
     output->data    = malloc(size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_l2_normalization_init(input, output, &params) == CSINN_TRUE) {
         csi_l2_normalization(input, output, &params);

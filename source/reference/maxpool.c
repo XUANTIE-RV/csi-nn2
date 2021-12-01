@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-static int csi_ref_maxpool_nhwc_f32(struct csi_tensor *input,
+static int csi_ref_maxpool2d_nhwc_f32(struct csi_tensor *input,
                                     struct csi_tensor *output,
                                     struct pool_params *params)
 {
@@ -68,7 +68,7 @@ static int csi_ref_maxpool_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_maxpool_nchw_f32(struct csi_tensor *input,
+static int csi_ref_maxpool2d_nchw_f32(struct csi_tensor *input,
                                     struct csi_tensor *output,
                                     struct pool_params *params)
 {
@@ -115,22 +115,22 @@ static int csi_ref_maxpool_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_maxpool_f32(struct csi_tensor *input,
+int csi_ref_maxpool2d_f32(struct csi_tensor *input,
                         struct csi_tensor *output,
                         struct pool_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_maxpool_nchw_f32(input, output, params);
+        csi_ref_maxpool2d_nchw_f32(input, output, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_maxpool_nhwc_f32(input, output, params);
+        csi_ref_maxpool2d_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_ref_maxpool_quant(struct csi_tensor *input,
+int csi_ref_maxpool2d_quant(struct csi_tensor *input,
                           struct csi_tensor *output,
                           struct pool_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_maxpool_f32);
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_maxpool2d_f32);
 }

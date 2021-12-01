@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -36,15 +36,15 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
     int flag  = buffer[4];
-    input0->dim[0] = buffer[0];          // batch
-    input0->dim[1] = buffer[1];          // height
-    input0->dim[2] = buffer[2];          // width
-    input0->dim[3] = buffer[3];          // channel
+    input0->dim[0] = buffer[0];         
+    input0->dim[1] = buffer[1];          
+    input0->dim[2] = buffer[2];          
+    input0->dim[3] = buffer[3];          
 
-    input1->dim[0] = buffer[0];          // batch
-    input1->dim[1] = buffer[1];          // height
-    input1->dim[2] = buffer[2];          // width
-    input1->dim[3] = buffer[3];          // channel
+    input1->dim[0] = buffer[0];          
+    input1->dim[1] = buffer[1];          
+    input1->dim[2] = buffer[2];          
+    input1->dim[3] = buffer[3];          
 
     output->dim[0] = input0->dim[0];
     output->dim[1] = input0->dim[1];
@@ -59,15 +59,22 @@ int main(int argc, char** argv)
     input0->dtype = CSINN_DTYPE_INT8;
     input1->dtype = CSINN_DTYPE_INT8;
     output->dtype = CSINN_DTYPE_INT8;
+    input0->layout = CSINN_LAYOUT_NCHW;
+    input0->is_const = 0;
+    input1->layout = CSINN_LAYOUT_NCHW;
+    input1->is_const = 0;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
+    params.base.layout     = CSINN_LAYOUT_NCHW;
 
 
     float *src0_in   = (float *)(buffer + 4);
     float *src1_in  = (float *)(buffer + 4 + in_size);
     float *ref      = (float *)(buffer + 4 + 2 * in_size);
-    int8_t *src0_tmp = malloc(in_size * sizeof(char));
-    int8_t *src1_tmp  = malloc(in_size * sizeof(char));
+    uint8_t *src0_tmp = malloc(in_size * sizeof(char));
+    uint8_t *src1_tmp  = malloc(in_size * sizeof(char));
 
     input0->data = src0_in;
     get_quant_info(input0);
@@ -89,7 +96,7 @@ int main(int argc, char** argv)
     output->data    = malloc(in_size * sizeof(char));
 
 
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_greater_init(input0, input1, output, &params) == CSINN_TRUE) {
         csi_greater(input0, input1, output, &params);

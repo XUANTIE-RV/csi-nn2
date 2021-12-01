@@ -42,7 +42,7 @@ def gather_nd_f32():
     src_in = np.random.normal(zero_point, std, in_shape)
     src_in = src_in.astype(np.float32)
 
-    indices_in = np.random.randint(0, high=32, size = indices_shape)
+    indices_in = np.random.randint(0, high=16, size = indices_shape)
 
     out_calcu = tf.gather_nd(src_in, indices_in)
 

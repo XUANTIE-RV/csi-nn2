@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -102,7 +102,7 @@ static float *predict_bbox(struct csi_tensor *cls_prob_tensor,
   float *im_info = im_info_tensor->data;
 
   float *output =
-      malloc(batch * height * width * num_anchors * 5 * sizeof(float));
+      csi_mem_alloc(batch * height * width * num_anchors * 5 * sizeof(float));
 
   for (int i = 0; i < batch * height * width; i++) {
     int w = i % width;
@@ -121,7 +121,7 @@ static float *predict_bbox(struct csi_tensor *cls_prob_tensor,
       int x2 = anchor.x2 + w * feature_stride;
       int y2 = anchor.y2 + h * feature_stride;
 
-      float *delta = malloc(4 * sizeof(float));
+      float *delta = csi_mem_alloc(4 * sizeof(float));
       for (int j = 0; j < 4; j++) {
         delta[j] =
             bbox_pred[(((b * num_anchors + k) * 4 + j) * height + h) * width +
@@ -198,7 +198,7 @@ static float calculate_overlap(float *out_tensor, int box_a_idx, int box_b_idx)
 static float *compute_nms(int batch, int num_bbox, float *sorted_bbox,
                           float threshold)
 {
-  float *out = malloc(batch * num_bbox * sizeof(float));
+  float *out = csi_mem_alloc(batch * num_bbox * sizeof(float));
   for (int b = 0; b < batch; b++) {
     int base_idx = b * num_bbox;
     for (int i = 0; i < num_bbox; i++) {
@@ -224,9 +224,9 @@ static float *compute_nms(int batch, int num_bbox, float *sorted_bbox,
 static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch,
                              int num_bbox, int rpn_post_nms_top_n)
 {
-  int *i = malloc(batch * sizeof(int));
-  int *nkeep = malloc(batch * sizeof(int));
-  float *output = malloc(batch * rpn_post_nms_top_n * 5 * sizeof(int));
+  int *i = csi_mem_alloc(batch * sizeof(int));
+  int *nkeep = csi_mem_alloc(batch * sizeof(int));
+  float *output = csi_mem_alloc(batch * rpn_post_nms_top_n * 5 * sizeof(int));
 
   for (int b = 0; b < batch; b++) {
     nkeep[b] = 0;
@@ -282,7 +282,7 @@ int csi_ref_proposal_f32(struct csi_tensor *cls_prob,
   float *bbox =
       predict_bbox(cls_prob, bbox_pred, im_info, params->ratios, params->ratios_num, params->scales,
                    params->scales_num, params->feature_stride, params->iou_loss, params->rpn_min_size);
-  index_value *score = malloc(batch * num_bbox * sizeof(index_value));
+  index_value *score = csi_mem_alloc(batch * num_bbox * sizeof(index_value));
   for (int i = 0; i < batch; i++) {
     for (int j = 0; j < num_bbox; j++) {
       int id = j + i * num_bbox;
@@ -294,7 +294,7 @@ int csi_ref_proposal_f32(struct csi_tensor *cls_prob,
 
   qsort(score, batch * num_bbox, sizeof(index_value), argsort);
 
-  float *sorted_bbox = malloc(batch * params->rpn_pre_nms_top_n * 5 * sizeof(float));
+  float *sorted_bbox = csi_mem_alloc(batch * params->rpn_pre_nms_top_n * 5 * sizeof(float));
   for (int b = 0; b < batch; b++) {
     for (int i = 0; i < params->rpn_pre_nms_top_n; i++) {
       int sorted_index = score[b * params->rpn_pre_nms_top_n + i].index;
@@ -324,12 +324,12 @@ int csi_ref_proposal_quant(struct csi_tensor *cls_prob,
                            struct csi_tensor *output,
                            struct proposal_params *params)
 {
-    float *scales = (float *)malloc(params->scales_num * sizeof(float));
+    float *scales = (float *)csi_mem_alloc(params->scales_num * sizeof(float));
     for(int i = 0; i < params->scales_num; i++){
       scales[i] = csi_ref_get_scale(params->scale_multipliers[i],params->scale_shifts[i]);
     }
 
-    float *ratios = (float *)malloc(params->scales_num * sizeof(float));
+    float *ratios = (float *)csi_mem_alloc(params->scales_num * sizeof(float));
     for(int i = 0; i < params->ratios_num; i++){
       ratios[i] = csi_ref_get_scale(params->ratio_multipliers[i],params->ratio_shifts[i]);
     }

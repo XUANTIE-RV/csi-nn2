@@ -16,21 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_node.h"
 
 struct csi_node *csi_node_alloc(int node_type, char *name, int in_num, int out_num, void *data)
 {
-    struct csi_node *ret = calloc(sizeof(struct csi_node), 1);
+    struct csi_node *ret = csi_mem_alloc(sizeof(struct csi_node));
 
     ret->type = node_type;
     ret->name = name;
     ret->data = data;
     ret->in_num = in_num;
     ret->out_num = out_num;
-    ret->in = calloc(sizeof(struct csi_node*), in_num);
-    ret->out = calloc(sizeof(struct csi_node*), out_num);
+    ret->in = csi_mem_alloc(in_num * sizeof(struct csi_node*));
+    ret->out = csi_mem_alloc(out_num * sizeof(struct csi_node*));
 
     return ret;
 }
@@ -47,9 +47,9 @@ struct csi_node *csi_node_const_var_alloc(char *name, void *data)
 
 int csi_node_free(struct csi_node *node)
 {
-    free(node->in);
-    free(node->out);
-    free(node);
+    csi_mem_free(node->in);
+    csi_mem_free(node->out);
+    csi_mem_free(node);
     return CSINN_TRUE;
 }
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_DP1K_H
 #define _CSI_NN_DP1K_H
@@ -65,7 +65,7 @@ int csi_dp1k_leaky_relu(
     struct csi_tensor *output,
     struct relu_params *params);
 
-int csi_dp1k_maxpool(
+int csi_dp1k_maxpool2d(
     struct csi_tensor *input,
     struct csi_tensor *output,
     struct pool_params *params);
@@ -363,7 +363,7 @@ extern int csi_dp1000_leaky_relu(
     struct csi_tensor_dp1k *output,
     struct relu_params_dp1k *params);
 
-extern int csi_dp1000_maxpool(
+extern int csi_dp1000_maxpool2d(
     struct csi_tensor_dp1k *input,
     struct csi_tensor_dp1k *output,
     struct pool_params_dp1k *params);

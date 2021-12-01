@@ -157,4 +157,5 @@ objects += ${NN2_ROOT}/source/nn2/utils.o
 objects += ${NN2_ROOT}/source/nn2/setup.o
 objects += ${NN2_ROOT}/source/nn2/node.o
 objects += ${NN2_ROOT}/source/nn2/scatter.o
+objects += ${NN2_ROOT}/source/nn2/memory.o
 objects += ${NN2_ROOT}/source/nn2/debug.o

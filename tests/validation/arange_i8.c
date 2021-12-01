@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -44,21 +44,24 @@ int main(int argc, char** argv)
     output->dim_count = 1;
     output->dim[0] = out_size;
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
 
     float *ref_data = (float *)(buffer + 4);
 
-    quantize_multiplier(params.start, &multiplier, &shift);
+    csi_quantize_multiplier(params.start, &multiplier, &shift);
     params.start_multiplier = multiplier;
     params.start_shift = shift;
 
-    quantize_multiplier(params.stop, &multiplier, &shift);
+    csi_quantize_multiplier(params.stop, &multiplier, &shift);
     params.stop_multiplier = multiplier;
     params.stop_shift = shift;
 
-    quantize_multiplier(params.step, &multiplier, &shift);
+    csi_quantize_multiplier(params.step, &multiplier, &shift);
     params.step_multiplier = multiplier;
     params.step_shift = shift;
 

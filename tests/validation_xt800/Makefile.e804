@@ -1,0 +1,73 @@
+LIB_DIR = ../../lib
+INCLUDE = -I../../include -I../utils 
+CFLAGS = -O0 -g3 -static
+CFLAGS += -mcpu=e804d
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+CFLAGS += -DCSINN_API=10 -DCSI_BUILD_E804
+LIB_NAME = csi_nn2_e804
+CC = csky-abiv2-elf-gcc
+BOARD = ./board/smartl/crt0.o -T./board/smartl/ckcpu.ld ./board/smartl/uart.o
+
+
+test_objs =
+
+test_objs += relu_q7.o
+test_objs += relu_q15.o
+test_objs += sigmoid_q7.o
+test_objs += sigmoid_q15.o
+test_objs += tanh_q7.o
+test_objs += tanh_q15.o
+test_objs += softmax_q7.o
+test_objs += softmax_q15.o
+test_objs += avgpool_q7_1.o
+test_objs += avgpool_q7_2.o
+# test_objs += avgpool_nonsquare_q7_1.o
+# test_objs += avgpool_nonsquare_q7_2.o
+test_objs += maxpool_q7_1.o
+test_objs += maxpool_q7_2.o
+test_objs += fullyconnected_q7.o
+test_objs += fullyconnected_q15.o
+test_objs += convolution_RGB_q7.o
+test_objs += convolution_1x1_q7_1.o
+test_objs += convolution_1x1_q7_2.o
+test_objs += convolution_basic_q7_1.o
+test_objs += convolution_basic_q7_2.o
+test_objs += convolution_basic_q7_3.o
+# test_objs += convolution_nonsquare_q7_1.o
+# test_objs += convolution_nonsquare_q7_2.o
+# test_objs += convolution_nonsquare_q7_3.o
+test_objs += convolution_q15.o
+test_objs += depthwise_convolution_q7.o
+# test_objs += depthwise_convolution_nonsquare_q7.o
+
+
+utils_objs =
+
+utils_objs += ../utils/math_snr.o
+utils_objs += ../utils/test_utils.o
+utils_objs += verify_avgpool_q7.o
+utils_objs += verify_maxpool_q7.o
+utils_objs += verify_convolution_q7.o
+utils_objs += verify_convolution_q15.o
+utils_objs += verify_depthwise_conv2d_q7.o
+
+
+export CC CFLAGS
+
+all: csi
+
+csi: build_crt $(utils_objs) $(test_objs)
+
+build_crt:
+	make -C ./board/smartl
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+	$(CC) $@ $(CFLAGS) $(BOARD) -nostartfiles $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf
+
+clean:
+	make -C ./board/smartl/ clean
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

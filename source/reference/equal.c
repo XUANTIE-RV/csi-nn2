@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 
@@ -27,7 +27,7 @@ int csi_ref_equal_f32(struct csi_tensor *input0,
 {
     float *input0_data = input0->data;
     float *input1_data = input1->data;
-    float *output_data = output->data;
+    bool *output_data = output->data;
     int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
@@ -41,5 +41,10 @@ int csi_ref_equal_quant(struct csi_tensor *input0,
                         struct csi_tensor *output,
                         struct diso_params *params)
 {
-    return csi_ref_diso_callback_base(input0, input1, output, params, csi_ref_equal_f32);
-}
+    int ret;
+    struct csi_tensor *finput0 = csi_ref_tensor_transform_f32(input0);
+    struct csi_tensor *finput1 = csi_ref_tensor_transform_f32(input1);
+    ret = csi_ref_equal_f32(finput0, finput1, output, params);
+    csi_ref_tensor_transform_free_f32(finput0);
+    csi_ref_tensor_transform_free_f32(finput1);
+    return ret;}

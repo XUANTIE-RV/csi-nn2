@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -32,7 +32,6 @@ int main(int argc, char** argv)
     struct relu_params params;
     int in_size = 0;
     int out_size =0;
-    float max_error = 0.0f;
 
     int *buffer = read_input_data_f32(argv[1]);
     input->dim[0] = buffer[0];          // batch
@@ -41,16 +40,25 @@ int main(int argc, char** argv)
     input->dim[3] = buffer[3];          // width
 
     output->dim[0] = input->dim[0];
-    output->dim[0] = input->dim[1];
-    output->dim[0] = input->dim[2];
-    output->dim[0] = input->dim[3];
+    output->dim[1] = input->dim[1];
+    output->dim[2] = input->dim[2];
+    output->dim[3] = input->dim[3];
 
     input->dim_count = 4;
     output->dim_count = 4;
-    input->dtype = CSINN_DTYPE_UINT8;
-    output->dtype = CSINN_DTYPE_UINT8;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = in_size;
+
+    input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
+    output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -65,21 +73,22 @@ int main(int argc, char** argv)
         src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
     }
 
+
     output->data = ref;
     get_quant_info(output);
 
     input->data     = src_tmp;
     reference->data = ref;
-    output->data    = malloc(in_size * sizeof(char));
+    output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_elu_init(input, output, &params) == CSINN_TRUE) {
         csi_elu(input, output, &params);
     }
 
-    result_verify_8(reference->data, output, input->data, difference, in_size, false);
+    result_verify_8(reference->data, output, input->data, difference, out_size, false);
 
     free(buffer);
     free(src_tmp);

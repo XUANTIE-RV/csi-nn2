@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_c906.h"
 
@@ -34,10 +34,10 @@ static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
     asm volatile(
                 "mv         a0, %0\n\t"     // a0 = outpt_data
                 "mv         a2, %2\n\t"     // a2 = input_data
-                "outer_loop:\n\t"
+                "1:\n\t"
                 "mv         t1, %5\n\t"     // t1 = inner_size
                 "mv         a1, %3\n\t"     // a1 = alpha_data
-                "inner_loop:\n\t"
+                "2:\n\t"
                 "vsetvli    t0, t1, e32, m1\n\t"
                 "vlw.v      v2, (a2)\n\t"   // load input_data to v2,v3
                 "sub        t1, t1, t0\n\t"
@@ -49,10 +49,10 @@ static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
                 "vfmul.vv   v2, v2, v4, v0.t\n\t"
                 "vsw.v      v2, (a0)\n\t"
                 "add        a0, a0, t0\n\t"
-                "bnez       t1, inner_loop\n\t" // finish all channel
+                "bnez       t1, 2b\n\t"     // finish all channel
 
                 "addi       %4, %4, -1\n\t"
-                "bnez       %4, outer_loop\n\t"
+                "bnez       %4, 1b\n\t"
 
                 :"=r"(output_data)  // %0
                 :"0"(output_data),  // %1
@@ -101,14 +101,14 @@ static int csi_c906_prelu_nchw_f32(struct csi_tensor *input,
                 "mv         t3, %4\n\t"     // t3 = batch
                 "mv         a2, %2\n\t"     // a2 = input_data
                 "mv         a0, %0\n\t"     // a0 = output_data
-                "loop3:\n\t"
+                "1:\n\t"
                 "mv         t2, %5\n\t"     // t2 = channel
                 "mv         a1, %3\n\t"     // a1 = alpha_data
-                "loop2:\n\t"
+                "2:\n\t"
                 "mv         t1, %6\n\t"     // t1 = size;
                 "flw        ft0, (a1)\n\t"
                 "addi       a1, a1, 4\n\t"
-                "loop1:\n\t"
+                "3:\n\t"
                 "vsetvli    t0, t1, e32, m2\n\t"
                 "vlw.v      v2, (a2)\n\t"
                 "sub        t1, t1, t0\n\t"
@@ -118,13 +118,13 @@ static int csi_c906_prelu_nchw_f32(struct csi_tensor *input,
                 "vfmul.vf   v2, v2, ft0, v0.t\n\t"
                 "vsw.v      v2, (a0)\n\t"
                 "add        a0, a0, t0\n\t"
-                "bnez       t1, loop1\n\t"
+                "bnez       t1, 3b\n\t"
 
                 "addi       t2, t2, -1\n\t"
-                "bnez       t2, loop2\n\t"
+                "bnez       t2, 2b\n\t"
 
                 "addi       t3, t3, -1\n\t"
-                "bnez       t3, loop3\n\t"
+                "bnez       t3, 1b\n\t"
 
                 :"=r"(output_data)  // %0
                 :"0"(output_data),  // %1
@@ -152,4 +152,62 @@ int csi_c906_prelu_f32(struct csi_tensor *input,
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+}
+
+
+// nchw layout
+int csi_c906_prelu_fp16(struct csi_tensor *input,
+                        struct csi_tensor *alpha,
+                        struct csi_tensor *output,
+                        struct prelu_params *params)
+{
+    __fp16 *input_data = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+    __fp16 *alpha_data = (__fp16 *)alpha->data;
+
+    int batch = output->dim[0];
+    int channel = output->dim[1];
+    int size = output->dim[2] * output->dim[3];
+
+    asm volatile(
+                "fmv.h.x    ft1, zero\n\t"
+                "mv         t3, %4\n\t"     // t3 = batch
+                "mv         a2, %2\n\t"     // a2 = input_data
+                "mv         a0, %0\n\t"     // a0 = output_data
+                "1:\n\t"    // batch loop
+                "mv         t2, %5\n\t"     // t2 = channel
+                "mv         a1, %3\n\t"     // a1 = alpha_data
+                "2:\n\t"    // channel loop
+                "mv         t1, %6\n\t"     // t1 = size;
+                "flh        ft0, (a1)\n\t"  // load alpha
+                "addi       a1, a1, 2\n\t"  // alpha_addr ++
+                "3:\n\t"    // size loop
+                "vsetvli    t0, t1, e16, m2\n\t"
+                "vle.v      v8, (a2)\n\t"
+                "sub        t1, t1, t0\n\t"
+                "slli       t0, t0, 1\n\t"
+                "add        a2, a2, t0\n\t"
+                "vmflt.vf   v0, v8, ft1\n\t"
+                "vfmul.vf   v8, v8, ft0, v0.t\n\t"
+                "vse.v      v8, (a0)\n\t"
+                "add        a0, a0, t0\n\t"
+                "bnez       t1, 3b\n\t"
+
+                "addi       t2, t2, -1\n\t"
+                "bnez       t2, 2b\n\t"
+
+                "addi       t3, t3, -1\n\t"
+                "bnez       t3, 1b\n\t"
+
+                :"=r"(output_data)  // %0
+                :"0"(output_data),  // %1
+                "r"(input_data),    // %2
+                "r"(alpha_data),    // %3
+                "r"(batch),         // %4
+                "r"(channel),       // %5
+                "r"(size)           // %6
+                : "v0", "v8", "v9", "t0", "t1", "t2", "t3", "a0", "a1", "a2", "ft0", "ft1"
+    );
+
+    return CSINN_TRUE;
 }

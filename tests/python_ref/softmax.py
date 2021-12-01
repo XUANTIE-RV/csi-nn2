@@ -11,10 +11,10 @@ def softmax_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(64, high=256, size=1))
-    in_size_y   = int(np.random.randint(64, high=256, size=1))
-    in_channel  = int(np.random.randint(1, high=64, size=1))
-    zero_point = int(np.random.randint(-60000, high=60000, size=1))
+    in_size_x   = int(np.random.randint(16, high=32, size=1))
+    in_size_y   = int(np.random.randint(16, high=32, size=1))
+    in_channel  = int(np.random.randint(1, high=16, size=1))
+    zero_point = int(np.random.randint(-60, high=60, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
     axis = int(np.random.randint(0, high=4, size=1))

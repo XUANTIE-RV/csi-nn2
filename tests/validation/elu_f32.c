@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -40,9 +40,9 @@ int main(int argc, char** argv)
     input->dim[3] = buffer[3];          // width
 
     output->dim[0] = input->dim[0];
-    output->dim[0] = input->dim[1];
-    output->dim[0] = input->dim[2];
-    output->dim[0] = input->dim[3];
+    output->dim[1] = input->dim[1];
+    output->dim[2] = input->dim[2];
+    output->dim[3] = input->dim[3];
 
     input->dim_count = 4;
     output->dim_count = 4;
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     input->data      = (float *)(buffer + 4);
     reference->data  = (float *)(buffer + 4 + in_size);
     output->data     = malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_elu_init(input, output, &params) == CSINN_TRUE) {
         csi_elu(input, output, &params);

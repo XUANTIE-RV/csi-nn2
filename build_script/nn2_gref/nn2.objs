@@ -152,3 +152,4 @@ objects += ${NN2_ROOT}/source/graph_ref/reorg.o
 objects += ${NN2_ROOT}/source/graph_ref/sequence_mask.o
 objects += ${NN2_ROOT}/source/graph_ref/where.o
 objects += ${NN2_ROOT}/source/graph_ref/space_to_batch_nd.o
+objects += ${NN2_ROOT}/source/graph_ref/subgraph.o

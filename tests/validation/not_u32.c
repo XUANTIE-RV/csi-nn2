@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     input->data    = (uint32_t *)(buffer + 1 + input->dim_count);
     reference->data = (uint32_t *)(buffer + 1 + input->dim_count + in_size);
     output->data    = (uint32_t *)malloc(out_size * sizeof(uint32_t));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_not_init(input, output, &params) == CSINN_TRUE) {
         csi_not(input, output, &params);

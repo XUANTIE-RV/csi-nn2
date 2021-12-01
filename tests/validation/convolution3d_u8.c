@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -86,9 +86,24 @@ int main(int argc, char** argv)
     bias->dim_count = 1;
     output->dim_count = 5;
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCDHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     kernel->dtype = CSINN_DTYPE_UINT8;
+    kernel->layout = CSINN_LAYOUT_OIDHW;
+    kernel->is_const = 1;
+    kernel->quant_channel = 1;
+
     bias->dtype = CSINN_DTYPE_UINT8;
+    bias->layout = CSINN_LAYOUT_O;
+    bias->is_const = 1;
+    bias->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCDHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
 
     in_size     = input->dim[0]  * input->dim[1]  * input->dim[2]  * input->dim[3]  * input->dim[4];
     out_size    = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3] * output->dim[4];
@@ -167,7 +182,7 @@ int main(int argc, char** argv)
     get_quant_info(output);
     scale3=output->qinfo->scale;
     scale=(scale1*scale2)/scale3;
-    quantize_multiplier(scale, &quantized_multiplier, &shift);
+    csi_quantize_multiplier(scale, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;
     output->qinfo->shift      = shift;
 
@@ -179,14 +194,14 @@ int main(int argc, char** argv)
 
 
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_conv3d_init(input, output, kernel, bias, &params) == CSINN_TRUE) {
         csi_conv3d(input, output, kernel, bias, &params);
     }
 
 
-    quantize_multiplier(scale3, &quantized_multiplier, &shift);
+    csi_quantize_multiplier(scale3, &quantized_multiplier, &shift);
     output->qinfo->multiplier = quantized_multiplier;
     output->qinfo->shift      = shift;
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

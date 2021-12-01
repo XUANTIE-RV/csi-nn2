@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -37,10 +37,10 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
 
-    input0->dim[0] = buffer[0];          // batch
-    input0->dim[1] = buffer[1];          // height
-    input0->dim[2] = buffer[2];          // width
-    input0->dim[3] = buffer[3];          // channel
+    input0->dim[0] = buffer[0];          
+    input0->dim[1] = buffer[1];          
+    input0->dim[2] = buffer[2];        
+    input0->dim[3] = buffer[3];          
 
     output->dim[0] = input0->dim[0];
     output->dim[1] = input0->dim[1];
@@ -51,7 +51,14 @@ int main(int argc, char** argv)
     input0->dim_count = 4;
     output->dim_count = 4;
     input0->dtype = CSINN_DTYPE_INT8;
+    input0->layout = CSINN_LAYOUT_NCHW;
+    input0->is_const = 0;
+    input0->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -90,7 +97,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(in_size0 * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_log1p_init(input0, output, &params) == CSINN_TRUE) {
         csi_log1p(input0, output, &params);

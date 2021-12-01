@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #ifdef CSI_AVX_OPT
@@ -97,15 +97,16 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
 #ifdef CSI_AVX_OPT
     struct csi_tensor *t_input = csi_alloc_tensor(NULL);
     csi_tensor_copy(t_input, input);
-    int32_t pad_b[4] = {0, params->pad_top, params->pad_left, 0};
-    int32_t pad_a[4] = {0, params->pad_down, params->pad_right, 0};
+    int32_t pad_b[4] = {0, 0, params->pad_top, params->pad_left};
+    int32_t pad_a[4] = {0, 0, params->pad_down, params->pad_right};
     t_input->dim[2] = input->dim[2] + params->pad_top + params->pad_down;
     t_input->dim[3] = input->dim[3] + params->pad_left + params->pad_right;
-    t_input->data = malloc(t_input->dim[0] * t_input->dim[1] *
+    t_input->data = csi_mem_alloc(t_input->dim[0] * t_input->dim[1] *
                            t_input->dim[2] * t_input->dim[3] * 4);
     struct pad_params pparams;
     pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
+    pparams.base.run_mode = CSINN_RM_LAYER;
     pparams.pad_before = pad_b;
     pparams.pad_after = pad_a;
     pparams.pad_num = 4;
@@ -121,8 +122,8 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
                           kernel->dim[3], kernel->dim[2],
                           params->stride_width, params->stride_height);
 
-    free(t_input->data);
-    free(t_kernel->data);
+    csi_mem_free(t_input->data);
+    csi_mem_free(t_kernel->data);
 #else
     struct csi_tensor* t_input;
     struct csi_tensor* t_output;
@@ -133,10 +134,10 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
     t_output = csi_ref_nchw_to_nhwc_f32(output);
     csi_ref_conv2d_nhwc_f32(t_input, t_output, t_kernel, t_bias, params);
     csi_ref_nhwc_to_nchw_f32(output, t_output);
-    free(t_input->data);
-    free(t_input);
-    free(t_kernel->data);
-    free(t_kernel);
+    csi_mem_free(t_input->data);
+    csi_mem_free(t_input);
+    csi_mem_free(t_kernel->data);
+    csi_mem_free(t_kernel);
 
 #endif
     return CSINN_TRUE;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -37,10 +37,10 @@ int main(int argc, char** argv)
     float max_error = 0.0f;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];       // batch
-    input->dim[1] = buffer[1];       // height
-    input->dim[2] = buffer[2];       // width
-    input->dim[3] = buffer[3];       // in_channel
+    input->dim[0] = buffer[0];
+    input->dim[1] = buffer[1];
+    input->dim[2] = buffer[2];
+    input->dim[3] = buffer[3];
 
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
@@ -48,10 +48,18 @@ int main(int argc, char** argv)
     output->dim[3] = input->dim[3];
 
     params.range = buffer[4];
-    params.base.layout = CSINN_LAYOUT_NHWC;
+    params.base.layout = CSINN_LAYOUT_NCHW;
 
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+
     input->dim_count = 4;
     output->dim_count = 4;
 
@@ -73,16 +81,16 @@ int main(int argc, char** argv)
     }
 
 
-    quantize_multiplier(*(float *)(buffer + 5), &quantized_multiplier, &shift);
+    csi_quantize_multiplier(*(float *)(buffer + 5), &quantized_multiplier, &shift);
     params.bias_multiplier  = quantized_multiplier;
     params.bias_shift       = shift;
 
-    quantize_multiplier(*(float *)(buffer + 6), &quantized_multiplier, &shift);
+    csi_quantize_multiplier(*(float *)(buffer + 6), &quantized_multiplier, &shift);
     params.alpha_multiplier  = quantized_multiplier;
     params.alpha_shift       = shift;
 
 
-    quantize_multiplier(*(float *)(buffer + 7), &quantized_multiplier, &shift);
+    csi_quantize_multiplier(*(float *)(buffer + 7), &quantized_multiplier, &shift);
     params.beta_multiplier  = quantized_multiplier;
     params.beta_shift       = shift;
 

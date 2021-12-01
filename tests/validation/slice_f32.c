@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -33,10 +33,10 @@ int main(int argc, char** argv)
     int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // height
-    input->dim[2] = buffer[2];          // width
-    input->dim[3] = buffer[3];          // channel
+    input->dim[0] = buffer[0];         
+    input->dim[1] = buffer[1];         
+    input->dim[2] = buffer[2];         
+    input->dim[3] = buffer[3];        
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     input->data    = (float *)(buffer + 12);
     params.slice_num = 4;
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
     params.base.run_mode = CSINN_RM_LAYER;    
     reference->data = (float *)(buffer + 12 + in_size);
     output->data    = (float *)malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_slice_init(input, output, &params) == CSINN_TRUE) {

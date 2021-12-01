@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -70,26 +70,33 @@ int main(int argc, char** argv)
 
     for(int i = 0; i < params.inputs_count; i++) {
         input[i]->data = src_in[i];
+        input[i]->dim[0] = buffer[0];          
+        input[i]->dim[1] = buffer[1];         
+        input[i]->dim[2] = buffer[2];         
+        input[i]->dim[3] = buffer[3];          
+        input[i]->dim_count = 4;
+        input[i]->dtype = CSINN_DTYPE_UINT8;
+        input[i]->layout = CSINN_LAYOUT_NCHW;
+        input[i]->is_const = 0;
+        input[i]->quant_channel = 1;
         get_quant_info(input[i]);
         for(int j = 0; j < in_size; j++) {
             src_tmp[i][j] = csi_ref_quantize_f32_to_u8(src_in[i][j], input[i]->qinfo);
         }
         input[i]->data = src_tmp[i];
-        input[i]->dim[0] = buffer[0];          // batch
-        input[i]->dim[1] = buffer[1];          // height
-        input[i]->dim[2] = buffer[2];          // width
-        input[i]->dim[3] = buffer[3];          // channel
-        input[i]->dim_count = 4;
-        input[i]->dtype = CSINN_DTYPE_UINT8;
     }
+
+    output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
 
     output->data = ref;
     get_quant_info(output);
 
-    output->dtype = CSINN_DTYPE_UINT8;
     reference->data = ref;  
     output->data  = (uint8_t *)malloc(out_size * sizeof(uint8_t));
-    float difference = argc > 2 ? atof(argv[2]) : error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_concat_init((struct csi_tensor **)input, output, &params) == CSINN_TRUE) {
         csi_concat((struct csi_tensor **)input, output, &params);

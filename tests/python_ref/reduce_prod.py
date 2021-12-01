@@ -11,12 +11,12 @@ def reduce_prod_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
-    in_size_x  = int(np.random.randint(8, high=128, size=1))
-    in_size_y  = int(np.random.randint(8, high=128, size=1))
+    in_size_x  = int(np.random.randint(8, high=16, size=1))
+    in_size_y  = int(np.random.randint(8, high=16, size=1))
     in_channel = int(np.random.randint(1, high=8, size=1))
 
-    zero_point = int(np.random.randint(-600, high=600, size=1))
-    std        = int(np.random.randint(1, high=20, size=1))
+    zero_point = int(np.random.randint(-3, high=3, size=1))
+    std        = int(np.random.randint(1, high=3, size=1))
 
     reduce_dim = int(np.random.randint(-1, high=4, size=1))
 

@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 #ifndef _CSI_INTERNAL_H
 #define _CSI_INTERNAL_H
 
 /* data type */
-enum
-{
-    CSINN_DTYPE_UINT8 = 0,
+enum csinn_dtype_enum {
+    CSINN_DTYPE_BOOL = 0,
+    CSINN_DTYPE_UINT8,
     CSINN_DTYPE_INT8,
     CSINN_DTYPE_UINT16,
     CSINN_DTYPE_INT16,
@@ -36,19 +36,20 @@ enum
 };
 
 /* data type */
-enum
-{
-    CSINN_QUANT_UINT8_ASYM = 0,
+enum csinn_quant_enum {
+    CSINN_QUANT_UNSET = 0,
+    CSINN_QUANT_UINT8_ASYM,
     CSINN_QUANT_UINT8_SYM,
     CSINN_QUANT_INT8_ASYM,
     CSINN_QUANT_INT8_SYM,
+    CSINN_QUANT_INT16_SYM,
+    CSINN_QUANT_FLOAT16,
     CSINN_QUANT_FLOAT32,
     CSINN_QUANT_SIZE,
 };
 
 /* API type */
-enum
-{
+enum csinn_api_enum {
     CSINN_REF = 0,
     CSINN_GREF,
     CSINN_C860,
@@ -58,13 +59,15 @@ enum
     CSINN_CH8601,
     CSINN_LIGHT,
     CSINN_DP1K,
+    CSINN_I805,
+    CSINN_E804,
+    CSINN_REF_I805,
     CSINN_TVMGEN,
     CSINN_API_SIZE,
 };
 
 /* run mode */
-enum
-{
+enum csinn_rmode_enum {
     CSINN_RM_LAYER = 0,
     CSINN_RM_CPU_GRAPH,
     CSINN_RM_NPU_GRAPH,
@@ -72,16 +75,14 @@ enum
 };
 
 /* model save */
-enum
-{
+enum csinn_mode_save_enum {
     CSINN_SAVE_AND_RUN = 0,
     CSINN_SAVE_ONLY,
     CSINN_RUN_ONLY,
 };
 
 /* op and utils */
-enum
-{
+enum csinn_op_enum {
     CSINN_OP_ABS = 0,
     CSINN_OP_ACOS,
     CSINN_OP_ACOSH,
@@ -170,7 +171,7 @@ enum
     CSINN_OP_LRN,
     CSINN_OP_MATMUL,
     CSINN_OP_MAX,
-    CSINN_OP_MAXINUM,
+    CSINN_OP_MAXIMUM,
     CSINN_OP_MAXPOOL2D,
     CSINN_OP_MAXPOOL2D_LOCAT,
     CSINN_OP_MAXPOOL3D,
@@ -281,56 +282,51 @@ enum
     /* graph */
     CSINN_TENSOR,
     CSINN_SUBGRAPH,
+    CSINN_SUBGRAPH_RETURN,
     CSINN_OP_AND_UTILS_SIZE,
 };
 
 /* convolution mode */
-enum
-{
+enum csinn_conv_mode_enum {
     CSINN_DIRECT = 0x0,   /* using direct optimizational convolution */
     CSINN_WINOGRAD = 0x1, /* using winograd fast convolution */
     CSINN_GEMM = 0x2,     /* using im2col + gemm convolution, im2col is optional */
 };
 
 /* pad mode */
-enum
-{
+enum csinn_pad_enum {
     CSINN_PAD_CONSTANT = 0x0, /* pads with constant_value pad_value */
     CSINN_PAD_EDGE = 0x1,     /* pads using the edge values of the input array */
     CSINN_PAD_REFLECT = 0x2,  /* pads by reflecting values with respect to the edge */
 };
 
 /* resize mode */
-enum
-{
+enum csinn_resize_enum {
     CSINN_RESIZE_BILINEAR = 0x0,
     CSINN_RESIZE_NEAREST_NEIGHBOR = 0x1,
     CSINN_RESIZE_NEAREST_BICUBIC = 0x2,
 };
 
 /* depth2space mode */
-enum
-{
+enum csinn_depth2space_enum {
     CSINN_DEPTHTOSPACE_DCR = 0x0,
     CSINN_DEPTHTOSPACE_CRD = 0x1,
 };
 
 /* local_response_normalization(lrn) mode */
-enum
-{
+enum csinn_lrn_enum {
     CSINN_LRN_ACROSS_CHANNELS = 0x0,
     CSINN_LRN_WITHIN_CHANNEL,
 };
 
-enum
-{
+enum csinn_layout_enum {
     CSINN_LAYOUT_NULL = 0x0,
     // NCHW
     // ACTIVITION
     CSINN_LAYOUT_N,
     CSINN_LAYOUT_NC,
     CSINN_LAYOUT_NCW,
-    CSINN_LAYOUT_NCHW ,
+    CSINN_LAYOUT_NCHW,
     CSINN_LAYOUT_NCDHW,
     // WEIGHT
     CSINN_LAYOUT_O,
@@ -341,12 +337,17 @@ enum
 
     // NHWC
     // ACTIVITION
+    CSINN_LAYOUT_NWC,
     CSINN_LAYOUT_NHWC,
     CSINN_LAYOUT_NDHWC,
+    // WEIGHT
+    CSINN_LAYOUT_OWI,
+    CSINN_LAYOUT_OHWI,
+    CSINN_LAYOUT_ODHWI,
+
 };
 
-enum
-{
+enum csinn_status_enum {
     CSINN_UNSUPPORT_LAYOUT = -3,
     CSINN_UNSUPPORT_DTYPE = -2,
     CSINN_CALLBACK_UNSET = -1,
@@ -368,7 +369,7 @@ struct csi_quant_info
 struct csi_tensor
 {
     void *data;
-    int32_t dtype;
+    enum csinn_dtype_enum dtype;
     int32_t dim[MAX_DIM];
     int32_t dim_count;
     uint32_t is_const;
@@ -398,6 +399,7 @@ struct csi_params_base
     int32_t layout;
     int32_t api;
     int32_t run_mode;
+    struct csi_session *sess;
 };
 
 struct fsmn_params
@@ -425,7 +427,7 @@ struct conv2d_params
     struct
     {
         struct csi_tensor *kernel_tm;
-        int32_t conv_mode;
+        enum csinn_conv_mode_enum conv_mode;
     } conv_extra;
 };
 
@@ -574,7 +576,7 @@ struct lrn_params
     double beta;
     int32_t beta_multiplier;
     int32_t beta_shift;
-    int32_t norm_region;
+    enum csinn_lrn_enum norm_region;
 };
 
 struct matmul_params
@@ -601,13 +603,13 @@ struct pad_params
     int32_t *pad_after;
     int32_t pad_num;
     float pad_value;
-    int32_t pad_mode;
+    enum csinn_pad_enum pad_mode;
 };
 
 struct resize_params
 {
     struct csi_params_base base;
-    int32_t resize_mode;
+    enum csinn_resize_enum resize_mode;
     bool align_corners;
 };
 
@@ -824,7 +826,7 @@ struct space_to_depth_params
 struct depth_to_space_params
 {
     struct csi_params_base base;
-    int32_t mode;
+    enum csinn_depth2space_enum mode;
     int32_t block_size;
 };
 

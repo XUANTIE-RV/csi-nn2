@@ -11,8 +11,8 @@ def convolution_relu_f32():
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(64, high=128, size=1))	    
-    in_size_y   = int(np.random.randint(64, high=128, size=1))
+    in_size_x   = int(np.random.randint(32, high=64, size=1))	    
+    in_size_y   = int(np.random.randint(32, high=64, size=1))
     in_channel  = int(np.random.randint(1, high=64, size=1))
     stride_x    = int(np.random.randint(1, high=2, size=1))
     stride_y    = int(np.random.randint(1, high=2, size=1))
@@ -37,11 +37,11 @@ def convolution_relu_f32():
         pad_down   = pad_y - pad_top
 
     out_channel = int(np.random.randint(1, high=64, size=1))
-    zero_point1 = int(np.random.randint(-600, high=600, size=1))
+    zero_point1 = int(np.random.randint(-60, high=60, size=1))
     std1        = int(np.random.randint(30, high=40, size=1))
-    zero_point2 = int(np.random.randint(-600, high=600, size=1))
+    zero_point2 = int(np.random.randint(-60, high=60, size=1))
     std2        = int(np.random.randint(30, high=40, size=1))
-    zero_point3 = int(np.random.randint(-600, high=600, size=1))
+    zero_point3 = int(np.random.randint(-60, high=60, size=1))
     std3        = int(np.random.randint(30, high=40, size=1))
 
     src_in = np.random.normal(zero_point1, std1, (batch, in_channel, in_size_y, in_size_x))

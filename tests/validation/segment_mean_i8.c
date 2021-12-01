@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -36,23 +36,32 @@ int main(int argc, char** argv)
     float error = 0;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // height
-    input->dim[2] = buffer[2];          // width
-    input->dim[3] = buffer[3];          // channel
-    output->dim[0] = buffer[4];          // batch
-    output->dim[1] = buffer[1];          // height
-    output->dim[2] = buffer[2];          // width
-    output->dim[3] = buffer[3];          // channel
+    input->dim[0] = buffer[0];          
+    input->dim[1] = buffer[1];          
+    input->dim[2] = buffer[2];         
+    input->dim[3] = buffer[3];          
+    output->dim[0] = buffer[4];          
+    output->dim[1] = buffer[1];         
+    output->dim[2] = buffer[2];          
+    output->dim[3] = buffer[3];          
 
     input->dim_count = 4;
     output->dim_count = 4;
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+
     params.num_segments = buffer[4];
     params.unsorted = CSINN_FALSE;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
+    params.base.layout = CSINN_LAYOUT_NCHW;
 
     in_size  = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
@@ -92,7 +101,7 @@ int main(int argc, char** argv)
     output->data     = malloc(out_size * sizeof(char));
 
 
-    float difference = argc > 2 ? *argv[2] : error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
     printf("The max error is %.6lf.\n", error);
 
     if (csi_segment_mean_init(input, segment, output, &params) == CSINN_TRUE) {

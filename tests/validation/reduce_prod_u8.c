@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -38,10 +38,10 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
 
-    reference->dim[0] = input0->dim[0] = buffer[0];          // batch
-    reference->dim[1] = input0->dim[1] = buffer[1];          // height
-    reference->dim[2] = input0->dim[2] = buffer[2];          // width
-    reference->dim[3] = input0->dim[3] = buffer[3];          // channel
+    reference->dim[0] = input0->dim[0] = buffer[0];         
+    reference->dim[1] = input0->dim[1] = buffer[1];         
+    reference->dim[2] = input0->dim[2] = buffer[2];          
+    reference->dim[3] = input0->dim[3] = buffer[3];         
 
     params.axis_count = 1;
     params.axis = (int *)malloc(sizeof(int) * params.axis_count);
@@ -50,7 +50,14 @@ int main(int argc, char** argv)
     in_size0 = input0->dim[0] * input0->dim[1] * input0->dim[2] * input0->dim[3];
     input0->dim_count = 4;
     input0->dtype = CSINN_DTYPE_UINT8;
+    input0->layout = CSINN_LAYOUT_NCHW;
+    input0->is_const = 0;
+    input0->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -105,11 +112,11 @@ int main(int argc, char** argv)
     input0->data     = src_tmp;
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     // output->data    = (float *)malloc(out_size * sizeof(float));
-    // float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    // float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_reduce_prod_init(input0, output, &params) == CSINN_TRUE) {
         csi_reduce_prod(input0, output, &params);

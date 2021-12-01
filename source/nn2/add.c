@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_nn.h"
 
@@ -25,6 +25,13 @@ int csi_add_init(struct csi_tensor *input0,
                  struct csi_tensor *output,
                  struct diso_params *params)
 {
+    if (params->base.run_mode != CSINN_RM_CPU_GRAPH) {
+        int (*init_func)();
+        init_func = csi_init_map(params->base.api, CSINN_OP_ADD, input0->dtype);
+        if (init_func != NULL) {
+            return init_func(input0, input1, output, params);
+        }
+    }
     params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_ADD, input0->dtype);
     if (params->base.bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;

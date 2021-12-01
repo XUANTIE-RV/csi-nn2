@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -39,6 +39,10 @@ int main(int argc, char** argv)
     /* get the dim para */
     output->dim_count = input->dim_count = buffer[0];
     params.epsilon = *(float *)&buffer[1];
+    int32_t axis[] = {1};
+    params.axis = axis;
+    params.n = 1;
+
     for (int i = 0; i < input->dim_count; ++i) {
         output->dim[i] = input->dim[i] = buffer[2 + i];
     }
@@ -48,7 +52,14 @@ int main(int argc, char** argv)
     }
 
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -87,7 +98,7 @@ int main(int argc, char** argv)
     input->data     = input_tmp;
     reference->data = ref;
     output->data    = malloc(size * sizeof(char));
-    float difference = argc > 2 ? atof(argv[2]) : error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
     printf("The max error is %.6lf.\n", error);
 
     if (csi_l2_normalization_init(input, output, &params) == CSINN_TRUE) {

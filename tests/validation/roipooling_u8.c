@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -45,6 +45,9 @@ int main(int argc, char** argv)
     input0->dim_count = 4;
     in0_size = input0->dim[0] * input0->dim[1] * input0->dim[2] * input0->dim[3];
     input0->dtype = CSINN_DTYPE_UINT8;
+    input0->layout = CSINN_LAYOUT_NCHW;
+    input0->is_const = 0;
+    input0->quant_channel = 1;
 
     input0->name = "input0";
     float *src0_in   = (float *)(buffer + 10);
@@ -62,6 +65,11 @@ int main(int argc, char** argv)
     in1_size = input1->dim[0] * input1->dim[1];
 
     input1->name = "input1";
+    input1->dtype = CSINN_DTYPE_UINT8;
+    input1->layout = CSINN_LAYOUT_NC;
+    input1->is_const = 0;
+    input1->quant_channel = 1;
+
     float *src1_in  = (float *)(buffer + 10 + in0_size);
     uint8_t *src1_tmp  = malloc(in1_size * sizeof(char));
     input1->data = src1_in;
@@ -80,6 +88,10 @@ int main(int argc, char** argv)
     float *ref      = (float *)(buffer + 10 + in0_size + in1_size);
 
     output->name = "output";
+    output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     output->data = ref;
     get_quant_info(output);
     reference->data = ref;

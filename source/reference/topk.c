@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -39,7 +39,7 @@ int csi_ref_topk_f32(struct csi_tensor *input,
     }
     float *input_sort_addr = input_data;
     for(int n = 0; n < inner_size; n++) {
-        int *flag = (int *)calloc(last_dim, sizeof(int));
+        int *flag = (int *)csi_mem_alloc(last_dim * sizeof(int));
         for(int i = 0; i < k; i++) {
             values_data[i] = -FLT_MAX;
             for(int j = 0; j < last_dim; j++) {
@@ -50,7 +50,7 @@ int csi_ref_topk_f32(struct csi_tensor *input,
             }
             flag[indices_data[i]] = 1;
         }
-        free(flag);
+        csi_mem_free(flag);
         flag = NULL;
         input_sort_addr += last_dim;
         values_data += k;

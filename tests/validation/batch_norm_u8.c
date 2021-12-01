@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -62,14 +62,41 @@ int main(int argc, char** argv)
     beta->dim[0]     = input->dim[input->dim_count - 1];
 
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NHWC;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NHWC;
+    output->is_const = 0;
+    output->quant_channel = 1;
+
     mean->dtype = CSINN_DTYPE_UINT8;
+    mean->layout = CSINN_LAYOUT_O;
+    mean->is_const = 0;
+    mean->quant_channel = 1;
+
     variance->dtype = CSINN_DTYPE_UINT8;
+    variance->layout = CSINN_LAYOUT_O;
+    variance->is_const = 0;
+    variance->quant_channel = 1;
+
     gamma->dtype = CSINN_DTYPE_UINT8;
+    gamma->layout = CSINN_LAYOUT_O;
+    gamma->is_const = 0;
+    gamma->quant_channel = 1;
+
     beta->dtype = CSINN_DTYPE_UINT8;
+    beta->layout = CSINN_LAYOUT_O;
+    beta->is_const = 0;
+    beta->quant_channel = 1;
 
     params.base.layout = CSINN_LAYOUT_NHWC;
     params.epsilon = *(float *)&buffer[1 + input->dim_count];
+    csi_quantize_multiplier(params.epsilon, &quantized_multiplier, &shift);
+    params.epsilon_multiplier = quantized_multiplier;
+    params.epsilon_shift = shift;
+
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -198,7 +225,7 @@ int main(int argc, char** argv)
     beta->data      = beta_tmp;
     reference->data = ref;
     output->data    = malloc(size * sizeof(char));
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_batch_normalization_init(input, mean, variance, gamma, beta, output, &params) == CSINN_TRUE) {
         csi_batch_normalization(input, mean, variance, gamma, beta, output, &params);

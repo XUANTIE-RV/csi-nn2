@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 #ifndef _CSI_DEBUG_H
 #define _CSI_DEBUG_H
 
-enum
-{
+enum csinn_debug_enum {
     CSI_DEBUG_LEVEL_INFO = -1,
     CSI_DEBUG_LEVEL_WARNING,
     CSI_DEBUG_LEVEL_ERROR,

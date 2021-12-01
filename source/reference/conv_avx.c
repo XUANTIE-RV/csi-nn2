@@ -1,5 +1,5 @@
 #include <immintrin.h>
-static float *channel(struct csi_tensor *t, int c)
+static float *channel(struct csi_tensor *t, int64_t c)
 {
     return (float *)t->data + c * t->dim[2] * t->dim[3];
 }
@@ -13,27 +13,27 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
     csi_tensor_copy(t_kernel, o_kernel);
     // kernel memory packed 8 x 8
-    int outch = o_kernel->dim[0];
-    int inch = o_kernel->dim[1];
-    int kernel_size = o_kernel->dim[2] * o_kernel->dim[3];
+    int64_t outch = o_kernel->dim[0];
+    int64_t inch = o_kernel->dim[1];
+    int64_t kernel_size = o_kernel->dim[2] * o_kernel->dim[3];
     t_kernel->dim[0] = 0;
     t_kernel->dim[1] = outch/8 + (outch%8)/4 + outch%4;
     t_kernel->dim[2] = o_kernel->dim[1];
     t_kernel->dim[3] = o_kernel->dim[2] * o_kernel->dim[3] * 8;
 
-    ret = malloc(8 * kernel_size * inch * (outch/8 + (outch%8)/4 + outch%4) *
+    ret = csi_mem_alloc(8 * kernel_size * inch * (outch/8 + (outch%8)/4 + outch%4) *
                  sizeof(float));
     t_kernel->data = ret;
 
-    int nn_outch = 0;
-    int remain_outch_start = 0;
+    int64_t nn_outch = 0;
+    int64_t remain_outch_start = 0;
 
     nn_outch = outch >> 3;
     remain_outch_start = nn_outch << 3;
 
-    for (int pp=0; pp<nn_outch; pp++)
+    for (int64_t pp=0; pp<nn_outch; pp++)
     {
-        int p = pp * 8;
+        int64_t p = pp * 8;
 
         const float* k0 = kernel + (p+0)*inch*kernel_size;
         const float* k1 = kernel + (p+1)*inch*kernel_size;
@@ -46,7 +46,7 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
         float* ktmp = channel(t_kernel, (p/8));
 
-        for (int q=0; q<inch*kernel_size; q++)
+        for (int64_t q=0; q<inch*kernel_size; q++)
         {
             ktmp[0] = k0[0];
             ktmp[1] = k1[0];
@@ -71,9 +71,9 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
     nn_outch = (outch - remain_outch_start) >> 2;
 
-    for (int pp=0; pp<nn_outch; pp++)
+    for (int64_t pp=0; pp<nn_outch; pp++)
     {
-        int p = remain_outch_start + pp * 4;
+        int64_t p = remain_outch_start + pp * 4;
 
         const float* k0 = kernel + (p+0)*inch*kernel_size;
         const float* k1 = kernel + (p+1)*inch*kernel_size;
@@ -82,7 +82,7 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
         float* ktmp = channel(t_kernel, (p/8 + (p%8)/4));
 
-        for (int q=0; q<inch*kernel_size; q++)
+        for (int64_t q=0; q<inch*kernel_size; q++)
         {
             ktmp[0] = k0[0];
             ktmp[1] = k1[0];
@@ -99,13 +99,13 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
     remain_outch_start += nn_outch << 2;
 
-    for (int p=remain_outch_start; p<outch; p++)
+    for (int64_t p=remain_outch_start; p<outch; p++)
     {
         const float* k0 = kernel + (p+0)*inch*kernel_size;
 
         float* ktmp = channel(t_kernel, (p/8 + (p%8)/4 + p%4));
 
-        for (int q=0; q<inch*kernel_size; q++)
+        for (int64_t q=0; q<inch*kernel_size; q++)
         {
             ktmp[0] = k0[0];
             ktmp++;
@@ -116,15 +116,15 @@ static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
 
 static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *output,
                            struct csi_tensor *kernel_tm, struct csi_tensor *o_bias,
-                           int kernel_w, int kernel_h, int stride_w,
-                           int stride_h)
+                           int64_t kernel_w, int64_t kernel_h, int64_t stride_w,
+                           int64_t stride_h)
 {
-    int w = input->dim[3];
-    int inch = input->dim[1];
+    int64_t w = input->dim[3];
+    int64_t inch = input->dim[1];
 
-    int outw = output->dim[3];
-    int outh = output->dim[2];
-    int outch = output->dim[1];
+    int64_t outw = output->dim[3];
+    int64_t outh = output->dim[2];
+    int64_t outch = output->dim[1];
 
     float* bias = o_bias->data;
     if (o_bias->dim_count == 0) {
@@ -134,31 +134,31 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
     // im2col
     struct csi_tensor *bottom_im2col = csi_alloc_tensor(NULL);
     csi_tensor_copy(bottom_im2col, input);
-    bottom_im2col->data = malloc(outw*outh * kernel_h*kernel_w*inch * sizeof(float));
+    bottom_im2col->data = csi_mem_alloc(outw*outh * kernel_h*kernel_w*inch * sizeof(float));
     bottom_im2col->dim[0] = 0;
     bottom_im2col->dim[1] = 0;
     bottom_im2col->dim[2] = kernel_h*kernel_w*inch;
     bottom_im2col->dim[3] = outw*outh;
     {
-        const int stride = kernel_h*kernel_w*outw*outh;
+        const int64_t stride = kernel_h*kernel_w*outw*outh;
         float* ret = (float*)bottom_im2col->data;
 
         #pragma omp parallel for num_threads(8)
-        for (int p=0; p<inch; p++)
+        for (int64_t p=0; p<inch; p++)
         {
             const float* in = channel(input, p);
-            int retID = stride * p;
-            for (int u=0; u<kernel_h; u++)
+            int64_t retID = stride * p;
+            for (int64_t u=0; u<kernel_h; u++)
             {
-                for (int v=0; v<kernel_w; v++)
+                for (int64_t v=0; v<kernel_w; v++)
                 {
-                    for (int i=0; i<outh; i++)
+                    for (int64_t i=0; i<outh; i++)
                     {
-                        for (int j=0; j<outw; j++)
+                        for (int64_t j=0; j<outw; j++)
                         {
-                            int row = u + i * stride_h;
-                            int col = v + j * stride_w;
-                            int index = row * w + col;
+                            int64_t row = u + i * stride_h;
+                            int64_t col = v + j * stride_w;
+                            int64_t index = row * w + col;
                             ret[retID] = in[index];
                             retID++;
                         }
@@ -168,33 +168,33 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
         }
     }
 
-    int kernel_size = kernel_w * kernel_h;
-    int out_size = outw * outh;
+    int64_t kernel_size = kernel_w * kernel_h;
+    int64_t out_size = outw * outh;
 
     // bottom_im2col memory packed 8 x 8
     struct csi_tensor *bottom_tm = csi_alloc_tensor(NULL);
     csi_tensor_copy(bottom_tm, input);
-    bottom_tm->data = malloc(8*kernel_size * inch *
+    bottom_tm->data = csi_mem_alloc(8*kernel_size * inch *
                              (out_size/8 + out_size%8) * 4);
     bottom_tm->dim[0] = 0;
     bottom_tm->dim[1] = out_size/8 + out_size%8;
     bottom_tm->dim[2] = inch;
     bottom_tm->dim[3] = 8*kernel_size;
     {
-        int nn_size = out_size >> 3;
-        int remain_size_start = nn_size << 3;
+        int64_t nn_size = out_size >> 3;
+        int64_t remain_size_start = nn_size << 3;
 
         #pragma omp parallel for num_threads(8)
-        for (int ii=0; ii<nn_size; ii++)
+        for (int64_t ii=0; ii<nn_size; ii++)
         {
-            int i = ii * 8;
+            int64_t i = ii * 8;
 
             const float* img0 = channel(bottom_im2col, 0);
             img0 += i;
 
             float* tmpptr = channel(bottom_tm, (i/8));
 
-            for (int q=0; q<inch*kernel_size; q++)
+            for (int64_t q=0; q<inch*kernel_size; q++)
             {
 #ifdef CSI_AVX_OPT
                 _mm256_storeu_ps(tmpptr, _mm256_loadu_ps(img0));
@@ -214,14 +214,14 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
         }
 
         #pragma omp parallel for num_threads(8)
-        for (int i=remain_size_start; i<out_size; i++)
+        for (int64_t i=remain_size_start; i<out_size; i++)
         {
             const float* img0 = channel(bottom_im2col, 0);
             img0 += i;
 
             float* tmpptr = channel(bottom_tm, (i/8 + i%8));
 
-            for (int q=0; q<inch*kernel_size; q++)
+            for (int64_t q=0; q<inch*kernel_size; q++)
             {
                 tmpptr[0] = img0[0];
 
@@ -231,22 +231,22 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
         }
     }
 
-    // sgemm(int M, int N, int L, float* A, float* B, float* C)
+    // sgemm(int64_t M, int64_t N, int64_t L, float* A, float* B, float* C)
     {
-        //int M = outch;                    // outch
-        int N = outw * outh;                // outsize or out stride
-        int L = kernel_w * kernel_h * inch; // ksize * inch
+        //int64_t M = outch;                    // outch
+        int64_t N = outw * outh;                // outsize or out stride
+        int64_t L = kernel_w * kernel_h * inch; // ksize * inch
 
-        int nn_outch = 0;
-        int remain_outch_start = 0;
+        int64_t nn_outch = 0;
+        int64_t remain_outch_start = 0;
 
         nn_outch = outch >> 3;
         remain_outch_start = nn_outch << 3;
 
         #pragma omp parallel for num_threads(8)
-        for (int pp=0; pp<nn_outch; pp++)
+        for (int64_t pp=0; pp<nn_outch; pp++)
         {
-            int i = pp * 8;
+            int64_t i = pp * 8;
 
             float* output0 = channel(output, i);
             float* output1 = channel(output, i+1);
@@ -260,7 +260,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
             const float zeros[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
             const float* biasptr = bias ? bias + i : zeros;
 
-            int j=0;
+            int64_t j=0;
             for (; j+7<N; j=j+8)
             {
                 const float* vb = channel(bottom_tm, (j/8));
@@ -275,7 +275,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 __m256 _sum6 = _mm256_broadcast_ss(biasptr+6);
                 __m256 _sum7 = _mm256_broadcast_ss(biasptr+7);
 
-                int k=0;
+                int64_t k=0;
                 for (; k+3<L; k=k+4)
                 {
                     // k0
@@ -407,10 +407,10 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 float sum6[8] = {0};
                 float sum7[8] = {0};
 
-                int k=0;
+                int64_t k=0;
                 for (; k+7<L; k=k+8)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum0[n] += va[0] * vb[n];
                         sum1[n] += va[1] * vb[n];
@@ -499,7 +499,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
 
                 for (; k<L; k++)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum0[n] += va[0] * vb[n];
                         sum1[n] += va[1] * vb[n];
@@ -515,7 +515,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                     vb += 8;
                 }
 
-                for (int n=0; n<8; n++)
+                for (int64_t n=0; n<8; n++)
                 {
                     output0[n] = sum0[n] + biasptr[0];
                     output1[n] = sum1[n] + biasptr[1];
@@ -549,7 +549,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 __m256 _sum2 = _mm256_set1_ps(0.0);
                 __m256 _sum3 = _mm256_set1_ps(0.0);
 
-                int k=0;
+                int64_t k=0;
                 for (; k+3<L; k=k+4)
                 {
                     __m256 _vb0 = _mm256_broadcast_ss(vb);
@@ -607,7 +607,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 float sum6 = biasptr[6];
                 float sum7 = biasptr[7];
 
-                for (int k=0; k<L; k++)
+                for (int64_t k=0; k<L; k++)
                 {
                     sum0 += va[0] * vb[0];
                     sum1 += va[1] * vb[0];
@@ -645,9 +645,9 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
         nn_outch = (outch - remain_outch_start) >> 2;
 
         #pragma omp parallel for num_threads(8)
-        for (int pp=0; pp<nn_outch; pp++)
+        for (int64_t pp=0; pp<nn_outch; pp++)
         {
-            int i = remain_outch_start + pp * 4;
+            int64_t i = remain_outch_start + pp * 4;
 
             float* output0 = channel(output, i);
             float* output1 = channel(output, i+1);
@@ -657,7 +657,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
             const float zeros[4] = {0.f, 0.f, 0.f, 0.f};
             const float* biasptr = bias ? bias + i : zeros;
 
-            int j=0;
+            int64_t j=0;
             for (; j+7<N; j=j+8)
             {
                 const float* vb = channel(bottom_tm, (j/8));
@@ -668,7 +668,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 __m256 _sum2 = _mm256_broadcast_ss(biasptr+2);
                 __m256 _sum3 = _mm256_broadcast_ss(biasptr+3);
 
-                int k=0;
+                int64_t k=0;
                 for (; k+3<L; k=k+4)
                 {
                     // k0
@@ -752,10 +752,10 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 float sum2[8] = {0};
                 float sum3[8] = {0};
 
-                int k=0;
+                int64_t k=0;
                 for (; k+7<L; k=k+8)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum0[n] += va[0] * vb[n];
                         sum1[n] += va[1] * vb[n];
@@ -812,7 +812,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
 
                 for (; k<L; k++)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum0[n] += va[0] * vb[n];
                         sum1[n] += va[1] * vb[n];
@@ -824,7 +824,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                     vb += 8;
                 }
 
-                for (int n=0; n<8; n++)
+                for (int64_t n=0; n<8; n++)
                 {
                     output0[n] = sum0[n] + biasptr[0];
                     output1[n] = sum1[n] + biasptr[1];
@@ -849,7 +849,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 __m128 _sum2 = _mm_set1_ps(0.0);
                 __m128 _sum3 = _mm_set1_ps(0.0);
 
-                int k=0;
+                int64_t k=0;
                 for (; k+3<L; k=k+4)
                 {
                     __m128 _vb0 = _mm_set1_ps(vb[0]);
@@ -898,7 +898,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 float sum2 = biasptr[2];
                 float sum3 = biasptr[3];
 
-                for (int k=0; k<L; k++)
+                for (int64_t k=0; k<L; k++)
                 {
                     sum0 += va[0] * vb[0];
                     sum1 += va[1] * vb[0];
@@ -924,13 +924,13 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
         remain_outch_start += nn_outch << 2;
 
         #pragma omp parallel for num_threads(8)
-        for (int i=remain_outch_start; i<outch; i++)
+        for (int64_t i=remain_outch_start; i<outch; i++)
         {
             float* output0 = channel(output, i);
 
             const float bias0 = bias ? bias[i] : 0.f;
 
-            int j=0;
+            int64_t j=0;
             for (; j+7<N; j=j+8)
             {
                 const float* vb = channel(bottom_tm, (j/8));
@@ -938,7 +938,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
 #ifdef CSI_AVX_OPT
                 __m256 _sum0 = _mm256_broadcast_ss(&bias0);
 
-                int k=0;
+                int64_t k=0;
                 for (; k+3<L; k=k+4)
                 {
                     // k0
@@ -976,10 +976,10 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
 #else
                 float sum[8] = {0};
 
-                int k=0;
+                int64_t k=0;
                 for (; k+7<L; k=k+8)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum[n] += va[0] * vb[n];
                         sum[n] += va[1] * vb[n+8];
@@ -997,7 +997,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
 
                 for (; k<L; k++)
                 {
-                    for (int n=0; n<8; n++)
+                    for (int64_t n=0; n<8; n++)
                     {
                         sum[n] += va[0] * vb[n];
                     }
@@ -1006,7 +1006,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                     vb += 8;
                 }
 
-                for (int n=0; n<8; n++)
+                for (int64_t n=0; n<8; n++)
                 {
                     output0[n] = sum[n] + bias0;
                 }
@@ -1019,7 +1019,7 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
                 const float* vb = channel(bottom_tm, (j/8 + j%8));
                 const float* va = channel(kernel_tm, (i/8 + (i%8)/4 + i%4));
 
-                int k=0;
+                int64_t k=0;
 #ifdef CSI_AVX_OPT
                 __m128 _sum0 = _mm_set1_ps(0.f);
 
@@ -1055,9 +1055,9 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
             }
         }
     }
-    free(bottom_tm->data);
-    free(bottom_tm);
-    free(bottom_im2col->data);
-    free(bottom_im2col);
+    csi_mem_free(bottom_tm->data);
+    csi_mem_free(bottom_tm);
+    csi_mem_free(bottom_im2col->data);
+    csi_mem_free(bottom_im2col);
 }
 

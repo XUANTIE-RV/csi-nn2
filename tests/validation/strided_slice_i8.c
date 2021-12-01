@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     output->dim_count = input->dim_count;
     for(int i = 0; i < output->dim_count; i++) {
         if(i < params.slice_count) {
-            output->dim[i] = (params.end[i] - params.begin[i]) / params.stride[i];
+            output->dim[i] = ceil((float)(params.end[i] - params.begin[i]) / params.stride[i]);
         } else {
             output->dim[i] = input->dim[i];
         }
@@ -63,7 +63,14 @@ int main(int argc, char** argv)
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
 
 
     float *src_in   = (float *)(buffer + 3 + input->dim_count + 3*params.slice_count);
@@ -100,7 +107,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_strided_slice_init(input, output, &params) == CSINN_TRUE) {

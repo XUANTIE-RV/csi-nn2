@@ -73,6 +73,7 @@ test_objs += convolution_f32.o
 test_objs += convolution_nchw_f32.o
 test_objs += group_convolution_f32.o
 test_objs += depthwise_convolution_f32.o
+test_objs += depthwise_convolution_nchw_f32.o
 test_objs += convolution3d_f32.o
 test_objs += deconvolution3d_f32.o
 test_objs += yuv_rgb_scale_f32.o
@@ -140,6 +141,9 @@ test_objs += averagepool3d_f32.o
 test_objs += maxpool3d_f32.o
 test_objs += maxpool_nchw_f32.o
 test_objs += averagepool_nchw_f32.o
+
+test_objs += ./riscv_xt9xx/relu_fp16.o
+
 
 utils_objs =
 

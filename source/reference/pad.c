@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -83,14 +83,14 @@ static int csi_ref_pad_nchw_f32(struct csi_tensor *input,
     const int output_width = output->dim[3];
 
     const int left_b_padding = params->pad_before[0];
-    const int left_h_padding = params->pad_before[1];
-    const int left_w_padding = params->pad_before[2];
-    const int left_d_padding = params->pad_before[3];
+    const int left_d_padding = params->pad_before[1];
+    const int left_h_padding = params->pad_before[2];
+    const int left_w_padding = params->pad_before[3];
 
     const int right_b_padding = params->pad_after[0];
-    const int right_h_padding = params->pad_after[1];
-    const int right_w_padding = params->pad_after[2];
-    const int right_d_padding = params->pad_after[3];
+    const int right_d_padding = params->pad_after[1];
+    const int right_h_padding = params->pad_after[2];
+    const int right_w_padding = params->pad_after[3];
 
     const float *in_ptr = input->data;
     float *out_ptr = output->data;

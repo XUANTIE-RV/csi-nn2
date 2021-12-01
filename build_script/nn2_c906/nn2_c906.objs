@@ -1,10 +1,16 @@
 objects += ${NN2_ROOT}/source/c906_opt/abs.o
 
 objects += ${NN2_ROOT}/source/c906_opt/add.o
+objects += ${NN2_ROOT}/source/c906_opt/sub.o
+objects += ${NN2_ROOT}/source/c906_opt/mul.o
+objects += ${NN2_ROOT}/source/c906_opt/minimum.o
 
 objects += ${NN2_ROOT}/source/c906_opt/broadcast_to.o
 objects += ${NN2_ROOT}/source/c906_opt/clip.o
+objects += ${NN2_ROOT}/source/c906_opt/concat.o
+objects += ${NN2_ROOT}/source/c906_opt/split.o
 objects += ${NN2_ROOT}/source/c906_opt/convolution.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_relu.o
 
 objects += ${NN2_ROOT}/source/c906_opt/fullyconnected.o
 objects += ${NN2_ROOT}/source/c906_opt/maxpool.o
@@ -12,11 +18,30 @@ objects += ${NN2_ROOT}/source/c906_opt/global_maxpool.o
 objects += ${NN2_ROOT}/source/c906_opt/avgpool.o
 objects += ${NN2_ROOT}/source/c906_opt/global_avgpool.o
 
+objects += ${NN2_ROOT}/source/c906_opt/pad.o
 objects += ${NN2_ROOT}/source/c906_opt/prelu.o
 objects += ${NN2_ROOT}/source/c906_opt/relu.o
 objects += ${NN2_ROOT}/source/c906_opt/relu1.o
 objects += ${NN2_ROOT}/source/c906_opt/relu6.o
 
 objects += ${NN2_ROOT}/source/c906_opt/leaky_relu.o
+objects += ${NN2_ROOT}/source/c906_opt/utils.o
 
 objects += ${NN2_ROOT}/source/c906_opt/setup.o
+
+objects += ${NN2_ROOT}/source/c906_opt/sgemm.o
+objects += ${NN2_ROOT}/source/c906_opt/gemm_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_1x1.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_1x1_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_3x3.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_3x3_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_sgemm.o
+objects += ${NN2_ROOT}/source/c906_opt/convolution_gemm_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_3x3.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_3x3_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_3x3_pack4.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_3x3_pack8_fp16.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_5x5.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_relu_3x3.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_relu_3x3_pack4.o
+objects += ${NN2_ROOT}/source/c906_opt/depthwise_convolution_relu_5x5.o

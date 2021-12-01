@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -43,6 +43,8 @@ int main(int argc, char** argv)
     for (int i = 0; i < params.inputs_count; i++) {
         input[i] = csi_alloc_tensor(NULL);
         input[i]->dim_count = buffer[2] - 1;
+        input[i]->layout = CSINN_LAYOUT_NCHW;
+        input[i]->is_const = 0;
         input[i]->dtype = CSINN_DTYPE_UINT8;
         for (int j = 0; j < input[i]->dim_count; j++) {
             if (j < params.axis) {
@@ -64,6 +66,8 @@ int main(int argc, char** argv)
     }
     in_size = out_size / params.inputs_count;
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
@@ -91,7 +95,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_stack_init(input, output, &params) == CSINN_TRUE) {

@@ -7,7 +7,7 @@ import numpy as np
 from torch import tensor
 from torch.nn import AdaptiveAvgPool2d
 
-def global_avgpool_f32():
+def global_avgpool2d_f32():
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
@@ -52,7 +52,7 @@ def global_avgpool_f32():
     print(para)
 
 
-    with open("global_avgpool_data_f32_.bin", "wb") as fp:
+    with open("global_avgpool2d_data_f32_.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
@@ -65,5 +65,5 @@ def global_avgpool_f32():
 
 
 if __name__ == '__main__':
-    global_avgpool_f32()
+    global_avgpool2d_f32()
     print("end")

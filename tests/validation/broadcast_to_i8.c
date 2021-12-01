@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -42,27 +42,33 @@ int main(int argc, char** argv)
     params.shape_count = buffer[1];
     output->dim_count = buffer[1];
 
-    int repeat_size = params.shape_count -input->dim_count;
-
     for(int i=0; i<input->dim_count; i++) {
-        input->dim[i] = buffer[2+repeat_size+i];
+        input->dim[i] = buffer[2 + i];
         in_size = in_size * input->dim[i];
     }
 
     params.shape = (int *)malloc(params.shape_count * sizeof(int));
 
+ 
     for(int i=0; i<params.shape_count; i++) {
-        output->dim[i] = buffer[2+i];
+        output->dim[i] = buffer[2 + input->dim_count +i];
         out_size = out_size * output->dim[i];
-        params.shape[i] = buffer[2+i];
+        params.shape[i] = output->dim[i];
     }
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
-    float *src_in   = (float *)(buffer + 2 + params.shape_count);
-    float *ref      = (float *)(buffer + 2 + params.shape_count + in_size);
+    float *src_in   = (float *)(buffer + 2 + input->dim_count + params.shape_count);
+    float *ref      = (float *)(buffer + 2 + input->dim_count + params.shape_count + in_size);
     int8_t *src_tmp = malloc(in_size * sizeof(char));
 
     input->data = src_in;
@@ -96,7 +102,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_broadcast_to_init(input, output, &params) == CSINN_TRUE) {
         csi_broadcast_to(input, output, &params);

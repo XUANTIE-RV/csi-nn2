@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #ifndef _CSI_NN_UTIL_H
 #define _CSI_NN_UTIL_H
@@ -28,7 +28,9 @@
 #include <math.h>
 #include <assert.h>
 #include <float.h>
+#if ((!defined CSI_BUILD_I805) && (!defined CSI_BUILD_E804) && (!defined CSI_BUILD_REF_I805))
 #include <omp.h>
+#endif
 #include "csi_internal.h"
 
 struct csi_session {
@@ -36,7 +38,7 @@ struct csi_session {
     int32_t base_layout;
     int32_t base_api;
     int32_t base_run_mode;
-    int32_t base_quant_type;
+    enum csinn_quant_enum base_quant_type;
     char *model_name;
     int32_t model_save;
     int32_t debug_level;
@@ -52,6 +54,8 @@ void csi_get_top5(float *buf, uint32_t size, float *prob, uint32_t *cls);
 void csi_show_top5(struct csi_tensor *output, struct csi_session *sess);
 uint64_t csi_get_timespec();
 void csi_statistical_mean_std(float *data, int sz);
+void csi_quantize_multiplier(double double_multiplier, int32_t* quantized_multiplier, int* shift);
+
 
 /* tensor */
 int csi_tensor_size(struct csi_tensor *tensor);

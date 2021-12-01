@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -52,13 +52,13 @@ int csi_ref_reverse_f32(struct csi_tensor *input,
         float *start_addr = output_data + i*step*(input->dim[axis]);
         float *end_addr = start_addr + step*(input->dim[axis]) - 1;
         for(int j=0; j<cnt; j++) {
-            float *temp = (float *)malloc(step * sizeof(float));
+            float *temp = (float *)csi_mem_alloc(step * sizeof(float));
             memcpy(temp, start_addr, step*sizeof(float));
             memcpy(start_addr, end_addr-step+1, step*sizeof(float));
             memcpy(end_addr-step+1, temp, step*sizeof(float));
             start_addr += step;
             end_addr -= step;
-            free(temp);
+            csi_mem_free(temp);
         }
     }
     return CSINN_TRUE;

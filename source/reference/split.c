@@ -16,35 +16,46 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_split_f32(struct csi_tensor *input,
-                  struct csi_tensor **output,
-                  struct split_params *params)
+int csi_ref_split_f32(struct csi_tensor *input, struct csi_tensor **output,
+                      struct split_params *params)
 {
     int32_t inner_size = 1;
     int32_t out_size = 1;
     float *input_data = input->data;
 
-    for(int i=0; i< params->axis; i++){
+    for (int i = 0; i < params->axis; i++) {
         out_size *= input->dim[i];
     }
 
-    for(int i = params->axis + 1; i < input->dim_count; i++){
+    for (int i = params->axis + 1; i < input->dim_count; i++) {
         inner_size *= input->dim[i];
     }
 
-    int target_dim = input->dim[params->axis] / params->output_num;
-    inner_size = inner_size * target_dim;
-    for (int i = 0; i< params->output_num; i++){
+    for (int i = 0; i < params->output_num; i++) {
+        int p_size = 0;
+        int s_index;
+        if (i == params->output_num - 1) {
+            p_size = inner_size * (input->dim[params->axis] - params->split_index[i - 1]);
+            s_index = params->split_index[i - 1];
+        } else if (i == 0) {
+            p_size = inner_size * params->split_index[0];
+            s_index = 0;
+        } else {
+            p_size = inner_size * (params->split_index[i] - params->split_index[i - 1]);
+            s_index = params->split_index[i - 1];
+        }
+
         float* output_i_data = output[i]->data;
-        for (int out = 0; out < out_size; out++){
-            int in_index = out * params->output_num * inner_size + i * inner_size;
+
+        for (int out = 0; out < out_size; out++) {
+            int in_index = out * input->dim[params->axis] * inner_size + s_index * inner_size;
             int out_index = out * inner_size;
-            memcpy(output_i_data + out_index, input_data + in_index, inner_size*4);
+            memcpy(output_i_data + out_index, input_data + in_index, p_size * 4);
         }
     }
 

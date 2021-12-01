@@ -16,9 +16,24 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
+
+int csi_ref_conv2d_relu_f32(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct csi_tensor *kernel,
+                            struct csi_tensor *bias,
+                            struct conv2d_params *params)
+{
+    csi_ref_conv2d_f32(input, output, kernel, bias, params);
+    float *data = output->data;
+    int size = csi_tensor_size(output);
+    for (int i = 0; i < size; i++) {
+        data[i] = data[i] > 0 ? data[i] : 0;
+    }
+    return CSINN_TRUE;
+}
 
 int csi_ref_conv2d_relu_quant(struct csi_tensor *input,
                               struct csi_tensor *output,
@@ -27,10 +42,26 @@ int csi_ref_conv2d_relu_quant(struct csi_tensor *input,
                               struct conv2d_params *params)
 {
     csi_ref_conv2d_quant(input, output, kernel, bias, params);
-    struct relu_params *rp = calloc(1, sizeof(struct relu_params));
+    struct relu_params *rp = csi_mem_alloc(sizeof(struct relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csi_params_base));
     csi_relu_init(output, output, rp);
     csi_relu(output, output, rp);
+    return CSINN_TRUE;
+}
+
+
+int csi_ref_depthwise_conv2d_relu_f32(struct csi_tensor *input,
+                                      struct csi_tensor *output,
+                                      struct csi_tensor *kernel,
+                                      struct csi_tensor *bias,
+                                      struct conv2d_params *params)
+{
+    csi_ref_depthwise_conv2d_f32(input, output, kernel, bias, params);
+    float *data = output->data;
+    int size = csi_tensor_size(output);
+    for (int i = 0; i < size; i++) {
+        data[i] = data[i] > 0 ? data[i] : 0;
+    }
     return CSINN_TRUE;
 }
 
@@ -41,7 +72,7 @@ int csi_ref_depthwise_conv2d_relu_quant(struct csi_tensor *input,
                                         struct conv2d_params *params)
 {
     csi_ref_depthwise_conv2d_quant(input, output, kernel, bias, params);
-    struct relu_params *rp = calloc(1, sizeof(struct relu_params));
+    struct relu_params *rp = csi_mem_alloc(sizeof(struct relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csi_params_base));
     csi_relu_init(output, output, rp);
     csi_relu(output, output, rp);
@@ -55,7 +86,7 @@ int csi_ref_group_conv2d_relu_quant(struct csi_tensor *input,
                                     struct conv2d_params *params)
 {
     csi_ref_group_conv2d_quant(input, output, kernel, bias, params);
-    struct relu_params *rp = calloc(1, sizeof(struct relu_params));
+    struct relu_params *rp = csi_mem_alloc(sizeof(struct relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csi_params_base));
     csi_relu_init(output,output, rp);
     csi_relu(output, output, rp);

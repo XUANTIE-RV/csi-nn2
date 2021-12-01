@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -56,11 +56,11 @@ int main(int argc, char** argv)
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
-    input->data = (float *)(buffer + 2 + input->dim_count + params.shape_count) ;
+    input->data = (float *)(buffer + 2 + input->dim_count + params.shape_count);
     reference->data = (float *)(buffer + 2 + input->dim_count + params.shape_count + in_size);
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->data  = (float *)malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_broadcast_to_init(input, output, &params) == CSINN_TRUE) {
         csi_broadcast_to(input, output, &params);

@@ -12,15 +12,15 @@ def matmul_f32():
     dim0 = []
     dim1 = []
     # init the input data and parameters
-    dim_count   = int(np.random.randint(4, high=8, size=1))
+    dim_count   = int(np.random.randint(4, high=6, size=1))
     for i in range(0, dim_count-2):
-        in_size = int(np.random.randint(1, high=32, size=1))
+        in_size = int(np.random.randint(1, high=16, size=1))
         dim0.append(in_size)
         dim1.append(in_size)
 
-    zero_point1 = int(np.random.randint(-60000, high=60000, size=1))
+    zero_point1 = int(np.random.randint(-6, high=6, size=1))
     std1        = int(np.random.randint(1, high=20, size=1))
-    zero_point2 = int(np.random.randint(-60000, high=60000, size=1))
+    zero_point2 = int(np.random.randint(-6, high=6, size=1))
     std2        = int(np.random.randint(1, high=20, size=1))
 
     trans_a_flag = False

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_c860.h"
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
     find_min_max(input, &max_value, &min_value, in_size);
     get_scale_and_zp(max_value, min_value, &scale, &zp);
-    quantize_multiplier(scale, &quantized_multiplier, &shift);
+    csi_quantize_multiplier(scale, &quantized_multiplier, &shift);
     it->data = input;
     get_quant_info(it);
     for(int i = 0; i < in_size; i++) {
@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     csi_dequantize_f32_c860(input_tmp, output, -it->qinfo->zero_point, it->qinfo->multiplier,
                             it->qinfo->shift, in_size);
 
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     result_verify_f32(reference, output, input, difference, in_size, false);
 

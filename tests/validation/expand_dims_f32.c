@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     input->data = (float *)(buffer + 2 + dim_count);
     reference->data = (float *)(buffer + 2 + dim_count + in_size);
     output->data = (float *)malloc(sizeof(float) * out_size);
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_expand_dims_init(input, output, &params) == CSINN_TRUE) {
         csi_expand_dims(input, output, &params);

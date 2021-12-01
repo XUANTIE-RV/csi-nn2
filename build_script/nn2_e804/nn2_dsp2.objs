@@ -1,0 +1,38 @@
+#activation
+objects += ${NN2_ROOT}/source/e804_opt/activation/csi_xt800p_nn_activations_q15.o
+objects += ${NN2_ROOT}/source/e804_opt/activation/csi_xt800p_nn_activations_q7.o
+objects += ${NN2_ROOT}/source/e804_opt/activation/csi_xt800p_relu_q15.o
+objects += ${NN2_ROOT}/source/e804_opt/activation/csi_xt800p_relu_q7.o
+
+#convolution
+objects += ${NN2_ROOT}/source/e804_opt/convolution/csi_xt800p_convolve_1x1_HWC_q7_fast.o
+objects += ${NN2_ROOT}/source/e804_opt/convolution/csi_xt800p_convolve_HWC_q15_basic.o
+objects += ${NN2_ROOT}/source/e804_opt/convolution/csi_xt800p_convolve_HWC_q7_RGB.o
+objects += ${NN2_ROOT}/source/e804_opt/convolution/csi_xt800p_convolve_HWC_q7_basic.o
+objects += ${NN2_ROOT}/source/e804_opt/convolution/csi_xt800p_depthwise_separable_conv_HWC_q7.o
+
+#fully-connect
+objects += ${NN2_ROOT}/source/e804_opt/fully-connect/csi_xt800p_fully_connected_mat_q7_vec_q15.o
+objects += ${NN2_ROOT}/source/e804_opt/fully-connect/csi_xt800p_fully_connected_q15.o
+objects += ${NN2_ROOT}/source/e804_opt/fully-connect/csi_xt800p_fully_connected_q7.o
+
+#nn-support
+objects += ${NN2_ROOT}/source/e804_opt/nn-support/csi_xt800p_nntables.o
+
+#pooling
+objects += ${NN2_ROOT}/source/e804_opt/pooling/csi_xt800p_pool_q7_HWC.o
+
+#softmax
+objects += ${NN2_ROOT}/source/e804_opt/softmax/csi_xt800p_softmax_q15.o
+objects += ${NN2_ROOT}/source/e804_opt/softmax/csi_xt800p_softmax_q7.o
+
+objects += ${NN2_ROOT}/source/e804_opt/convolution.o
+objects += ${NN2_ROOT}/source/e804_opt/fullyconnected.o
+objects += ${NN2_ROOT}/source/e804_opt/avgpool.o
+objects += ${NN2_ROOT}/source/e804_opt/maxpool.o
+objects += ${NN2_ROOT}/source/e804_opt/softmax.o
+objects += ${NN2_ROOT}/source/e804_opt/relu.o
+objects += ${NN2_ROOT}/source/e804_opt/sigmoid.o
+objects += ${NN2_ROOT}/source/e804_opt/tanh.o
+
+objects += ${NN2_ROOT}/source/e804_opt/setup.o

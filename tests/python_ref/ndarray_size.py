@@ -8,11 +8,11 @@ import numpy as np
 def ndarray_size_f32():
     para = []
     # init the input data and parameters
-    in_dim   = int(np.random.randint(1, high=6, size=1))
+    in_dim   = int(np.random.randint(1, high=4, size=1))
     in_shape = []
     src_out = 1
     for i in range(0, in_dim):
-        in_shape.append(int(np.random.randint(10, high=50, size=1)))
+        in_shape.append(int(np.random.randint(5, high=16, size=1)))
         src_out *= in_shape[i]
 
     zero_point  = int(np.random.randint(-600, high=600, size=1))

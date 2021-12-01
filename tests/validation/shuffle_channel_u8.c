@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -50,12 +50,18 @@ int main(int argc, char** argv)
 
     input->dim_count = 4;
     input->dtype = CSINN_DTYPE_UINT8;
+    input->layout = CSINN_LAYOUT_NHWC;
+    input->is_const = 0;
+    input->quant_channel = 1;
     params.base.layout = CSINN_LAYOUT_NHWC;
     params.base.api = CSINN_API;
     params.base.run_mode = CSINN_RM_LAYER;
 
     output->dim_count = 4;
     output->dtype = CSINN_DTYPE_UINT8;
+    output->layout = CSINN_LAYOUT_NHWC;
+    output->is_const = 0;
+    output->quant_channel = 1;
 
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];   //out_size = in_size;
@@ -95,7 +101,7 @@ int main(int argc, char** argv)
     input->data = input_data;
     reference->data = ref_data;
     output->data = (uint8_t *)malloc(out_size * sizeof(uint8_t));
-    float difference = argc > 2 ? atof(argv[2]) : error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_shuffle_channel_init(input, output, &params) == CSINN_TRUE) {
         csi_shuffle_channel(input, output, &params);

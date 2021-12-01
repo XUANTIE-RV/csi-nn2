@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -24,7 +24,7 @@
 
 int main(int argc, char** argv)
 {
-    init_testsuite("Testing function of averagepool3d i8.\n");
+    init_testsuite("Testing function of avgpool3d i8.\n");
 
     struct csi_tensor *input = csi_alloc_tensor(NULL);
     struct csi_tensor *output = csi_alloc_tensor(NULL);
@@ -66,7 +66,15 @@ int main(int argc, char** argv)
     params.base.layout = CSINN_LAYOUT_NCDHW;
 
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCDHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCDHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+    
     input->dim_count = 5;
     output->dim_count = 5;
 
@@ -110,10 +118,10 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(out_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_averagepool3d_init(input, output, &params) == CSINN_TRUE) {
-        csi_averagepool3d(input, output, &params);
+    if (csi_avgpool3d_init(input, output, &params) == CSINN_TRUE) {
+        csi_avgpool3d(input, output, &params);
     }
 
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     input->data      = (float *)(buffer + 7);
     reference->data  = (float *)(buffer + 7 + in_size);
     output->data     = malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? *argv[2] : 0;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_resize_init(input, output, &params) == CSINN_TRUE) {
         csi_resize(input, output, &params);

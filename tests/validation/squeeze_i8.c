@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -37,9 +37,9 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
     int axis_len = buffer[3];
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // height
-    input->dim[2] = buffer[2];          // width
+    output->dim[0] = input->dim[0] = buffer[0];          // batch
+    output->dim[1] = input->dim[1] = buffer[1];          // height
+    output->dim[2] = input->dim[2] = buffer[2];          // width
     input->dim[3] = 1;
     input->dim[4] = 1;
     input->dim[5] = 1;
@@ -52,7 +52,15 @@ int main(int argc, char** argv)
     output->dim_count = input->dim_count - axis_len;
 
     input->dtype = CSINN_DTYPE_INT8;
+    input->layout = CSINN_LAYOUT_NCHW;
+    input->is_const = 0;
+    input->quant_channel = 1;
+
     output->dtype = CSINN_DTYPE_INT8;
+    output->layout = CSINN_LAYOUT_NCHW;
+    output->is_const = 0;
+    output->quant_channel = 1;
+    
     params.axis_num = axis_len;
     params.base.layout = CSINN_LAYOUT_NCHW;
     in_size = input->dim[0] * input->dim[1] * input->dim[2];
@@ -94,7 +102,7 @@ int main(int argc, char** argv)
     reference->data = ref;
     output->data    = malloc(in_size * sizeof(char));
 
-    float difference = argc > 2 ? atof(argv[2]) : max_error;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 
     if (csi_squeeze_init(input, output, &params) == CSINN_TRUE) {

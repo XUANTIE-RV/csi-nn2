@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "test_utils.h"
 #include "csi_nn.h"
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     output->dim_count = input->dim_count;
     for(int i = 0; i < output->dim_count; i++) {
         if(i < params.slice_count) {
-            output->dim[i] = (params.end[i] - params.begin[i]) / params.stride[i];
+            output->dim[i] = ceil((float)(params.end[i] - params.begin[i]) / params.stride[i]);
         } else {
             output->dim[i] = input->dim[i];
         }
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
     output->data  = (float *)malloc(out_size * sizeof(float));
-    float difference = argc > 2 ? atof(argv[2]) : 1e-6;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
     if (csi_strided_slice_init(input, output, &params) == CSINN_TRUE) {
         csi_strided_slice(input, output, &params);

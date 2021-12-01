@@ -3,7 +3,7 @@ CC               = $(CROSS_COMPILE)gcc
 AR               = $(CROSS_COMPILE)ar
 
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections -mhard-float
-INCLUDE = -I../../include
+INCLUDE = -I../../include -I../../module/nna_ddk_install/include/
 
 all: nn2
 
@@ -18,5 +18,7 @@ nn2_shared: $(objects)
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $(MACRO) $(ENDIAN) $< -o $@
+%.o: %.cpp
+	$(CXX) -c $(CFLAGS) $(INCLUDE) $(MACRO) $(ENDIAN) $< -o $@
 %.o: %.S
 	$(CC) -c $(CFLAGS) $(INCLUDE) $(MACRO) $(ENDIAN) $< -o $@

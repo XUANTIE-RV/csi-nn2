@@ -16,77 +16,44 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-static int csi_ref_prelu_nhwc_f32(struct csi_tensor *input,
-                                  struct csi_tensor *alpha,
-                                  struct csi_tensor *output,
-                                  struct prelu_params *params)
-{
-    float *input_data = input->data;
-    float *output_data = output->data;
-    float *alpha_data = alpha->data;
-    for (int b = 0; b < output->dim[0]; ++b) {
-        for (int y = 0; y < output->dim[1]; ++y) {
-            for (int x = 0; x < output->dim[2]; ++x) {
-                for (int c = 0; c < output->dim[3]; ++c) {
-                    int output_index = csi_ref_get_index(output->dim, b, y, x, c);
-                    int input_index = csi_ref_get_index(input->dim, b, y, x, c);
-                    float input_value = input_data[input_index];
-                    if (input_value >= 0) {
-                        output_data[output_index] = input_data[input_index];
-                    } else {
-                        output_data[output_index] = input_value * alpha_data[c];
-                    }
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-static int csi_ref_prelu_nchw_f32(struct csi_tensor *input,
-                                  struct csi_tensor *alpha,
-                                  struct csi_tensor *output,
-                                  struct prelu_params *params)
-{
-    float *input_data = input->data;
-    float *output_data = output->data;
-    float *alpha_data = alpha->data;
-    for (int b = 0; b < output->dim[0]; ++b) {
-        for (int y = 0; y < output->dim[2]; ++y) {
-            for (int x = 0; x < output->dim[3]; ++x) {
-                for (int c = 0; c < output->dim[1]; ++c) {
-                    int output_index = csi_ref_get_index(output->dim, b, c, y, x);
-                    int input_index = csi_ref_get_index(input->dim, b, c, y, x);
-                    float input_value = input_data[input_index];
-                    if (input_value >= 0) {
-                        output_data[output_index] = input_data[input_index];
-                    } else {
-                        output_data[output_index] = input_value * alpha_data[c];
-                    }
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-int csi_ref_prelu_f32(struct csi_tensor *input,
-                      struct csi_tensor *alpha,
-                      struct csi_tensor *output,
+int csi_ref_prelu_f32(struct csi_tensor *input, struct csi_tensor *alpha, struct csi_tensor *output,
                       struct prelu_params *params)
 {
-    if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_prelu_nchw_f32(input, alpha, output, params);
-    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_prelu_nhwc_f32(input, alpha, output, params);
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
+    float *input_data = (float *)input->data;
+    float *alpha_data = (float *)alpha->data;
+    float *output_data = (float *)output->data;
+
+    int axis = params->axis;
+
+    int64_t outer_size = 1;
+    for (int i = 0; i < axis; i++) {
+        outer_size *= input->dim[i];
     }
+
+    int64_t inner_size = (axis == 0 && input->dim_count == 1) ? csi_tensor_size(input) : 1;
+    for (int i = axis + 1; i < input->dim_count; i++) {
+        inner_size *= input->dim[i];
+    }
+
+    for (int i = 0; i < outer_size; i++) {
+        for (int j = 0; j < input->dim[axis]; j++) {
+            for (int k = 0; k < inner_size; k++) {
+                int32_t index = i * inner_size * input->dim[axis] + j * inner_size + k;
+                float input_value = input_data[index];
+                if (input_value >= 0) {
+                    output_data[index] = input_value;
+                } else {
+                    output_data[index] = input_value * alpha_data[j];
+                }
+            }
+        }
+    }
+    return CSINN_TRUE;
 }
 
 int csi_ref_prelu_quant(struct csi_tensor *input,

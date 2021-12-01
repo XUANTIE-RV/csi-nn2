@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 
@@ -57,7 +57,7 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input,
         num_elements *= output->dim[i];
     }
     // We need to initialize scratch_buffer to all 0s
-    float *scratch_buffer = calloc(num_elements, sizeof(float));
+    float *scratch_buffer = csi_mem_alloc(num_elements * sizeof(float));
 
     // Loop through input elements one at a time.
     for(int out_b=0; out_b<batch; ++out_b) {
@@ -115,7 +115,7 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input,
     for (int i=0; i<num_elements; ++i) {
         output_data[i] = scratch_buffer[i];
     }
-    free(scratch_buffer);
+    csi_mem_free(scratch_buffer);
     return CSINN_TRUE;
 }
 

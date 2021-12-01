@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.8.x */
+/* CSI-NN2 version 1.10.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -48,7 +48,7 @@ int csi_ref_space_to_batch_f32(struct csi_tensor *input,
             for(int out_w = 0; out_w < out_width * block_size; out_w = out_w + block_size) {
                 for(int out_c = 0; out_c < in_channel; ++out_c) {
 
-                    float *temp = (float *)calloc(block_size2, sizeof(float));
+                    float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
                     int h_origin = out_h - params->pad_top;
                     int w_origin = out_w - params->pad_left;
                     for(int h = 0; h < block_size; ++h) {
@@ -65,7 +65,7 @@ int csi_ref_space_to_batch_f32(struct csi_tensor *input,
                     for(int i = 0; i < block_size2; ++i) {
                         output_data[out_start_addr + i * batch * out_channel * out_height * out_width] = temp[i];
                     }
-                    free(temp);
+                    csi_mem_free(temp);
                 }
             }
         }
