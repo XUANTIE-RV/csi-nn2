@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
 
@@ -52,7 +52,7 @@ static float get_iou(const float *box1, const float *box2)
     return iou;
 }
 
-int csi_non_max_suppression_std(struct csi_tensor *input0,
+int csi_ref_non_max_suppression_std(struct csi_tensor *input0,
                                 struct csi_tensor *input1,
                                 struct csi_tensor *output,
                                 struct non_max_suppression_params *params)
@@ -92,31 +92,5 @@ int csi_non_max_suppression_std(struct csi_tensor *input0,
         }
     }
     free(flag);
-    return CSINN_TRUE;
-}
-
-int csi_non_max_suppression_init(struct csi_tensor *input0,
-                                 struct csi_tensor *input1,
-                                 struct csi_tensor *output,
-                                 struct non_max_suppression_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_NON_MAX_SUPPRESSION, input0->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-
-int csi_non_max_suppression(struct csi_tensor *input0,
-                            struct csi_tensor *input1,
-                            struct csi_tensor *output,
-                            struct non_max_suppression_params *params)
-{
-    if(params->bc != NULL) {
-        params->bc(input0, input1, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
     return CSINN_TRUE;
 }

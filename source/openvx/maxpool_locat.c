@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +17,7 @@
  */
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_maxpool2d_locat(struct csi_tensor *input,
                              struct csi_tensor *output,
@@ -58,8 +59,8 @@ int csi_ovx_maxpool2d_locat(struct csi_tensor *input,
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output1 */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
@@ -70,8 +71,8 @@ int csi_ovx_maxpool2d_locat(struct csi_tensor *input,
     node->output.tensors[0] = output_id;
 
     /* output2 */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;

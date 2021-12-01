@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,21 +16,17 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include <assert.h>
+#include "csi_ref.h"
 
-int csi_and_u32(struct csi_tensor *input0,
-                struct csi_tensor *input1,
-                struct csi_tensor *output,
-                struct diso_params *params)
+int csi_ref_and_u32(struct csi_tensor *input0,
+                    struct csi_tensor *input1,
+                    struct csi_tensor *output,
+                    struct diso_params *params)
 {
     uint32_t *input0_data = input0->data;
     uint32_t *input1_data = input1->data;
     uint32_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        size = size * output->dim[i];
-    }
+    int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = input0_data[0] & input1_data[0];
@@ -38,18 +34,15 @@ int csi_and_u32(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_and_u8(struct csi_tensor *input0,
-               struct csi_tensor *input1,
-               struct csi_tensor *output,
-               struct diso_params *params)
+int csi_ref_and_u8(struct csi_tensor *input0,
+                   struct csi_tensor *input1,
+                   struct csi_tensor *output,
+                   struct diso_params *params)
 {
     uint8_t *input0_data = input0->data;
     uint8_t *input1_data = input1->data;
     uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        size = size * output->dim[i];
-    }
+    int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = input0_data[0] & input1_data[0];
@@ -57,27 +50,18 @@ int csi_and_u8(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_and_init(struct csi_tensor *input0,
-                 struct csi_tensor *input1,
-                 struct csi_tensor *output,
-                 struct diso_params *params)
+int csi_ref_and_i8(struct csi_tensor *input0,
+                   struct csi_tensor *input1,
+                   struct csi_tensor *output,
+                   struct diso_params *params)
 {
-    params->bc = csi_bc_map(params->api, CSINN_OP_AND, input0->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
+    int8_t *input0_data = input0->data;
+    int8_t *input1_data = input1->data;
+    int8_t *output_data = output->data;
+    int size = csi_tensor_size(input0);
 
-int csi_and(struct csi_tensor *input0,
-            struct csi_tensor *input1,
-            struct csi_tensor *output,
-            struct diso_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input0, input1, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
+    for (int i = 0; i < size; i++) {
+        output_data[i] = input0_data[0] & input1_data[0];
     }
     return CSINN_TRUE;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
-#include <assert.h>
+#include "csi_c906.h"
 
 static float relu(float x){
 	return x > 0 ? x : 0;
 }
 
-int csi_relu_f32_c906(struct csi_tensor *input,
+int csi_c906_relu_f32(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct relu_params *params)
 {
@@ -59,27 +57,5 @@ int csi_relu_f32_c906(struct csi_tensor *input,
     // for (int i = 0; i < size; i++) {
     //     output_data[i] = relu(input_data[i]);
     // }
-    return CSINN_TRUE;
-}
-
-int csi_relu_u8_c906(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct relu_params *params)
-{
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    #pragma omp parallel for num_threads(8)
-    for (int i = 0; i < size; i++) {
-        float input0_val = csi_dequantize_u8_to_f32(input_data[i], input->zero_point, input->multiplier,
-                                               input->shift);
-        float res = relu(input0_val);
-
-        output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
-    }
     return CSINN_TRUE;
 }

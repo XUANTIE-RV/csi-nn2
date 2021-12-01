@@ -1,0 +1,116 @@
+/*
+ * Copyright (C) 2020-2021 Alibaba Group Holding Limited
+ */
+#ifndef HAL_ERRNO_H
+#define HAL_ERRNO_H
+
+#include <cerrno>
+
+
+//ERRNO(32bit) = TYPE(8bit) + MODULE(8bit) + NUM_TYPE(8bit) + NUM(8bit)<user/common>
+//Get errno type <HAL/Node>
+#define GET_ERRNO_TYPE(errno)		((errno & 0xFF000000) >> 24)
+//Get errno module <VI>
+#define GET_ERRNO_MODULE(errno)		((errno & 0x00FF0000) >> 16)
+//Get errno num type
+#define GET_ERRNO_NUM_TYPE(errno)	((errno & 0x0000FF00) >> 8)
+//Get errno num
+#define GET_ERRNO_NUM(errno)		(errno & 0x000000FF)
+
+#define AI_SUCCESS				0x0
+
+#define AI_ERRNO_BASE			0x80000000
+#define AI_ERRNO_BASE_HAL		(AI_ERRNO_BASE + 0x01000000)
+#define AI_ERRNO_BASE_NODE		(AI_ERRNO_BASE + 0x02000000)
+#define HAL_ERRNO(errno)		(AI_ERRNO_BASE|AI_ERRNO_BASE_HAL|(errno))
+#define NODE_ERRNO(errno)		(AI_ERRNO_BASE|AI_ERRNO_BASE_NODE|(errno))
+
+// module errno base
+#define AI_ERRNO_BASE_SYS		0x00010000
+#define AI_ERRNO_BASE_VI		0x00020000
+#define AI_ERRNO_BASE_IMG_PROC	0x00030000
+#define AI_ERRNO_BASE_AIE		0x00040000
+#define AI_ERRNO_BASE_OSD		0x00050000
+#define AI_ERRNO_BASE_VENC		0x00060000
+#define AI_ERRNO_BASE_VDEC		0x00070000
+#define AI_ERRNO_BASE_JPEG_ENC	0x00080000
+#define AI_ERRNO_BASE_JPEG_DEC	0x00090000
+#define AI_ERRNO_BASE_TRACKING	0x000A0000
+
+// errno num type
+#define AI_ERRNO_NUM_COMMON		0x00000100
+#define AI_ERRNO_NUM_USER		0x00000200
+
+// common errno codes
+typedef enum {
+	COMMON_ERRNO = 1,				///< Unspecified errno
+	COMMON_ERRNO_DEV_EXCEPTION,		///< Device exception
+	COMMON_ERRNO_BUSY,				///< Driver is busy
+	COMMON_ERRNO_TIMEOUT,			///< Timeout occurred
+	COMMON_ERRNO_UNSUPPORTED,		///< Operation not supported
+	COMMON_ERRNO_PARAMETER,			///< Parameter errno
+	COMMON_ERRNO_SPECIFIC,
+}common_errno_e;
+
+// common errno codes
+#define HAL_ERRNO_COMMON(errno) (HAL_ERRNO(AI_ERRNO_NUM_COMMON|(errno)))
+
+// user errno codes
+typedef enum{
+	SYS_ERRNO_SPECIFIC,
+} ERRNO_SYS;
+#define HAL_ERRNO_SYS(errno) (HAL_ERRNO(AI_ERRNO_BASE_SYS|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	VI_DEV_NOT_EXIST,
+	VI_ERRNO_SPECIFIC,
+} ERRNO_VI;
+#define HAL_ERRNO_VI(errno) (HAL_ERRNO(AI_ERRNO_BASE_VI|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	IMG_PROC_SEND_IMG_FAILED,
+	IMG_PROC_RECV_IMG_FAILED,
+	IMG_PROC_ERRNO_SPECIFIC,
+} ERRNO_IMG_PROC;
+#define HAL_ERRNO_IMG_PROC(errno) (HAL_ERRNO(AI_ERRNO_BASE_IMG_PROC|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	AIE_ERRNO_SPECIFIC,
+} ERRNO_AIE;
+#define HAL_ERRNO_AIE(errno) (HAL_ERRNO(AI_ERRNO_BASE_AIE|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	VENC_SEND_IMG_FAILED,
+	VENC_RECV_PACKET_FAILED,
+	VENC_ERRNO_SPECIFIC,
+} ERRNO_VENC;
+#define HAL_ERRNO_VENC(errno) (HAL_ERRNO(AI_ERRNO_BASE_VENC|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	VDEC_SEND_PACKET_FAILED,
+	VDEC_FIND_DEC_FAILED,
+	VDEC_ERRNO_SPECIFIC,
+} ERRNO_VDEC;
+#define HAL_ERRNO_VDEC(errno) (HAL_ERRNO(AI_ERRNO_BASE_VDEC|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	JPEG_ENC_SEND_IMG_FAILED,
+	JPEG_ENC_RECV_IMG_FAILED,
+	JPEG_ENC_ERRNO_SPECIFIC,
+} ERRNO_JPEG_ENC;
+#define HAL_ERRNO_JPEG_ENC(errno) (HAL_ERRNO(AI_ERRNO_BASE_JPEG_ENC|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	JPEG_DEC_SEND_IMG_FAILED,
+	JPEG_DEC_RECV_IMG_FAILED,
+	JPEG_DEC_ERRNO_SPECIFIC,
+} ERRNO_JPEG_DEC;
+#define HAL_ERRNO_JPEG_DEC(errno) (HAL_ERRNO(AI_ERRNO_BASE_JPEG_DEC|AI_ERRNO_NUM_USER|(errno)))
+
+typedef enum{
+	TRACKING_ERRNO_SPECIFIC,
+} ERRNO_TRACKING;
+#define HAL_ERRNO_TRACKING(errno) (HAL_ERRNO(AI_ERRNO_BASE_TRACKING|AI_ERRNO_NUM_USER|(errno)))
+
+
+#endif  // HAL_ERRNO_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "csi_utils.h"
+#include "csi_nn.h"
 
 
 int32_t csi_get_ceil_mode_fix(int32_t input, int32_t kernel, int32_t stride, int32_t pad)

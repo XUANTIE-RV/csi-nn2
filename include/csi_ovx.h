@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -20,7 +20,6 @@
 #define _CSI_NN_OVX_H
 #include "csi_nn.h"
 #include "csi_utils.h"
-#include "vsi_nn_pub.h"
 
 int csi_ovx_conv2d(struct csi_tensor *input,
                    struct csi_tensor *output,
@@ -322,6 +321,11 @@ int csi_ovx_psroipooling(struct csi_tensor *data,
                          struct csi_tensor *output,
                          struct psroipooling_params *params);
 
+int csi_ovx_roipool(struct csi_tensor *data,
+                    struct csi_tensor *rois,
+                    struct csi_tensor *output,
+                    struct roi_pool_params *params);
+
 int csi_ovx_transpose(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct transpose_params *params);
@@ -369,6 +373,10 @@ int csi_ovx_slice(struct csi_tensor *input,
 int csi_ovx_slice_tail(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct slice_params *params);
+
+int csi_ovx_strided_slice(struct csi_tensor *input,
+                  struct csi_tensor *output,
+                  struct strided_slice_params *params);
 
 int csi_ovx_split(struct csi_tensor *input,
                   struct csi_tensor **output,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,17 +16,16 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
 /* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/nn_impl.py#L1474-L1542 */
-int csi_batch_normalization_f32(struct csi_tensor *input,
-                                struct csi_tensor *mean,
-                                struct csi_tensor *variance,
-                                struct csi_tensor *gamma,
-                                struct csi_tensor *beta,
-                                struct csi_tensor *output,
-                                struct bn_params *params)
+int csi_ref_batch_normalization_f32(struct csi_tensor *input,
+                                    struct csi_tensor *mean,
+                                    struct csi_tensor *variance,
+                                    struct csi_tensor *gamma,
+                                    struct csi_tensor *beta,
+                                    struct csi_tensor *output,
+                                    struct bn_params *params)
 {
     float *input_data = input->data;
     float *mean_data  = mean->data;
@@ -63,13 +62,13 @@ int csi_batch_normalization_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_batch_normalization_u8(struct csi_tensor *input,
-                               struct csi_tensor *mean,
-                               struct csi_tensor *variance,
-                               struct csi_tensor *gamma,
-                               struct csi_tensor *beta,
-                               struct csi_tensor *output,
-                               struct bn_params *params)
+int csi_ref_batch_normalization_u8(struct csi_tensor *input,
+                                   struct csi_tensor *mean,
+                                   struct csi_tensor *variance,
+                                   struct csi_tensor *gamma,
+                                   struct csi_tensor *beta,
+                                   struct csi_tensor *output,
+                                   struct bn_params *params)
 {
     uint8_t *input_data  = input->data;
     uint8_t *mean_data   = mean->data;
@@ -88,62 +87,46 @@ int csi_batch_normalization_u8(struct csi_tensor *input,
 
     for (int b = 0; b < batches; ++b) {
         for (int c = 0; c < input->dim[dims_count - 1]; ++c) {
-            float intput_val = csi_dequantize_u8_to_f32(input_data[b * batch_offset + c], input->zero_point,
-                                            input->multiplier, input->shift);
-            float mean_val   = csi_dequantize_u8_to_f32(mean_data[c], mean->zero_point, mean->multiplier,
-                                            mean->shift);
-            float var_val    = csi_dequantize_u8_to_f32(var_data[c], variance->zero_point, variance->multiplier,
-                                            variance->shift);
-            float beta_val   = csi_dequantize_u8_to_f32(beta_data[c], beta->zero_point, beta->multiplier,
-                                            beta->shift);
+            float intput_val = csi_ref_dequantize_u8_to_f32(input_data[b * batch_offset + c], input->qinfo);
+            float mean_val   = csi_ref_dequantize_u8_to_f32(mean_data[c], mean->qinfo);
+            float var_val    = csi_ref_dequantize_u8_to_f32(var_data[c], variance->qinfo);
+            float beta_val   = csi_ref_dequantize_u8_to_f32(beta_data[c], beta->qinfo);
             float result = 1/sqrt(var_val + params->epsilon);
             result *= (intput_val - mean_val);
             if (gamma != NULL) {
                 uint8_t *gamma_data  = gamma->data;
-                result *=  csi_dequantize_u8_to_f32(gamma_data[c], gamma->zero_point, gamma->multiplier,
-                                            gamma->shift);
+                result *=  csi_ref_dequantize_u8_to_f32(gamma_data[c], gamma->qinfo);
             }
             result += beta_val;
-            output_data[b * batch_offset + c] = csi_quantize_f32_to_u8(result, output->zero_point,
-                                            output->multiplier, output->shift);
+            output_data[b * batch_offset + c] = csi_ref_quantize_f32_to_u8(result, output->qinfo);
         }
     }
 
     return CSINN_TRUE;
 }
 
-
-int csi_batch_normalization_init(struct csi_tensor *input,
-                                 struct csi_tensor *mean,
-                                 struct csi_tensor *variance,
-                                 struct csi_tensor *gamma,
-                                 struct csi_tensor *beta,
-                                 struct csi_tensor *output,
-                                 struct bn_params *params)
+int csi_ref_batch_normalization_quant(struct csi_tensor *input,
+                                      struct csi_tensor *mean,
+                                      struct csi_tensor *variance,
+                                      struct csi_tensor *gamma,
+                                      struct csi_tensor *beta,
+                                      struct csi_tensor *output,
+                                      struct bn_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    params->bc = csi_bc_map(params->api, CSINN_OP_BN, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-
-    return CSINN_TRUE;
-}
-
-int csi_batch_normalization(struct csi_tensor *input,
-                            struct csi_tensor *mean,
-                            struct csi_tensor *variance,
-                            struct csi_tensor *gamma,
-                            struct csi_tensor *beta,
-                            struct csi_tensor *output,
-                            struct bn_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, mean, variance, gamma, beta, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    int ret;
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+    struct csi_tensor *fmean = csi_ref_tensor_transform_f32(mean);
+    struct csi_tensor *fvariance = csi_ref_tensor_transform_f32(variance);
+    struct csi_tensor *fgamma = csi_ref_tensor_transform_f32(gamma);
+    struct csi_tensor *fbeta = csi_ref_tensor_transform_f32(beta);
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    ret = csi_ref_batch_normalization_f32(finput, fmean, fvariance, fgamma, fbeta, foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(finput);
+    csi_ref_tensor_transform_free_f32(fmean);
+    csi_ref_tensor_transform_free_f32(fvariance);
+    csi_ref_tensor_transform_free_f32(fgamma);
+    csi_ref_tensor_transform_free_f32(fbeta);
+    csi_ref_tensor_transform_free_f32(foutput);
+    return ret;
 }

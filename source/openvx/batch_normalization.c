@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,6 +18,7 @@
 
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_batch_normalization(struct csi_tensor *input,
                                 struct csi_tensor *mean,
@@ -47,8 +48,8 @@ int csi_ovx_batch_normalization(struct csi_tensor *input,
     /* mean */
     attr.size[0] = mean->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = mean->scale;
-    attr.dtype.zero_point = mean->zero_point;
+    attr.dtype.scale = mean->qinfo->scale;
+    attr.dtype.zero_point = mean->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
@@ -59,42 +60,42 @@ int csi_ovx_batch_normalization(struct csi_tensor *input,
     /* variance */
     attr.size[0] = variance->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = variance->scale;
-    attr.dtype.zero_point = variance->zero_point;
+    attr.dtype.scale = variance->qinfo->scale;
+    attr.dtype.zero_point = variance->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, variance->data);
-    node->input.tensors[1] = input_id;
+    node->input.tensors[2] = input_id;
 
     /* gamma */
     attr.size[0] = gamma->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = gamma->scale;
-    attr.dtype.zero_point = gamma->zero_point;
+    attr.dtype.scale = gamma->qinfo->scale;
+    attr.dtype.zero_point = gamma->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, gamma->data);
-    node->input.tensors[1] = input_id;
+    node->input.tensors[3] = input_id;
 
     /* beta */
     attr.size[0] = beta->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = beta->scale;
-    attr.dtype.zero_point = beta->zero_point;
+    attr.dtype.scale = beta->qinfo->scale;
+    attr.dtype.zero_point = beta->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
-    attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
+    attr.dtype.vx_type = VSI_NN_TYPE_INT32;
     input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, beta->data);
-    node->input.tensors[1] = input_id;
+    node->input.tensors[4] = input_id;
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;

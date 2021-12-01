@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +17,7 @@
  */
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_softmax(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -41,15 +42,15 @@ int csi_ovx_softmax(struct csi_tensor *input,
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output */
-    int i = 0;
-    for (i = 0; i < output->dim_count; i++) {
-        attr.size[i] = output->dim[i];
+    memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
+    attr.dim_num = output->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        attr.size[i] = output->dim[output->dim_count-i-1];
     }
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
-    attr.dim_num = VSI_NN_DIM_AUTO;
-    attr.vtl = TRUE;
+    attr.vtl = FALSE;
     attr.is_const = FALSE;
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_c906.h"
 
-int csi_leaky_relu_f32_c906(struct csi_tensor *input,
+int csi_c906_leaky_relu_f32(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct relu_params *params)
 {
@@ -57,27 +56,5 @@ int csi_leaky_relu_f32_c906(struct csi_tensor *input,
     //     float val = input_data[i];
     //     output_data[i] = val > 0 ? val : val * params->n;
     // }
-    return CSINN_TRUE;
-}
-
-int csi_leaky_relu_u8_c906(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct relu_params *params)
-{
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    float alpha_f = csi_dequantize_u8_to_f32(1, 0, params->n_multiplier, params->n_shift);
-    for (int i = 0; i < size; i++) {
-        float input_val = csi_dequantize_u8_to_f32(input_data[i], input->zero_point, input->multiplier,
-                                             input->shift);
-        float res = input_val > 0 ? input_val : input_val * alpha_f;
-
-        output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
-    }
     return CSINN_TRUE;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -37,14 +37,25 @@ enum
 enum
 {
     CSINN_REF = 0,
+    CSINN_GREF,
     CSINN_C860,
     CSINN_C906,
     CSINN_C910,
     CSINN_ANOLE,
     CSINN_TX510,
     CSINN_LIGHT,
+    CSINN_DP1K,
     CSINN_TVMGEN,
     CSINN_API_SIZE,
+};
+
+/* run mode */
+enum
+{
+    CSINN_RM_LAYER = 0,
+    CSINN_RM_CPU_GRAPH,
+    CSINN_RM_NPU_GRAPH,
+    CSINN_RUN_MODE_SIZE,
 };
 
 /* op and utils */
@@ -68,6 +79,7 @@ enum
     CSINN_OP_AVGPOOL3D,
     CSINN_OP_BN,
     CSINN_OP_BATCH_TO_SPACE,
+    CSINN_OP_BATCH_TO_SPACE_ND,
     CSINN_OP_BROADCOST,
     CSINN_OP_CEIL,
     CSINN_OP_CLIP,
@@ -87,11 +99,13 @@ enum
     CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6,
     CSINN_OP_GROUP_CONV2D,
     CSINN_OP_GROUP_CONV2D_RELU,
+    CSINN_OP_GROUP_CONV2D_RELU6,
     CSINN_OP_GROUP_CONV2D_CHANNEL,
     CSINN_OP_GROUP_CONV2D_CHANNEL_RELU,
     CSINN_OP_CONV3D,
     CSINN_OP_COS,
     CSINN_OP_COSH,
+    CSINN_OP_CROP,
     CSINN_OP_CUMPROD,
     CSINN_OP_CUMSUM,
     CSINN_OP_DECONV2D,
@@ -176,6 +190,7 @@ enum
     CSINN_OP_ROIPOOL,
     CSINN_OP_ROUND,
     CSINN_OP_RSQRT,
+    CSINN_OP_SCATTER_ND,
     CSINN_OP_SEGMENT_MAX,
     CSINN_OP_UNSORTED_SEGMENT_MAX,
     CSINN_OP_SEGMENT_MEAN,
@@ -200,6 +215,7 @@ enum
     CSINN_OP_SOFTRELU,
     CSINN_OP_SOFTSIGN,
     CSINN_OP_SPACE_TO_BATCH,
+    CSINN_OP_SPACE_TO_BATCH_ND,
     CSINN_OP_SPACE_TO_DEPTH,
     CSINN_OP_SPLIT,
     CSINN_OP_SQRT,
@@ -228,6 +244,7 @@ enum
     CSINN_SESSION_SETUP,
     CSINN_SESSION_RUN,
     CSINN_UPDATE_INPUT,
+    CSINN_UPDATE_OUTPUT,
     CSINN_SET_INPUT_NUMBER,
     CSINN_SET_OUTPUT_NUMBER,
     CSINN_GET_INPUT_NUMBER,
@@ -236,7 +253,19 @@ enum
     CSINN_SET_OUTPUT,
     CSINN_GET_INPUT,
     CSINN_GET_OUTPUT,
-    CSINN_OP_SIZE,
+
+    /* graph */
+    CSINN_TENSOR,
+    CSINN_SUBGRAPH,
+    CSINN_OP_AND_UTILS_SIZE,
+};
+
+/* convolution mode */
+enum
+{
+    CSINN_DIRECT = 0x0,   /* using direct optimizational convolution */
+    CSINN_WINOGRAD = 0x1, /* using winograd fast convolution */
+    CSINN_GEMM = 0x2,     /* using im2col + gemm convolution, im2col is optional */
 };
 
 /* pad mode */
@@ -272,6 +301,16 @@ enum
     CSINN_TRUE = 1,
 };
 
+struct csi_quant_info
+{
+    int32_t zero_point;
+    float scale;
+    int32_t multiplier;
+    int32_t shift;
+    float min;
+    float max;
+};
+
 #define MAX_DIM 8
 struct csi_tensor
 {
@@ -279,22 +318,32 @@ struct csi_tensor
     int32_t dtype;
     int32_t dim[MAX_DIM];
     int32_t dim_count;
+    uint32_t is_const;
     char *name;
-    int32_t zero_point;
-    float scale;
-    int32_t multiplier;
-    int32_t shift;
     int32_t layout;
-    float min;
-    float max;
+    int32_t quant_channel;
+    struct csi_quant_info *qinfo;
     struct csi_session *sess;
-} __attribute__((packed));
+};
+
+struct csi_scale_zp
+{
+    float scale;
+    int32_t zero_point;
+};
+
+struct csi_params_base
+{
+    int (*bc)();
+    char *name;
+    int32_t layout;
+    int32_t api;
+    int32_t run_mode;
+};
 
 struct conv2d_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t group;
     int32_t stride_height;
     int32_t stride_width;
@@ -304,16 +353,16 @@ struct conv2d_params
     int32_t pad_right;
     int32_t dilation_height;
     int32_t dilation_width;
-    char *name;
-    float *wscales;
-    int32_t *wzps;
+    struct
+    {
+        struct csi_tensor *kernel_tm;
+        int32_t conv_mode;
+    } conv_extra;
 };
 
 struct conv3d_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     int32_t group;
     int32_t stride_depth;
     int32_t stride_height;
@@ -334,16 +383,13 @@ struct conv3d_params
 
 struct fc_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
+    int32_t units;
 };
 
 struct pool_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pool_type;
     int32_t filter_height;
     int32_t filter_width;
@@ -357,13 +403,13 @@ struct pool_params
     int32_t pad_right;
     int32_t pad_front;
     int32_t pad_back;
+    int32_t ceil_mode;
+    bool count_include_pad;
 };
 
 struct unpooling_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t scale_height;
     int32_t scale_width;
     int32_t pad_out_height;
@@ -372,9 +418,7 @@ struct unpooling_params
 
 struct roi_align_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pooled_size_h;
     int32_t pooled_size_w;
     float spatial_scale;
@@ -385,9 +429,7 @@ struct roi_align_params
 
 struct roi_pool_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pooled_size_h;
     int32_t pooled_size_w;
     float spatial_scale;
@@ -397,24 +439,22 @@ struct roi_pool_params
 
 struct siso_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
+};
+
+struct scatter_nd_params
+{
+    struct csi_params_base base;
 };
 
 struct sigmoid_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct relu_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
-    char *name;
+    struct csi_params_base base;
 
     /* n / alpha / threshold */
     float n;
@@ -424,25 +464,19 @@ struct relu_params
 
 struct prelu_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
 };
 
 struct softmax_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
 };
 
 struct bn_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float epsilon;
     int32_t epsilon_multiplier;
     int32_t epsilon_shift;
@@ -450,9 +484,7 @@ struct bn_params
 
 struct l2n_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float epsilon;
     int32_t epsilon_multiplier;
     int32_t epsilon_shift;
@@ -462,9 +494,7 @@ struct l2n_params
 
 struct lrn_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t range;
     double bias;
     int32_t bias_multiplier;
@@ -479,32 +509,24 @@ struct lrn_params
 
 struct matmul_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     bool trans_a;
     bool trans_b;
 };
 
 struct diso_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct select_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct pad_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *pad_before;
     int32_t *pad_after;
     float pad_value;
@@ -513,27 +535,21 @@ struct pad_params
 
 struct resize_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t resize_mode;
     bool align_corners;
 };
 
 struct concat_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t inputs_count;
     int32_t axis;
 };
 
 struct proposal_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float *scales;
     int32_t *scale_multipliers;
     int32_t *scale_shifts;
@@ -554,9 +570,7 @@ struct proposal_params
 
 struct psroipooling_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t output_dim;
     int32_t group_size;
     float spatial_scale;
@@ -566,63 +580,48 @@ struct psroipooling_params
 
 struct transpose_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *permute;
 };
 
 struct reshape_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
+    int32_t *shape;
 };
 
 struct shape_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct expand_dims_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
 };
 
 struct reverse_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
 };
 
 struct flatten_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct crop_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
     int32_t *offset;
 };
 
 struct slice_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *begin;
     int32_t *end;
     int32_t *strides;
@@ -630,9 +629,7 @@ struct slice_params
 
 struct split_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *split_index;
     int32_t output_num;
     int32_t axis;
@@ -640,27 +637,21 @@ struct split_params
 
 struct stack_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t inputs_count;
     int32_t axis;
 };
 
 struct tile_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *reps;
     int32_t reps_num;
 };
 
 struct arange_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float start;
     int32_t start_multiplier;
     int32_t start_shift;
@@ -674,63 +665,48 @@ struct arange_params
 
 struct where_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct unstack_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t outputs_count;
     int32_t axis;
 };
 
 struct take_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
     const char *mode;
 };
 
 struct gather_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *indices;
     int32_t indices_count;
 };
 struct gather_nd_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct squeeze_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
+    int32_t *axis;
 };
 
 struct ndarray_size_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
 };
 
 struct space_to_batch_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pad_top;
     int32_t pad_bottom;
     int32_t pad_left;
@@ -738,11 +714,17 @@ struct space_to_batch_params
     int32_t block_size;
 };
 
+struct space_to_batch_nd_params
+{
+    struct csi_params_base base;
+    int32_t *paddings;
+    int32_t *block_shape;
+    int32_t spatial_dim_cnt;
+};
+
 struct batch_to_space_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t crop_top;
     int32_t crop_bottom;
     int32_t crop_left;
@@ -750,27 +732,29 @@ struct batch_to_space_params
     int32_t block_size;
 };
 
+struct batch_to_space_nd_params
+{
+    struct csi_params_base base;
+    int32_t *crops;
+    int32_t *block_shape;
+    int32_t spatial_dim_cnt;
+};
+
 struct space_to_depth_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t block_size;
 };
 
 struct depth_to_space_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t block_size;
 };
 
 struct one_hot_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float f_on_value;
     float f_off_value;
     int32_t on_value;
@@ -781,9 +765,7 @@ struct one_hot_params
 
 struct sequence_mask_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     float mask_value;
     int32_t mask_value_multiplier;
     int32_t mask_value_shift;
@@ -792,9 +774,7 @@ struct sequence_mask_params
 
 struct im2col_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pad_top;
     int32_t pad_down;
     int32_t pad_left;
@@ -807,9 +787,7 @@ struct im2col_params
 
 struct col2im_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t pad_h;
     int32_t pad_w;
     int32_t stride_h;
@@ -818,9 +796,7 @@ struct col2im_params
 
 struct reduce_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t *out_strides;
     int32_t *out_extents;
     int32_t n;
@@ -835,61 +811,48 @@ struct reduce_params
 
 struct reorg_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t stride;
 };
 
 struct segment_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t num_segments;
     bool unsorted;
 };
 
 struct cumsum_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
     bool exclusive;
 };
 
 struct cumprod_params
 {
-    int (*bc)();
-    int32_t layout;
-    int32_t api;
+    struct csi_params_base base;
     int32_t axis;
     bool exclusive;
 };
 
 struct broadcast_to_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     int32_t *shape;
     int32_t shape_count;
 };
 
 struct clip_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     float min_value;
     float max_value;
 };
 
 struct strided_slice_params
 {
-    int (*bc)();
-    int32_t api;
+    struct csi_params_base base;
     int32_t *begin;
     int32_t *end;
     int32_t *stride;
@@ -898,25 +861,19 @@ struct strided_slice_params
 
 struct shuffle_channel_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     int32_t group;
 };
 
 struct topk_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     int32_t k;
 };
 
 struct non_max_suppression_params
 {
-    int (*bc)();
-    int32_t api;
-    int32_t layout;
+    struct csi_params_base base;
     int32_t max_output_size;
     float iou_threshold;
     // float score_threshold;

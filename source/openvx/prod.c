@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +17,7 @@
  */
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 
 int csi_ovx_prod(struct csi_tensor *input,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,6 +19,7 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_deconv2d(struct csi_tensor *input,
                      struct csi_tensor *output,
@@ -64,8 +65,8 @@ int csi_ovx_deconv2d(struct csi_tensor *input,
     attr.size[2] = kernel->dim[1];
     attr.size[3] = kernel->dim[0];
     attr.dim_num = 4;
-    attr.dtype.scale = kernel->scale;
-    attr.dtype.zero_point = kernel->zero_point;
+    attr.dtype.scale = kernel->qinfo->scale;
+    attr.dtype.zero_point = kernel->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
@@ -79,16 +80,16 @@ int csi_ovx_deconv2d(struct csi_tensor *input,
     } else {
         attr.size[0] = bias->dim[0];
         attr.dim_num = 1;
-        attr.dtype.scale = bias->scale;
-        attr.dtype.zero_point = bias->zero_point;
+        attr.dtype.scale = bias->qinfo->scale;
+        attr.dtype.zero_point = bias->qinfo->zero_point;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
         input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, bias->data);
         node->input.tensors[2] = input_id;
     }
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;
@@ -143,8 +144,8 @@ int csi_ovx_depthwise_deconv2d(struct csi_tensor *input,
     attr.size[2] = kernel->dim[1];
     attr.size[3] = kernel->dim[0];
     attr.dim_num = 4;
-    attr.dtype.scale = kernel->scale;
-    attr.dtype.zero_point = kernel->zero_point;
+    attr.dtype.scale = kernel->qinfo->scale;
+    attr.dtype.zero_point = kernel->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
@@ -158,16 +159,16 @@ int csi_ovx_depthwise_deconv2d(struct csi_tensor *input,
     } else {
         attr.size[0] = bias->dim[0];
         attr.dim_num = 1;
-        attr.dtype.scale = bias->scale;
-        attr.dtype.zero_point = bias->zero_point;
+        attr.dtype.scale = bias->qinfo->scale;
+        attr.dtype.zero_point = bias->qinfo->zero_point;
         attr.dtype.vx_type = VSI_NN_TYPE_INT32;
         input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, bias->data);
         node->input.tensors[2] = input_id;
     }
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
     attr.vtl = TRUE;

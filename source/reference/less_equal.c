@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_less_equal_f32(struct csi_tensor *input0,
-                       struct csi_tensor *input1,
-                       struct csi_tensor *output,
-                       struct diso_params *params)
+int csi_ref_less_equal_f32(struct csi_tensor *input0,
+                           struct csi_tensor *input1,
+                           struct csi_tensor *output,
+                           struct diso_params *params)
 {
     float *input0_data = input0->data;
     float *input1_data = input1->data;
@@ -38,52 +38,10 @@ int csi_less_equal_f32(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_less_equal_u8(struct csi_tensor *input0,
-                      struct csi_tensor *input1,
-                      struct csi_tensor *output,
-                      struct diso_params *params)
+int csi_ref_less_equal_quant(struct csi_tensor *input0,
+                             struct csi_tensor *input1,
+                             struct csi_tensor *output,
+                             struct diso_params *params)
 {
-    uint8_t *input0_data = input0->data;
-    uint8_t *input1_data = input1->data;
-    uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size = size * input0->dim[i];
-    }
-
-    for (int i = 0; i < size; i++) {
-        float input0_val = csi_dequantize_u8_to_f32(input0_data[i], input0->zero_point, input0->multiplier,
-                                               input0->shift);
-        float input1_val = csi_dequantize_u8_to_f32(input1_data[i], input1->zero_point, input1->multiplier,
-                                               input1->shift);
-        float res = input0_val <= input1_val;
-
-        output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
-    }
-    return CSINN_TRUE;
-}
-
-int csi_less_equal_init(struct csi_tensor *input0,
-                        struct csi_tensor *input1,
-                        struct csi_tensor *output,
-                        struct diso_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_LESS_EQUAL, input0->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_less_equal(struct csi_tensor *input0,
-                   struct csi_tensor *input1,
-                   struct csi_tensor *output,
-                   struct diso_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input0, input1, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_diso_callback_base(input0, input1, output, params, csi_ref_less_equal_f32);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,15 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
-#include <assert.h>
+#include "csi_ref.h"
 
-#define ERF_PARAM 1.128379167
-
-int csi_erf_f32(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct siso_params *params)
+int csi_ref_erf_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct siso_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -33,42 +29,15 @@ int csi_erf_f32(struct csi_tensor *input,
         size = size * input->dim[i];
     }
 
-    return CSINN_FALSE;
-}
-
-int csi_erf_u8(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct siso_params *params)
-{
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    return CSINN_FALSE;
-}
-
-int csi_erf_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct siso_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_ERF, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    for (int i = 0; i < size; i++) {
+        output_data[i] = erf(input_data[i]);
     }
     return CSINN_TRUE;
 }
 
-int csi_erf(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params)
+int csi_ref_erf_quant(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct siso_params *params)
 {
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_erf_f32);
 }

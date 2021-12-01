@@ -1,0 +1,71 @@
+INCLUDE = -I../include -I./utils
+CFLAGS = -O0 -g3 -march=rv64gc
+CFLAGS += -DCSINN_API=7	# params.api = CSINN_API = CSINN_LIGHT = 7
+
+RV_CC = riscv64-unknown-linux-gnu-gcc
+
+test_objs =
+
+test_objs += validation_graph/add.o
+test_objs += validation_graph/sub.o
+test_objs += validation_graph/div.o
+test_objs += validation_graph/mean.o
+test_objs += validation_graph/minimum.o
+test_objs += validation_graph/maximum.o
+test_objs += validation_graph/negative.o
+test_objs += validation_graph/convolution.o
+test_objs += validation_graph/group_convolution.o
+test_objs += validation_graph/depthwise_convolution.o
+test_objs += validation_graph/deconvolution.o
+test_objs += validation_graph/avgpool.o
+test_objs += validation_graph/maxpool.o
+test_objs += validation_graph/global_maxpool.o
+test_objs += validation_graph/global_avgpool.o
+test_objs += validation_graph/fullyconnected.o
+test_objs += validation_graph/relu.o
+test_objs += validation_graph/relu1.o
+test_objs += validation_graph/relu6.o
+test_objs += validation_graph/leaky_relu.o
+test_objs += validation_graph/prelu.o
+test_objs += validation_graph/sigmoid.o
+test_objs += validation_graph/tanh.o
+test_objs += validation_graph/softmax.o
+test_objs += validation_graph/space_to_depth.o
+test_objs += validation_graph/depth_to_space.o
+test_objs += validation_graph/batch_to_space_nd.o
+test_objs += validation_graph/space_to_batch_nd.o
+test_objs += validation_graph/squeeze.o
+test_objs += validation_graph/pad.o
+test_objs += validation_graph/crop.o
+test_objs += validation_graph/argmax.o
+test_objs += validation_graph/flatten.o
+test_objs += validation_graph/transpose.o
+test_objs += validation_graph/concat.o
+test_objs += validation_graph/split.o
+test_objs += validation_graph/resize.o
+test_objs += validation_graph/reshape.o
+test_objs += validation_graph/lrn.o
+test_objs += validation_graph/batch_normalization.o
+test_objs += validation_graph/l2_normalization.o
+
+
+utils_objs =
+
+utils_objs += utils/math_snr.o
+utils_objs += utils/test_utils.o
+
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(RV_CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.c
+	$(RV_CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+	$(RV_CC) $@ $(CFLAGS) $(BOARD) $(utils_objs) -L../lib -L../module/nna_ddk_install/light/ \
+	../lib/libcsi_nn2_pnna.a -limgdnn -lnnasession -lpthread -lssl -lcrypto -latomic -lz -lm -lstdc++ -o $@.elf
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm validation_graph/*.elf validation_graph/*.bin validation_graph/*.asm validation_graph/imgdnn_session_*/

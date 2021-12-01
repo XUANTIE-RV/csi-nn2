@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_broadcast_to_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct broadcast_to_params *params)
+int csi_ref_broadcast_to_f32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct broadcast_to_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -42,47 +41,9 @@ int csi_broadcast_to_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_broadcast_to_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct broadcast_to_params *params)
+int csi_ref_broadcast_to_quant(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct broadcast_to_params *params)
 {
-    uint8_t *input_data = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-    int size0 = 1;
-    for(int i=0; i<input->dim_count; i++) {
-        size0 = size0 * input->dim[i];
-    }
-
-    int size1 = 1;
-    for(int i=0; i < params->shape_count - input->dim_count; i++) {
-        size1 = size1 * params->shape[i];
-    }
-    for(int i=0; i<size1; i++) {
-        memcpy(output_data, input_data, size0);
-        output_data = output_data + size0;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_broadcast_to_init(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct broadcast_to_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_BROADCOST, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_broadcast_to(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct broadcast_to_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_broadcast_to_f32);
 }

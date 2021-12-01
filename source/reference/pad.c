@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-static int csi_pad_nhwc_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pad_params *params)
+static int csi_ref_pad_nhwc_f32(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_height = output->dim[1];
@@ -71,60 +71,9 @@ static int csi_pad_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_pad_nhwc_u8(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pad_params *params)
-{
-    const int output_batch = output->dim[0];
-    const int output_height = output->dim[1];
-    const int output_width = output->dim[2];
-    const int output_depth = output->dim[3];
-
-    const int left_b_padding = params->pad_before[0];
-    const int left_h_padding = params->pad_before[1];
-    const int left_w_padding = params->pad_before[2];
-    const int left_d_padding = params->pad_before[3];
-
-    const int right_b_padding = params->pad_after[0];
-    const int right_h_padding = params->pad_after[1];
-    const int right_w_padding = params->pad_after[2];
-    const int right_d_padding = params->pad_after[3];
-
-    const uint8_t *in_ptr = input->data;
-    uint8_t *out_ptr = output->data;
-    for (int out_b = 0; out_b < output_batch; ++out_b) {
-        for (int out_h = 0; out_h < output_height; ++out_h) {
-            for (int out_w = 0; out_w < output_width; ++out_w) {
-                for (int out_d = 0; out_d < output_depth; ++out_d) {
-                    if (out_b < left_b_padding || out_b >= output_batch - right_b_padding ||
-                        out_h < left_h_padding || out_h >= output_height - right_h_padding ||
-                        out_w < left_w_padding || out_w >= output_width - right_w_padding ||
-                        out_d < left_d_padding || out_d >= output_depth - right_d_padding) {
-                        if (params->pad_mode == CSINN_PAD_CONSTANT) {
-                            *out_ptr = params->pad_value;
-                            out_ptr++;
-                        } else if (params->pad_mode = CSINN_PAD_EDGE) {
-                            /* TODO */
-                            assert(0);
-                        } else if (params->pad_mode = CSINN_PAD_REFLECT) {
-                            /* TODO */
-                            assert(0);
-                        }
-                    } else {
-                        *out_ptr = *in_ptr;
-                        out_ptr++;
-                        in_ptr++;
-                    }
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-static int csi_pad_nchw_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pad_params *params)
+static int csi_ref_pad_nchw_f32(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct pad_params *params)
 {
     const int output_batch = output->dim[0];
     const int output_depth = output->dim[1];
@@ -174,102 +123,22 @@ static int csi_pad_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_pad_nchw_u8(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pad_params *params)
+int csi_ref_pad_f32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct pad_params *params)
 {
-    const int output_batch = output->dim[0];
-    const int output_depth = output->dim[1];
-    const int output_height = output->dim[2];
-    const int output_width = output->dim[3];
-
-    const int left_b_padding = params->pad_before[0];
-    const int left_h_padding = params->pad_before[1];
-    const int left_w_padding = params->pad_before[2];
-    const int left_d_padding = params->pad_before[3];
-
-    const int right_b_padding = params->pad_after[0];
-    const int right_h_padding = params->pad_after[1];
-    const int right_w_padding = params->pad_after[2];
-    const int right_d_padding = params->pad_after[3];
-
-    const uint8_t *in_ptr = input->data;
-    uint8_t *out_ptr = output->data;
-    for (int out_b = 0; out_b < output_batch; ++out_b) {
-        for (int out_d = 0; out_d < output_depth; ++out_d) {
-            for (int out_h = 0; out_h < output_height; ++out_h) {
-                for (int out_w = 0; out_w < output_width; ++out_w) {
-                    if (out_b < left_b_padding || out_b >= output_batch - right_b_padding ||
-                        out_h < left_h_padding || out_h >= output_height - right_h_padding ||
-                        out_w < left_w_padding || out_w >= output_width - right_w_padding ||
-                        out_d < left_d_padding || out_d >= output_depth - right_d_padding) {
-                        if (params->pad_mode == CSINN_PAD_CONSTANT) {
-                            *out_ptr = params->pad_value;
-                            out_ptr++;
-                        } else if (params->pad_mode = CSINN_PAD_EDGE) {
-                            /* TODO */
-                            assert(0);
-                        } else if (params->pad_mode = CSINN_PAD_REFLECT) {
-                            /* TODO */
-                            assert(0);
-                        }
-                    } else {
-                        *out_ptr = *in_ptr;
-                        out_ptr++;
-                        in_ptr++;
-                    }
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-int csi_pad_f32(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct pad_params *params)
-{
-    if (params->layout == CSINN_NCHW) {
-        csi_pad_nchw_f32(input, output, params);
-    } else if (params->layout == CSINN_NHWC) {
-        csi_pad_nhwc_f32(input, output, params);
+    if (params->base.layout == CSINN_NCHW) {
+        csi_ref_pad_nchw_f32(input, output, params);
+    } else if (params->base.layout == CSINN_NHWC) {
+        csi_ref_pad_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_pad_u8(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct pad_params *params)
+int csi_ref_pad_quant(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct pad_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        csi_pad_nchw_u8(input, output, params);
-    } else if (params->layout == CSINN_NHWC) {
-        csi_pad_nhwc_u8(input, output, params);
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
-    }
-}
-
-int csi_pad_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct pad_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_PAD, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;     
-}
-
-int csi_pad(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct pad_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_pad_f32);
 }

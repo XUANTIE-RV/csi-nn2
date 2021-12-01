@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_unstack_f32(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct unstack_params *params)
+int csi_ref_unstack_f32(struct csi_tensor *input,
+                        struct csi_tensor **output,
+                        struct unstack_params *params)
 {
     int axis = params->axis;
     int output_count = input->dim[axis];
@@ -41,7 +41,7 @@ int csi_unstack_f32(struct csi_tensor *input,
     float *input_data = (float *)input->data;
     for(int i = 0; i < outer_size; i++) {
         for(int j = 0; j < output_count; j++) {
-            struct csi_tensor *output_item = output + j;
+            struct csi_tensor *output_item = output[j];
             float *output_item_data = (float *)output_item->data;
             float *output_ptr = output_item_data + i * copy_size;
             memcpy(output_ptr, input_data, copy_size * sizeof(float));
@@ -51,66 +51,28 @@ int csi_unstack_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_unstack_u8(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct unstack_params *params)
+int csi_ref_unstack_qunat(struct csi_tensor *input,
+                          struct csi_tensor **output,
+                          struct unstack_params *params)
 {
+    int ret;
     int axis = params->axis;
     int output_count = input->dim[axis];
-
-    // For all output arrays,
-    // FlatSize() = outer_size * base_inner_size;
-    int64_t outer_size = 1;
-    for(int i = 0; i < axis; ++i) {
-        outer_size *= input->dim[i];
-    }
-    int64_t inner_size = 1;
-    for(int i = axis+1; i < input->dim_count; ++i) {
-        inner_size *= input->dim[i];
+    struct csi_tensor *foutput[output_count];
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+    for (int i = 0; i < output_count; i++) {
+        foutput[i] = csi_ref_tensor_transform_f32(output[i]);
     }
 
-    int copy_size = inner_size;
-    float *input_data = (float *)input->data;
-    for(int i = 0; i < outer_size; i++) {
-        for(int j = 0; j < output_count; j++) {
-            struct csi_tensor *output_item = output + j;
-            float *output_item_data = (float *)output_item->data;
-            float *output_ptr = output_item_data + i * copy_size;
-            if(output_item->zero_point == input->zero_point &&
-                output_item->multiplier == input->multiplier &&
-                output_item->shift == input->shift) {
-                memcpy(output_ptr, input_data, copy_size * sizeof(float));
-            } else {
-                for(int n = 0; n < copy_size; n++) {
-                    output_ptr[j] = csi_requantize_u8(input_data[j], input->zero_point, input->multiplier, input->shift,
-                                                                     output_item->zero_point, output_item->multiplier, output_item->shift);
-                }
-            }
-            input_data += copy_size;
-        }
-    }
-    return CSINN_TRUE;
-}
+    ret = csi_ref_unstack_f32(finput, foutput, params);
 
-int csi_unstack_init(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct unstack_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_UNSTACK, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    for (int i = 0; i < output_count; i++) {
+        csi_tensor_data_convert(output[i], foutput[i]);
     }
-    return CSINN_TRUE;
-}
 
-int csi_unstack(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct unstack_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
+    csi_ref_tensor_transform_free_f32(finput);
+    for (int i = 0; i < output_count; i++) {
+        csi_ref_tensor_transform_free_f32(foutput[i]);
     }
-    return CSINN_TRUE;
+    return ret;
 }

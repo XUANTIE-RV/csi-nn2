@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,6 +18,7 @@
 
 #include "csi_nn.h"
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 #include "csi_utils.h"
 
 int csi_ovx_proposal(struct csi_tensor *cls_prob,
@@ -61,17 +62,20 @@ int csi_ovx_proposal(struct csi_tensor *cls_prob,
     node->input.tensors[1] = (vsi_nn_tensor_id_t)bbox_pred->data;
 
     /* output0 */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
-    attr.dim_num = VSI_NN_DIM_AUTO;
+    attr.dim_num = output->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        attr.size[i] = output->dim[output->dim_count-i-1];
+    }
     attr.vtl = FALSE;
     attr.is_const = FALSE;
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     node->output.tensors[0] = output_id;
-    output[0].data = (void *)output_id;
+    output->data = (void *)output_id;
 
     /* output1 */
     attr.dtype.scale = 1;
@@ -84,5 +88,5 @@ int csi_ovx_proposal(struct csi_tensor *cls_prob,
     attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     output_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     node->output.tensors[1] = output_id;
-    output[1].data = (void *)output_id;
+    // output[1].data = (void *)output_id;
 }

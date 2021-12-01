@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_c906.h"
 
-int csi_fullyconnected_f32_c906(struct csi_tensor *input,
+int csi_c906_fullyconnected_f32(struct csi_tensor *input,
                                 struct csi_tensor *output,
                                 struct csi_tensor *weights,
                                 struct csi_tensor *bias,
@@ -91,53 +90,5 @@ int csi_fullyconnected_f32_c906(struct csi_tensor *input,
                 : "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "ft0", "ft1", "ft2"
     );
 
-    // for (int b = 0; b < batches; ++b) {
-    //     for (int out_c = 0; out_c < output_depth; ++out_c) {
-    //         float total = 0.f;
-    //         for (int d = 0; d < accum_depth; ++d) {
-    //             total += input_data[b * accum_depth + d] * weights_data[out_c * accum_depth + d];
-    //         }
-    //         float bias_value = 0.0f;
-    //         if (bias_data != NULL) {
-    //             bias_value = bias_data[out_c];
-    //         }
-    //         output_data[out_c + output_depth * b] = total + bias_value;
-    //     }
-    // }
-    return CSINN_TRUE;
-}
-
-int csi_fullyconnected_u8_c906(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct csi_tensor *weights,
-                               struct csi_tensor *bias,
-                               struct fc_params *params)
-{
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    uint8_t *weights_data = weights->data;
-    int32_t *bias_data = bias->data;
-    const int output_dims_count = output->dim_count;
-    const int weights_dims_count = weights->dim_count;
-    const int batches = output->dim[0];
-    const int output_depth = weights->dim[weights_dims_count - 2];
-    const int accum_depth = weights->dim[weights_dims_count - 1];
-    for (int b = 0; b < batches; ++b) {
-        #pragma omp parallel for num_threads(8)
-        for (int out_c = 0; out_c < output_depth; ++out_c) {
-            int32_t acc = 0;
-            for (int d = 0; d < accum_depth; ++d) {
-                int32_t input_val = input_data[b * accum_depth + d];
-                int32_t filter_val = weights_data[out_c * accum_depth + d];
-                acc += (filter_val + weights->zero_point) * (input_val + input->zero_point);
-            }
-            if (bias_data != NULL) {
-                acc += bias_data[out_c];
-            }
-
-            output_data[out_c + output_depth * b] =
-                csi_quantize_u8(acc, output->zero_point, output->multiplier, output->shift);
-        }
-    }
     return CSINN_TRUE;
 }

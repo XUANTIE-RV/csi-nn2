@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,6 +19,7 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_expand_dims_f32(struct csi_tensor *input,
                         struct csi_tensor *output,

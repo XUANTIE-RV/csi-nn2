@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_gather_f32(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct gather_params *params)
+int csi_ref_gather_f32(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct gather_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -44,56 +43,9 @@ int csi_gather_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_gather_u8(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct gather_params *params)
+int csi_ref_gather_quant(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct gather_params *params)
 {
-    uint8_t *input_data = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-
-    int inner_size = 1;
-    for(int i = 1; i < input->dim_count; i++) {
-        inner_size *= input->dim[i];
-    }
-
-    for(int i = 0; i < params->indices_count; i++) {
-        if(params->indices[i] < input->dim[0]) {
-            for(int j = 0; j < inner_size; j++) {
-                *(output_data + j) = csi_requantize_u8(*(input_data + params->indices[i] * inner_size + j),
-                input->zero_point, input->multiplier, input->shift, output->zero_point, output->multiplier, output->shift);
-            }
-        } else {
-            uint8_t zero = csi_requantize_u8(0.0f, input->zero_point, input->multiplier, input->shift, 
-                                                    output->zero_point, output->multiplier, output->shift);
-            for(int j = 0; j < inner_size; j++) {
-                *(output_data + j) = zero;
-            }
-        }
-        output_data += inner_size;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_gather_f32);
 }
-
-int csi_gather_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct gather_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_GATHER, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_gather(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct gather_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
-}
-

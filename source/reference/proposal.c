@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 #include <math.h>
 #define MAX(a, b) (a > b ? a : b)
@@ -259,11 +259,11 @@ static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch,
   return output;
 }
 
-int csi_proposal_f32(struct csi_tensor *cls_prob,
-                     struct csi_tensor *bbox_pred,
-                     struct csi_tensor *im_info,
-                     struct csi_tensor *output,
-                     struct proposal_params *params)
+int csi_ref_proposal_f32(struct csi_tensor *cls_prob,
+                         struct csi_tensor *bbox_pred,
+                         struct csi_tensor *im_info,
+                         struct csi_tensor *output,
+                         struct proposal_params *params)
 {
   float *output_data = output->data;
 
@@ -316,106 +316,35 @@ int csi_proposal_f32(struct csi_tensor *cls_prob,
   return CSINN_TRUE;
 }
 
-int csi_proposal_u8(struct csi_tensor *cls_prob,
-                    struct csi_tensor *bbox_pred,
-                    struct csi_tensor *im_info,
-                    struct csi_tensor *output,
-                    struct proposal_params *params)
+int csi_ref_proposal_quant(struct csi_tensor *cls_prob,
+                           struct csi_tensor *bbox_pred,
+                           struct csi_tensor *im_info,
+                           struct csi_tensor *output,
+                           struct proposal_params *params)
 {
-
     float *scales = (float *)malloc(params->scales_num * sizeof(float));
     for(int i = 0; i < params->scales_num; i++){
-      scales[i] = csi_get_scale(params->scale_multipliers[i],params->scale_shifts[i]);
+      scales[i] = csi_ref_get_scale(params->scale_multipliers[i],params->scale_shifts[i]);
     }
 
     float *ratios = (float *)malloc(params->scales_num * sizeof(float));
     for(int i = 0; i < params->ratios_num; i++){
-      ratios[i] = csi_get_scale(params->ratio_multipliers[i],params->ratio_shifts[i]);
+      ratios[i] = csi_ref_get_scale(params->ratio_multipliers[i],params->ratio_shifts[i]);
     }
-    float threshold = csi_get_scale(params->threshold_multiplier,params->threshold_shift);
-
-    float *float_output_data;
-    struct csi_tensor float_output;
-    int64_t out_size = 1;
-    for (int i = 0; i < output->dim_count; ++i) {
-        out_size *= output->dim[i];
-    }
-    uint8_t *output_data = output->data;
-    memcpy(&float_output, output, sizeof(struct csi_tensor));
-    float_output_data = malloc(out_size * sizeof(float));
-    float_output.data = float_output_data;
-    float *f_cls_data;
-    float *f_bbox_data;
-    struct csi_tensor f_cls;
-    struct csi_tensor f_bbox;
-    uint8_t *cls_data = cls_prob->data;
-    uint8_t *bbox_data = bbox_pred->data;
-
-    int c_size = 1;
-    for (int i = 0; i < cls_prob->dim_count; i++) {
-        c_size *= cls_prob->dim[i];
-    }
-
-    int b_size = 1;
-    for (int i = 0; i < bbox_pred->dim_count; i++) {
-        b_size *= bbox_pred->dim[i];
-    }
-
-    memcpy(&f_cls, cls_prob, sizeof(struct csi_tensor));
-    memcpy(&f_bbox, bbox_pred, sizeof(struct csi_tensor));
-    f_cls_data = malloc(c_size * sizeof(float));
-    f_bbox_data = malloc(b_size * sizeof(float));
-    f_cls.data = f_cls_data;
-    f_bbox.data = f_bbox_data;
-
-    for (int i = 0; i < c_size; i++) {
-        f_cls_data[i] = csi_dequantize_u8_to_f32(cls_data[i], cls_prob->zero_point,
-                                                 cls_prob->multiplier, cls_prob->shift);
-    }
-
-    for (int i = 0; i < b_size; i++) {
-        f_bbox_data[i] = csi_dequantize_u8_to_f32(bbox_data[i], bbox_pred->zero_point,
-                                                 bbox_pred->multiplier, bbox_pred->shift);
-    }
+    float threshold = csi_ref_get_scale(params->threshold_multiplier,params->threshold_shift);
 
     params->ratios = ratios;
     params->scales = scales;
     params->threshold = threshold;
-    csi_proposal_f32(&f_cls, &f_bbox, im_info, &float_output, params);
 
-    for (int i = 0; i < out_size; i++) {
-        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
-                                          output->multiplier, output->shift);
-    }
-    free(float_output_data);
-    free(f_cls_data);
-    free(f_bbox_data);
+    struct csi_tensor *fcls = csi_ref_tensor_transform_f32(cls_prob);
+    struct csi_tensor *fbbox = csi_ref_tensor_transform_f32(bbox_pred);
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    csi_ref_proposal_f32(fcls, fbbox, im_info, foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(fcls);
+    csi_ref_tensor_transform_free_f32(fbbox);
+    csi_ref_tensor_transform_free_f32(foutput);
     return CSINN_TRUE;
-}
 
-int csi_proposal_init(struct csi_tensor *cls_prob,
-                      struct csi_tensor *bbox_pred,
-                      struct csi_tensor *im_info,
-                      struct csi_tensor *output,
-                      struct proposal_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_PROPOSAL, output->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_proposal(struct csi_tensor *cls_prob,
-                 struct csi_tensor *bbox_pred,
-                 struct csi_tensor *im_info,
-                 struct csi_tensor *output,
-                 struct proposal_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(cls_prob, bbox_pred, im_info, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
 }

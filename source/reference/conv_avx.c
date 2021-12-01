@@ -5,13 +5,13 @@ static float *channel(struct csi_tensor *t, int c)
 }
 
 static void conv_trans_kernel_avx(struct csi_tensor *o_kernel,
-                           struct csi_tensor *t_kernel)
+                                  struct csi_tensor *t_kernel)
 {
 
     float* kernel = o_kernel->data;
     float* ret;
 
-    memcpy(t_kernel, o_kernel, sizeof(struct csi_tensor));
+    csi_tensor_copy(t_kernel, o_kernel);
     // kernel memory packed 8 x 8
     int outch = o_kernel->dim[0];
     int inch = o_kernel->dim[1];
@@ -132,8 +132,8 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
     }
 
     // im2col
-    struct csi_tensor *bottom_im2col = malloc(sizeof(struct csi_tensor));
-    memcpy(bottom_im2col, input, sizeof(struct csi_tensor));
+    struct csi_tensor *bottom_im2col = csi_alloc_tensor(NULL);
+    csi_tensor_copy(bottom_im2col, input);
     bottom_im2col->data = malloc(outw*outh * kernel_h*kernel_w*inch * sizeof(float));
     bottom_im2col->dim[0] = 0;
     bottom_im2col->dim[1] = 0;
@@ -172,8 +172,8 @@ static void conv_im2col_sgemm_avx(struct csi_tensor *input, struct csi_tensor *o
     int out_size = outw * outh;
 
     // bottom_im2col memory packed 8 x 8
-    struct csi_tensor *bottom_tm = malloc(sizeof(struct csi_tensor));
-    memcpy(bottom_tm, input, sizeof(struct csi_tensor *));
+    struct csi_tensor *bottom_tm = csi_alloc_tensor(NULL);
+    csi_tensor_copy(bottom_tm, input);
     bottom_tm->data = malloc(8*kernel_size * inch *
                              (out_size/8 + out_size%8) * 4);
     bottom_tm->dim[0] = 0;

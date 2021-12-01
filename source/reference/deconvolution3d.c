@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,16 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_deconv3d_f32(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct csi_tensor *kernel,
-                     struct csi_tensor *bias,
-                     struct conv3d_params *params)
+// input:  NCDHW
+// kernel: IODHW
+// output: NODHW
+int csi_ref_deconv3d_f32(struct csi_tensor *input,
+                         struct csi_tensor *output,
+                         struct csi_tensor *kernel,
+                         struct csi_tensor *bias,
+                         struct conv3d_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -52,8 +54,7 @@ int csi_deconv3d_f32(struct csi_tensor *input,
     for(int i = 0; i < output->dim_count; ++i) {
         num_elements *= output->dim[i];
     }
-    // We need to initialize scratch_buffer to all 0s, as we apply the same
-    // 'scatter' based trick as in float version.
+    // We need to initialize scratch_buffer to all 0s
     float *scratch_buffer = calloc(num_elements, sizeof(float));
 
     // Loop through input elements one at a time.
@@ -78,11 +79,11 @@ int csi_deconv3d_f32(struct csi_tensor *input,
                                         // Cannot accumulate out of bounds.
                                         if((out_d>=0)&&(out_d<output_depth) &&(out_h>=0)&&(out_h<output_height) &&
                                            (out_w>=0)&&(out_w<output_width)) {
-                                            int32_t input_idx = csi_get_index_5(input->dim, out_b, in_ch, in_d, in_h, in_w);
+                                            int32_t input_idx = csi_ref_get_index_5(input->dim, out_b, in_ch, in_d, in_h, in_w);
                                             float input_val = input_data[input_idx];
-                                            int32_t filter_idx = csi_get_index_5(kernel->dim, in_ch, out_ch, filter_d, filter_h, filter_w);
+                                            int32_t filter_idx = csi_ref_get_index_5(kernel->dim, in_ch, out_ch, filter_d, filter_h, filter_w);
                                             float filter_val = kernel_data[filter_idx];
-                                            int32_t output_idx = csi_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
+                                            int32_t output_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
                                             scratch_buffer[output_idx] += input_val * filter_val;
                                         }
                                     }
@@ -101,7 +102,7 @@ int csi_deconv3d_f32(struct csi_tensor *input,
                 for(int out_d=0; out_d<output_depth; ++out_d) {
                     for(int out_h=0; out_h<output_height; ++out_h) {
                         for(int out_w=0; out_w<output_width; ++out_w) {
-                            int32_t out_idx = csi_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
+                            int32_t out_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
                             scratch_buffer[out_idx] += bias_data[out_ch];
                         }
                     }
@@ -116,31 +117,11 @@ int csi_deconv3d_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_deconv3d_init(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct csi_tensor *kernel,
-                      struct csi_tensor *bias,
-                      struct conv3d_params *params)
+int csi_ref_deconv3d_quant(struct csi_tensor *input,
+                           struct csi_tensor *output,
+                           struct csi_tensor *kernel,
+                           struct csi_tensor *bias,
+                           struct conv3d_params *params)
 {
-    if (params->layout == CSINN_NCDHW) {
-        params->bc = csi_bc_map(params->api, CSINN_OP_DECONV3D, input->dtype);
-        if (params->bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    }
-    return CSINN_TRUE;
-}
-
-int csi_deconv3d(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct csi_tensor *kernel,
-                 struct csi_tensor *bias,
-                 struct conv3d_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, kernel, bias, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_deconv3d_f32);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -19,6 +19,7 @@
 #include "csi_nn.h"
 #include "csi_utils.h"
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 void csi_ovx_show_top5(int index, struct csi_session *sess)
 {
@@ -44,8 +45,8 @@ void csi_ovx_show_top5(int index, struct csi_session *sess)
         vsi_nn_DtypeToFloat32(&tensor_data[stride * i], &buffer[i], &tensor->attr.dtype);
     }
 
-#ifdef DEBUG_TEST
-    csi_statistical_mean_std(buffer, sz);
+#ifdef CSI_DEBUG
+    //csi_statistical_mean_std(buffer, sz);
 #endif
 
     csi_get_top5(buffer, sz, prob, class);
@@ -85,6 +86,7 @@ void csi_ovx_set_output_number(int number, struct csi_session *sess)
 {
     vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
     sess->output_num = number;
+    sess->output = calloc(sess->output_num, sizeof(struct csi_tensor *));
     vsi_nn_SetGraphOutputs(graph, NULL, number);
 }
 
@@ -92,6 +94,7 @@ void csi_ovx_set_input_number(int number, struct csi_session *sess)
 {
     vsi_nn_graph_t *graph = csi_ovx_get_graph(sess);
     sess->input_num = number;
+    sess->input = calloc(sess->input_num, sizeof(struct csi_tensor *));
     vsi_nn_SetGraphInputs(graph, NULL, number);
 }
 
@@ -104,10 +107,9 @@ static int csi_ovx_get_tensor_internal(struct csi_tensor *ret, vsi_nn_tensor_t *
         for (int i = 0; i < ret->dim_count; i++) {
             ret->dim[i] = tensor->attr.size[ret->dim_count - 1 - i];
         }
-
-        ret->scale = tensor->attr.dtype.scale;
-        ret->zero_point = tensor->attr.dtype.zero_point;
         if (tensor->attr.dtype.vx_type == VSI_NN_TYPE_UINT8) {
+            ret->qinfo->scale = tensor->attr.dtype.scale;
+            ret->qinfo->zero_point = tensor->attr.dtype.zero_point;
             ret->dtype = CSINN_DTYPE_UINT8;
         } else if (tensor->attr.dtype.vx_type == VSI_NN_TYPE_FLOAT32) {
             ret->dtype = CSINN_DTYPE_FLOAT32;
@@ -161,29 +163,28 @@ void csi_ovx_set_tensor(struct csi_tensor *tensor, struct csi_session *sess)
     vsi_nn_tensor_attr_t attr;
     vsi_nn_tensor_id_t ret;
 
-    uint8_t *input_data;
-    uint32_t sz = 1;
-    uint32_t stride = 1;
     int i = 0;
-
     for (i = 0; i < tensor->dim_count; i++) {
         attr.size[i] = tensor->dim[tensor->dim_count - 1 - i];
     }
     attr.dim_num = tensor->dim_count;
-    attr.dtype.scale = tensor->scale;
-    attr.dtype.zero_point = tensor->zero_point;
-    attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
-    attr.vtl = FALSE;
-    attr.is_const = FALSE;
-    attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
-
-    for (i = 0; i < 4; i++) {
-        sz *= tensor->dim[i];
+    if (tensor->dtype == CSINN_DTYPE_UINT8) {
+        attr.dtype.scale = tensor->qinfo->scale;
+        attr.dtype.zero_point = tensor->qinfo->zero_point;
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
+        attr.vtl = FALSE;
+        attr.is_const = FALSE;
+        attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
+    } else if (tensor->dtype == CSINN_DTYPE_FLOAT32) {
+        attr.dtype.qnt_type = VSI_NN_QNT_TYPE_NONE;
+        attr.dtype.vx_type = VSI_NN_TYPE_FLOAT32;
+        attr.vtl = FALSE;
+        attr.is_const = TRUE;
+    } else {
+        printf("Unsupport for dtype: %d\n", tensor->dtype);
+        exit(-1);
     }
-    stride = vsi_nn_TypeGetBytes(attr.dtype.vx_type);
-    input_data = (uint8_t *)malloc(stride * sz * sizeof(uint8_t));
-
-    ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, input_data);
+    ret = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, NULL);
     tensor->data = (void *)ret;
     tensor->sess = sess;
 }
@@ -201,8 +202,8 @@ void csi_ovx_set_const_tensor(struct csi_tensor *tensor, struct csi_session *ses
     attr.vtl = FALSE;
     attr.is_const = TRUE;
     if (tensor->dtype == CSINN_DTYPE_UINT8) {
-        attr.dtype.scale = tensor->scale;
-        attr.dtype.zero_point = tensor->zero_point;
+        attr.dtype.scale = tensor->qinfo->scale;
+        attr.dtype.zero_point = tensor->qinfo->zero_point;
         attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
         attr.dtype.vx_type = VSI_NN_TYPE_UINT8;
     } else {
@@ -318,7 +319,7 @@ void *csi_ovx_get_graph(struct csi_session *sess)
     return td->graph;
 }
 
-void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
+void* csi_bc_map_table_ovx[CSINN_OP_AND_UTILS_SIZE][1] = {
     {csi_ovx_abs}, /* CSINN_OP_ABS */
     {NULL}, /* CSINN_OP_ACOS */
     {NULL}, /* CSINN_OP_ACOSH */
@@ -337,13 +338,14 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {NULL}, /* CSINN_OP_AVGPOOL3D */
     {csi_ovx_batch_normalization}, /* CSINN_OP_BN */
     {csi_ovx_batch_to_space}, /* CSINN_OP_BATCH_TO_SPACE */
+    {NULL}, /* CSINN_OP_BATCH_TO_SPACE_ND */
     {NULL}, /* CSINN_OP_BROADCOST */
     {NULL}, /* CSINN_OP_CEIL */
     {NULL}, /* CSINN_OP_CLIP */
     {NULL}, /* CSINN_OP_COL2IM */
     {csi_ovx_concat}, /* CSINN_OP_CONCAT */
     {csi_ovx_conv2d}, /* CSINN_OP_CONV2D */
-    {NULL}, /* CSINN_OP_CONV2D_RELU */
+    {csi_ovx_conv2d_relu}, /* CSINN_OP_CONV2D_RELU */
     {NULL}, /* CSINN_OP_CONV2D_RELU6 */
     {NULL}, /* CSINN_OP_CONV2D_CHANNEL */
     {NULL}, /* CSINN_OP_CONV2D_CHANNEL_RELU */
@@ -356,11 +358,13 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {NULL}, /* CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6 */
     {csi_ovx_group_conv2d}, /* CSINN_OP_GROUP_CONV2D */
     {NULL}, /* CSINN_OP_GROUP_CONV2D_RELU */
+    {NULL}, /* CSINN_OP_GROUP_CONV2D_RELU6 */
     {NULL}, /* CSINN_OP_GROUP_CONV2D_CHANNEL */
     {NULL}, /* CSINN_OP_GROUP_CONV2D_CHANNEL_RELU */
     {NULL}, /* CSINN_OP_CONV3D */
     {NULL}, /* CSINN_OP_COS */
     {NULL}, /* CSINN_OP_COSH */
+    {NULL}, /* CSINN_OP_CROP */
     {NULL}, /* CSINN_OP_CUMPROD */
     {NULL}, /* CSINN_OP_CUMSUM */
     {csi_ovx_deconv2d}, /* CSINN_OP_DECONV2D */
@@ -442,9 +446,10 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {csi_ovx_resize}, /* CSINN_OP_RESIZE */
     {csi_ovx_reverse}, /* CSINN_OP_REVERSE */
     {NULL}, /* CSINN_OP_ROIALIGN */
-    {NULL}, /* CSINN_OP_ROIPOOL */
+    {csi_ovx_roipool}, /* CSINN_OP_ROIPOOL */
     {NULL}, /* CSINN_OP_ROUND */
     {csi_ovx_rsqrt}, /* CSINN_OP_RSQRT */
+    {NULL}, /* CSINN_OP_SCATTER_ND */
     {NULL}, /* CSINN_OP_SEGMENT_MAX */
     {NULL}, /* CSINN_OP_UNSORTED_SEGMENT_MAX */
     {NULL}, /* CSINN_OP_SEGMENT_MEAN */
@@ -469,13 +474,14 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {NULL}, /* CSINN_OP_SOFTRELU */
     {NULL}, /* CSINN_OP_SOFTSIGN */
     {csi_ovx_space_to_batch}, /* CSINN_OP_SPACE_TO_BATCH */
+    {NULL}, /* CSINN_OP_SPACE_TO_BATCH_ND */
     {csi_ovx_space_to_depth}, /* CSINN_OP_SPACE_TO_DEPTH */
     {csi_ovx_split}, /* CSINN_OP_SPLIT */
     {csi_ovx_sqrt}, /* CSINN_OP_SQRT */
     {csi_ovx_square}, /* CSINN_OP_SQUARE */
     {csi_ovx_squeeze}, /* CSINN_OP_SQUEEZE */
     {csi_ovx_stack}, /* CSINN_OP_STACK */
-    {NULL}, /* CSINN_OP_STRIDED_SLICE */
+    {csi_ovx_strided_slice}, /* CSINN_OP_STRIDED_SLICE */
     {csi_ovx_sub}, /* CSINN_OP_SUB */
     {csi_ovx_sum}, /* CSINN_OP_SUM */
     {NULL}, /* CSINN_OP_TAN */
@@ -497,6 +503,7 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {csi_ovx_session_setup},
     {csi_ovx_session_run},
     {csi_ovx_update_input},
+    {NULL},
     {csi_ovx_set_input_number},
     {csi_ovx_set_output_number},
     {csi_ovx_get_input_number},
@@ -505,6 +512,7 @@ void* csi_bc_map_table_ovx[CSINN_OP_SIZE][1] = {
     {csi_ovx_set_output},
     {csi_ovx_get_input},
     {csi_ovx_get_output},
+    {csi_ovx_set_tensor},
 };
 
 void *csi_bc_map_ovx(int op, int dtype)

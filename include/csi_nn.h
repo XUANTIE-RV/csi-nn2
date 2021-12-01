@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include "csi_internal.h"
 #include "csi_utils.h"
+#include "csi_debug.h"
 
 int csi_conv2d_init(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -170,14 +171,6 @@ int csi_global_averagepool(struct csi_tensor *input,
                            struct csi_tensor *output,
                            struct pool_params *params);
 
-int csi_global_maxpool_init(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pool_params *params);
-
-int csi_global_maxpool(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct pool_params *params);
-
 int csi_l2pool_init(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct pool_params *params);
@@ -221,16 +214,6 @@ int csi_roi_align(struct csi_tensor *data,
                   struct csi_tensor *rois,
                   struct csi_tensor *output,
                   struct roi_align_params *params);
-
-int csi_roi_pool_init(struct csi_tensor *data,
-                      struct csi_tensor *rois,
-                      struct csi_tensor *output,
-                      struct roi_pool_params *params);
-
-int csi_roi_pool(struct csi_tensor *data,
-                 struct csi_tensor *rois,
-                 struct csi_tensor *output,
-                 struct roi_pool_params *params);
 
 int csi_negative_init(struct csi_tensor *input,
                       struct csi_tensor *output,
@@ -882,20 +865,20 @@ int csi_split(struct csi_tensor *input,
               struct csi_tensor **output,
               struct split_params *params);
 
-int csi_stack_init(struct csi_tensor *inputs,
+int csi_stack_init(struct csi_tensor **inputs,
                    struct csi_tensor *output,
                    struct stack_params *params);
 
-int csi_stack(struct csi_tensor *inputs,
+int csi_stack(struct csi_tensor **inputs,
               struct csi_tensor *output,
               struct stack_params *params);
 
 int csi_unstack_init(struct csi_tensor *input,
-                     struct csi_tensor *output,
+                     struct csi_tensor **output,
                      struct unstack_params *params);
 
 int csi_unstack(struct csi_tensor *input,
-                struct csi_tensor *output,
+                struct csi_tensor **output,
                 struct unstack_params *params);
 
 int csi_tile_init(struct csi_tensor *inputs,
@@ -923,14 +906,6 @@ int csi_where(struct csi_tensor *condition,
               struct csi_tensor *y,
               struct csi_tensor *output,
               struct where_params *params);
-
-int csi_unstack_init(struct csi_tensor *input,
-                     struct csi_tensor *outputs,
-                     struct unstack_params *params);
-
-int csi_unstack(struct csi_tensor *input,
-                struct csi_tensor *outputs,
-                struct unstack_params *params);
 
 int csi_gather_init(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -974,6 +949,14 @@ int csi_space_to_batch(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct space_to_batch_params *params);
 
+int csi_space_to_batch_nd_init(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct space_to_batch_nd_params *params);
+
+int csi_space_to_batch_nd(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct space_to_batch_nd_params *params);
+
 int csi_batch_to_space_init(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct batch_to_space_params *params);
@@ -981,6 +964,14 @@ int csi_batch_to_space_init(struct csi_tensor *input,
 int csi_batch_to_space(struct csi_tensor *input,
                        struct csi_tensor *output,
                        struct batch_to_space_params *params);
+
+int csi_batch_to_space_nd_init(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct batch_to_space_nd_params *params);
+
+int csi_batch_to_space_nd(struct csi_tensor *input,
+                          struct csi_tensor *output,
+                          struct batch_to_space_nd_params *params);
 
 int csi_space_to_depth_init(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -1346,6 +1337,18 @@ int csi_broadcast_to_init(struct csi_tensor *input,
 int csi_broadcast_to(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct broadcast_to_params *params);
+
+int csi_scatter_nd_init(struct csi_tensor *input,
+                        struct csi_tensor *indices,
+                        struct csi_tensor *updates,
+                        struct csi_tensor *output,
+                        struct scatter_nd_params *params);
+
+int csi_scatter_nd(struct csi_tensor *input,
+                   struct csi_tensor *indices,
+                   struct csi_tensor *updates,
+                   struct csi_tensor *output,
+                   struct scatter_nd_params *params);
 
 int csi_clip_init(struct csi_tensor *input,
                   struct csi_tensor *output,

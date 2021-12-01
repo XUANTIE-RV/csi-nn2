@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,32 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_flatten_f32(struct csi_tensor *input,
+int csi_ref_flatten(struct csi_tensor *input,
                     struct csi_tensor *output,
                     struct flatten_params *params)
-{
-    float *input_data = input->data;
-    float *output_data = output->data;
-
-    if (input_data == output_data) {
-        return CSINN_TRUE;
-    }
-
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    memcpy(output_data, input_data, size * 4);
-    return CSINN_TRUE;
-}
-
-int csi_flatten_u8(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct flatten_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -50,34 +29,8 @@ int csi_flatten_u8(struct csi_tensor *input,
         return CSINN_TRUE;
     }
 
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
+    int size = csi_tensor_byte_size(input);
 
     memcpy(output_data, input_data, size);
-    return CSINN_TRUE;
-}
-
-int csi_flatten_init(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct flatten_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_FLATTEN, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_flatten(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct flatten_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
     return CSINN_TRUE;
 }

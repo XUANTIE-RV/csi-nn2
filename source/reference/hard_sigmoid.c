@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_hard_sigmoid_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct sigmoid_params *params)
+int csi_ref_hard_sigmoid_f32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct sigmoid_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -41,51 +41,9 @@ int csi_hard_sigmoid_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_hard_sigmoid_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct sigmoid_params *params)
+int csi_ref_hard_sigmoid_quant(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct sigmoid_params *params)
 {
-    uint8_t *input_data = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-    int size = 1;
-    for(int i = 0; i < input->dim_count; i++) {
-        size *= input->dim[i];
-    }
-    for(int i = 0; i < size; i++) {
-        float input_val = csi_dequantize_u8_to_f32(input_data[i], input->zero_point, input->multiplier,
-                                               input->shift);
-        float output_val = 0.0f;
-        if(input_val < -2.5) {
-            output_val = 0;
-        } else if(input_val> 2.5) {
-            output_val = 1;
-        } else {
-            output_val = 0.2 * input_val + 0.5;
-        }
-        output_data[i] = csi_quantize_f32_to_u8(output_val, output->zero_point, output->multiplier, output->shift);
-    }
-    return CSINN_TRUE;
-}
-
-int csi_hard_sigmoid_init(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct sigmoid_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_HARD_SIGMOID, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_hard_sigmoid(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct sigmoid_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_hard_sigmoid_f32);
 }

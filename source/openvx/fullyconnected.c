@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,6 +17,7 @@
  */
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 
 int csi_ovx_fullyconnected(struct csi_tensor *input,
@@ -49,8 +50,8 @@ int csi_ovx_fullyconnected(struct csi_tensor *input,
     attr.size[0] = weights->dim[1];
     attr.size[1] = weights->dim[0];
     attr.dim_num = 2;
-    attr.dtype.scale = weights->scale;
-    attr.dtype.zero_point = weights->zero_point;
+    attr.dtype.scale = weights->qinfo->scale;
+    attr.dtype.zero_point = weights->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
@@ -66,15 +67,15 @@ int csi_ovx_fullyconnected(struct csi_tensor *input,
     }
     attr.size[0] = bias->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = bias->scale;
-    attr.dtype.zero_point = bias->zero_point;
+    attr.dtype.scale = bias->qinfo->scale;
+    attr.dtype.zero_point = bias->qinfo->zero_point;
     attr.dtype.vx_type = VSI_NN_TYPE_INT32;
     input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, bias->data);
     node->input.tensors[2] = input_id;
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;
@@ -117,8 +118,8 @@ int csi_ovx_fullyconnected_relu(struct csi_tensor *input,
     attr.size[0] = weights->dim[1];
     attr.size[1] = weights->dim[0];
     attr.dim_num = 2;
-    attr.dtype.scale = weights->scale;
-    attr.dtype.zero_point = weights->zero_point;
+    attr.dtype.scale = weights->qinfo->scale;
+    attr.dtype.zero_point = weights->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     attr.vtl = FALSE;
     attr.is_const = TRUE;
@@ -129,15 +130,15 @@ int csi_ovx_fullyconnected_relu(struct csi_tensor *input,
     /* bias */
     attr.size[0] = bias->dim[0];
     attr.dim_num = 1;
-    attr.dtype.scale = bias->scale;
-    attr.dtype.zero_point = bias->zero_point;
+    attr.dtype.scale = bias->qinfo->scale;
+    attr.dtype.zero_point = bias->qinfo->zero_point;
     attr.dtype.vx_type = VSI_NN_TYPE_INT32;
     input_id = vsi_nn_AddTensor(graph, VSI_NN_TENSOR_ID_AUTO, &attr, bias->data);
     node->input.tensors[2] = input_id;
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;

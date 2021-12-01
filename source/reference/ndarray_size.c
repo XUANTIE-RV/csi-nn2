@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,70 +16,41 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ndarray_size_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct ndarray_size_params *params)
+int csi_ref_ndarray_size_f32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct ndarray_size_params *params)
 {
     float *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size *= input->dim[i];
-    }
-
-    output_data[0] = size;
+    output_data[0] = csi_tensor_size(input);
     return CSINN_TRUE;
 }
 
-int csi_ndarray_size_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct ndarray_size_params *params)
+int csi_ref_ndarray_size_u8(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct ndarray_size_params *params)
 {
     uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size *= input->dim[i];
-    }
-
-    output_data[0] = size;
+    output_data[0] = csi_tensor_size(input);
     return CSINN_TRUE;
 }
 
-int csi_ndarray_size_i32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct ndarray_size_params *params)
+int csi_ref_ndarray_size_i8(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct ndarray_size_params *params)
+{
+    int8_t *output_data = output->data;
+    output_data[0] = csi_tensor_size(input);
+    return CSINN_TRUE;
+}
+
+int csi_ref_ndarray_size_i32(struct csi_tensor *input,
+                             struct csi_tensor *output,
+                             struct ndarray_size_params *params)
 {
     int32_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size *= input->dim[i];
-    }
-
-    output_data[0] = size;
-    return CSINN_TRUE;
-}
-
-int csi_ndarray_size_init(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct ndarray_size_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_NDARRAY_SIZE, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_ndarray_size(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct ndarray_size_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
+    output_data[0] = csi_tensor_size(input);
     return CSINN_TRUE;
 }

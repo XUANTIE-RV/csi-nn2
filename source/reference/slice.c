@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,120 +16,50 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_slice_f32(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct slice_params *params)
+int csi_ref_slice_f32(struct csi_tensor *input,
+                      struct csi_tensor *output,
+                      struct slice_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    const int32_t batches = input->dim[0];
-    const int32_t input_depth = input->dim[1];
-    const int32_t output_depth = output->dim[1];
-    const int32_t input_height = input->dim[2];
-    const int32_t input_width = input->dim[3];
-    const int32_t output_height = output->dim[2];
-    const int32_t output_width = output->dim[3];
-
-
-    #pragma omp parallel for num_threads(8)
-    for (int b = params->begin[0]; b < params->end[0]; b++) {
-        for(int c = params->begin[1]; c < params->end[1]; c++){
-            for(int h = params->begin[2]; c < params->end[2]; h++){
-                for(int w = params->begin[3]; c < params->end[3]; w++){
-                    int32_t input_index = csi_get_index(input->dim, b, c, h, w);
-                    float out_val = input_data[input_index];
-                    int32_t out_index = csi_get_index(output->dim, b-params->begin[0], c-params->begin[1], h-params->begin[2], w-params->begin[3]);
-                    output_data[out_index] = out_val;
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-int csi_slice_u8(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct slice_params *params)
-{
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-
-    if (input->dim_count == 4){
-        const int32_t batches = input->dim[0];
-        const int32_t input_depth = input->dim[1];
-        const int32_t input_height = input->dim[2];
-        const int32_t input_width = input->dim[3];
-
-
-        #pragma omp parallel for num_threads(8)
+    if (input->dim_count == 4) {
         for (int b = params->begin[0]; b < params->end[0]; b++) {
             for(int c = params->begin[1]; c < params->end[1]; c++){
                 for(int h = params->begin[2]; h < params->end[2]; h++){
                     for(int w = params->begin[3]; w < params->end[3]; w++){
-                        int32_t input_index = csi_get_index(input->dim, b, c, h, w);
-                        uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->zero_point, input->multiplier,
-                            input->shift,  output->zero_point,  output->multiplier, output->shift);
-                        int32_t out_index = csi_get_index(output->dim, b-params->begin[0], c-params->begin[1], h-params->begin[2], w-params->begin[3]);
+                        int32_t input_index = csi_ref_get_index(input->dim, b, c, h, w);
+                        float out_val = input_data[input_index];
+                        int32_t out_index = csi_ref_get_index(output->dim, b-params->begin[0], c-params->begin[1], h-params->begin[2], w-params->begin[3]);
                         output_data[out_index] = out_val;
                     }
                 }
             }
         }
-    }
-    else if (input->dim_count == 5){
-        const int32_t input_0 = input->dim[1];
-        const int32_t input_1 = input->dim[1];
-        const int32_t input_2 = input->dim[2];
-        const int32_t input_3 = input->dim[3];
-        const int32_t input_4 = input->dim[3];
-
-        #pragma omp parallel for num_threads(8)
+    } else if (input->dim_count == 5){
         for (int i = params->begin[0]; i < params->end[0]; i++) {
             for(int j = params->begin[1]; j < params->end[1]; j++){
                 for(int k = params->begin[2]; k < params->end[2]; k++){
                     for(int l = params->begin[3]; l < params->end[3]; l++){
                         for(int m = params->begin[4]; m < params->end[4]; m++){
-                            int32_t input_index = csi_get_index_5(input->dim, i, j, k, l, m);
-                            uint8_t out_val =  csi_requantize_u8(input_data[input_index], input->zero_point, input->multiplier,
-                                input->shift,  output->zero_point,  output->multiplier, output->shift);
-                            int32_t out_index = csi_get_index_5(output->dim, i-params->begin[0], j-params->begin[1], k-params->begin[2], l-params->begin[3], m-params->begin[4]);
+                            int32_t input_index = csi_ref_get_index_5(input->dim, i, j, k, l, m);
+                            float out_val = input_data[input_index];
+                            int32_t out_index = csi_ref_get_index_5(output->dim, i-params->begin[0], j-params->begin[1], k-params->begin[2], l-params->begin[3], m-params->begin[4]);
                             output_data[out_index] = out_val;
                         }
                     }
                 }
             }
         }
-
     }
     return CSINN_TRUE;
 }
 
-int csi_slice_init(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct slice_params *params)
+int csi_ref_slice_quant(struct csi_tensor *input,
+                        struct csi_tensor *output,
+                        struct slice_params *params)
 {
-    if (params->begin != NULL) {
-        params->bc = csi_bc_map(params->api, CSINN_OP_SLICE, input->dtype);
-        if (params->bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
-    } else {
-        return CSINN_FALSE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_slice(struct csi_tensor *input,
-              struct csi_tensor *output,
-              struct slice_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_slice_f32);
 }

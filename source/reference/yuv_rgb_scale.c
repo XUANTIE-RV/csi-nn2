@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
 /* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/image_ops_impl.py#L3279-L3325 line 3279*/
 
-int csi_yuv_rgb_scale_f32(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct siso_params *params)
+int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input,
+                              struct csi_tensor *output,
+                              struct siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -51,56 +51,9 @@ int csi_yuv_rgb_scale_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_yuv_rgb_scale_u8(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct siso_params *params)
+int csi_ref_yuv_rgb_scale_quant(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct siso_params *params)
 {
-
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-
-    for(int n = 0; n < input->dim[0]; n++){
-        for(int h = 0; h < input->dim[1]; h++){
-            for(int w = 0; w < input->dim[2]; w++){
-                float y = csi_dequantize_u8_to_f32(input_data[0], input->zero_point, input->multiplier, input->shift);
-                float u = csi_dequantize_u8_to_f32(input_data[1], input->zero_point, input->multiplier, input->shift);
-                float v = csi_dequantize_u8_to_f32(input_data[2], input->zero_point, input->multiplier, input->shift);
-
-                float r = y + 1.13988303 * v;
-                float g = y - 0.394642334 * u - 0.58062185 * v;
-                float b = y + 2.03206185 * u;
-
-                input_data += 3;
-                output_data[0] = csi_quantize_f32_to_u8(r, output->zero_point, output->multiplier, output->shift);
-                output_data[1] = csi_quantize_f32_to_u8(g, output->zero_point, output->multiplier, output->shift);
-                output_data[2] = csi_quantize_f32_to_u8(b, output->zero_point, output->multiplier, output->shift);
-                output_data += 3;
-            }
-        }
-    }
-
-    return CSINN_TRUE;
-}
-
-int csi_yuv_rgb_scale_init(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct siso_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_YUV_RGB_SCALE, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_yuv_rgb_scale(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct siso_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_yuv_rgb_scale_f32);
 }

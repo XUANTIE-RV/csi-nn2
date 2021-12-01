@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -64,13 +64,13 @@ int csi_pnna_global_maxpool(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params);
 
-int csi_pnna_averagepool(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct pool_params *params);
+int csi_pnna_avgpool(struct csi_tensor *input,
+                     struct csi_tensor *output,
+                     struct pool_params *params);
 
-int csi_pnna_global_averagepool(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params);
+int csi_pnna_global_avgpool(struct csi_tensor *input,
+                            struct csi_tensor *output,
+                            struct pool_params *params);
 
 int csi_pnna_global_maxpool(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -96,6 +96,10 @@ int csi_pnna_relu(struct csi_tensor *input,
                   struct csi_tensor *output,
                   struct relu_params *params);
 
+int csi_pnna_relu1(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct relu_params *params);
+
 int csi_pnna_relu6(struct csi_tensor *input,
                    struct csi_tensor *output,
                    struct relu_params *params);
@@ -120,6 +124,10 @@ int csi_pnna_batch_normalization(struct csi_tensor *input,
                                  struct csi_tensor *beta,
                                  struct csi_tensor *output,
                                  struct bn_params *params);
+
+int csi_pnna_l2_normalization(struct csi_tensor *input,
+                              struct csi_tensor *output,
+                              struct l2n_params *params);
 
 int csi_pnna_lrn(struct csi_tensor *input,
                  struct csi_tensor *output,
@@ -255,13 +263,13 @@ int csi_pnna_squeeze(struct csi_tensor *input,
                      struct csi_tensor *output,
                      struct squeeze_params *params);
 
-int csi_pnna_space_to_batch(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct space_to_batch_params *params);
+int csi_pnna_space_to_batch_nd(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct space_to_batch_nd_params *params);
 
-int csi_pnna_batch_to_space(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct batch_to_space_params *params);
+int csi_pnna_batch_to_space_nd(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct batch_to_space_nd_params *params);
 
 int csi_pnna_space_to_depth(struct csi_tensor *input,
                             struct csi_tensor *output,
@@ -314,6 +322,10 @@ struct csi_pnna_target_data {
   void *attrs;
   void *graph;
   void *nodes;
+  void *out_buffers;
 };
 
+void csi_pnna_input_setup(struct csi_tensor *input, struct csi_session *sess);
+void csi_pnna_set_const_tensor(struct csi_tensor *tensor, struct csi_session *sess);
+void csi_pnna_load_binary_model(char *path, struct csi_session *sess);
 #endif

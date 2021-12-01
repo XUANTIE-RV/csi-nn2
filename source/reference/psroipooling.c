@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 #include <math.h>
 
-int csi_psroipooling_f32(struct csi_tensor *data,
-                         struct csi_tensor *rois,
-                         struct csi_tensor *output,
-                         struct psroipooling_params *params)
+int csi_ref_psroipooling_f32(struct csi_tensor *data,
+                             struct csi_tensor *rois,
+                             struct csi_tensor *output,
+                             struct psroipooling_params *params)
 {
     float *output_data = output->data;
     float *bottom_data = data->data;
@@ -93,92 +93,19 @@ int csi_psroipooling_f32(struct csi_tensor *data,
     return CSINN_TRUE;
 }
 
-int csi_psroipooling_u8(struct csi_tensor *data,
-                        struct csi_tensor *rois,
-                        struct csi_tensor *output,
-                        struct psroipooling_params *params)
+int csi_ref_psroipooling_quant(struct csi_tensor *data,
+                               struct csi_tensor *rois,
+                               struct csi_tensor *output,
+                               struct psroipooling_params *params)
 {
-    uint8_t *output_data = output->data;
-
-
-    // init output
-    struct csi_tensor float_output;
-    memcpy(&float_output, output, sizeof(struct csi_tensor));
-    int64_t outer_size = 1;
-    for (int i = 0; i < output->dim_count; ++i) {
-        outer_size *= output->dim[i];
-    }
-    float *float_output_data = malloc(outer_size * sizeof(float));
-    float_output.data = float_output_data;
-
-    // convert input to float
-    struct csi_tensor float_data;
-    memcpy(&float_data, data, sizeof(struct csi_tensor));
-    int size = 1;
-    for (int j = 0; j < data->dim_count; j++){
-        size *= data->dim[j];
-    }
-    float *float_data_item_data = malloc(size * sizeof(float));
-
-    uint8_t *data_item_data = data->data;
-    for (int k = 0; k < size; k++) {
-        float_data_item_data[k] = csi_dequantize_u8_to_f32(data_item_data[k], data->zero_point,
-                                                data->multiplier, data->shift);
-    }
-    float_data.data = float_data_item_data;
-
-    // convert input to float
-    struct csi_tensor float_rois;
-    memcpy(&float_rois, rois, sizeof(struct csi_tensor));
-    size = 1;
-    for (int j = 0; j < rois->dim_count; j++){
-        size *= rois->dim[j];
-    }
-    float *float_rois_item_data = malloc(size * sizeof(float));
-
-    uint8_t *rois_item_data = rois->data;
-    for (int k = 0; k < size; k++) {
-        float_rois_item_data[k] = csi_dequantize_u8_to_f32(rois_item_data[k], rois->zero_point,
-                                                rois->multiplier, rois->shift);
-    }
-    float_rois.data = float_rois_item_data;
-
-    params->spatial_scale = csi_dequantize_u8_to_f32(1.0, 0, params->spatial_scale_multiplier, params->spatial_scale_shift);
-
-    csi_psroipooling_f32(&float_data, &float_rois, &float_output, params);
-
-    for (int i = 0; i < outer_size; i++) {
-        output_data[i] = csi_quantize_f32_to_u8(float_output_data[i], output->zero_point,
-                                          output->multiplier, output->shift);
-    }
-    free(float_data_item_data);
-    free(float_rois_item_data);
-    free(float_output_data);
-    return CSINN_TRUE;
-}
-
-
-int csi_psroipooling_init(struct csi_tensor *data,
-                          struct csi_tensor *rois,
-                          struct csi_tensor *output,
-                          struct psroipooling_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_PSROIPOOLING, data->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_psroipooling(struct csi_tensor *data,
-                     struct csi_tensor *rois,
-                     struct csi_tensor *output,
-                     struct psroipooling_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(data, rois, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    int ret;
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(data);
+    struct csi_tensor *frois = csi_ref_tensor_transform_f32(rois);
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    ret = csi_ref_psroipooling_f32(finput, frois, foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(finput);
+    csi_ref_tensor_transform_free_f32(frois);
+    csi_ref_tensor_transform_free_f32(foutput);
+    return ret;
 }

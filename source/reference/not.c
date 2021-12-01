@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,63 +16,48 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include <assert.h>
 
-int csi_not_u32(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct siso_params *params)
+int csi_ref_not_u32(struct csi_tensor *input,
+                    struct csi_tensor *output,
+                    struct siso_params *params)
 
 {
     uint32_t *input_data = input->data;
     uint32_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        size = size * output->dim[i];
-    }
+    int size = csi_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = ~(input_data[0]);
+        output_data[i] = ~(input_data[i]);
     }
     return CSINN_TRUE;
 }
 
-int csi_not_u8(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct siso_params *params)
+int csi_ref_not_u8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct siso_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        size = size * output->dim[i];
-    }
+    int size = csi_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
-        output_data[i] = ~(input_data[0]);
+        output_data[i] = ~(input_data[i]);
     }
     return CSINN_TRUE;
 }
 
-int csi_not_init(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct siso_params *params)
+int csi_ref_not_i8(struct csi_tensor *input,
+                   struct csi_tensor *output,
+                   struct siso_params *params)
 {
-    params->bc = csi_bc_map(params->api, CSINN_OP_NOT, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    int size = csi_tensor_size(input);
 
-int csi_not(struct csi_tensor *input,
-            struct csi_tensor *output,
-            struct siso_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
+    for (int i = 0; i < size; i++) {
+        output_data[i] = ~(input_data[i]);
     }
     return CSINN_TRUE;
 }

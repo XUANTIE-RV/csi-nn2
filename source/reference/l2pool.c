@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_l2pool_f32(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct pool_params *params)
+int csi_ref_l2pool_f32(struct csi_tensor *input,
+                       struct csi_tensor *output,
+                       struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -39,12 +39,12 @@ int csi_l2pool_f32(struct csi_tensor *input,
                     const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
                     // Compute the boundaries of the filter region clamped so as to
                     // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_max_internal_s32(0, -in_x_origin);
+                    const int filter_x_start = csi_ref_max_internal_s32(0, -in_x_origin);
                     const int filter_x_end =
-                        csi_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_max_internal_s32(0, -in_y_origin);
+                        csi_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
+                    const int filter_y_start = csi_ref_max_internal_s32(0, -in_y_origin);
                     const int filter_y_end =
-                        csi_min_internal_s32(params->filter_height, input_height - in_y_origin);
+                        csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float sum_squares = 0.f;
                     int filter_count = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
@@ -52,39 +52,16 @@ int csi_l2pool_f32(struct csi_tensor *input,
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
                             const float val =
-                                input_data[csi_get_index(input->dim, batch, in_y, in_x, channel)];
+                                input_data[csi_ref_get_index(input->dim, batch, in_y, in_x, channel)];
                             sum_squares += val * val;
                             filter_count++;
                         }
                     }
                     const float l2pool_result = sqrt(sum_squares / filter_count);
-                    output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] = l2pool_result;
+                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] = l2pool_result;
                 }
             }
         }
-    }
-    return CSINN_TRUE;
-}
-
-int csi_l2pool_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_L2POOL2D, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_l2pool(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct pool_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
     }
     return CSINN_TRUE;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_fullyconnected_f32(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct csi_tensor *weights,
-                           struct csi_tensor *bias,
-                           struct fc_params *params)
+int csi_ref_fullyconnected_f32(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct csi_tensor *weights,
+                               struct csi_tensor *bias,
+                               struct fc_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -41,7 +40,7 @@ int csi_fullyconnected_f32(struct csi_tensor *input,
                 total += input_data[b * accum_depth + d] * weights_data[out_c * accum_depth + d];
             }
             float bias_value = 0.0f;
-            if (bias_data != NULL) {
+            if (bias->dim_count != 0) {
                 bias_value = bias_data[out_c];
             }
             output_data[out_c + output_depth * b] = total + bias_value;
@@ -50,64 +49,27 @@ int csi_fullyconnected_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_fullyconnected_u8(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct csi_tensor *weights,
-                          struct csi_tensor *bias,
-                          struct fc_params *params)
+int csi_ref_fullyconnected_quant(struct csi_tensor *input,
+                                 struct csi_tensor *output,
+                                 struct csi_tensor *weights,
+                                 struct csi_tensor *bias,
+                                 struct fc_params *params)
 {
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    uint8_t *weights_data = weights->data;
+    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
+    struct csi_tensor *float_kernel = csi_ref_tensor_transform_f32(weights);
+    struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
+    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
+    float *float_bias_data = float_bias->data;
     int32_t *bias_data = bias->data;
-    const int output_dims_count = output->dim_count;
-    const int weights_dims_count = weights->dim_count;
-    const int batches = output->dim[0];
-    const int output_depth = weights->dim[weights_dims_count - 2];
-    const int accum_depth = weights->dim[weights_dims_count - 1];
-    for (int b = 0; b < batches; ++b) {
-        #pragma omp parallel for num_threads(8)
-        for (int out_c = 0; out_c < output_depth; ++out_c) {
-            int32_t acc = 0;
-            for (int d = 0; d < accum_depth; ++d) {
-                int32_t input_val = input_data[b * accum_depth + d];
-                int32_t filter_val = weights_data[out_c * accum_depth + d];
-                acc += (filter_val - weights->zero_point) * (input_val - input->zero_point);
-            }
-            if (bias_data != NULL) {
-                acc += bias_data[out_c];
-            }
-
-            output_data[out_c + output_depth * b] =
-                csi_quantize_u8(acc, output->zero_point, output->multiplier, output->shift);
-        }
+    int bias_size = csi_tensor_size(bias);
+    for (int i = 0; i < bias_size; i++) {
+        float_bias_data[i] = bias_data[i] * weights->qinfo->scale * input->qinfo->scale;
     }
-    return CSINN_TRUE;
-}
-
-int csi_fullyconnected_init(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct csi_tensor *weights,
-                            struct csi_tensor *bias,
-                            struct fc_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_FULLYCONNECTED, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_fullyconnected(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct csi_tensor *weights,
-                       struct csi_tensor *bias,
-                       struct fc_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, weights, bias, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    int ret = csi_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
+    csi_tensor_data_convert(output, float_output);
+    csi_ref_tensor_transform_free_f32(float_input);
+    csi_ref_tensor_transform_free_f32(float_output);
+    csi_ref_tensor_transform_free_f32(float_kernel);
+    csi_ref_tensor_transform_free_f32(float_bias);
+    return ret;
 }

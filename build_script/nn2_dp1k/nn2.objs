@@ -1,0 +1,2 @@
+objects += ${NN2_ROOT}/source/dp1k/setup.o
+objects += ${NN2_ROOT}/source/dp1k/wrapper.o

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_averagepool_nhwc_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+int csi_ref_averagepool_nhwc_f32(struct csi_tensor *input,
+                                 struct csi_tensor *output,
+                                 struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -40,12 +39,12 @@ int csi_averagepool_nhwc_f32(struct csi_tensor *input,
                     const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
                     // Compute the boundaries of the filter region clamped so as to
                     // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_max_internal_s32(0, -in_x_origin);
+                    const int filter_x_start = csi_ref_max_internal_s32(0, -in_x_origin);
                     const int filter_x_end =
-                        csi_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_max_internal_s32(0, -in_y_origin);
+                        csi_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
+                    const int filter_y_start = csi_ref_max_internal_s32(0, -in_y_origin);
                     const int filter_y_end =
-                        csi_min_internal_s32(params->filter_height, input_height - in_y_origin);
+                        csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float total = 0.f;
                     float filter_count = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
@@ -53,12 +52,15 @@ int csi_averagepool_nhwc_f32(struct csi_tensor *input,
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
                             total +=
-                                input_data[csi_get_index(input->dim, batch, in_y, in_x, channel)];
+                                input_data[csi_ref_get_index(input->dim, batch, in_y, in_x, channel)];
                             filter_count++;
                         }
                     }
+                    if (params->count_include_pad) {
+                        filter_count = params->filter_height * params->filter_width;
+                    }
                     const float average = total / filter_count;
-                    output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
+                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] =
                         average;
                 }
             }
@@ -67,220 +69,74 @@ int csi_averagepool_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_averagepool_nhwc_u8(struct csi_tensor *input,
+static int csi_ref_averagepool_nchw_f32(struct csi_tensor *input,
+                                        struct csi_tensor *output,
+                                        struct pool_params *params)
+{
+    float *input_data = input->data;
+    float *output_data = output->data;
+    const int batches = input->dim[0];
+    const int depth = input->dim[1];
+    const int input_height = input->dim[2];
+    const int input_width = input->dim[3];
+    const int output_height = output->dim[2];
+    const int output_width = output->dim[3];
+
+    for (int batch = 0; batch < batches; ++batch) {
+        for (int out_y = 0; out_y < output_height; ++out_y) {
+            for (int out_x = 0; out_x < output_width; ++out_x) {
+                for (int channel = 0; channel < depth; ++channel) {
+                    const int in_x_origin = (out_x * params->stride_width) - params->pad_left;
+                    const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
+                    // Compute the boundaries of the filter region clamped so as to
+                    // ensure that the filter window fits in the input array.
+                    const int filter_x_start = csi_ref_max_internal_s32(0, -in_x_origin);
+                    const int filter_x_end =
+                        csi_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
+                    const int filter_y_start = csi_ref_max_internal_s32(0, -in_y_origin);
+                    const int filter_y_end =
+                        csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
+                    float total = 0.f;
+                    float filter_count = 0;
+                    for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
+                        for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
+                            const int in_x = in_x_origin + filter_x;
+                            const int in_y = in_y_origin + filter_y;
+                            total +=
+                                input_data[csi_ref_get_index(input->dim, batch, channel, in_y, in_x)];
+                            filter_count++;
+                        }
+                    }
+                    if (params->count_include_pad) {
+                        filter_count = params->filter_height * params->filter_width;
+                    }
+                    const float average = total / filter_count;
+                    output_data[csi_ref_get_index(output->dim, batch, channel, out_y, out_x)] =
+                        average;
+                }
+            }
+        }
+    }
+    return CSINN_TRUE;
+}
+
+int csi_ref_averagepool_f32(struct csi_tensor *input,
                             struct csi_tensor *output,
                             struct pool_params *params)
 {
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    const int batches = input->dim[0];
-    const int depth = input->dim[3];
-    const int input_height = input->dim[1];
-    const int input_width = input->dim[2];
-    const int output_height = output->dim[1];
-    const int output_width = output->dim[2];
-
-    const int32_t input_offset = input->zero_point;
-    const int32_t input_multiplier = input->multiplier;
-    const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->zero_point;
-    const int32_t output_multiplier = output->multiplier;
-    const int32_t output_shift = output->shift;
-
-    for (int batch = 0; batch < batches; ++batch) {
-        for (int out_y = 0; out_y < output_height; ++out_y) {
-            for (int out_x = 0; out_x < output_width; ++out_x) {
-                for (int channel = 0; channel < depth; ++channel) {
-                    const int in_x_origin = (out_x * params->stride_width) - params->pad_left;
-                    const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
-                    // Compute the boundaries of the filter region clamped so as to
-                    // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_max_internal_s32(0, -in_x_origin);
-                    const int filter_x_end =
-                        csi_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_max_internal_s32(0, -in_y_origin);
-                    const int filter_y_end =
-                        csi_min_internal_s32(params->filter_height, input_height - in_y_origin);
-                    float total = 0;
-                    int32_t filter_count = 0;
-                    for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
-                        for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
-                            const int in_x = in_x_origin + filter_x;
-                            const int in_y = in_y_origin + filter_y;
-                            uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
-                                                                         in_x, channel)];
-                            total += csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
-                                                        input_shift);
-                            filter_count++;
-                        }
-                    }
-                    float average = filter_count == 0 ? total : total / filter_count;
-                    output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32_to_u8(average, output_offset, output_multiplier, output_shift);
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-static int csi_averagepool_nchw_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct pool_params *params)
-{
-    float *input_data = input->data;
-    float *output_data = output->data;
-    const int batches = input->dim[0];
-    const int depth = input->dim[3];
-    const int input_height = input->dim[1];
-    const int input_width = input->dim[2];
-    const int output_height = output->dim[1];
-    const int output_width = output->dim[2];
-
-    for (int batch = 0; batch < batches; ++batch) {
-        for (int out_y = 0; out_y < output_height; ++out_y) {
-            for (int out_x = 0; out_x < output_width; ++out_x) {
-                for (int channel = 0; channel < depth; ++channel) {
-                    const int in_x_origin = (out_x * params->stride_width) - params->pad_left;
-                    const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
-                    // Compute the boundaries of the filter region clamped so as to
-                    // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_max_internal_s32(0, -in_x_origin);
-                    const int filter_x_end =
-                        csi_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_max_internal_s32(0, -in_y_origin);
-                    const int filter_y_end =
-                        csi_min_internal_s32(params->filter_height, input_height - in_y_origin);
-                    float total = 0.f;
-                    float filter_count = 0;
-                    for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
-                        for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
-                            const int in_x = in_x_origin + filter_x;
-                            const int in_y = in_y_origin + filter_y;
-                            total +=
-                                input_data[csi_get_index(input->dim, batch, in_y, in_x, channel)];
-                            filter_count++;
-                        }
-                    }
-                    const float average = total / filter_count;
-                    output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        average;
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-static int csi_averagepool_nchw_u8(struct csi_tensor *o_input,
-                                   struct csi_tensor *o_output,
-                                   struct pool_params *params)
-{
-    struct csi_tensor* input;
-    struct csi_tensor* output;
-    input =  csi_nchw_to_nhwc_8(o_input);
-    output = csi_nchw_to_nhwc_8(o_output);
-
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    const int batches = input->dim[0];
-    const int depth = input->dim[3];
-    const int input_height = input->dim[1];
-    const int input_width = input->dim[2];
-    const int output_height = output->dim[1];
-    const int output_width = output->dim[2];
-
-    const int32_t input_offset = input->zero_point;
-    const int32_t input_multiplier = input->multiplier;
-    const int32_t input_shift = input->shift;
-    const int32_t output_offset = output->zero_point;
-    const int32_t output_multiplier = output->multiplier;
-    const int32_t output_shift = output->shift;
-
-    for (int batch = 0; batch < batches; ++batch) {
-        for (int out_y = 0; out_y < output_height; ++out_y) {
-            for (int out_x = 0; out_x < output_width; ++out_x) {
-                for (int channel = 0; channel < depth; ++channel) {
-                    const int in_x_origin = (out_x * params->stride_width) - params->pad_left;
-                    const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
-                    // Compute the boundaries of the filter region clamped so as to
-                    // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_max_internal_s32(0, -in_x_origin);
-                    const int filter_x_end =
-                        csi_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_max_internal_s32(0, -in_y_origin);
-                    const int filter_y_end =
-                        csi_min_internal_s32(params->filter_height, input_height - in_y_origin);
-                    float total = 0;
-                    int32_t filter_count = 0;
-                    for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
-                        for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
-                            const int in_x = in_x_origin + filter_x;
-                            const int in_y = in_y_origin + filter_y;
-                            uint8_t input_val = input_data[csi_get_index(input->dim, batch, in_y,
-                                                                         in_x, channel)];
-                            total += csi_dequantize_u8_to_f32(input_val, input_offset, input_multiplier,
-                                                        input_shift);
-                            filter_count++;
-                        }
-                    }
-                    float average = filter_count == 0 ? total : total / filter_count;
-                    output_data[csi_get_index(output->dim, batch, out_y, out_x, channel)] =
-                        csi_quantize_f32_to_u8(average, output_offset, output_multiplier, output_shift);
-                }
-            }
-        }
-    }
-    csi_nhwc_to_nchw_8(o_output, output);
-    return CSINN_TRUE;
-}
-
-int csi_averagepool_f32(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params)
-{
-    if (params->layout == CSINN_NCHW) {
-        csi_averagepool_nchw_f32(input, output, params);
-    } else if (params->layout = CSINN_NHWC) {
-        csi_averagepool_nhwc_f32(input, output, params);
+    if (params->base.layout == CSINN_NCHW) {
+        csi_ref_averagepool_nchw_f32(input, output, params);
+    } else if (params->base.layout = CSINN_NHWC) {
+        csi_ref_averagepool_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_averagepool_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params)
+int csi_ref_averagepool_quant(struct csi_tensor *input,
+                              struct csi_tensor *output,
+                              struct pool_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        csi_averagepool_nchw_u8(input, output, params);
-    } else if (params->layout = CSINN_NHWC) {
-        csi_averagepool_nhwc_u8(input, output, params);
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
-    }
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_averagepool_f32);
 }
 
-int csi_averagepool_init(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct pool_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_AVGPOOL2D, input->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-
-    return CSINN_TRUE;
-}
-
-int csi_averagepool(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pool_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
-}

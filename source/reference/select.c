@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,23 +16,20 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_select_f32(struct csi_tensor *condition,
-                   struct csi_tensor *input0,
-                   struct csi_tensor *input1,
-                   struct csi_tensor *output,
-                   struct select_params *params)
+int csi_ref_select_f32(struct csi_tensor *condition,
+                       struct csi_tensor *input0,
+                       struct csi_tensor *input1,
+                       struct csi_tensor *output,
+                       struct select_params *params)
 {
     float *input_data0  = input0->data;
     float *input_data1  = input1->data;
     float *conlist_data = condition->data;
     float *output_data  = output->data;
-    int size = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size = size * input0->dim[i];
-    }
+    int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = conlist_data[i] ? input_data0[i]:input_data1[i];
@@ -40,20 +37,17 @@ int csi_select_f32(struct csi_tensor *condition,
     return CSINN_TRUE;
 }
 
-int csi_select_u8(struct csi_tensor *condition,
-                  struct csi_tensor *input0,
-                  struct csi_tensor *input1,
-                  struct csi_tensor *output,
-                  struct select_params *params)
+int csi_ref_select_u8(struct csi_tensor *condition,
+                      struct csi_tensor *input0,
+                      struct csi_tensor *input1,
+                      struct csi_tensor *output,
+                      struct select_params *params)
 {
     uint8_t *input_data0  = input0->data;
     uint8_t *input_data1  = input1->data;
     uint8_t *conlist_data = condition->data;
     uint8_t *output_data  = output->data;
-    int size = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size = size * input0->dim[i];
-    }
+    int size = csi_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = conlist_data[i] ? input_data0[i]:input_data1[i];
@@ -61,29 +55,20 @@ int csi_select_u8(struct csi_tensor *condition,
     return CSINN_TRUE;
 }
 
-int csi_select_init(struct csi_tensor *condition,
-                    struct csi_tensor *input0,
-                    struct csi_tensor *input1,
-                    struct csi_tensor *output,
-                    struct select_params *params)
+int csi_ref_select_i8(struct csi_tensor *condition,
+                      struct csi_tensor *input0,
+                      struct csi_tensor *input1,
+                      struct csi_tensor *output,
+                      struct select_params *params)
 {
-    params->bc = csi_bc_map(params->api, CSINN_OP_SELECT, input0->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
+    int8_t *input_data0  = input0->data;
+    int8_t *input_data1  = input1->data;
+    int8_t *conlist_data = condition->data;
+    int8_t *output_data  = output->data;
+    int size = csi_tensor_size(input0);
 
-int csi_select(struct csi_tensor *condition,
-            struct csi_tensor *input0,
-            struct csi_tensor *input1,
-            struct csi_tensor *output,
-            struct select_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(condition, input0, input1, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
+    for (int i = 0; i < size; i++) {
+        output_data[i] = conlist_data[i] ? input_data0[i]:input_data1[i];
     }
     return CSINN_TRUE;
 }

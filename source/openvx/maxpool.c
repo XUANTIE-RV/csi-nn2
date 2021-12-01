@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -18,6 +18,7 @@
 
 
 #include "csi_ovx.h"
+#include "vsi_nn_pub.h"
 
 int csi_ovx_maxpool(struct csi_tensor *input,
                     struct csi_tensor *output,
@@ -53,21 +54,14 @@ int csi_ovx_maxpool(struct csi_tensor *input,
     node->nn_param.pool.round_type = VSI_NN_ROUND_FLOOR;
     node->vx_param.down_scale_size_rounding = VX_CONVOLUTIONAL_NETWORK_DS_SIZE_ROUNDING_FLOOR;
 
-#ifdef DEBUG_TEST
-    printf("pad shape: (%d, %d, %d, %d)\n", node->nn_param.pool.pad[0],
-        node->nn_param.pool.pad[1], node->nn_param.pool.pad[2], node->nn_param.pool.pad[3]);
-    printf("kernel shape: (%d, %d)\n", node->nn_param.pool.ksize[0],
-        node->nn_param.pool.ksize[1]);
-#endif
-
     attr.dtype.fmt = VSI_NN_DIM_FMT_NCHW;
 
     /* input */
     node->input.tensors[0] = (vsi_nn_tensor_id_t)input->data;
 
     /* output */
-    attr.dtype.scale = output->scale;
-    attr.dtype.zero_point = output->zero_point;
+    attr.dtype.scale = output->qinfo->scale;
+    attr.dtype.zero_point = output->qinfo->zero_point;
     attr.dtype.qnt_type = VSI_NN_QNT_TYPE_AFFINE_ASYMMETRIC;
     memset(attr.size, 0, VSI_NN_MAX_DIM_NUM * sizeof(uint32_t));
     attr.dim_num = VSI_NN_DIM_AUTO;

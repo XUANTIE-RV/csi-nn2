@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,116 +16,57 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
-
+#include "csi_ref.h"
 
 struct ArgPos {
-  float value;
-  int32_t index;
+    float value;
+    int32_t index;
 };
 
 static struct ArgPos fargmin_stride(struct ArgPos lhs, struct ArgPos rhs) {
-  if (lhs.value > rhs.value)
-    return rhs;
-  return lhs;
+    if (lhs.value > rhs.value) {
+        return rhs;
+    }
+    return lhs;
 }
 
-int csi_argmin_stride_i32_f32(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct reduce_params *params)
+int csi_ref_argmin_stride_i32_f32(struct csi_tensor *input,
+                                  struct csi_tensor *output,
+                                  struct reduce_params *params)
 {
-  float *input_data = input->data;
-  float *output_data = output->data;
+    float *input_data = input->data;
+    float *output_data = output->data;
 
-  int32_t inner_size = 1;
-  int32_t out_size = 1;
+    int32_t inner_size = 1;
+    int32_t out_size = 1;
 
-  for (int32_t k = 0; k < params->n; k++) {
-    out_size *= params->out_extents[k];
-  }
-
-  for (int32_t k = 0; k < params->m; k++) {
-    inner_size *= params->inner_extents[k];
-  }
-
-  for (int32_t out = 0; out < out_size; out++) {
-
-    struct ArgPos result = {FLT_MAX, -1};
-    int32_t out_index = get_reduction_index(out, params->out_strides, params->out_extents, params->n);
-    for (int32_t inner = 0; inner < inner_size; inner++) {
-      int32_t index = out_index + get_reduction_index(inner, params->inner_strides,
-                                                      params->inner_extents, params->m);
-      float val = input_data[index];
-      struct ArgPos pos = {val, inner};
-      result = fargmin_stride(result, pos);
+    for (int32_t k = 0; k < params->n; k++) {
+        out_size *= params->out_extents[k];
     }
 
-    output_data[out] = result.index;
-  }
-  return CSINN_TRUE;
-}
-
-int csi_argmin_stride_i32_u8(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct reduce_params *params)
-{
-
-  uint8_t *input_data = input->data;
-  int32_t *output_data = output->data;
-
-  int32_t inner_size = 1;
-  int32_t out_size = 1;
-
-  for (int32_t k = 0; k < params->n; k++) {
-    out_size *= params->out_extents[k];
-  }
-
-  for (int32_t k = 0; k < params->m; k++) {
-    inner_size *= params->inner_extents[k];
-  }
-
-  for (int32_t out = 0; out < out_size; out++) {
-
-    struct ArgPos result = {FLT_MAX, -1};
-    int32_t out_index = get_reduction_index(out, params->out_strides, params->out_extents, params->n);
-    for (int32_t inner = 0; inner < inner_size; inner++) {
-      int32_t index = out_index + get_reduction_index(inner, params->inner_strides,
-                                                      params->inner_extents, params->m);
-      float val = csi_dequantize_u8_to_f32(input_data[index], input->zero_point,
-                                     input->multiplier, input->shift);
-      struct ArgPos pos = {val, inner};
-      result = fargmin_stride(result, pos);
+    for (int32_t k = 0; k < params->m; k++) {
+        inner_size *= params->inner_extents[k];
     }
 
-    output_data[out] = result.index;
-  }
-  return CSINN_TRUE;
-}
-
-int csi_argmin_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct reduce_params *params)
-{
-    if (params->n == 0 && params->m == 0) {
-        return CSINN_FALSE;
-    } else {
-        params->bc = csi_bc_map(params->api, CSINN_OP_ARGMIN, input->dtype);
-        if (params->bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
+    for (int32_t out = 0; out < out_size; out++) {
+        struct ArgPos result = {FLT_MAX, -1};
+        int32_t out_index = csi_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
+        for (int32_t inner = 0; inner < inner_size; inner++) {
+            int32_t index = out_index + csi_ref_get_reduction_index(inner, params->inner_strides,
+                                                            params->inner_extents, params->m);
+            float val = input_data[index];
+            struct ArgPos pos = {val, inner};
+            result = fargmin_stride(result, pos);
         }
+
+        output_data[out] = result.index;
     }
     return CSINN_TRUE;
 }
 
-int csi_argmin(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct reduce_params *params)
+int csi_ref_argmin_stride_quant(struct csi_tensor *input,
+                                struct csi_tensor *output,
+                                struct reduce_params *params)
 {
-    if (params->bc != NULL) {
-        params->bc(input, output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
-    return CSINN_TRUE;
+    return csi_ref_siso_callback_base(input, output, params, csi_ref_argmin_stride_i32_f32);
 }

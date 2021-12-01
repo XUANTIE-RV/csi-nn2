@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_ref.h"
 
-int csi_arange_f32(struct csi_tensor *output,
-                   struct arange_params *params)
+int csi_ref_arange_f32(struct csi_tensor *output,
+                       struct arange_params *params)
 {
     float_t * data = output->data;
     int j = 0;
@@ -41,49 +40,27 @@ int csi_arange_f32(struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_arange_u8(struct csi_tensor *output,
-                  struct arange_params *params)
+int csi_ref_arange_quant(struct csi_tensor *output,
+                         struct arange_params *params)
 {
-    float start = csi_dequantize_u8_to_f32(1.0, 0, params->start_multiplier, params->start_shift);
-    float stop = csi_dequantize_u8_to_f32(1.0, 0, params->stop_multiplier, params->stop_shift);
-    float step = csi_dequantize_u8_to_f32(1.0, 0, params->step_multiplier, params->step_shift);
+    struct csi_quant_info qinfo;
+    qinfo.zero_point = 0;
+    qinfo.multiplier = params->start_multiplier;
+    qinfo.shift = params->start_shift;
+    float start = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
+    qinfo.zero_point = 0;
+    qinfo.multiplier = params->stop_multiplier;
+    qinfo.shift = params->stop_shift;
+    float stop = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
+    qinfo.zero_point = 0;
+    qinfo.multiplier = params->step_multiplier;
+    qinfo.shift = params->step_shift;
+    float step = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
 
-    uint8_t * data = output->data;
-    int j = 0;
-    float i = start;
-    while (1) {
-        if (step > FLT_EPSILON) {
-            if (i - stop > FLT_EPSILON) //i > stop
-                break;
-        } else {
-            if (i - stop < FLT_EPSILON) //i < stop
-                break;
-        }
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    csi_ref_arange_f32(foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(foutput);
 
-        data[j] = csi_quantize_f32_to_u8(i, output->zero_point, output->multiplier, output->shift);
-        i+=step;
-        j++;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_arange_init(struct csi_tensor *output,
-                    struct arange_params *params)
-{
-    params->bc = csi_bc_map(params->api, CSINN_OP_ARANGE, output->dtype);
-    if (params->bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_arange(struct csi_tensor *output,
-               struct arange_params *params)
-{
-    if (params->bc != NULL) {
-        params->bc(output, params);
-    } else {
-        return CSINN_CALLBACK_UNSET;
-    }
     return CSINN_TRUE;
 }

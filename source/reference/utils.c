@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
+#include "csi_ref.h"
 #include "csi_utils.h"
 #include <time.h>
 
-int32_t csi_max_internal_s32(int32_t a, int32_t b)
+int32_t csi_ref_max_internal_s32(int32_t a, int32_t b)
 {
     if (a >= b) {
         return a;
@@ -29,7 +29,7 @@ int32_t csi_max_internal_s32(int32_t a, int32_t b)
     }
 }
 
-int32_t csi_min_internal_s32(int32_t a, int32_t b)
+int32_t csi_ref_min_internal_s32(int32_t a, int32_t b)
 {
     if (a <= b) {
         return a;
@@ -38,24 +38,161 @@ int32_t csi_min_internal_s32(int32_t a, int32_t b)
     }
 }
 
-uint8_t csi_saturate_u8(int32_t input)
-{
-    csi_min_internal_s32(255, csi_max_internal_s32(0, input));
-}
-
-int32_t csi_get_index(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3)
+int32_t csi_ref_get_index(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3)
 {
     return ((index0 * dim[1] + index1) * dim[2] + index2) * dim[3] + index3;
 }
 
-int32_t csi_get_index_5(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3, int32_t index4)
+int32_t csi_ref_get_index_5(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3, int32_t index4)
 {
     return dim[4] * (dim[3] * (dim[2] * (dim[1] * index0 + index1) + index2) + index3) + index4;
 }
 
-int32_t csi_get_index_6(int32_t *dim, int32_t index0, int32_t index1, int32_t index2, int32_t index3, int32_t index4, int32_t index5)
+/* iteration to calculate index */
+int32_t csi_ref_get_index_iter(int32_t *dim, int dim_idx, int32_t *index)
 {
-    return dim[5] * (dim[4] * (dim[3] * (dim[2] * (dim[1] * index0 + index1) + index2) + index3) + index4) + index5;
+    int32_t ret;
+    if (dim_idx > 0) {
+        ret = csi_ref_get_index_iter(dim, dim_idx - 1, index) * dim[dim_idx] + index[dim_idx];
+    } else {
+        ret = index[dim_idx];
+    }
+
+    return ret;
+}
+
+int32_t csi_ref_get_broadcast_index_iter(int32_t *dim, int dim_idx, int32_t *index)
+{
+    int32_t ret;
+    if (dim_idx > 0) {
+        if (dim[dim_idx] != 1) {
+            ret = csi_ref_get_broadcast_index_iter(dim, dim_idx - 1, index) * dim[dim_idx] + index[dim_idx];
+        } else {
+            ret = csi_ref_get_broadcast_index_iter(dim, dim_idx - 1, index);
+        }
+    } else {
+        if (dim[dim_idx] != 1) {
+            ret = index[dim_idx];
+        } else {
+            ret = 0;
+        }
+    }
+
+    return ret;
+}
+
+int32_t *csi_ref_get_input_dim(struct csi_tensor *input, int dim_count, int32_t *axis, int axis_size)
+{
+    int8_t alloc_size = dim_count * sizeof(int32_t *);
+    int32_t *ret = malloc(alloc_size);
+
+    for (int i = 0; i < dim_count; i++) {
+        ret[i] = 1;
+    }
+
+    for (int i = 0; i < axis_size; i++) {
+        ret[axis[i]] = input->dim[axis[i]];
+    }
+
+    return ret;
+}
+
+void csi_ref_diso_dim_iter(int32_t *dim, int dim_idx, int32_t *index, struct csi_ref_diso_callback *cb)
+{
+    for (index[dim_idx] = 0; index[dim_idx] < dim[dim_idx]; index[dim_idx]++) {
+        if (dim_idx == 0) {
+            int input1_idx = csi_ref_get_broadcast_index_iter(cb->input_dim, cb->output->dim_count - 1, index);
+            int output_idx = csi_ref_get_index_iter(cb->output->dim, cb->output->dim_count - 1, index);
+            cb->bc(cb->input0->data, cb->input1->data, cb->output->data, input1_idx, output_idx);
+        } else {
+            csi_ref_diso_dim_iter(dim, dim_idx - 1, index, cb);
+        }
+    }
+}
+
+int csi_check_rhs_shape(struct csi_tensor *input)
+{
+    int axis = -1;
+    int in_size = csi_tensor_size(input);
+    for (int i = 0; i < input->dim_count; i++)
+    {
+        if (input->dim[i] == in_size){axis = i;}
+    }
+    return axis;
+}
+
+int csi_ref_diso_broadcast_base(struct csi_tensor *input0,
+                                struct csi_tensor *input1,
+                                struct csi_tensor *output,
+                                struct diso_params *params,
+                                struct csi_ref_diso_callback *cb)
+{
+    float *input0_data = input0->data;
+    float *input1_data = input1->data;
+    float *output_data = output->data;
+
+    cb->output = output;
+
+    int32_t idx[output->dim_count];
+
+    int size0 = csi_tensor_size(input0);
+    int size1 = csi_tensor_size(input1);
+
+    if (size0 == size1) {
+        for (int i = 0; i < size0; i++) {
+            cb->bc(input0_data, input1_data, output_data, i, i);
+        }
+    } else {
+        if (size0 > size1) {
+            cb->input0 = input0;
+            cb->input1 = input1;
+        } else {
+            cb->input0 = input1;
+            cb->input1 = input0;
+        }
+        /* FIXME: other axis */
+        int axis_size = 1;
+        int axis[axis_size];
+
+        axis[0] = csi_check_rhs_shape(cb->input1);
+        struct csi_tensor new_input1;
+        if (axis[0] != -1){
+            memcpy(&new_input1, cb->input1, sizeof(struct csi_tensor));
+            new_input1.dim_count = 1;
+            new_input1.dim[0] = cb->input1->dim[axis[0]];
+            cb->input1 = &new_input1;
+        }
+
+        if (cb->input1->dim_count == 1) {
+
+            for (int i = 0; i < output->dim_count; i++) {
+                if (cb->input1->dim[0] == output->dim[i]){
+                    axis[0] = i;
+                }
+            }
+            cb->input_dim = csi_ref_get_input_dim(input1, output->dim_count, axis, axis_size);
+        } else if (cb->input0->dim_count == cb->input1->dim_count) {
+            cb->input_dim = cb->input1->dim;
+        } else {
+            for (int i = 0; i < cb->input1->dim_count; i++) {
+                if (cb->input1->dim[cb->input1->dim_count - i - 1] !=
+                    cb->input0->dim[cb->input0->dim_count - i - 1]) {
+                    return CSINN_FALSE;
+                }
+            }
+        }
+
+        csi_ref_diso_dim_iter(output->dim, output->dim_count - 1, idx, cb);
+    }
+
+    return CSINN_TRUE;
+}
+
+float csi_ref_get_scale(int32_t multiplier, int32_t shift)
+{
+    float scale = multiplier / pow(2, 31) * pow(2, shift);
+
+    return scale;
 }
 
 static int32_t mask_non_zero(int32_t a)
@@ -87,105 +224,55 @@ static int32_t high_mul_sat_round_double(int32_t a, int32_t b)
     return overflow ? INT32_MAX : ab_x2_high32;
 }
 
-int32_t quantized_multiply(int32_t x, int32_t quantized_multiplier, int shift)
+uint8_t csi_ref_quantize_channel_u8(int32_t data, struct csi_tensor* input, struct csi_tensor* output, float wscale)
 {
-    int left_shift = shift > 0 ? shift : 0;
-    int right_shift = shift > 0 ? 0 : -shift;
-    return round_div_pot(high_mul_sat_round_double(x * (1 << left_shift), quantized_multiplier), right_shift);
+    float out = data * input->qinfo->scale * wscale;
+    return csi_ref_quantize_f32_to_u8(out, output->qinfo);
 }
 
-int32_t quantized_multiply_s(int32_t x, int32_t quantized_multiplier, int left_shift)
+int8_t csi_ref_quantize_channel_i8(int32_t data, struct csi_tensor* input, struct csi_tensor* output, float wscale)
 {
-    return round_div_pot(high_mul_sat_round_double(x, quantized_multiplier), -left_shift);
+    float out = data * input->qinfo->scale * wscale;
+    return csi_ref_quantize_f32_to_i8(out, output->qinfo);
 }
 
-float csi_get_scale(int32_t multiplier, int32_t shift)
-{
-    float scale = multiplier / pow(2, 31) * pow(2, shift);
-
-    return scale;
-}
-
-int32_t csi_dequantize_u8(uint8_t input, int32_t offset, int32_t multiplier, int32_t shift)
-{
-    int32_t x = input + offset;
-    float scale = csi_get_scale(multiplier, shift);
-    return x * scale;
-}
-
-uint8_t csi_quantize_u8(int32_t input, int32_t offset, int32_t multiplier, int32_t shift)
-{
-    int left_shift = shift > 0 ? shift : 0;
-    int right_shift = shift > 0 ? 0 : -shift;
-    int32_t output = round_div_pot(high_mul_sat_round_double(input * (1 << left_shift), multiplier), right_shift);
-    output += offset;
-    return csi_min_internal_s32(255, csi_max_internal_s32(0, output));
-}
-
-int8_t csi_quantize_i8(int32_t input, int32_t offset, int32_t multiplier, int32_t shift)
-{
-    int left_shift = shift > 0 ? shift : 0;
-    int right_shift = shift > 0 ? 0 : -shift;
-    int32_t output = round_div_pot(high_mul_sat_round_double(input * (1 << left_shift), multiplier), right_shift);
-    output += offset;
-    return csi_min_internal_s32(127, csi_max_internal_s32(-127, output));
-}
-
-uint8_t csi_quantize_channel_u8(int32_t data, struct csi_tensor* input, struct csi_tensor* output, float wscale)
-{
-    float out = data * input->scale * wscale;
-    return csi_quantize_f32_to_u8(out, output->zero_point, output->multiplier, output->shift);
-}
-
-float csi_dequantize_u8_to_f32(uint8_t input, int32_t offset, int32_t multiplier, int32_t shift)
+float csi_ref_dequantize_u8_to_f32(uint8_t input, struct csi_quant_info *qinfo)
 {
     float x = input;
-    x -= offset;
-    float scale = csi_get_scale(multiplier, shift);
+    x -= qinfo->zero_point;
+    float scale = csi_ref_get_scale(qinfo->multiplier, qinfo->shift);
     return x * scale;
 }
 
-float csi_dequantize_i8_to_f32(int8_t input, int32_t offset, int32_t multiplier, int32_t shift)
+float csi_ref_dequantize_i8_to_f32(int8_t input, struct csi_quant_info *qinfo)
 {
     float x = input;
-    x -= offset;
-    float scale = csi_get_scale(multiplier, shift);
+    x -= qinfo->zero_point;
+    float scale = csi_ref_get_scale(qinfo->multiplier, qinfo->shift);
     return x * scale;
 }
 
-uint8_t csi_quantize_f32_to_u8(float input, int32_t offset, int32_t multiplier, int32_t shift)
+uint8_t csi_ref_quantize_f32_to_u8(float input, struct csi_quant_info *qinfo)
 {
-    float scale = csi_get_scale(multiplier, shift);
-    float output = round(input / scale + offset);
+    float scale = csi_ref_get_scale(qinfo->multiplier, qinfo->shift);
+    float output = round(input / scale + qinfo->zero_point);
     return fmin(255, fmax(0, output));
 }
 
-int8_t csi_quantize_f32_to_i8(float input, int32_t offset, int32_t multiplier, int32_t shift)
+int8_t csi_ref_quantize_f32_to_i8(float input, struct csi_quant_info *qinfo)
 {
-    float scale = csi_get_scale(multiplier, shift);
-    float output = round(input / scale + offset);
+    float scale = csi_ref_get_scale(qinfo->multiplier, qinfo->shift);
+    float output = round(input / scale + qinfo->zero_point);
     return fmin(127, fmax(-127, output));
 }
 
-
-uint8_t csi_requantize_u8(uint8_t input, int32_t input_offset, int32_t input_multiplier,
-                          int32_t input_shift, int32_t output_offset, int32_t output_multiplier,
-                          int32_t output_shift)
+struct csi_tensor *csi_ref_deconv_kernel_nchw_to_nhwc_f32(struct csi_tensor *t, int32_t *permute)
 {
-    float val = csi_dequantize_u8_to_f32(input, input_offset, input_multiplier, input_shift);
-    return csi_quantize_f32_to_u8(val, output_offset, output_multiplier, output_shift);
-}
-
-struct csi_tensor *csi_deconv_kernel_nchw_to_nhwc_u8(struct csi_tensor *t, int32_t *permute)
-{
-    struct csi_tensor *nt = malloc(sizeof(struct csi_tensor));
+    struct csi_tensor *nt = csi_alloc_tensor(NULL);
 
     assert(t->dim_count < 5);
 
-    int size = 1;
-    for (int i = 0; i < t->dim_count; i++) {
-        size = size * t->dim[i];
-    }
+    int size = csi_tensor_byte_size(t);
 
     for (int i = t->dim_count; i < 4; i++) {
         t->dim[i] = 1;
@@ -193,7 +280,8 @@ struct csi_tensor *csi_deconv_kernel_nchw_to_nhwc_u8(struct csi_tensor *t, int32
 
     int t_dim = t->dim_count;
     t->dim_count = 4;
-    memcpy(nt, t, sizeof(struct csi_tensor));
+    t->quant_channel = 0;
+    csi_tensor_copy(nt, t);
     nt->dim[0] = t->dim[permute[0]];
     nt->dim[1] = t->dim[permute[1]];
     nt->dim[2] = t->dim[permute[2]];
@@ -203,16 +291,17 @@ struct csi_tensor *csi_deconv_kernel_nchw_to_nhwc_u8(struct csi_tensor *t, int32
 
     struct transpose_params tparams;
     tparams.permute = permute;
-    tparams.api = CSINN_REF;
+    tparams.base.api = CSINN_REF;
+    tparams.base.name = "internal_transpose";
     csi_transpose_init(t, nt, &tparams);
     csi_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
 
-struct csi_tensor *csi_nchw_to_nhwc_8(struct csi_tensor *t)
+struct csi_tensor *csi_ref_nchw_to_nhwc_8(struct csi_tensor *t)
 {
-    struct csi_tensor *nt = malloc(sizeof(struct csi_tensor));
+    struct csi_tensor *nt = csi_alloc_tensor(NULL);
 
     assert(t->dim_count < 5);
 
@@ -227,7 +316,7 @@ struct csi_tensor *csi_nchw_to_nhwc_8(struct csi_tensor *t)
 
     int t_dim = t->dim_count;
     t->dim_count = 4;
-    memcpy(nt, t, sizeof(struct csi_tensor));
+    csi_tensor_copy(nt, t);
     nt->dim[1] = t->dim[2];
     nt->dim[2] = t->dim[3];
     nt->dim[3] = t->dim[1];
@@ -237,14 +326,15 @@ struct csi_tensor *csi_nchw_to_nhwc_8(struct csi_tensor *t)
 
     struct transpose_params tparams;
     tparams.permute = permute;
-    tparams.api = CSINN_REF;
+    tparams.base.api = CSINN_REF;
+    tparams.base.name = "internal_transpose";
     csi_transpose_init(t, nt, &tparams);
     csi_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
 
-void csi_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t)
+void csi_ref_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t)
 {
     nt->dim[1] = t->dim[3];
     nt->dim[2] = t->dim[1];
@@ -257,7 +347,8 @@ void csi_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t)
 
     struct transpose_params tparams;
     tparams.permute = permute;
-    tparams.api = CSINN_REF;
+    tparams.base.api = CSINN_REF;
+    tparams.base.name = "internal_transpose";
     csi_transpose_init(t, nt, &tparams);
     csi_transpose(t, nt, &tparams);
 
@@ -267,9 +358,9 @@ void csi_nhwc_to_nchw_8(struct csi_tensor *nt, struct csi_tensor *t)
     free(t);
 }
 
-struct csi_tensor *csi_nchw_to_nhwc_f32(struct csi_tensor *t)
+struct csi_tensor *csi_ref_nchw_to_nhwc_f32(struct csi_tensor *t)
 {
-    struct csi_tensor *nt = malloc(sizeof(struct csi_tensor));
+    struct csi_tensor *nt = csi_alloc_tensor(NULL);
 
     assert(t->dim_count < 5);
 
@@ -284,7 +375,8 @@ struct csi_tensor *csi_nchw_to_nhwc_f32(struct csi_tensor *t)
 
     int t_dim = t->dim_count;
     t->dim_count = 4;
-    memcpy(nt, t, sizeof(struct csi_tensor));
+    t->quant_channel = 0;
+    csi_tensor_copy(nt, t);
     nt->dim[1] = t->dim[2];
     nt->dim[2] = t->dim[3];
     nt->dim[3] = t->dim[1];
@@ -294,14 +386,15 @@ struct csi_tensor *csi_nchw_to_nhwc_f32(struct csi_tensor *t)
 
     struct transpose_params tparams;
     tparams.permute = permute;
-    tparams.api = CSINN_REF;
+    tparams.base.api = CSINN_REF;
+    tparams.base.name = "internal_transpose";
     csi_transpose_init(t, nt, &tparams);
     csi_transpose(t, nt, &tparams);
     t->dim_count = t_dim;
     return nt;
 }
 
-void csi_nhwc_to_nchw_f32(struct csi_tensor *nt, struct csi_tensor *t)
+void csi_ref_nhwc_to_nchw_f32(struct csi_tensor *nt, struct csi_tensor *t)
 {
     nt->dim[1] = t->dim[3];
     nt->dim[2] = t->dim[1];
@@ -314,7 +407,8 @@ void csi_nhwc_to_nchw_f32(struct csi_tensor *nt, struct csi_tensor *t)
 
     struct transpose_params tparams;
     tparams.permute = permute;
-    tparams.api = CSINN_REF;
+    tparams.base.api = CSINN_REF;
+    tparams.base.name = "internal_transpose";
     csi_transpose_init(t, nt, &tparams);
     csi_transpose(t, nt, &tparams);
 
@@ -324,7 +418,7 @@ void csi_nhwc_to_nchw_f32(struct csi_tensor *nt, struct csi_tensor *t)
     free(t);
 }
 
-int32_t get_reduction_index(int32_t k, const int32_t *strides,
+int32_t csi_ref_get_reduction_index(int32_t k, const int32_t *strides,
                             const int32_t *extents, int32_t n)
 {
     int32_t index = 0;
@@ -343,226 +437,143 @@ int32_t get_reduction_index(int32_t k, const int32_t *strides,
     return index;
 }
 
-float uint8_to_float(uint8_t i, struct csi_tensor *t)
+float csi_ref_uint8_to_float(uint8_t i, struct csi_tensor *t)
 {
-    return ((float)i - t->zero_point) * t->scale;
+    return ((float)i - t->qinfo->zero_point) * t->qinfo->scale;
 }
 
-float int8_to_float(int8_t i, struct csi_tensor *t)
+float csi_ref_int8_to_float(int8_t i, struct csi_tensor *t)
 {
-    return ((float)i - t->zero_point) * t->scale;
+    return ((float)i - t->qinfo->zero_point) * t->qinfo->scale;
 }
 
-uint8_t float_to_uint8(float i, struct csi_tensor *t)
+struct csi_tensor *csi_ref_alloc_float_tensor(struct csi_tensor *src)
 {
-    float ret = round(i / t->scale) + t->zero_point;
-    if (ret > 255) {
-        return 255;
-    } else if (ret < 0) {
-        return 0;
+    struct csi_tensor *ret = csi_alloc_tensor(NULL);
+    csi_tensor_copy(ret, src);
+    ret->dtype = CSINN_DTYPE_FLOAT32;
+    int size = csi_tensor_byte_size(ret);
+    float *data = malloc(size);
+    ret->data = data;
+    return ret;
+}
+
+void csi_ref_free_float_tensor(struct csi_tensor *src)
+{
+    free(src->data);
+    csi_free_tensor(src);
+}
+
+struct csi_tensor *csi_ref_convert_float_tensor(struct csi_tensor *src)
+{
+    struct csi_tensor *ret = csi_ref_alloc_float_tensor(src);
+    int size = csi_tensor_size(src);
+    float *float_data = ret->data;
+
+    if (src->dtype == CSINN_DTYPE_UINT8) {
+        uint8_t *input_data = src->data;
+        for (int i = 0; i < size; i++) {
+            float_data[i] = csi_ref_uint8_to_float(input_data[i], src);
+        }
+    } else if (src->dtype == CSINN_DTYPE_INT8) {
+        int8_t *input_data = src->data;
+        for (int i = 0; i < size; i++) {
+            float_data[i] = csi_ref_int8_to_float(input_data[i], src);
+        }
     } else {
+        return NULL;
+    }
+
+    return ret;
+}
+
+void csi_ref_conv_free_float_tensor(struct csi_tensor *input,
+    struct csi_tensor *output, struct csi_tensor *kernel,
+    struct csi_tensor *bias)
+{
+    csi_ref_free_float_tensor(input);
+    csi_ref_free_float_tensor(output);
+    csi_ref_free_float_tensor(kernel);
+    csi_ref_free_float_tensor(bias);
+}
+
+struct csi_tensor *csi_ref_tensor_transform_f32(struct csi_tensor *input)
+{
+    struct csi_tensor *ret = csi_alloc_tensor(NULL);
+    csi_tensor_copy(ret, input);
+    ret->dtype = CSINN_DTYPE_FLOAT32;
+    ret->data = malloc(csi_tensor_size(input) * 4);
+    if (csi_tensor_data_convert(ret, input) == CSINN_TRUE) {
         return ret;
     }
+    return NULL;
 }
 
-int8_t float_to_int8(float i, struct csi_tensor *t)
+int csi_ref_tensor_transform_free_f32(struct csi_tensor *input)
 {
-    int8_t ret = round(i / t->scale) + t->zero_point;
-    if (ret > 127) {
-        return 127;
-    } else if (ret < -127) {
-        return 127;
-    } else {
-        return ret;
-    }
+    free(input->data);
+    csi_free_tensor(input);
+    return CSINN_TRUE;
 }
 
-int64_t conv_out_u8(int64_t res,
-                    struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct csi_tensor *kernel)
+int csi_ref_siso_callback_base(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               void *params,
+                               void *cb)
 {
-    float t = res * input->scale * kernel->scale / output->scale;
-    if (t < 0) {
-        t = 0;
-    }
-    int32_t out = round(t + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 255) {
-        return 255;
-    } else {
-        return out;
-    }
+    int (*callback)() = cb;
+    int ret;
+    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    ret = callback(finput, foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(finput);
+    csi_ref_tensor_transform_free_f32(foutput);
+    return ret;
 }
 
-int64_t conv_out_i8(int64_t res,
-                    struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct csi_tensor *kernel)
+int csi_ref_diso_callback_base(struct csi_tensor *input0,
+                               struct csi_tensor *input1,
+                               struct csi_tensor *output,
+                               void *params,
+                               void *cb)
 {
-    float t = res * input->scale * kernel->scale / output->scale;
-    if (t < 0) {
-        t = 0;
-    }
-    int32_t out = round(t + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 127) {
-        return 127;
-    } else {
-        return out;
-    }
+    int (*callback)() = cb;
+    int ret;
+    struct csi_tensor *finput0 = csi_ref_tensor_transform_f32(input0);
+    struct csi_tensor *finput1 = csi_ref_tensor_transform_f32(input1);
+    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
+    ret = callback(finput0, finput1, foutput, params);
+    csi_tensor_data_convert(output, foutput);
+    csi_ref_tensor_transform_free_f32(finput0);
+    csi_ref_tensor_transform_free_f32(finput1);
+    csi_ref_tensor_transform_free_f32(foutput);
+    return ret;
 }
 
-int64_t conv_relu6_out_u8(int64_t res,
-                          struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct csi_tensor *kernel)
+int csi_ref_conv_callback_base(struct csi_tensor *input,
+                               struct csi_tensor *output,
+                               struct csi_tensor *kernel,
+                               struct csi_tensor *bias,
+                               void *params,
+                               void *cb)
 {
-    float t = res * input->scale * kernel->scale;
-    if (t < 0) {
-        t = 0;
-    } else if (t * output->scale > 6) {
-        t = 6;
+    int (*callback)() = cb;
+    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
+    struct csi_tensor *float_kernel = csi_ref_tensor_transform_f32(kernel);
+    struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
+    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
+    float *float_bias_data = float_bias->data;
+    int32_t *bias_data = bias->data;
+    int bias_size = csi_tensor_size(bias);
+    for (int i = 0; i < bias_size; i++) {
+        float_bias_data[i] = bias_data[i] * kernel->qinfo->scale * input->qinfo->scale;
     }
-    int32_t out = round(t / output->scale + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 255) {
-        return 255;
-    } else {
-        return out;
-    }
-}
-
-int64_t conv_relu6_out_i8(int64_t res,
-                          struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct csi_tensor *kernel)
-{
-    float t = res * input->scale * kernel->scale;
-    if (t < 0) {
-        t = 0;
-    } else if (t * output->scale > 6) {
-        t = 6;
-    }
-    int32_t out = round(t / output->scale + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 127) {
-        return 127;
-    } else {
-        return out;
-    }
-}
-
-float uint8_to_float_channel(uint8_t i, float scale, int32_t zero_point)
-{
-    return ((float)i - zero_point) * scale;
-}
-
-int64_t conv_channel_out_u8(int64_t res,
-                            struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            float kscale)
-{
-    float t = res * input->scale * kscale / output->scale;
-    if (t < 0) {
-        t = 0;
-    }
-    int32_t out = round(t + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 255) {
-        return 255;
-    } else {
-        return out;
-    }
-}
-int64_t conv_channel_relu6_u8(int64_t res,
-                              struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              float kscale)
-{
-    float t = res * input->scale * kscale;
-    if (t < 0) {
-        t = 0;
-    } else if (t > 6) {
-        t = 6;
-    }
-    int32_t out = round(t / output->scale + output->zero_point);
-    if (out < 0) {
-        return 0;
-    } else if (out > 255) {
-        return 255;
-    } else {
-        return out;
-    }
-}
-
-void csi_statistical_mean_std(float *data, int sz)
-{
-    int i = 0;
-    float max_value = data[0];
-    float min_value = data[0];
-    double std = 0.0;
-    double sum = 0.0;
-    for (i = 0; i < sz; i++) {
-        sum += data[i];
-        if (data[i] > max_value) {
-            max_value = data[i];
-        }
-        if (data[i] < min_value) {
-            min_value = data[i];
-        }
-    }
-    double mean = sum / sz;
-    sum = 0.0;
-    for (i = 0; i < sz; i++) {
-        sum += ((data[i] - mean) * (data[i] - mean));
-    }
-    std = sum / sz;
-    printf("The max_value of output: %lf\n", max_value);
-    printf("The min_value of output: %lf\n", min_value);
-    printf("The mean_value of output: %lf\n", mean);
-    printf("The std_value of output: %lf\n", std);
-}
-
-void csi_get_top5(float *buf,
-                  uint32_t size,
-                  float *prob,
-                  uint32_t *class)
-{
-    uint32_t i, j, k;
-
-    memset(prob, 0xfe, sizeof(float) * 5);
-    memset(class, 0xff, sizeof(uint32_t) * 5);
-
-    for (j = 0; j < 5; j++) {
-        for (i = 0; i < size; i++) {
-            for (k = 0; k < 5; k++) {
-                if (i == class[k]) {
-                    break;
-                }
-            }
-
-            if (k != 5) {
-                continue;
-            }
-
-            if (buf[i] > prob[j]) {
-                prob[j] = buf[i];
-                class[j] = i;
-            }
-        }
-    }
-}
-
-#define BILLION    1000000000
-uint64_t csi_get_timespec()
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)((uint64_t)ts.tv_nsec + (uint64_t)ts.tv_sec * BILLION);
+    int ret = callback(float_input, float_output, float_kernel, float_bias, params);
+    csi_tensor_data_convert(output, float_output);
+    csi_ref_tensor_transform_free_f32(float_input);
+    csi_ref_tensor_transform_free_f32(float_output);
+    csi_ref_tensor_transform_free_f32(float_kernel);
+    csi_ref_tensor_transform_free_f32(float_bias);
+    return ret;
 }

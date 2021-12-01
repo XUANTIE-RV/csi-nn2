@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
-#include <assert.h>
+#include "csi_c906.h"
 
-int csi_clip_f32_c906(struct csi_tensor *input,
+int csi_c906_clip_f32(struct csi_tensor *input,
                       struct csi_tensor *output,
                       struct clip_params *params)
 {
@@ -55,41 +53,5 @@ int csi_clip_f32_c906(struct csi_tensor *input,
                 : "v0", "v2", "v3", "t0", "t1", "t2", "t3"
     );
 
-    // for (int i = 0; i < size; i++) {
-    //     if(input_data[i] < params->min_value) {
-    //         output_data[i] = params->min_value;
-    //     } else if(input_data[i] > params->max_value) {
-    //         output_data[i] = params->max_value;
-    //     } else {
-    //         output_data[i] = input_data[i];
-    //     }
-    // }
-    return CSINN_TRUE;
-}
-
-int csi_clip_u8_c906(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct clip_params *params)
-{
-    uint8_t *input_data = (uint8_t *)input->data;
-    uint8_t *output_data = (uint8_t *)output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    for (int i = 0; i < size; i++) {
-        float input_val = csi_dequantize_u8_to_f32(input_data[i], input->zero_point, input->multiplier,
-                                               input->shift);
-        float res = 0.0f;
-        if(input_val < params->min_value) {
-            res = params->min_value;
-        } else if(input_val > params->max_value) {
-            res = params->max_value;
-        } else {
-            res = output_data[i];
-        }
-        output_data[i] = csi_quantize_f32_to_u8(res, output->zero_point, output->multiplier, output->shift);
-    }
     return CSINN_TRUE;
 }

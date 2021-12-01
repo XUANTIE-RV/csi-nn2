@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "csi_utils.h"
+#include "csi_c906.h"
 
-static int csi_prelu_nhwc_f32(struct csi_tensor *input,
-                              struct csi_tensor *alpha,
-                              struct csi_tensor *output,
-                              struct prelu_params *params)
+static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
+                                   struct csi_tensor *alpha,
+                                   struct csi_tensor *output,
+                                   struct prelu_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -67,8 +66,8 @@ static int csi_prelu_nhwc_f32(struct csi_tensor *input,
     //     for (int y = 0; y < output->dim[1]; ++y) {
     //         for (int x = 0; x < output->dim[2]; ++x) {
     //             for (int c = 0; c < output->dim[3]; ++c) {
-    //                 int output_index = csi_get_index(output->dim, b, y, x, c);
-    //                 int input_index = csi_get_index(input->dim, b, y, x, c);
+    //                 int output_index = csi_ref_get_index(output->dim, b, y, x, c);
+    //                 int input_index = csi_ref_get_index(input->dim, b, y, x, c);
     //                 float input_value = input_data[input_index];
     //                 if (input_value >= 0) {
     //                     output_data[output_index] = input_data[input_index];
@@ -82,47 +81,10 @@ static int csi_prelu_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_prelu_nhwc_u8(struct csi_tensor *input,
-                             struct csi_tensor *alpha,
-                             struct csi_tensor *output,
-                             struct prelu_params *params)
-{
-    int num_elements = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        num_elements *= output->dim[i];
-    }
-
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    uint8_t *alpha_data = alpha->data;
-    const int32_t input_offset = input->zero_point;
-    const int32_t alpha_offset = alpha->zero_point;
-
-    for (int b = 0; b < output->dim[0]; ++b) {
-        for (int y = 0; y < output->dim[1]; ++y) {
-            for (int x = 0; x < output->dim[2]; ++x) {
-                for (int c = 0; c < output->dim[3]; ++c) {
-                    int index = csi_get_index(input->dim, b, y, x, c);
-                    const float input_value = csi_dequantize_u8_to_f32(input_data[index], input->zero_point, input->multiplier, input->shift);
-                    if (input_value >= 0) {
-                        output_data[index] = csi_quantize_f32_to_u8(input_value,
-                                                    output->zero_point, output->multiplier, output->shift);
-                    } else {
-                        float alpha_val =  csi_dequantize_u8_to_f32(alpha_data[c], alpha->zero_point, alpha->multiplier, alpha->shift);
-                        output_data[index] = csi_quantize_f32_to_u8(input_value * alpha_val,
-                                                    output->zero_point, output->multiplier, output->shift);
-                    }
-                }
-            }
-        }
-    }
-    return CSINN_TRUE;
-}
-
-static int csi_prelu_nchw_f32(struct csi_tensor *input,
-                              struct csi_tensor *alpha,
-                              struct csi_tensor *output,
-                              struct prelu_params *params)
+static int csi_c906_prelu_nchw_f32(struct csi_tensor *input,
+                                   struct csi_tensor *alpha,
+                                   struct csi_tensor *output,
+                                   struct prelu_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -173,88 +135,18 @@ static int csi_prelu_nchw_f32(struct csi_tensor *input,
                 : "v0", "v2", "v3", "t0", "t1", "t2", "t3", "a0", "a1", "a2", "ft0"
     );
 
-    // for (int b = 0; b < output->dim[0]; ++b) {
-    //     for (int y = 0; y < output->dim[1]; ++y) {
-    //         for (int x = 0; x < output->dim[2]; ++x) {
-    //             for (int c = 0; c < output->dim[3]; ++c) {
-    //                 int output_index = csi_get_index(output->dim, b, y, x, c);
-    //                 int input_index = csi_get_index(input->dim, b, y, x, c);
-    //                 const int32_t input_value = input->offset + input_data[input_index];
-    //                 if (input_value >= 0) {
-    //                     output_data[output_index] = input_data[input_index];
-    //                 } else {
-    //                     output_data[output_index] = input_value * alpha_data[c];
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
     return CSINN_TRUE;
 }
 
-static int csi_prelu_nchw_u8(struct csi_tensor *o_input,
-                             struct csi_tensor *alpha,
-                             struct csi_tensor *o_output,
-                             struct prelu_params *params)
-{
-    struct csi_tensor* input = csi_nchw_to_nhwc_8(o_input);
-    struct csi_tensor* output = csi_nchw_to_nhwc_8(o_output);
-    int num_elements = 1;
-    for (int i = 0; i < output->dim_count; i++) {
-        num_elements *= output->dim[i];
-    }
-
-    uint8_t *input_data = input->data;
-    uint8_t *output_data = output->data;
-    uint8_t *alpha_data = alpha->data;
-    const int32_t input_offset = input->zero_point;
-    const int32_t alpha_offset = alpha->zero_point;
-
-    for (int b = 0; b < output->dim[0]; ++b) {
-        for (int y = 0; y < output->dim[1]; ++y) {
-            for (int x = 0; x < output->dim[2]; ++x) {
-                for (int c = 0; c < output->dim[3]; ++c) {
-                    int index = csi_get_index(input->dim, b, y, x, c);
-                    const float input_value = csi_dequantize_u8_to_f32(input_data[index], input->zero_point, input->multiplier, input->shift);
-                    if (input_value >= 0) {
-                        output_data[index] = csi_quantize_f32_to_u8(input_value,
-                                                    output->zero_point, output->multiplier, output->shift);
-                    } else {
-                        float alpha_val =  csi_dequantize_u8_to_f32(alpha_data[c], alpha->zero_point, alpha->multiplier, alpha->shift);
-                        output_data[index] = csi_quantize_f32_to_u8(input_value * alpha_val,
-                                                    output->zero_point, output->multiplier, output->shift);
-                    }
-                }
-            }
-        }
-    }
-    csi_nhwc_to_nchw_8(o_output, output);
-    return CSINN_TRUE;
-}
-
-int csi_prelu_f32_c906(struct csi_tensor *input,
+int csi_c906_prelu_f32(struct csi_tensor *input,
                        struct csi_tensor *alpha,
                        struct csi_tensor *output,
                        struct prelu_params *params)
 {
-    if (params->layout == CSINN_NCHW) {
-        csi_prelu_nchw_f32(input, alpha, output, params);
-    } else if (params->layout == CSINN_NHWC) {
-        csi_prelu_nhwc_f32(input, alpha, output, params);
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
-    }
-}
-
-int csi_prelu_u8_c906(struct csi_tensor *input,
-                      struct csi_tensor *alpha,
-                      struct csi_tensor *output,
-                      struct prelu_params *params)
-{
-    if (params->layout == CSINN_NCHW) {
-        csi_prelu_nhwc_u8(input, alpha, output, params);
-    } else if (params->layout == CSINN_NHWC) {
-        csi_prelu_nchw_u8(input, alpha, output, params);
+    if (params->base.layout == CSINN_NCHW) {
+        csi_c906_prelu_nchw_f32(input, alpha, output, params);
+    } else if (params->base.layout == CSINN_NHWC) {
+        csi_c906_prelu_nhwc_f32(input, alpha, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
