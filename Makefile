@@ -1,61 +1,52 @@
-CROSS_COMPILE   ?= csky-abiv2-elf-
-INSTALL_DIR 	= ../../lib/
-NN2_ROOT := $(shell pwd)
-
-ifeq ($(GCOV),y)
-        EXTRA_CFLAGS = -fprofile-arcs -ftest-coverage -g -O0
-        LIBS   += -fprofile-arcs -ftest-coverage -lgcov
-else
-        EXTRA_CFLAGS = -O2 -g -Werror -DCSI_DEBUG
-endif
-
-export CROSS_COMPILE INSTALL_DIR
-
-
 all: nn2_ref_x86
 
 nn2_c860:
-	DSP_LIB="libcsi_nn2_c860" CFLAGS="-mcpu=c860v -DCSI_BUILD_REF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-linux-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_c860 -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+	mkdir -p csky_build; cd csky_build; cmake ../ -DBUILD_CSKY=ON -DCMAKE_BUILD_TYPE=Release; make c860_static -j8; cd -
+
+nn2_rvv:
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make rvv_static -j8; cd -
 
 nn2_c906:
-	DSP_LIB="libcsi_nn2_c906" CFLAGS="-march=rv64gcvxthead -mabi=lp64dv -DCSI_BUILD_C906 -DCSI_BUILD_REF -DCSI_BUILD_GREF $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="riscv64-unknown-linux-gnu-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_c906 -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make c906_static -j8; cd -
+
+nn2_c906_elf:
+	mkdir -p riscv_elf_build; cd riscv_elf_build; cmake ../ -DBUILD_RISCV_ELF=ON -DCMAKE_BUILD_TYPE=Release; make c906_elf_static -j8; cd -
+
+nn2_asp_elf:
+	mkdir -p riscv_elf_build; cd riscv_elf_build; cmake ../ -DBUILD_RISCV_ELF=ON -DCMAKE_BUILD_TYPE=Release; make asp_elf_static -j8; cd -
+
+nn2_c908:
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make c908_static -j8; cd -
 
 nn2_ref_x86:
-	DSP_LIB="libcsi_nn2_ref_x86" CFLAGS="$(EXTRA_CFLAGS) -DCSI_BUILD_REF -fPIC -DCSI_AVX_OPT -mavx -mfma -fopenmp" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref -j8
-	cd source/; find . -name *.o | xargs rm; cd -
-	DSP_LIB="libcsi_nn2_ref_x86" CFLAGS="$(EXTRA_CFLAGS) -DCSI_BUILD_REF -fPIC -DCSI_AVX_OPT -mavx -mfma -fopenmp" \
-	CROSS_COMPILE="" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref nn2_shared -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+	mkdir -p x86_build; cd x86_build; cmake ../ -DBUILD_X86=ON -DCMAKE_BUILD_TYPE=Release; make x86_share -j8; cd -
 
-nn2_ref_i805:
-	DSP_LIB="libcsi_nn2_ref_i805.a" CFLAGS="-DCSI_BUILD_REF_I805 -DCSI_MATH_DSP -mcpu=i805 $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_ref_i805 -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+nn2_openvx:
+	mkdir -p csky_build; cd csky_build; cmake ../ -DBUILD_CSKY=ON -DCMAKE_BUILD_TYPE=Release; make openvx_share -j8; cd -
 
-nn2_e804:
-	DSP_LIB="libcsi_nn2_e804.a" CFLAGS="-DCSI_BUILD_E804 -mcpu=e804d -mno-required-attr-fpu-abi $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_e804 -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+nn2_pnna:
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make pnna_share -j8; cd -
 
-nn2_i805:
-	DSP_LIB="libcsi_nn2_i805.a" CFLAGS="-DCSI_BUILD_I805 -DCSI_BUILD_REF -DCSI_BUILD_GREF -mcpu=ck805ef -mhard-float $(EXTRA_CFLAGS)" \
-	CROSS_COMPILE="csky-abiv2-elf-" NN2_ROOT=${NN2_ROOT} make -C build_script/nn2_i805 -j8
-	cd source/; find . -name *.o | xargs rm; cd -
+nn2_pnna_x86:
+	mkdir -p x86_build; cd x86_build; cmake ../ -DBUILD_X86=ON -DCMAKE_BUILD_TYPE=Release; make pnna_share -j8; cd -
 
+nn2_hlight_x86:
+	mkdir -p x86_build; cd x86_build; cmake ../ -DBUILD_X86=ON -DCMAKE_BUILD_TYPE=Release; make hlight_share -j8; cd -
+
+nn2_hlight:
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make hlight_share -j8; cd -
 
 .PHONY: install_nn2
 install_nn2: include
 	mkdir -p install_nn2/lib
 	cp include install_nn2 -r
-	cp lib/libcsi_nn2_* install_nn2/lib -rf
+	-cp riscv_build/libcsi_nn2_* install_nn2/lib -rf
+	-cp csky_build/libcsi_nn2_* install_nn2/lib -rf
+	-cp x86_build/libcsi_nn2_* install_nn2/lib -rf
 	cp version install_nn2/ -rf
 
+clint:
+	./script/git-clang-format.sh origin/master
 
 clean:
-	rm lib/* -rf
-	find . -name *.o | xargs rm -rf
+	rm lib/*  -rf

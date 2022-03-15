@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,18 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
+
+#include <math.h>
 
 #include "csi_ref.h"
 #include "csi_utils.h"
-#include <math.h>
-
 
 // https://github.com/pytorch/pytorch/blob/master/caffe2/operators/roi_pool_op.cc
 // defalut input layout: NCHW
-int csi_ref_roipool_f32(struct csi_tensor *data,
-                        struct csi_tensor *rois,
-                        struct csi_tensor *output,
+int csi_ref_roipool_f32(struct csi_tensor *data, struct csi_tensor *rois, struct csi_tensor *output,
                         struct roi_pool_params *params)
 {
     float *output_data = (float *)output->data;
@@ -37,23 +35,23 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
     int batch = data->dim[0];
     int channel = data->dim[1];
     int height = data->dim[2];
-    int width  = data->dim[3];
+    int width = data->dim[3];
     int num_rois = rois->dim[0];
 
     int pooled_height = params->pooled_size_h;
-    int pooled_width  = params->pooled_size_w;
+    int pooled_width = params->pooled_size_w;
 
-    for(int n = 0; n < num_rois; n++) {
+    for (int n = 0; n < num_rois; n++) {
         int roi_add = n * 5;
         int roi_batch_idx = bottom_rois[roi_add];
         assert(roi_batch_idx < batch);
         float roi_start_w = (float)round(bottom_rois[roi_add + 1] * params->spatial_scale);
         float roi_start_h = (float)round(bottom_rois[roi_add + 2] * params->spatial_scale);
-        float roi_end_w   = (float)round(bottom_rois[roi_add + 3] * params->spatial_scale);
-        float roi_end_h   = (float)round(bottom_rois[roi_add + 4] * params->spatial_scale);
+        float roi_end_w = (float)round(bottom_rois[roi_add + 3] * params->spatial_scale);
+        float roi_end_h = (float)round(bottom_rois[roi_add + 4] * params->spatial_scale);
 
         float roi_height = fmaxf(roi_end_h - roi_start_h + 1, 1);
-        float roi_width  = fmaxf(roi_end_w - roi_start_w + 1, 1);
+        float roi_width = fmaxf(roi_end_w - roi_start_w + 1, 1);
         float bin_size_h = (float)(roi_height) / (float)(pooled_height);
         float bin_size_w = (float)(roi_width) / (float)(pooled_width);
 
@@ -65,14 +63,14 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
                     // Compute pooling region for this output unit:
                     // start (included) = floor(ph * roi_height / pooled_height_)
                     // end (excluded) = ceil((ph + 1) * roi_height / pooled_height_)
-                    int hstart = (int)(floor((float)(ph)    * bin_size_h + roi_start_h));
-                    int wstart = (int)(floor((float)(pw)    * bin_size_w + roi_start_w));
-                    int hend   = (int)(ceil((float)(ph + 1) * bin_size_h + roi_start_h));
-                    int wend   = (int)(ceil((float)(pw + 1) * bin_size_w + roi_start_w));
+                    int hstart = (int)(floor((float)(ph)*bin_size_h + roi_start_h));
+                    int wstart = (int)(floor((float)(pw)*bin_size_w + roi_start_w));
+                    int hend = (int)(ceil((float)(ph + 1) * bin_size_h + roi_start_h));
+                    int wend = (int)(ceil((float)(pw + 1) * bin_size_w + roi_start_w));
                     hstart = fminf(fmaxf(hstart, 0), height);
-                    hend   = fminf(fmaxf(hend  , 0), height);
+                    hend = fminf(fmaxf(hend, 0), height);
                     wstart = fminf(fmaxf(wstart, 0), width);
-                    wend   = fminf(fmaxf(wend  , 0), width);
+                    wend = fminf(fmaxf(wend, 0), width);
 
                     const int pool_index = ph * pooled_width + pw;
                     int is_empty = (hend <= hstart) || (wend <= wstart);
@@ -82,7 +80,7 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
                     for (int h = hstart; h < hend; ++h) {
                         for (int w = wstart; w < wend; ++w) {
                             int index = h * width + w;
-                            if(*(batch_data + index) > *(output_data + pool_index)) {
+                            if (*(batch_data + index) > *(output_data + pool_index)) {
                                 *(output_data + pool_index) = *(batch_data + index);
                             }
                         }
@@ -97,10 +95,8 @@ int csi_ref_roipool_f32(struct csi_tensor *data,
     return CSINN_TRUE;
 }
 
-int csi_ref_roipool_quant(struct csi_tensor *data,
-                          struct csi_tensor *rois,
-                          struct csi_tensor *output,
-                          struct roi_pool_params *params)
+int csi_ref_roipool_quant(struct csi_tensor *data, struct csi_tensor *rois,
+                          struct csi_tensor *output, struct roi_pool_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(data);

@@ -16,7 +16,7 @@ def leaky_relu_f32():
     in_size_x  = int(np.random.randint(32, high=64, size=1))
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
-    alpha      = np.float32(np.random.random(1))
+    alpha      = np.float32(np.random.uniform(0, 0.5, (1))) # rvv constrains
 
     src_in = np.random.normal(zero_point, std, (batch, in_size_y, in_size_x, in_channel))
     src_in = src_in.astype(np.float32)

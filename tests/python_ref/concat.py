@@ -17,15 +17,13 @@ def concat_f32():
     con_axis   = int(np.random.randint(0, high=4, size=1))
 
     src_in = []
-    zero_point = int(np.random.randint(-6, high=6, size=1))
-    std        = int(np.random.randint(1, high=20, size=1))
-    src_out    = np.random.normal(zero_point, std, (batch, in_channel, in_size_y, in_size_x))
+    low = int(np.random.randint(-5, high=-1, size=1))
+    high = int(np.random.randint(1, high=5, size=1))
+    src_out = np.random.uniform(low, high, (batch, in_channel, in_size_y, in_size_x))
     src_in.append(src_out)
 
     for i in range(0, input_cn - 1):
-        zero_point = int(np.random.randint(-6, high=6, size=1))
-        std        = int(np.random.randint(1, high=20, size=1))
-        src_in2    = np.random.normal(zero_point, std, (batch, in_channel, in_size_y, in_size_x))
+        src_in2    = np.random.uniform(low, high, (batch, in_channel, in_size_y, in_size_x))
         src_in.append(src_in2)
         src_out    = np.concatenate((src_out, src_in2), axis=con_axis)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_col2im_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct csi_tensor *kernel,
-                       struct col2im_params *params)
+int csi_ref_col2im_f32(struct csi_tensor *input, struct csi_tensor *output,
+                       struct csi_tensor *kernel, struct col2im_params *params)
 {
     int32_t height = input->dim[1];
     int32_t width = input->dim[2];

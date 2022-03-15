@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
 // input:  NCDHW
 // kernel: IODHW
 // output: NODHW
-int csi_ref_deconv3d_f32(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct csi_tensor *kernel,
-                         struct csi_tensor *bias,
+int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
+                         struct csi_tensor *kernel, struct csi_tensor *bias,
                          struct conv3d_params *params)
 {
     float *input_data = (float *)input->data;
@@ -40,52 +38,57 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input,
     const int32_t in_height = input->dim[3];
     const int32_t in_width = input->dim[4];
 
-    //const int32_t filter_inchannel = kernel->dim[0];
-    //const int32_t filter_outchannel = kernel->dim[1];
+    // const int32_t filter_inchannel = kernel->dim[0];
+    // const int32_t filter_outchannel = kernel->dim[1];
     const int32_t filter_depth = kernel->dim[2];
     const int32_t filter_height = kernel->dim[3];
     const int32_t filter_width = kernel->dim[4];
 
-    //const int32_t output_batch = output->dim[0];
+    // const int32_t output_batch = output->dim[0];
     const int32_t output_channel = output->dim[1];
     const int32_t output_depth = output->dim[2];
     const int32_t output_height = output->dim[3];
     const int32_t output_width = output->dim[4];
 
     int num_elements = 1;
-    for(int i = 0; i < output->dim_count; ++i) {
+    for (int i = 0; i < output->dim_count; ++i) {
         num_elements *= output->dim[i];
     }
     // We need to initialize scratch_buffer to all 0s
     float *scratch_buffer = csi_mem_alloc(num_elements * sizeof(float));
 
     // Loop through input elements one at a time.
-    for(int out_b=0; out_b<batch; ++out_b) {
-        for(int in_ch=0; in_ch<in_channel; ++in_ch) {
-            for(int in_d=0; in_d<in_depth; ++in_d) {
-                for(int in_h=0; in_h<in_height; ++in_h) {
-                    for(int in_w=0; in_w<in_width; ++in_w) {
+    for (int out_b = 0; out_b < batch; ++out_b) {
+        for (int in_ch = 0; in_ch < in_channel; ++in_ch) {
+            for (int in_d = 0; in_d < in_depth; ++in_d) {
+                for (int in_h = 0; in_h < in_height; ++in_h) {
+                    for (int in_w = 0; in_w < in_width; ++in_w) {
                         // Loop through the output elements it will influence.
-                        const int out_d_origin = (in_d * params->stride_depth)  - params->pad_front;
+                        const int out_d_origin = (in_d * params->stride_depth) - params->pad_front;
                         const int out_h_origin = (in_h * params->stride_height) - params->pad_top;
-                        const int out_w_origin = (in_w * params->stride_width)  - params->pad_left;
+                        const int out_w_origin = (in_w * params->stride_width) - params->pad_left;
 
-                        for(int out_ch=0; out_ch<output_channel; ++out_ch) {
-                            for(int filter_d=0; filter_d<filter_depth; ++filter_d) {
-                                for(int filter_h=0; filter_h<filter_height; ++filter_h) {
-                                    for(int filter_w=0; filter_w<filter_width; ++filter_w) {
+                        for (int out_ch = 0; out_ch < output_channel; ++out_ch) {
+                            for (int filter_d = 0; filter_d < filter_depth; ++filter_d) {
+                                for (int filter_h = 0; filter_h < filter_height; ++filter_h) {
+                                    for (int filter_w = 0; filter_w < filter_width; ++filter_w) {
                                         // Compute output element location.
                                         const int out_d = out_d_origin + filter_d;
                                         const int out_h = out_h_origin + filter_h;
                                         const int out_w = out_w_origin + filter_w;
                                         // Cannot accumulate out of bounds.
-                                        if((out_d>=0)&&(out_d<output_depth) &&(out_h>=0)&&(out_h<output_height) &&
-                                           (out_w>=0)&&(out_w<output_width)) {
-                                            int32_t input_idx = csi_ref_get_index_5(input->dim, out_b, in_ch, in_d, in_h, in_w);
+                                        if ((out_d >= 0) && (out_d < output_depth) &&
+                                            (out_h >= 0) && (out_h < output_height) &&
+                                            (out_w >= 0) && (out_w < output_width)) {
+                                            int32_t input_idx = csi_ref_get_index_5(
+                                                input->dim, out_b, in_ch, in_d, in_h, in_w);
                                             float input_val = input_data[input_idx];
-                                            int32_t filter_idx = csi_ref_get_index_5(kernel->dim, in_ch, out_ch, filter_d, filter_h, filter_w);
+                                            int32_t filter_idx =
+                                                csi_ref_get_index_5(kernel->dim, in_ch, out_ch,
+                                                                    filter_d, filter_h, filter_w);
                                             float filter_val = kernel_data[filter_idx];
-                                            int32_t output_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
+                                            int32_t output_idx = csi_ref_get_index_5(
+                                                output->dim, out_b, out_ch, out_d, out_h, out_w);
                                             scratch_buffer[output_idx] += input_val * filter_val;
                                         }
                                     }
@@ -98,13 +101,14 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input,
         }
     }
 
-    if(bias->dim_count != 0) {
-        for(int out_b=0; out_b<batch; ++out_b) {
-            for(int out_ch=0; out_ch<output_channel; ++out_ch) {
-                for(int out_d=0; out_d<output_depth; ++out_d) {
-                    for(int out_h=0; out_h<output_height; ++out_h) {
-                        for(int out_w=0; out_w<output_width; ++out_w) {
-                            int32_t out_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
+    if (bias->dim_count != 0) {
+        for (int out_b = 0; out_b < batch; ++out_b) {
+            for (int out_ch = 0; out_ch < output_channel; ++out_ch) {
+                for (int out_d = 0; out_d < output_depth; ++out_d) {
+                    for (int out_h = 0; out_h < output_height; ++out_h) {
+                        for (int out_w = 0; out_w < output_width; ++out_w) {
+                            int32_t out_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d,
+                                                                  out_h, out_w);
                             scratch_buffer[out_idx] += bias_data[out_ch];
                         }
                     }
@@ -112,17 +116,15 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input,
             }
         }
     }
-    for (int i=0; i<num_elements; ++i) {
+    for (int i = 0; i < num_elements; ++i) {
         output_data[i] = scratch_buffer[i];
     }
     csi_mem_free(scratch_buffer);
     return CSINN_TRUE;
 }
 
-int csi_ref_deconv3d_quant(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct csi_tensor *kernel,
-                           struct csi_tensor *bias,
+int csi_ref_deconv3d_quant(struct csi_tensor *input, struct csi_tensor *output,
+                           struct csi_tensor *kernel, struct csi_tensor *bias,
                            struct conv3d_params *params)
 {
     return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_deconv3d_f32);

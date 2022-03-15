@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
-#ifndef _CSI_NN_PNNA_H
-#define _CSI_NN_PNNA_H
+#ifndef INCLUDE_CSI_PNNA_H_
+#define INCLUDE_CSI_PNNA_H_
 #include "csi_nn.h"
 
 int csi_pnna_conv2d(struct csi_tensor *input, struct csi_tensor *output, struct csi_tensor *kernel,
@@ -239,6 +239,7 @@ struct csi_pnna_target_data {
     void *attrs;
     void *graph;
     void *nodes;
+    void *in_buffers;
     void *out_buffers;
     void *light_hwconfig;
     void *light_mapconfig;
@@ -246,4 +247,4 @@ struct csi_pnna_target_data {
     enum csinn_quant_enum quant_type;
 };
 
-#endif
+#endif  // INCLUDE_CSI_PNNA_H_

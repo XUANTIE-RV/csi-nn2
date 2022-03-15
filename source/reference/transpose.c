@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,32 +16,28 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
-#include <assert.h>
 
-
-int csi_ref_transpose_init(struct csi_tensor *input,
-                           struct csi_tensor *output,
+int csi_ref_transpose_init(struct csi_tensor *input, struct csi_tensor *output,
                            struct transpose_params *params)
 {
-    if (input->quant_channel == output->quant_channel){
+    if (input->quant_channel == output->quant_channel) {
         int quant_size = input->quant_channel * sizeof(struct csi_quant_info);
         int t = memcmp(input->qinfo, output->qinfo, quant_size);
-        if (t == 0){
+        if (t == 0) {
             params->base.bc = csi_ref_transpose;
             return CSINN_TRUE;
         }
     }
-    params->base.bc = csi_ref_transpose_requant;
+    params->base.bc = csi_ref_transpose_quant;
     return CSINN_TRUE;
 }
 
-static void copy_element(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         int input_idx, int output_idx)
+static void copy_element(struct csi_tensor *input, struct csi_tensor *output, int input_idx,
+                         int output_idx)
 {
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
         float *src32 = input->data;
@@ -51,13 +47,18 @@ static void copy_element(struct csi_tensor *input,
         int8_t *src8 = input->data;
         int8_t *dest8 = output->data;
         dest8[output_idx] = src8[input_idx];
+    } else if (input->dtype == CSINN_DTYPE_INT16) {
+        int16_t *src16 = input->data;
+        int16_t *dest16 = output->data;
+        dest16[output_idx] = src16[input_idx];
     }
 }
 
 static void swap(int32_t *out_idx, int32_t *in_idx, struct csi_tensor *input,
                  struct csi_tensor *output, int32_t *perm, int iter_count)
 {
-    for (out_idx[iter_count] = 0; out_idx[iter_count] < output->dim[iter_count]; out_idx[iter_count]++) {
+    for (out_idx[iter_count] = 0; out_idx[iter_count] < output->dim[iter_count];
+         out_idx[iter_count]++) {
         in_idx[perm[iter_count]] = out_idx[iter_count];
         if (iter_count == 0) {
             int input_idx = csi_ref_get_index_iter(input->dim, input->dim_count - 1, in_idx);
@@ -69,15 +70,14 @@ static void swap(int32_t *out_idx, int32_t *in_idx, struct csi_tensor *input,
     }
 }
 
-int csi_ref_transpose(struct csi_tensor *input,
-                      struct csi_tensor *output,
+int csi_ref_transpose(struct csi_tensor *input, struct csi_tensor *output,
                       struct transpose_params *params)
 {
-    const int unextended_output_size = output->dim_count;;
-    int32_t o[unextended_output_size];
-    int32_t i[unextended_output_size];
+    const int unextended_output_size = output->dim_count;
+    int32_t *o = csi_mem_alloc(unextended_output_size * sizeof(int32_t));
+    int32_t *i = csi_mem_alloc(unextended_output_size * sizeof(int32_t));
     if (input->dtype != CSINN_DTYPE_FLOAT32 && input->qinfo->scale != output->qinfo->scale &&
-        input->qinfo->zero_point != output->qinfo->zero_point){
+        input->qinfo->zero_point != output->qinfo->zero_point) {
         int ret;
         struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
         struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
@@ -85,16 +85,16 @@ int csi_ref_transpose(struct csi_tensor *input,
         csi_tensor_data_convert(output, foutput);
         csi_ref_tensor_transform_free_f32(finput);
         csi_ref_tensor_transform_free_f32(foutput);
-    }else{
+    } else {
         swap(o, i, input, output, params->permute, unextended_output_size - 1);
     }
-
+    csi_mem_free(o);
+    csi_mem_free(i);
     return CSINN_TRUE;
 }
 
-int csi_ref_transpose_requant(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct transpose_params *params)
+int csi_ref_transpose_quant(struct csi_tensor *input, struct csi_tensor *output,
+                            struct transpose_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_transpose);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_clip_f32(struct csi_tensor *input,
-                     struct csi_tensor *output,
+int csi_ref_clip_f32(struct csi_tensor *input, struct csi_tensor *output,
                      struct clip_params *params)
 {
     float *input_data = (float *)input->data;
@@ -32,9 +31,9 @@ int csi_ref_clip_f32(struct csi_tensor *input,
     }
 
     for (int i = 0; i < size; i++) {
-        if(input_data[i] < params->min_value) {
+        if (input_data[i] < params->min_value) {
             output_data[i] = params->min_value;
-        } else if(input_data[i] > params->max_value) {
+        } else if (input_data[i] > params->max_value) {
             output_data[i] = params->max_value;
         } else {
             output_data[i] = input_data[i];
@@ -43,8 +42,7 @@ int csi_ref_clip_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_clip_quant(struct csi_tensor *input,
-                       struct csi_tensor *output,
+int csi_ref_clip_quant(struct csi_tensor *input, struct csi_tensor *output,
                        struct clip_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_clip_f32);

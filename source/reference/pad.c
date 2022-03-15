@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-static int csi_ref_pad_nhwc_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
+static int csi_ref_pad_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
                                 struct pad_params *params)
 {
     const int output_batch = output->dim[0];
@@ -73,8 +72,7 @@ static int csi_ref_pad_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_pad_nchw_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
+static int csi_ref_pad_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
                                 struct pad_params *params)
 {
     const int output_batch = output->dim[0];
@@ -125,9 +123,7 @@ static int csi_ref_pad_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_pad_f32(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct pad_params *params)
+int csi_ref_pad_f32(struct csi_tensor *input, struct csi_tensor *output, struct pad_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_pad_nchw_f32(input, output, params);
@@ -138,8 +134,7 @@ int csi_ref_pad_f32(struct csi_tensor *input,
     }
 }
 
-int csi_ref_pad_quant(struct csi_tensor *input,
-                      struct csi_tensor *output,
+int csi_ref_pad_quant(struct csi_tensor *input, struct csi_tensor *output,
                       struct pad_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_pad_f32);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_stack_f32(struct csi_tensor **input,
-                      struct csi_tensor *output,
+int csi_ref_stack_f32(struct csi_tensor **input, struct csi_tensor *output,
                       struct stack_params *params)
 {
     int input_count = params->inputs_count;
@@ -31,18 +30,18 @@ int csi_ref_stack_f32(struct csi_tensor **input,
     // For all input arrays,
     // FlatSize() = outer_size * base_inner_size;
     int64_t outer_size = 1;
-    for(int i = 0; i < axis; ++i) {
+    for (int i = 0; i < axis; ++i) {
         outer_size *= output->dim[i];
     }
     int64_t inner_size = 1;
-    for(int i = axis+1; i < output->dim_count; ++i) {
+    for (int i = axis + 1; i < output->dim_count; ++i) {
         inner_size *= output->dim[i];
     }
 
     int copy_size = inner_size;
     float *output_data = (float *)output->data;
-    for(int i = 0; i < outer_size; ++i) {
-        for(int j = 0; j < input_count; ++j) {
+    for (int i = 0; i < outer_size; ++i) {
+        for (int j = 0; j < input_count; ++j) {
             struct csi_tensor *input_item = input[j];
             float *input_item_data = (float *)input_item->data;
             const float *input_ptr = input_item_data + i * copy_size;
@@ -53,12 +52,11 @@ int csi_ref_stack_f32(struct csi_tensor **input,
     return CSINN_TRUE;
 }
 
-int csi_ref_stack_quant(struct csi_tensor **input,
-                        struct csi_tensor *output,
+int csi_ref_stack_quant(struct csi_tensor **input, struct csi_tensor *output,
                         struct stack_params *params)
 {
-    if (params->axis == -1){
-        params->axis = input[0]->dim_count -1;
+    if (params->axis == -1) {
+        params->axis = input[0]->dim_count - 1;
     }
     int input_count = params->inputs_count;
     int ret;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -56,10 +56,8 @@ int csi_ref_prelu_f32(struct csi_tensor *input, struct csi_tensor *alpha, struct
     return CSINN_TRUE;
 }
 
-int csi_ref_prelu_quant(struct csi_tensor *input,
-                        struct csi_tensor *alpha,
-                        struct csi_tensor *output,
-                        struct prelu_params *params)
+int csi_ref_prelu_quant(struct csi_tensor *input, struct csi_tensor *alpha,
+                        struct csi_tensor *output, struct prelu_params *params)
 {
     return csi_ref_diso_callback_base(input, alpha, output, params, csi_ref_prelu_f32);
 }

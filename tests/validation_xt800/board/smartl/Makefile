@@ -1,7 +1,7 @@
 SRS             = $(wildcard *.S)
 SRC             = $(wildcard *.c)
 
-INCLUDE		= -I../../../../include/include_xt800/csi_core_include/
+INCLUDE		= -I./csi_core_include/
 
 CFLAGS		+= $(INCLUDE)
 

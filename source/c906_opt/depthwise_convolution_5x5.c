@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -60,7 +60,7 @@ int DWCONV5X5S1(struct csi_tensor *input,
     in_h = in_h + params->pad_top + params->pad_down;
     in_w = in_w + params->pad_left + params->pad_right;
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(1)
     for (int c = 0; c < in_c; c++) {
         float *out = output_data + c * out_h * out_w;
         float *outptr0 = out;
@@ -204,7 +204,7 @@ int DWCONV5X5S2(struct csi_tensor *input,
 
     const int tailstep = in_w - 2 * out_w + in_w;
 
-#pragma omp parallel for num_threads(8)
+#pragma omp parallel for num_threads(1)
     for (int c = 0; c < in_c; c++) {
         float *out = output_data + c * out_h * out_w;
         float *outptr0 = out;

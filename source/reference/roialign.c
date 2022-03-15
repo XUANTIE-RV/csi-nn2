@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
-#include <assert.h>
-#include <math.h>
 
 // https://github.com/AceCoooool/RoIAlign-RoIPool-pytorch/blob/master/roialign/roi_align_cpu.cpp
 
@@ -30,15 +28,19 @@ struct PreCalc {
     float w1, w2, w3, w4;
 };
 
-static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, const int pool_w, int b_grid_h, int b_grid_w,
-                           float start_y, float start_x, float b_size_h, float b_size_w, struct PreCalc *pre_calc) {
+static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, const int pool_w,
+                                  int b_grid_h, int b_grid_w, float start_y, float start_x,
+                                  float b_size_h, float b_size_w, struct PreCalc *pre_calc)
+{
     int idx = 0;
     for (int ph = 0; ph < pool_h; ++ph) {
         for (int pw = 0; pw < pool_w; ++pw) {
             for (int iy = 0; iy < b_grid_h; ++iy) {
-                float yy = start_y + ph * b_size_h + (float)(iy + 0.5f) * b_size_h / (float)(b_grid_h);
+                float yy =
+                    start_y + ph * b_size_h + (float)(iy + 0.5f) * b_size_h / (float)(b_grid_h);
                 for (int ix = 0; ix < b_grid_w; ++ix) {
-                    float xx = start_x + pw * b_size_w + (float)(ix + 0.5f) * b_size_w / (float)(b_grid_w);
+                    float xx =
+                        start_x + pw * b_size_w + (float)(ix + 0.5f) * b_size_w / (float)(b_grid_w);
                     float x = xx, y = yy;
                     // situation 1: out of range
                     if (y < -1.0 || y > h || x < -1.0 || x > w) {
@@ -50,8 +52,8 @@ static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, co
                     // not exceed 1.0
                     y = y <= 0 ? 0 : (y >= h - 1 ? h - 1 : y);
                     x = x <= 0 ? 0 : (x >= w - 1 ? w - 1 : x);
-                    int y_low = (int) y;
-                    int x_low = (int) x;
+                    int y_low = (int)y;
+                    int x_low = (int)x;
                     int y_high = y_low >= h - 1 ? y_low : y_low + 1;
                     int x_high = x_low >= w - 1 ? x_low : x_low + 1;
                     float ly = y - y_low, lx = x - x_low;
@@ -72,10 +74,8 @@ static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, co
     }
 }
 
-int csi_ref_roi_align_f32(struct csi_tensor *data,
-                          struct csi_tensor *rois,
-                          struct csi_tensor *output,
-                          struct roi_align_params *params)
+int csi_ref_roi_align_f32(struct csi_tensor *data, struct csi_tensor *rois,
+                          struct csi_tensor *output, struct roi_align_params *params)
 {
     float *bottom_rois = (float *)rois->data;
     float *input_data = (float *)data->data;
@@ -86,8 +86,8 @@ int csi_ref_roi_align_f32(struct csi_tensor *data,
     int w = data->dim[3];
 
     int n_rois = rois->dim[0];
-    int pool_h = params->pooled_size_h; // output->dim[2]
-    int pool_w = params->pooled_size_w; // output->dim[3]
+    int pool_h = params->pooled_size_h;  // output->dim[2]
+    int pool_w = params->pooled_size_w;  // output->dim[3]
     int ratio = params->sample_ratio;
 
     for (int n = 0; n < n_rois; ++n) {
@@ -112,7 +112,7 @@ int csi_ref_roi_align_f32(struct csi_tensor *data,
         // get each bin's corresponding position and weights
         struct PreCalc pre_calc[count * pool_h * pool_w];
         pre_calc_for_bilinear(h, w, pool_h, pool_w, bin_grid_h, bin_grid_w, start_y, start_x,
-                                bin_size_h, bin_size_w, pre_calc);
+                              bin_size_h, bin_size_w, pre_calc);
 
         // map to feature map
         for (int c = 0; c < channel; ++c) {
@@ -126,8 +126,9 @@ int csi_ref_roi_align_f32(struct csi_tensor *data,
                     for (int iy = 0; iy < bin_grid_h; ++iy) {
                         for (int ix = 0; ix < bin_grid_w; ++ix) {
                             struct PreCalc pc = pre_calc[pre_calc_idx];
-                            output_val += pc.w1 * offset_feat[pc.pos1] + pc.w2 * offset_feat[pc.pos2] +
-                                          pc.w3 * offset_feat[pc.pos3] + pc.w4 * offset_feat[pc.pos4];
+                            output_val +=
+                                pc.w1 * offset_feat[pc.pos1] + pc.w2 * offset_feat[pc.pos2] +
+                                pc.w3 * offset_feat[pc.pos3] + pc.w4 * offset_feat[pc.pos4];
                             pre_calc_idx += 1;
                         }
                     }

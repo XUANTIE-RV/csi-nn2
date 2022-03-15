@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-//the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
+// the input->data is a 4-D Tensor with shape [batch, depth, height, width].
+int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
                                     struct depth_to_space_params *params)
 {
     if (params->mode == CSINN_DEPTHTOSPACE_CRD) return CSINN_FALSE;
@@ -36,26 +35,28 @@ int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input,
 
     int block_size = params->block_size;
     int block_size2 = block_size * block_size;
-    assert(in_channel%block_size2 == 0);
+    assert(in_channel % block_size2 == 0);
 
-    int out_channel = output->dim[1];   //out_channel = in_channel/block_size2;
-    int out_height = output->dim[2];    //out_weight = in_weight*block_size;
-    int out_width = output->dim[3];     //out_width = in_width*block_size;
+    int out_channel = output->dim[1];  // out_channel = in_channel/block_size2;
+    int out_height = output->dim[2];   // out_weight = in_weight*block_size;
+    int out_width = output->dim[3];    // out_width = in_width*block_size;
 
-    for(int out_b=0; out_b<batch; ++out_b) {
-        for(int in_h=0; in_h<in_height; ++in_h) {
-            for(int in_w=0; in_w<in_width; ++in_w) {
-                for(int out_c=0; out_c<out_channel; ++out_c) {
-
+    for (int out_b = 0; out_b < batch; ++out_b) {
+        for (int in_h = 0; in_h < in_height; ++in_h) {
+            for (int in_w = 0; in_w < in_width; ++in_w) {
+                for (int out_c = 0; out_c < out_channel; ++out_c) {
                     float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
                     int in_start_addr = csi_ref_get_index(input->dim, out_b, out_c, in_h, in_w);
-                    for(int i=0; i<block_size2; i++) {
-                        temp[i] = input_data[in_start_addr + i*out_channel*in_height*in_width];
+                    for (int i = 0; i < block_size2; i++) {
+                        temp[i] =
+                            input_data[in_start_addr + i * out_channel * in_height * in_width];
                     }
-                    int out_start_addr = csi_ref_get_index(output->dim, out_b, out_c, in_h*block_size, in_w*block_size);
-                    for(int h=0; h<block_size; h++) {
-                        for(int w=0; w<block_size; w++) {
-                            output_data[out_start_addr+h*out_width+w] = temp[h*block_size+w];
+                    int out_start_addr = csi_ref_get_index(output->dim, out_b, out_c,
+                                                           in_h * block_size, in_w * block_size);
+                    for (int h = 0; h < block_size; h++) {
+                        for (int w = 0; w < block_size; w++) {
+                            output_data[out_start_addr + h * out_width + w] =
+                                temp[h * block_size + w];
                         }
                     }
                     csi_mem_free(temp);
@@ -66,11 +67,9 @@ int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_depth_to_space_nhwc_f32(struct csi_tensor *input,
-                                    struct csi_tensor *output,
+int csi_ref_depth_to_space_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
                                     struct depth_to_space_params *params)
 {
-
     struct csi_tensor *t_input = csi_alloc_tensor(NULL);
     csi_tensor_copy(t_input, input);
     t_input->layout = CSINN_LAYOUT_NCHW;
@@ -113,22 +112,18 @@ int csi_ref_depth_to_space_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-
-int csi_ref_depth_to_space_f32(struct csi_tensor *input,
-                               struct csi_tensor *output,
+int csi_ref_depth_to_space_f32(struct csi_tensor *input, struct csi_tensor *output,
                                struct depth_to_space_params *params)
 {
-    if (input->layout == CSINN_LAYOUT_NCHW){
+    if (input->layout == CSINN_LAYOUT_NCHW) {
         return csi_ref_depth_to_space_nchw_f32(input, output, params);
-    } else if (input->layout == CSINN_LAYOUT_NHWC){
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
         return csi_ref_depth_to_space_nhwc_f32(input, output, params);
     }
     return CSINN_FALSE;
 }
 
-int csi_ref_depth_to_space_quant(struct csi_tensor *input,
-                                 struct csi_tensor *output,
+int csi_ref_depth_to_space_quant(struct csi_tensor *input, struct csi_tensor *output,
                                  struct depth_to_space_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_depth_to_space_f32);

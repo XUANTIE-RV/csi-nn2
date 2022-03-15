@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_fullyconnected_f32(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct csi_tensor *weights,
-                               struct csi_tensor *bias,
+int csi_ref_fullyconnected_f32(struct csi_tensor *input, struct csi_tensor *output,
+                               struct csi_tensor *weights, struct csi_tensor *bias,
                                struct fc_params *params)
 {
     float *input_data = input->data;
@@ -32,7 +30,11 @@ int csi_ref_fullyconnected_f32(struct csi_tensor *input,
     float *bias_data = bias->data;
     const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
-    const int batches = output->dim[0];
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
     const int output_depth = weights->dim[weights_dims_count - 2];
     const int accum_depth = weights->dim[weights_dims_count - 1];
     for (int b = 0; b < batches; ++b) {
@@ -51,18 +53,33 @@ int csi_ref_fullyconnected_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_fullyconnected_quant(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *weights,
-                                 struct csi_tensor *bias,
+int csi_ref_fullyconnected_quant(struct csi_tensor *input, struct csi_tensor *output,
+                                 struct csi_tensor *weights, struct csi_tensor *bias,
                                  struct fc_params *params)
 {
     struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
     struct csi_tensor *float_kernel = csi_ref_tensor_transform_f32(weights);
     struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
     struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
+    if (params->fc_extra.fuse_zp2bias) {
+        float *float_bias_data = float_bias->data;
+        float *float_kernel_data = float_kernel->data;
 
-    int ret = csi_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
+        int k_len = weights->dim[0];
+        int k_inner = csi_tensor_size(weights) / k_len;
+        float sp = input->qinfo->scale * input->qinfo->zero_point;
+        for (int i = 0; i < k_len; i++) {
+            float t_k = 0;
+            for (int j = 0; j < k_inner; j++) {
+                int k_idx = i * k_inner + j;
+                t_k += float_kernel_data[k_idx] * sp;
+            }
+            float_bias_data[i] += t_k;
+        }
+    }
+
+    int ret =
+        csi_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
     csi_tensor_data_convert(output, float_output);
     csi_ref_tensor_transform_free_f32(float_input);
     csi_ref_tensor_transform_free_f32(float_output);

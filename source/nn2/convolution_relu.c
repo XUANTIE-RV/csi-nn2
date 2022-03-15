@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_nn.h"
 
@@ -45,6 +45,8 @@ int csi_conv2d_relu_init(struct csi_tensor *input,
             } else {
                 init_func = csi_init_map(params->base.api, CSINN_OP_GROUP_CONV2D_RELU, input->dtype);
             }
+        } else {
+            init_func = NULL;
         }
         if (init_func != NULL) {
             return init_func(input, output, kernel, bias, params);

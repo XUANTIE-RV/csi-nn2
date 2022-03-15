@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_ndarray_size_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
+int csi_ref_ndarray_size_f32(struct csi_tensor *input, struct csi_tensor *output,
                              struct ndarray_size_params *params)
 {
     float *output_data = output->data;
@@ -30,8 +29,7 @@ int csi_ref_ndarray_size_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_u8(struct csi_tensor *input,
-                            struct csi_tensor *output,
+int csi_ref_ndarray_size_u8(struct csi_tensor *input, struct csi_tensor *output,
                             struct ndarray_size_params *params)
 {
     uint8_t *output_data = output->data;
@@ -39,8 +37,7 @@ int csi_ref_ndarray_size_u8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_i8(struct csi_tensor *input,
-                            struct csi_tensor *output,
+int csi_ref_ndarray_size_i8(struct csi_tensor *input, struct csi_tensor *output,
                             struct ndarray_size_params *params)
 {
     int8_t *output_data = output->data;
@@ -48,8 +45,7 @@ int csi_ref_ndarray_size_i8(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_i32(struct csi_tensor *input,
-                             struct csi_tensor *output,
+int csi_ref_ndarray_size_i32(struct csi_tensor *input, struct csi_tensor *output,
                              struct ndarray_size_params *params)
 {
     int32_t *output_data = output->data;

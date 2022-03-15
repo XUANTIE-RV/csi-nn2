@@ -1,0 +1,109 @@
+/*
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* CSI-NN2 version 1.12.x */
+
+#include "csi_thead_rvv.h"
+
+/*************************************************************
+    note: VLEN = 128/256 ...
+*************************************************************/
+int csi_nn_rvv_leaky_relu_fp32(struct csi_tensor *input, struct csi_tensor *output,
+                               struct relu_params *params)
+{
+    float *input_data = (float *)input->data;
+    float *output_data = (float *)output->data;
+    float alpha = params->n;
+    int size = csi_tensor_size(input);
+    while (size > 0) {
+        int vl = vsetvl_e32m2(size);
+        vfloat32m2_t _input = vle32_v_f32m2(input_data, vl);
+        vbool16_t _mask = vmflt_vf_f32m2_b16(_input, 0.0f, vl);
+        vfloat32m2_t _res = vfmul_vf_f32m2_m(_mask, _input, _input, alpha, vl);
+        vse32_v_f32m2(output_data, _res, vl);
+        input_data += vl;
+        output_data += vl;
+        size -= vl;
+    }
+    return CSINN_TRUE;
+}
+
+int csi_nn_rvv_leaky_relu_fp16(struct csi_tensor *input, struct csi_tensor *output,
+                               struct relu_params *params)
+{
+    __fp16 *input_data = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+    __fp16 alpha = (__fp16)params->n;
+    int size = csi_tensor_size(input);
+    while (size > 0) {
+        int vl = vsetvl_e16m2(size);
+        vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
+        vbool8_t _mask = vmflt_vf_f16m2_b8(_input, 0.0f, vl);
+        vfloat16m2_t _res = vfmul_vf_f16m2_m(_mask, _input, _input, alpha, vl);
+        vse16_v_f16m2(output_data, _res, vl);
+        input_data += vl;
+        output_data += vl;
+        size -= vl;
+    }
+    return CSINN_TRUE;
+}
+
+/*********************************************************************
+ * s2 * (q2 - z2) = leaky_relu{ s1 * (q1 - z1) }
+ * if (q1 >= z1)  q2 = s1/s2 * (q1 - z1) + z2
+ * else q2 = s1/s2 * alpha * (q1 -z1) + z2
+ * constrains: params->n < 0.5
+ * ******************************************************************/
+int csi_nn_rvv_leaky_relu_int8(struct csi_tensor *input, struct csi_tensor *output,
+                               struct relu_params *params)
+{
+    int8_t *input_data = (int8_t *)input->data;
+    int8_t *output_data = (int8_t *)output->data;
+
+    // TODO: move to init api
+    float real_scale0 = input->qinfo->scale / output->qinfo->scale;
+    csi_quantize_multiplier(real_scale0, &output->qinfo->multiplier, &output->qinfo->shift);
+
+    int size = csi_tensor_size(input);
+    while (size > 0) {
+        int vl = vsetvl_e8m1(size);
+        vint8m1_t _input = vle8_v_i8m1(input_data, vl);
+        vint16m2_t _input1 = vwadd_vx_i16m2(_input, 0, vl);   // widden 8->16
+        vint32m4_t _input2 = vwadd_vx_i32m4(_input1, 0, vl);  // widden 16->32
+
+        vint32m4_t _tmp = vsub_vx_i32m4(_input2, input->qinfo->zero_point, vl);
+
+        _tmp = vsll_vx_i32m4(_tmp, output->qinfo->shift + 2, vl);
+        vint32m4_t _mulh = vmulh_vx_i32m4(_tmp, output->qinfo->multiplier, vl);
+        _mulh = vssra_vx_i32m4(_mulh, 1, vl);
+
+        vbool8_t _mask = vmslt_vx_i32m4_b8(_input2, input->qinfo->zero_point, vl);
+        vint32m4_t _mulh_neg = vmulh_vx_i32m4_m(_mask, _mulh, _mulh, params->n_multiplier, vl);
+        _mulh_neg = vssra_vx_i32m4_m(_mask, _mulh, _mulh_neg, -params->n_shift - 1, vl);
+
+        vint32m4_t _res0 = vadd_vx_i32m4(_mulh_neg, output->qinfo->zero_point, vl);
+        vint16m2_t _res1 = vnclip_wx_i16m2(_res0, 0, vl);
+        vint8m1_t _res2 = vnclip_wx_i8m1(_res1, 0, vl);
+
+        vse8_v_i8m1(output_data, _res2, vl);
+        input_data += vl;
+        output_data += vl;
+        size -= vl;
+    }
+    return CSINN_TRUE;
+}

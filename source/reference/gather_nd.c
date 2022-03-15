@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,33 +16,31 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-static int Multiplication(int *input, int s, int e)
+static int Multiplication(int32_t *input, int s, int e)
 {
     int res = 1;
-    for(int i=s; i<=e; i++) {
+    for (int i = s; i <= e; i++) {
         res = res * input[i];
     }
     return res;
 }
 
-int csi_ref_gather_nd_f32(struct csi_tensor *input,
-                          struct csi_tensor *indices,
-                          struct csi_tensor *output,
-                          struct gather_nd_params *params)
+int csi_ref_gather_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
+                          struct csi_tensor *output, struct gather_nd_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     uint32_t *indices_data = (uint32_t *)indices->data;
 
     int in_size = 1, indices_size = 1;
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         in_size *= input->dim[i];
     }
-    for(int i = 0; i < indices->dim_count; i++) {
+    for (int i = 0; i < indices->dim_count; i++) {
         indices_size *= indices->dim[i];
     }
 
@@ -54,45 +52,44 @@ int csi_ref_gather_nd_f32(struct csi_tensor *input,
     indices_outer_size = indices_size / indices_last_dim;
 
     int input_outer_size = 1;
-    for(int i = 0; i < axis; i++) {
+    for (int i = 0; i < axis; i++) {
         input_outer_size *= input->dim[i];
     }
     int input_inner_size = 1;
-    for(int i = axis + 1; i < input->dim_count; i++) {
+    for (int i = axis + 1; i < input->dim_count; i++) {
         input_inner_size *= input->dim[i];
     }
 
     float *in_copy_addr = NULL;
     int dim_over_flag = 0;
-    for(int i = 0; i < indices_outer_size; i++) {
+    for (int i = 0; i < indices_outer_size; i++) {
         int input_outer_idx = 0;
-        for(int j = 0; j < indices_last_dim; j++) {
+        for (int j = 0; j < indices_last_dim; j++) {
             int indices_val = indices_data[i * indices_last_dim + j];
-            if(indices_val >= input->dim[j]) {
+            if (indices_val >= input->dim[j]) {
                 dim_over_flag = 1;
                 break;
             } else {
-                input_outer_idx += indices_val * Multiplication(input->dim, j + 1, indices_last_dim - 1);
+                input_outer_idx +=
+                    indices_val * Multiplication(input->dim, j + 1, indices_last_dim - 1);
             }
         }
-        if(dim_over_flag == 1) {
+        if (dim_over_flag == 1) {
             dim_over_flag = 0;
-            for(int n = 0; n < input_inner_size; n++) {
+            for (int n = 0; n < input_inner_size; n++) {
                 *(output_data + n) = 0.0f;
             }
         } else {
             in_copy_addr = input_data + input_outer_idx * input_inner_size;
-            memcpy(output_data , in_copy_addr, input_inner_size * sizeof(float));
+            memcpy(output_data, in_copy_addr, input_inner_size * sizeof(float));
         }
         output_data += input_inner_size;
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_gather_nd_quant(struct csi_tensor *input,
-                            struct csi_tensor *indices,
-                            struct csi_tensor *output,
-                            struct gather_nd_params *params)
+int csi_ref_gather_nd_quant(struct csi_tensor *input, struct csi_tensor *indices,
+                            struct csi_tensor *output, struct gather_nd_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);

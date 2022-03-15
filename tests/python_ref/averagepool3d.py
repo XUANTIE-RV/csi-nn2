@@ -93,7 +93,7 @@ def avgpool3d_f32():
     para.append(include_pad)# 20
     print(para)
 
-    with open("avgpool3d_data_f32.bin", "wb") as fp:
+    with open("averagepool3d_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

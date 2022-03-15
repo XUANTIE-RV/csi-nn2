@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
 /*
-    change memory layout for weight matrix [out_nodes * in_nodes] by N shape
+    change memory layout for weight matrix [out_nodes * in_nodes] by N(8) shape
 */
-void csi_c906_reorder_weight_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+void csi_c906_reorder_weight_n8_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
 {
     int i = 0;
     for (; i + 7 < m; i += 8) {
@@ -47,6 +47,39 @@ void csi_c906_reorder_weight_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ld
     }
 }
 
+void csi_c906_reorder_weight_n16_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+{
+    int i = 0;
+    for (; i + 15 < m; i += 16) {
+        for (int j = 0; j < k; j++) {
+            dst[i * k + 16 * j + 0] = src[(i + 0) * k + j];
+            dst[i * k + 16 * j + 1] = src[(i + 1) * k + j];
+            dst[i * k + 16 * j + 2] = src[(i + 2) * k + j];
+            dst[i * k + 16 * j + 3] = src[(i + 3) * k + j];
+            dst[i * k + 16 * j + 4] = src[(i + 4) * k + j];
+            dst[i * k + 16 * j + 5] = src[(i + 5) * k + j];
+            dst[i * k + 16 * j + 6] = src[(i + 6) * k + j];
+            dst[i * k + 16 * j + 7] = src[(i + 7) * k + j];
+            dst[i * k + 16 * j + 8] = src[(i + 8) * k + j];
+            dst[i * k + 16 * j + 9] = src[(i + 9) * k + j];
+            dst[i * k + 16 * j + 10] = src[(i + 10) * k + j];
+            dst[i * k + 16 * j + 11] = src[(i + 11) * k + j];
+            dst[i * k + 16 * j + 12] = src[(i + 12) * k + j];
+            dst[i * k + 16 * j + 13] = src[(i + 13) * k + j];
+            dst[i * k + 16 * j + 14] = src[(i + 14) * k + j];
+            dst[i * k + 16 * j + 15] = src[(i + 15) * k + j];
+        }
+    }
+    // TODO: reorder N8
+    dst += i * k;
+    src += i * k;
+    for (; i < m; i++) {
+        csi_c906_memcpy(dst, src, sizeof(__fp16) * ldx);
+        dst += k;
+        src += k;
+    }
+}
+
 
 void csi_c906_fc_gemv_transform_weight_fp16(struct csi_tensor *weights)
 {
@@ -56,7 +89,7 @@ void csi_c906_fc_gemv_transform_weight_fp16(struct csi_tensor *weights)
     int k = weights->dim[1];        // in_nodes
 
     __fp16* pa_reorder = (__fp16 *)csi_mem_alloc(n * k * sizeof(__fp16));
-    csi_c906_reorder_weight_fp16(weight_data, pa_reorder, n, k, k);
+    csi_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
     memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
     csi_mem_free(pa_reorder);
 }
@@ -75,7 +108,11 @@ int csi_c906_fullyconnected_f32(struct csi_tensor *input,
     const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
     const int bias_dims_count = bias->dim_count;
-    const int batches = output->dim[0];
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
     const int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
     const int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
 
@@ -154,7 +191,11 @@ int csi_c906_fullyconnected_fp16(struct csi_tensor *input,
     const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
     const int bias_dims_count = bias->dim_count;
-    int batches = output->dim[0];
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
     int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
     int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
 
@@ -391,12 +432,15 @@ int csi_c906_fullyconnected_fp16(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-// best implementation from the software perspective
-int csi_c906_fullyconnected_fp16_1(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *weights,
-                                 struct csi_tensor *bias,
-                                 struct fc_params *params)
+/*
+    best implementation from the software perspective
+    loop unroll: k = 8
+*/
+int csi_c906_fullyconnected_pack8_fp16(struct csi_tensor *input,
+                                       struct csi_tensor *output,
+                                       struct csi_tensor *weights,
+                                       struct csi_tensor *bias,
+                                       struct fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -405,7 +449,11 @@ int csi_c906_fullyconnected_fp16_1(struct csi_tensor *input,
     const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
     const int bias_dims_count = bias->dim_count;
-    int batches = output->dim[0];
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
     int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
     int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
 
@@ -565,230 +613,58 @@ int csi_c906_fullyconnected_fp16_1(struct csi_tensor *input,
             "addi           t0, t0, -1\n\t"
             "bnez           t0, 1b\n\t"
 
-        // "7:\n\t"
-        "7:\n\t"    // m1n4
+        "7:\n\t"    // m1n_tail
+            "andi           t0, %4, 7\n\t"  // n_tail
+            "beqz           t0, 12f\n\t"    // if n_tail = 0, jump to ending
 
             // prepare for n4 n2 n1
             "andi           t2, %5, 7\n\t"  // t2 = k_tail
             "slli           t3, t2, 1\n\t"  // t3 = k_tail * 2
 
-            "andi           t0, %4, 7\n\t"  // n & 7
-            "srai           t0, t0, 2\n\t"  // (n & 7) >> 2
-            "beqz           t0, 11f\n\t"    // jump to m1n2
-            // start kernel_m1n4
+        "8:\n\t"
+            "mv             t6, %1\n\t"
 
             "vmv.v.x        v24, zero\n\t"
-            "vmv.v.x        v25, zero\n\t"
-            "vmv.v.x        v26, zero\n\t"
-            "vmv.v.x        v27, zero\n\t"  // clear acc
-
-            "flh            fs0, 0(%3)\n\t"
-            "flh            fs1, 2(%3)\n\t"
-            "flh            fs2, 4(%3)\n\t"
-            "flh            fs3, 6(%3)\n\t"
-            "addi           %3, %3, 8\n\t"
-
-            "vfmv.s.f       v28, fs0\n\t"   // v28[0] = bias[0]
-            "vfmv.s.f       v29, fs1\n\t"   // v29[0] = bias[1]
-            "vfmv.s.f       v30, fs2\n\t"   // v30[0] = bias[2]
-            "vfmv.s.f       v31, fs3\n\t"   // v31[0] = bias[3]
-
-            // init addr for pa, pb and pc
-            "slli           t0, %5, 1\n\t"  // t_tmp = k * 2
-
-            "mv             t6, %1\n\t"     // t6 hold pa(input) 1 lines start addr
-
-            "mv             a4, %2\n\t"
-            "add            a5, a4, t0\n\t"
-            "add            a6, a5, t0\n\t"
-            "add            a7, a6, t0\n\t" // a4-a7 hold pb(weight) 4 cols addr
-
-                                            // %0 hold pc(output) addr
+            "flh            fa0, 0(%3)\n\t"
+            "addi           %3, %3, 2\n\t"
+            "vfmv.s.f       v25, fa0\n\t"    // v25[0] = bias
 
             "mv             t5, t1\n\t"     // t5 = k8
-            "beqz           t2, 9f\n\t"     // if k_tail == 0, jump to subkernel_m1n4k8
-
-            "8:\n\t"
-                // start subkernel_m1n4k_tail
-                "vsetvli        zero, t2, e16, m1\n\t"
-                "vle.v          v1, (t6)\n\t"
-                "add            t6, t6, t3\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "add            a4, a4, t3\n\t"
-                "vle.v          v3, (a5)\n\t"
-                "add            a5, a5, t3\n\t"
-                "vle.v          v4, (a6)\n\t"
-                "add            a6, a6, t3\n\t"
-                "vle.v          v5, (a7)\n\t"
-                "add            a7, a7, t3\n\t"
-                "vfmacc.vv      v24, v1, v2\n\t"
-                "vfmacc.vv      v25, v1, v3\n\t"
-                "vfmacc.vv      v26, v1, v4\n\t"
-                "vfmacc.vv      v27, v1, v5\n\t"
-
-                "beqz           t1, 10f\n\t"    // if k8 == 0, jump to end kernel_m1n4
-                "vsetvli        zero, zero, e16, m1\n\t"
+            "beqz           t2, 10f\n\t"    // if k_tail = 0
 
             "9:\n\t"
-                // start subkernel_m1n4k8
-                "vle.v          v1, (t6)\n\t"
-                "addi           t6, t6, 16\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "addi           a4, a4, 16\n\t"
-                "vle.v          v3, (a5)\n\t"
-                "addi           a5, a5, 16\n\t"
-                "vle.v          v4, (a6)\n\t"
-                "addi           a6, a6, 16\n\t"
-                "vle.v          v5, (a7)\n\t"
-                "addi           a7, a7, 16\n\t"
-                "vfmacc.vv      v24, v1, v2\n\t"
-                "vfmacc.vv      v25, v1, v3\n\t"
-                "vfmacc.vv      v26, v1, v4\n\t"
-                "vfmacc.vv      v27, v1, v5\n\t"
-
-                "addi           t5, t5, -1\n\t"
-                "bnez           t5, 9b\n\t"
-
-
-        "10:\n\t"   // end kernel_m1n4
-
-            "vfredsum.vs    v28, v24, v28\n\t"  // v28[0] = v28[0](bias) + sum(v24[0..7])
-            "vfredsum.vs    v29, v25, v29\n\t"
-            "vfredsum.vs    v30, v26, v30\n\t"
-            "vfredsum.vs    v31, v27, v31\n\t"
-            "vfmv.f.s       fa0, v28\n\t"
-            "vfmv.f.s       fa1, v29\n\t"
-            "vfmv.f.s       fa2, v30\n\t"
-            "vfmv.f.s       fa3, v31\n\t"
-            "fsh            fa0, 0(%0)\n\t"
-            "fsh            fa1, 2(%0)\n\t"
-            "fsh            fa2, 4(%0)\n\t"
-            "fsh            fa3, 6(%0)\n\t"
-
-            "addi           %0, %0, 8\n\t"      // updata output start addr ( +4 cols)
-            "slli           t0, %5, 3\n\t"      // t_tmp = k * 4 * 2
-            "add            %2, %2, t0\n\t"     // updata pb start addr
-
-        "11:\n\t"   // m1n2
-            "andi           t0, %4, 3\n\t"  // n & 3
-            "srai           t0, t0, 1\n\t"  // (n & 3) >> 1
-            "beqz           t0, 15f\n\t"    // jump to m1n1
-            // start kernel_m1n2
-
-            "vmv.v.x        v24, zero\n\t"
-            "vmv.v.x        v25, zero\n\t"  // clear acc
-
-            "flh            fs0, 0(%3)\n\t"
-            "flh            fs1, 2(%3)\n\t"
-            "addi           %3, %3, 4\n\t"
-
-            "vfmv.s.f       v28, fs0\n\t"   // v28[0] = bias[0]
-            "vfmv.s.f       v29, fs1\n\t"   // v29[0] = bias[1]
-
-            // init addr for pa, pb and pc
-            "slli           t0, %5, 1\n\t"  // t_tmp = k * 2
-
-            "mv             t6, %1\n\t"     // t6 hold pa(input) 1 lines start addr
-
-            "mv             a4, %2\n\t"
-            "add            a5, a4, t0\n\t" // a4-a5 hold pb(weight) 2 cols addr
-
-                                            // %0 hold pc(output) addr
-
-            "mv             t5, t1\n\t"     // t5 = k8
-            "beqz           t2, 13f\n\t"    // if k_tail == 0, jump to subkernel_m1n2k8
-
-            "12:\n\t"
-                // start subkernel_m1n2k_tail
+                // m1n1k_tail
                 "vsetvli        zero, t2, e16, m1\n\t"
                 "vle.v          v1, (t6)\n\t"
                 "add            t6, t6, t3\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "add            a4, a4, t3\n\t"
-                "vle.v          v3, (a5)\n\t"
-                "add            a5, a5, t3\n\t"
+                "vle.v          v2, (%2)\n\t"
+                "add            %2, %2, t3\n\t"
                 "vfmacc.vv      v24, v1, v2\n\t"
-                "vfmacc.vv      v25, v1, v3\n\t"
 
-                "beqz           t1, 14f\n\t"    // if k8 == 0, jump to end kernel_m1n2
+                "beqz           t1, 11f\n\t"    // if k8 == 0, jump to end m1n1
                 "vsetvli        zero, zero, e16, m1\n\t"
 
-            "13:\n\t"
-                // start subkernel_m1n2k8
+            "10:\n\t"
+                // m1n1k8
                 "vle.v          v1, (t6)\n\t"
                 "addi           t6, t6, 16\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "addi           a4, a4, 16\n\t"
-                "vle.v          v3, (a5)\n\t"
-                "addi           a5, a5, 16\n\t"
-                "vfmacc.vv      v24, v1, v2\n\t"
-                "vfmacc.vv      v25, v1, v3\n\t"
-
-                "addi           t5, t5, -1\n\t"
-                "bnez           t5, 13b\n\t"
-
-        "14:\n\t"   // end kernel_m1n2
-
-            "vfredsum.vs    v28, v24, v28\n\t"  // v28[0] = v28[0](bias) + sum(v24[0..7])
-            "vfredsum.vs    v29, v25, v29\n\t"
-            "vfmv.f.s       fa0, v28\n\t"
-            "vfmv.f.s       fa1, v29\n\t"
-            "fsh            fa0, 0(%0)\n\t"
-            "fsh            fa1, 2(%0)\n\t"
-
-            "addi           %0, %0, 4\n\t"      // updata output start addr ( +2 cols)
-            "slli           t0, %5, 2\n\t"      // t_tmp = k * 2 * 2
-            "add            %2, %2, t0\n\t"     // updata pb start addr
-
-        "15:\n\t"   // m1n1
-            "andi           t0, %4, 1\n\t"  // n & 1
-            "beqz           t0, 19f\n\t"    // jump to ending
-            // start kernel_m1n1
-            "vmv.v.x        v24, zero\n\t"  // clear acc
-
-            "flh            fs0, 0(%3)\n\t"
-            "vfmv.s.f       v28, fs0\n\t"   // v28[0] = bias
-
-            // init addr for pa, pb and pc
-            "mv             t6, %1\n\t"     // t6 hold pa(input) 8 lines start addr
-
-            "mv             a4, %2\n\t"     // a4 hold pb(weight) 1 cols addr
-
-                                            // %0 hold pc(output) addr
-
-            "mv             t5, t1\n\t"     // t5 = k8
-            "beqz           t2, 17f\n\t"    // if k_tail == 0, jump to subkernel_m1n1k8
-
-            "16:\n\t"
-                // start subkernel_m1n1k_tail
-                "vsetvli        zero, t2, e16, m1\n\t"
-                "vle.v          v1, (t6)\n\t"
-                "add            t6, t6, t3\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "add            a4, a4, t3\n\t"
-                "vfmacc.vv      v24, v1, v2\n\t"
-
-                "beqz           t1, 18f\n\t"    // if k8 == 0, jump to end kernel_m1n1
-                "vsetvli        zero, zero, e16, m1\n\t"
-
-            "17:\n\t"
-                // start subkernel_m1n1k8
-                "vle.v          v1, (t6)\n\t"
-                "addi           t6, t6, 16\n\t"
-                "vle.v          v2, (a4)\n\t"
-                "addi           a4, a4, 16\n\t"
+                "vle.v          v2, (%2)\n\t"
+                "addi           %2, %2, 16\n\t"
                 "vfmacc.vv      v24, v1, v2\n\t"
 
                 "addi           t5, t5, -1\n\t"
-                "bnez           t5, 17b\n\t"
+                "bnez           t5, 10b\n\t"
 
-        "18:\n\t"   // end kernel_m1n1
-            "vfredsum.vs    v28, v24, v28\n\t"  // v28[0] = v28[0](bias) + sum(v24[0..7])
-            "vfmv.f.s       fa0, v28\n\t"
+        "11:\n\t"   // end m1n1
+            "vfredsum.vs    v25, v24, v25\n\t"  // v25[0] = v25[0](bias) + sum(v24[0..7])
+            "vfmv.f.s       fa0, v25\n\t"
             "fsh            fa0, 0(%0)\n\t"
             "addi           %0, %0, 2\n\t"
 
-        "19:\n\t"   // ending
+            "addi           t0, t0, -1\n\t"
+            "bnez           t0, 8b\n\t"
+
+        "12:\n\t"   // ending
 
             :"=r"(init_output), // %0
             "=r"(init_input),   // %1
@@ -802,9 +678,9 @@ int csi_c906_fullyconnected_fp16_1(struct csi_tensor *input,
             "3"(init_bias),
             "4"(output_depth),
             "5"(accum_depth)
-            :"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
-            "a2", "a4", "a5", "a6", "a7", "t0", "t1", "t2", "t3", "t4", "t5", "t6",
-            "fa0", "fa1", "fa2", "fa3", "ft0", "fs0", "fs1", "fs2", "fs3"
+            :"v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v24", "v25",
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6",
+            "fa0", "ft0"
 
         );
     }
@@ -817,12 +693,14 @@ int csi_c906_fullyconnected_fp16_1(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-// best performance measured on D1
-int csi_c906_fullyconnected_fp16_2(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *weights,
-                                 struct csi_tensor *bias,
-                                 struct fc_params *params)
+/*
+    loop unroll: k = 1
+*/
+int csi_c906_fullyconnected_pack8_fp16_1(struct csi_tensor *input,
+                                         struct csi_tensor *output,
+                                         struct csi_tensor *weights,
+                                         struct csi_tensor *bias,
+                                         struct fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -831,7 +709,11 @@ int csi_c906_fullyconnected_fp16_2(struct csi_tensor *input,
     const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
     const int bias_dims_count = bias->dim_count;
-    int batches = output->dim[0];
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
     int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
     int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
 
@@ -881,7 +763,7 @@ int csi_c906_fullyconnected_fp16_2(struct csi_tensor *input,
 
         "3:\n\t"    // n_tail
             "andi           t0, %4, 7\n\t"  // n_tail
-            "beqz           t0, 8f\n\t"    // if n_tail = 0, jump to ending
+            "beqz           t0, 8f\n\t"     // if n_tail = 0, jump to ending
 
             // "mv             a2, %2\n\t"     // updata weight_data addr
             "andi           t2, %5, 7\n\t"  // k_tail
@@ -960,6 +842,285 @@ int csi_c906_fullyconnected_fp16_2(struct csi_tensor *input,
 }
 
 
+/*
+    best performance measured on D1
+    loop unroll: k = 1 && pack16
+*/
+int csi_c906_fullyconnected_pack16_fp16(struct csi_tensor *input,
+                                        struct csi_tensor *output,
+                                        struct csi_tensor *weights,
+                                        struct csi_tensor *bias,
+                                        struct fc_params *params)
+{
+    __fp16 *input_data = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+    __fp16 *weights_data = (__fp16 *)weights->data;
+    __fp16 *bias_data = (__fp16 *)bias->data;
+    const int output_dims_count = output->dim_count;
+    const int weights_dims_count = weights->dim_count;
+    const int bias_dims_count = bias->dim_count;
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
+    int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
+    int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
+
+    bool flag_bias = 1;     // default: fc layer include bias
+    if (bias_data == NULL) {
+        flag_bias = 0;
+        bias_data = (__fp16 *)csi_mem_alloc(output_depth * 2);
+    }
+
+    for (int b = 0; b < batches; b++) {
+
+        __fp16 *init_output = output_data + b * output_depth;
+        __fp16 *init_input = input_data + b * accum_depth;
+        __fp16 *init_weight = weights_data;
+        __fp16 *init_bias = bias_data;
+
+        asm volatile(
+            "vsetvli        zero, zero, e16, m2\n\t"    // set vl = 16
+
+            "srai           t4, %5, 4\n\t"  // k16
+            "srai           t0, %4, 4\n\t"  // out_node >> 4 (n16)
+            "beqz           t0, 3f\n\t"
+
+        "1:\n\t"    // m1n8
+            "vle.v          v4, (%3)\n\t"   // init out_tmp = bias_data
+            "addi           %3, %3, 32\n\t"
+
+            "mv             t1, %5\n\t"     // in_node (k)
+            "mv             t6, %1\n\t"     // init input_data addr
+
+            "2:\n\t"
+                // m1n8k1
+                "vle.v          v2, (%2)\n\t"
+                "addi           %2, %2, 32\n\t"
+                "flh            fa0, 0(t6)\n\t"
+                "vfmacc.vf      v4, fa0, v2\n\t"
+                "addi           t6, t6, 2\n\t"
+
+                "addi           t1, t1, -1\n\t"
+                "bnez           t1, 2b\n\t"
+
+            "vse.v          v4, (%0)\n\t"
+            "addi           %0, %0, 32\n\t"
+
+            "addi           t0, t0, -1\n\t"
+            "bnez           t0, 1b\n\t"
+
+        "3:\n\t"    // n_tail
+            "andi           t0, %4, 15\n\t" // n_tail
+            "beqz           t0, 8f\n\t"     // if n_tail = 0, jump to ending
+
+            // "mv             a2, %2\n\t"     // updata weight_data addr
+            "andi           t2, %5, 15\n\t" // k_tail
+            "slli           t3, t2, 1\n\t"  // k_tail * 2
+
+        "4:\n\t"
+            "mv             t6, %1\n\t"     // init input_data addr
+
+            "vmv.v.x        v4, zero\n\t"   // clear acc
+            "flh            fa0, 0(%3)\n\t" // load bias
+            "addi           %3, %3, 2\n\t"
+            "vfmv.s.f       v6, fa0\n\t"    // v6[0] = bias
+
+            "mv             t5, t4\n\t"     // t5 = k8
+            "beqz           t2, 6f\n\t"
+
+            "5:\n\t"
+                // m1n1k_tail
+                "vsetvli        zero, t2, e16, m2\n\t"
+                "vle.v          v0, (t6)\n\t"
+                "add            t6, t6, t3\n\t"
+                "vle.v          v2, (%2)\n\t"
+                "add            %2, %2, t3\n\t"
+                "vfmacc.vv      v4, v0, v2\n\t"
+
+                "beqz           t4, 7f\n\t"     // if k8 == 0, jump to end m1n1
+                "vsetvli        zero, zero, e16, m2\n\t"
+
+            "6:\n\t"
+                // m1n1k8
+                "vle.v          v0, (t6)\n\t"
+                "addi           t6, t6, 32\n\t"
+                "vle.v          v2, (%2)\n\t"
+                "addi           %2, %2, 32\n\t"
+                "vfmacc.vv      v4, v0, v2\n\t"
+
+                "addi           t5, t5, -1\n\t"
+                "bnez           t5, 6b\n\t"
+
+        "7:\n\t"    // end m1n1
+            "vfredsum.vs    v6, v4, v6\n\t"     // v6[0] = v6[0](bias) + sum(v4[0..7])
+            "vfmv.f.s       fa0, v6\n\t"
+            "fsh            fa0, 0(%0)\n\t"
+            "addi           %0, %0, 2\n\t"
+
+            "addi           t0, t0, -1\n\t"
+            "bnez           t0, 4b\n\t"
+
+        "8:\n\t"   // ending
+
+            :"=r"(init_output), // %0
+            "=r"(init_input),   // %1
+            "=r"(init_weight),  // %2
+            "=r"(init_bias),    // %3
+            "=r"(output_depth), // %4
+            "=r"(accum_depth)   // %5
+            :"0"(init_output),
+            "1"(init_input),
+            "2"(init_weight),
+            "3"(init_bias),
+            "4"(output_depth),
+            "5"(accum_depth)
+            : "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6",
+            "fa0"
+        );
+
+    }
+    if (!flag_bias) {
+        csi_mem_free(bias_data);
+        bias_data = NULL;
+    }
+    return CSINN_TRUE;
+}
+
+int csi_c906_fullyconnected_pack16_output16_fp16(struct csi_tensor *input,
+                                                 struct csi_tensor *output,
+                                                 struct csi_tensor *weights,
+                                                 struct csi_tensor *bias, struct fc_params *params)
+{
+    __fp16 *input_data = (__fp16 *)input->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+    __fp16 *weights_data = (__fp16 *)weights->data;
+    __fp16 *bias_data = (__fp16 *)bias->data;
+    const int output_dims_count = output->dim_count;
+    const int weights_dims_count = weights->dim_count;
+    const int bias_dims_count = bias->dim_count;
+    int batches = 1;
+    /* compute the outer size */
+    for (int i = 0; i < output_dims_count - 1; i++) {
+        batches *= output->dim[i];
+    }
+    int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
+    int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
+
+    int packn = 16;
+    int vl = 16;
+    int b = 0;
+    for (; b + 3 < batches; b += 4) {
+        __fp16 *init_output = output_data + b * output_depth;
+        __fp16 *init_output2 = init_output + output_depth;
+        __fp16 *init_output3 = init_output2 + output_depth;
+        __fp16 *init_output4 = init_output3 + output_depth;
+        __fp16 *init_input = input_data + b * accum_depth;
+        __fp16 *init_input2 = init_input + accum_depth;
+        __fp16 *init_input3 = init_input2 + accum_depth;
+        __fp16 *init_input4 = init_input3 + accum_depth;
+
+        __fp16 *init_weight = weights_data;
+        __fp16 *init_bias = bias_data;
+        int n = output_depth;
+        while (n > 0) {
+            __fp16 *in_ptr = init_input;
+            __fp16 *in_ptr2 = init_input2;
+            __fp16 *in_ptr3 = init_input3;
+            __fp16 *in_ptr4 = init_input4;
+
+            vfloat16m2_t _acc = vle16_v_f16m2(init_bias, vl);
+            vfloat16m2_t _acc2 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc3 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc4 = vmv_v_v_f16m2(_acc, vl);
+
+            init_bias += vl;
+            int k = accum_depth;
+            while (k > 0) {
+                vfloat16m2_t _weight = vle16_v_f16m2(init_weight, vl);
+                _acc = vfmacc_vf_f16m2(_acc, *in_ptr, _weight, vl);
+                _acc2 = vfmacc_vf_f16m2(_acc2, *in_ptr2, _weight, vl);
+                _acc3 = vfmacc_vf_f16m2(_acc3, *in_ptr3, _weight, vl);
+                _acc4 = vfmacc_vf_f16m2(_acc4, *in_ptr4, _weight, vl);
+                init_weight += vl;
+                in_ptr++;
+                in_ptr2++;
+                in_ptr3++;
+                in_ptr4++;
+                k--;
+            }
+            vse16_v_f16m2(init_output, _acc, vl);
+            vse16_v_f16m2(init_output2, _acc2, vl);
+            vse16_v_f16m2(init_output3, _acc3, vl);
+            vse16_v_f16m2(init_output4, _acc4, vl);
+            init_output += vl;
+            init_output2 += vl;
+            init_output3 += vl;
+            init_output4 += vl;
+            n -= vl;
+        }
+    }
+    for (; b + 1 < batches; b += 2) {
+        __fp16 *init_output = output_data + b * output_depth;
+        __fp16 *init_output2 = init_output + output_depth;
+        __fp16 *init_input = input_data + b * accum_depth;
+        __fp16 *init_input2 = init_input + accum_depth;
+
+        __fp16 *init_weight = weights_data;
+        __fp16 *init_bias = bias_data;
+        int n = output_depth;
+        while (n > 0) {
+            __fp16 *in_ptr = init_input;
+            __fp16 *in_ptr2 = init_input2;
+            vfloat16m2_t _acc = vle16_v_f16m2(init_bias, vl);
+            vfloat16m2_t _acc2 = vmv_v_v_f16m2(_acc, vl);
+            init_bias += vl;
+            int k = accum_depth;
+            while (k > 0) {
+                vfloat16m2_t _weight = vle16_v_f16m2(init_weight, vl);
+                _acc = vfmacc_vf_f16m2(_acc, *in_ptr, _weight, vl);
+                _acc2 = vfmacc_vf_f16m2(_acc2, *in_ptr2, _weight, vl);
+                init_weight += vl;
+                in_ptr++;
+                in_ptr2++;
+                k--;
+            }
+            vse16_v_f16m2(init_output, _acc, vl);
+            vse16_v_f16m2(init_output2, _acc2, vl);
+            init_output += vl;
+            init_output2 += vl;
+            n -= vl;
+        }
+    }
+    for (; b < batches; b++) {
+        __fp16 *init_output = output_data + b * output_depth;
+        __fp16 *init_input = input_data + b * accum_depth;
+
+        __fp16 *init_weight = weights_data;
+        __fp16 *init_bias = bias_data;
+        int n = output_depth;
+        while (n > 0) {
+            __fp16 *in_ptr = init_input;
+            vfloat16m2_t _acc = vle16_v_f16m2(init_bias, vl);
+            init_bias += vl;
+            int k = accum_depth;
+            while (k > 0) {
+                vfloat16m2_t _weight = vle16_v_f16m2(init_weight, vl);
+                _acc = vfmacc_vf_f16m2(_acc, *in_ptr, _weight, vl);
+                init_weight += vl;
+                in_ptr++;
+                k--;
+            }
+            vse16_v_f16m2(init_output, _acc, vl);
+            init_output += vl;
+            n -= vl;
+        }
+    }
+    return CSINN_TRUE;
+}
+
 int csi_c906_fullyconnected_init(struct csi_tensor *input,
                                  struct csi_tensor *output,
                                  struct csi_tensor *weights,
@@ -967,11 +1128,26 @@ int csi_c906_fullyconnected_init(struct csi_tensor *input,
                                  struct fc_params *params)
 {
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->base.bc = csi_c906_fullyconnected_f32;
+        csi_nn_rvv_fc_gemv_transform_weight_fp32(weights);
+        params->base.bc = csi_nn_rvv_fullyconnected_packn_fp32;
     } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
         csi_c906_fc_gemv_transform_weight_fp16(weights);
-        params->base.bc = csi_c906_fullyconnected_fp16_2;
+        int output_depth = weights->dim[weights->dim_count - 2];
+        if (bias != NULL && output_depth % 16 == 0) {
+            params->base.bc = csi_c906_fullyconnected_pack16_output16_fp16;
+        } else {
+            params->base.bc = csi_c906_fullyconnected_pack16_fp16;
+        }
         // params->base.bc = csi_c906_fullyconnected_fp16;
+    } else if (input->dtype == CSINN_DTYPE_INT8) {
+        csi_nn_rvv_fc_gemv_transform_weight_int8(weights);
+        // support channel quantization
+        for (int i = 0; i < weights->quant_channel; i++) {
+            float real_scale = input->qinfo->scale * weights->qinfo[i].scale / output->qinfo->scale;
+            csi_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
+                                    &(weights->qinfo[i].shift));
+        }
+        params->base.bc = csi_nn_rvv_fullyconnected_packn_int8;
     }
     return CSINN_TRUE;
 }

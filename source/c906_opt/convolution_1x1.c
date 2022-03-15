@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -55,7 +55,7 @@ static int csi_c906_conv1x1s1_sgemm_base(struct csi_tensor *input,
     int32_t in_ch = input->dim[1];
     int32_t out_ch = kernel->dim[0];
     int32_t out_h = output->dim[2];
-    int32_t out_w = output->dim[3];
+    int32_t out_w = output->dim_count == 4 ? output->dim[3] : 1;  // adapt conv1d1s1
 
     int32_t m = out_ch / group;
     int32_t k = in_ch / group;
@@ -69,7 +69,7 @@ static int csi_c906_conv1x1s1_sgemm_base(struct csi_tensor *input,
             float *pb = pb_reorder;
             float *pc = output_data;
             // pack
-            csi_c906_reorder_input(input_data, pb, k, n, n);
+            csi_c906_reorder_input_1(input_data, pb, k, n, n);
             // GEMM
             csi_c906_sgemm_kernel_f32(pc, pa, pb, m, k, n, n, bias_data + g * m, fuse_relu);
             input_data += k * n;

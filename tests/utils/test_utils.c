@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
+#include "test_utils.h"
+
+#include "float.h"
+#include "math.h"
+#include "math_snr.h"
 #include "stdint.h"
 #include "stdio.h"
-#include "math.h"
-#include "float.h"
-#include "math_snr.h"
-#include "test_utils.h"
 
 int test_number = 0;
 int failures = 0;
@@ -31,27 +32,26 @@ int failures = 0;
 int done_testing(void)
 {
     if (0 < failures) {
-		printf("Failed %d tests\n", failures);
-		exit(EXIT_FAILURE);
-	} else {
-		printf("All functions tested sucessfully\n");
-		exit(EXIT_SUCCESS);
-	}
-	return failures;
+        printf("Failed %d tests\n", failures);
+        exit(EXIT_FAILURE);
+    } else {
+        printf("All functions tested sucessfully\n");
+        exit(EXIT_SUCCESS);
+    }
+    return failures;
 }
 
-void init_testsuite(const char* testname)
+void init_testsuite(const char *testname)
 {
-	printf("%s", testname);
-	test_number = 0;
-	failures = 0;
+    printf("%s", testname);
+    test_number = 0;
+    failures = 0;
 }
-
 
 int *read_input_data_f32(char *path)
 {
     FILE *fp = fopen(path, "rb");
-    if(fp == NULL) {
+    if (fp == NULL) {
         printf("Invalid input file: %s\n", path);
         return NULL;
     }
@@ -59,8 +59,8 @@ int *read_input_data_f32(char *path)
     int size;
     fread(&size, 4, 1, fp);
 
-    int *buffer = malloc(size* sizeof(int));
-    if(buffer == NULL) {
+    int *buffer = malloc(size * sizeof(int));
+    if (buffer == NULL) {
         printf("Malloc fail.\n");
         return NULL;
     }
@@ -74,7 +74,7 @@ int *read_input_data_f32(char *path)
 char *read_input_data_fp16(char *path, int int_size)
 {
     FILE *fp = fopen(path, "rb");
-    if(fp == NULL) {
+    if (fp == NULL) {
         printf("Invalid input file: %s\n", path);
         return NULL;
     }
@@ -86,7 +86,7 @@ char *read_input_data_fp16(char *path, int int_size)
 
     fread(buffer, 4, int_size, fp);
 
-    fread(buffer+int_size*4, 2, size-int_size, fp);
+    fread(buffer + int_size * 4, 2, size - int_size, fp);
 
     fclose(fp);
     return buffer;
@@ -123,9 +123,9 @@ float compute_kl(float *p, float *q, uint32_t size)
 // calculate cosine similarity
 float compute_cs(float *a, float *b, uint32_t size)
 {
-    float dot_sum = 0.0;
-    float a_norm = 0.0;
-    float b_norm = 0.0;
+    double dot_sum = 0.0;
+    double a_norm = 0.0;
+    double b_norm = 0.0;
     float res = 0.0;
 
     for (int i = 0; i < size; i++) {
@@ -150,38 +150,37 @@ void result_verify_int32(int *reference, int *output, int *input, float gap, int
             failures++;
         }
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d :%d, %d, %d\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d :%d, %d, %d\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
 }
 
-void result_verify_f32(float *reference, float *output, float *input, float gap, int size, bool save)
+void result_verify_f32(float *reference, float *output, float *input, float gap, int size,
+                       bool save)
 {
     int i;
     float error, snr;
     float max_error = 0;
 
     for (i = 0; i < size; i++) {
-        if(isinf(reference[i]) && isinf(output[i]) || isnan(reference[i]) && isnan(output[i])){
+        if (isinf(reference[i]) && isinf(output[i]) || isnan(reference[i]) && isnan(output[i])) {
             error = 0;
         } else {
             error = fabs(reference[i] - output[i]);
-            if(error > gap) {
-                error = fabs(reference[i] - output[i])/fabs(reference[i] + 1e-9);
+            if (error > gap) {
+                error = fabs(reference[i] - output[i]) / fabs(reference[i] + 1e-9);
             }
         }
-        if(error > max_error) {
+        if (error > max_error) {
             max_error = error;
         }
 
         test_number++;
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d :%.6f, %.6f, %.6f\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d :%.6f, %.6f, %.6f\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
@@ -214,7 +213,8 @@ float compute_cs_fp16(__fp16 *a, __fp16 *b, uint32_t size)
     return res;
 }
 
-void result_verify_fp16(__fp16 *reference, __fp16 *output, __fp16 *input, float gap, int size, bool save)
+void result_verify_fp16(__fp16 *reference, __fp16 *output, __fp16 *input, float gap, int size,
+                        bool save)
 {
     int i;
     __fp16 error = 0;
@@ -222,18 +222,17 @@ void result_verify_fp16(__fp16 *reference, __fp16 *output, __fp16 *input, float 
 
     for (i = 0; i < size; i++) {
         error = fabs(reference[i] - output[i]);
-        if(error > gap) {
-            error = fabs(reference[i] - output[i])/fabs(reference[i] + 1e-9);
+        if (error > gap) {
+            error = fabs(reference[i] - output[i]) / fabs(reference[i] + 1e-9);
         }
-        if(error > max_error) {
+        if (error > max_error) {
             max_error = error;
         }
 
         test_number++;
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d :%.6f, %.6f, %.6f\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d :%.6f, %.6f, %.6f\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
@@ -241,7 +240,6 @@ void result_verify_fp16(__fp16 *reference, __fp16 *output, __fp16 *input, float 
 
     float cs = compute_cs_fp16(output, reference, size);
     printf("The cos sim is %f.\n", cs);
-
 }
 #endif
 
@@ -252,8 +250,8 @@ void result_verify_bool(bool *reference, bool *output, float *input, float gap, 
 
     for (i = 0; i < size; i++) {
         error = fabs(reference[i] - output[i]);
-        if(error > gap) {
-            error = fabs(reference[i] - output[i])/fabs(reference[i] + 1e-9);
+        if (error > gap) {
+            error = fabs(reference[i] - output[i]) / fabs(reference[i] + 1e-9);
         }
 
         test_number++;
@@ -261,15 +259,15 @@ void result_verify_bool(bool *reference, bool *output, float *input, float gap, 
             failures++;
         }
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d, %d, %.6f\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d, %d, %.6f\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
 }
 
-void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input, float gap, int size, bool save)
+void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input, float gap,
+                     int size, bool save)
 {
     int i;
     float error;
@@ -280,26 +278,27 @@ void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input,
 
     for (i = 0; i < size; i++) {
         if (output->dtype == CSINN_DTYPE_UINT8) {
-            output_tmp[i] = csi_ref_dequantize_u8_to_f32(*((uint8_t *)output_data + i), output->qinfo);
+            output_tmp[i] =
+                csi_ref_dequantize_u8_to_f32(*((uint8_t *)output_data + i), output->qinfo);
         } else if (output->dtype == CSINN_DTYPE_INT8) {
-            output_tmp[i] = csi_ref_dequantize_i8_to_f32(*((int8_t *)output_data + i), output->qinfo);
+            output_tmp[i] =
+                csi_ref_dequantize_i8_to_f32(*((int8_t *)output_data + i), output->qinfo);
         }
-        if(isinf(reference[i]) || isnan(reference[i])){
+        if (isinf(reference[i]) || isnan(reference[i])) {
             error = 0;
         } else {
             error = fabs(reference[i] - output_tmp[i]);
-            if(error > gap) {
-                error = fabs(reference[i] - output_tmp[i])/fabs(reference[i] + 1e-9);
+            if (error > gap) {
+                error = fabs(reference[i] - output_tmp[i]) / fabs(reference[i] + 1e-9);
             }
         }
-        if(error > max_error) {
+        if (error > max_error) {
             max_error = error;
         }
 
         test_number++;
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
+        if (error > gap) {
             printf("i = %d :%.6f, %.6f, %.6f\n", i, reference[i], output_tmp[i], input[i]);
         }
 #endif
@@ -317,8 +316,8 @@ void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input,
     free(output_tmp);
 }
 
-
-void result_verify_q7(int8_t *reference, int8_t *output, int8_t *input, float gap, int size, bool save)
+void result_verify_q7(int8_t *reference, int8_t *output, int8_t *input, float gap, int size,
+                      bool save)
 {
     int i;
     float error, snr;
@@ -331,17 +330,16 @@ void result_verify_q7(int8_t *reference, int8_t *output, int8_t *input, float ga
             failures++;
         }
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d :%#x, %#x, %#x\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d :%#x, %#x, %#x\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
     printf("/====== total = %6d(size=%5d) || error = %5d =======/\n", test_number, size, failures);
 }
 
-
-void result_verify_q15(int16_t *reference, int16_t *output, int16_t *input, float gap, int size, bool save)
+void result_verify_q15(int16_t *reference, int16_t *output, int16_t *input, float gap, int size,
+                       bool save)
 {
     int i;
     float error, snr;
@@ -354,15 +352,13 @@ void result_verify_q15(int16_t *reference, int16_t *output, int16_t *input, floa
             failures++;
         }
 #ifdef BASIC_DEBUG
-        if (error > gap)
-        {
-          printf("i = %d :%d, %d, %d\n", i, reference[i], output[i], input[i]);
+        if (error > gap) {
+            printf("i = %d :%d, %d, %d\n", i, reference[i], output[i], input[i]);
         }
 #endif
     }
     printf("/====== total = %6d(size=%5d) || error = %5d =======/\n", test_number, size, failures);
 }
-
 
 void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp)
 {
@@ -374,11 +370,11 @@ void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp)
 
     scale_tmp = (max_value - min_value) / (float)valid_range;
 
-    if (scale_tmp){
+    if (scale_tmp) {
         zp_tmp = 0 - min_value / scale_tmp;
     } else {
         scale_tmp = 1;
-        zp_tmp   = max_value;
+        zp_tmp = max_value;
     }
     zp_tmp = zp_tmp > 255 ? 255 : zp_tmp;
     zp_tmp = zp_tmp < 0 ? 0 : zp_tmp;
@@ -397,11 +393,11 @@ void get_scale_and_zp_i8_asym(float max_value, float min_value, float *scale, in
 
     scale_tmp = (max_value - min_value) / (float)valid_range;
 
-    if (scale_tmp){
+    if (scale_tmp) {
         zp_tmp = -128 - min_value / scale_tmp;
     } else {
         scale_tmp = 1;
-        zp_tmp   = 0;
+        zp_tmp = 0;
     }
 
     *zp = (int)round(zp_tmp);
@@ -413,15 +409,15 @@ void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int *zp
     int valid_range = 255;
     float scale_tmp, zp_tmp, max_tmp;
 
-    if (fabs(max_value) >= fabs(min_value)){
+    if (fabs(max_value) >= fabs(min_value)) {
         max_tmp = fabs(max_value);
-    } else{
+    } else {
         max_tmp = fabs(min_value);
     }
     scale_tmp = 2 * max_tmp / (float)valid_range;
     zp_tmp = 0;
 
-    if (scale_tmp == 0){
+    if (scale_tmp == 0) {
         scale_tmp = 1;
     }
 
@@ -459,12 +455,12 @@ void find_min_max(float *input, float *max_value, float *min_value, int size)
     float max_tmp = -FLT_MAX;
     float min_tmp = FLT_MAX;
 
-    for(i = 0; i < size; i++) {
-        if(input[i] != -FLT_MAX && input[i] != FLT_MAX) {
-            if(input[i] > max_tmp) {
+    for (i = 0; i < size; i++) {
+        if (input[i] != -FLT_MAX && input[i] != FLT_MAX) {
+            if (input[i] > max_tmp) {
                 max_tmp = input[i];
             }
-            if(input[i] < min_tmp) {
+            if (input[i] < min_tmp) {
                 min_tmp = input[i];
             }
         }
@@ -538,7 +534,7 @@ void get_quant_info(struct csi_tensor *tensor)
     }
     int size = csi_tensor_size(tensor);
     find_min_max(tensor->data, &max, &min, size);
-    if (tensor->sess->base_api == CSINN_LIGHT) {
+    if ((tensor->sess != NULL) && (tensor->sess->base_api == CSINN_LIGHT)) {
         get_scale_and_zp_power2_i8(max, min, &scale, &zp);
         tensor->qinfo->max = max;
         if (min >= 0 && max > 0) {
@@ -587,8 +583,103 @@ struct csi_tensor *convert_f32_input(struct csi_tensor *tensor, int dtype, struc
     return ret;
 }
 
+struct csi_tensor *convert_f32_layer(struct csi_tensor *tensor, enum csinn_quant_enum qtype,
+                                     enum csinn_api_enum api)
+{
+    set_quant_info(tensor, qtype, api);
+    struct csi_tensor *ret = csi_alloc_tensor(NULL);
+    csi_tensor_copy(ret, tensor);
+    if ((qtype == CSINN_QUANT_INT8_SYM) || (qtype == CSINN_QUANT_INT8_ASYM)) {
+        ret->dtype = CSINN_DTYPE_INT8;
+    } else if (qtype == CSINN_QUANT_UINT8_ASYM) {
+        ret->dtype = CSINN_DTYPE_UINT8;
+    } else if (qtype == CSINN_QUANT_INT16_SYM) {
+        ret->dtype = CSINN_DTYPE_INT16;
+    } else if (qtype == CSINN_QUANT_FLOAT16) {
+        ret->dtype = CSINN_DTYPE_FLOAT16;
+    } else if (qtype == CSINN_QUANT_FLOAT32) {
+        ret->dtype = CSINN_DTYPE_FLOAT32;
+    } else {
+        printf("unsupport qinfo\n");
+    }
+
+    ret->data = malloc(csi_tensor_byte_size(ret));
+    csi_tensor_data_convert(ret, tensor);
+
+    return ret;
+}
+
 void free_input(struct csi_tensor *tensor)
 {
     csi_mem_free(tensor->data);
     csi_free_tensor(tensor);
+}
+
+struct csi_tensor *fuse_zp_to_bias(struct csi_tensor *input, struct csi_tensor *weight,
+                                   struct csi_tensor *bias, enum csinn_api_enum api)
+{
+    set_quant_info(input, CSINN_QUANT_INT8_ASYM, api);
+    set_quant_info(weight, CSINN_QUANT_INT8_SYM, api);
+    int b_size = csi_tensor_size(bias);
+    struct csi_tensor *ret = csi_alloc_tensor(NULL);
+    csi_tensor_copy(ret, bias);
+    ret->qinfo->scale = input->qinfo->scale * weight->qinfo->scale;
+    ret->qinfo->zero_point = 0;
+    ret->dtype = CSINN_DTYPE_INT32;
+    ret->data = malloc(csi_tensor_byte_size(ret));
+    int32_t *ret_data = ret->data;
+
+    int b_length = b_size ? bias->dim[0] : weight->dim[0];
+    int inner_size = 1;
+    float new_b = 0.0;
+    for (int i = 1; i < weight->dim_count; i++) {
+        inner_size *= weight->dim[i];
+    }
+
+    float *bias_data = (float *)bias->data;
+    float *weight_data = (float *)weight->data;
+
+    float sp = input->qinfo->scale * input->qinfo->zero_point;
+
+    for (int i = 0; i < b_length; i++) {
+        new_b = b_size ? bias_data[i] : 0.0;
+        for (int j = 0; j < inner_size; j++) {
+            int w_index = i * inner_size + j;
+            new_b -= weight_data[w_index] * sp;
+        }
+        ret_data[i] = new_b / ret->qinfo->scale;
+    }
+
+    return ret;
+}
+
+void evaluate_error(void *out, void *ref, int size, enum csinn_dtype_enum dtype)
+{
+    float *output = csi_mem_alloc(size * sizeof(float));
+    float *reference = csi_mem_alloc(size * sizeof(float));
+    if (dtype == CSINN_DTYPE_FLOAT32) {
+        memcpy(output, out, size * sizeof(float));
+        memcpy(reference, ref, size * sizeof(float));
+    } else if (dtype == CSINN_DTYPE_FLOAT16) {
+        for (int i = 0; i < size; i++) {
+            output[i] = *((__fp16 *)out + i);
+            reference[i] = *((__fp16 *)ref + i);
+        }
+    } else if (dtype == CSINN_DTYPE_INT8) {
+        for (int i = 0; i < size; i++) {
+            output[i] = *((int8_t *)out + i);
+            reference[i] = *((int8_t *)ref + i);
+        }
+    }
+    float kl = compute_kl(output, reference, size);
+    printf("The kl diver is %f.\n", kl);
+
+    float cs = compute_cs(output, reference, size);
+    printf("The cos sim is %f.\n", cs);
+
+    if (kl > 0.01f || cs < 0.99f) {
+        failures++;
+    }
+    csi_mem_free(output);
+    csi_mem_free(reference);
 }

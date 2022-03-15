@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,29 +16,29 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-/* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/image_ops_impl.py#L3279-L3325 line 3279*/
+/* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/image_ops_impl.py#L3279-L3325
+ * line 3279*/
 
-int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input,
-                              struct csi_tensor *output,
+int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input, struct csi_tensor *output,
                               struct siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
 
-    for(int n = 0; n < input->dim[0]; n++){
-        for(int h = 0; h < input->dim[1]; h++){
-            for(int w = 0; w < input->dim[2]; w++){
+    for (int n = 0; n < input->dim[0]; n++) {
+        for (int h = 0; h < input->dim[1]; h++) {
+            for (int w = 0; w < input->dim[2]; w++) {
                 float y = input_data[0];
                 float u = input_data[1];
                 float v = input_data[2];
 
                 float r = y + 1.13988303 * v;
-                float g = y -0.394642334 * u - 0.58062185 * v;
+                float g = y - 0.394642334 * u - 0.58062185 * v;
                 float b = y + 2.03206185 * u;
 
                 input_data += 3;
@@ -53,8 +53,7 @@ int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_yuv_rgb_scale_quant(struct csi_tensor *input,
-                                struct csi_tensor *output,
+int csi_ref_yuv_rgb_scale_quant(struct csi_tensor *input, struct csi_tensor *output,
                                 struct siso_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_yuv_rgb_scale_f32);

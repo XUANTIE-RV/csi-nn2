@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,23 +16,25 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
-#ifndef _CSI_NN_NODE_H
-#define _CSI_NN_NODE_H
-
-#include "csi_nn.h"
+#ifndef INCLUDE_CSI_NODE_H_
+#define INCLUDE_CSI_NODE_H_
 
 struct csi_node {
     int type;
     struct csi_node **in;
     struct csi_node **out;
+    int subgraph_idx;
     int in_num;
     int out_num;
     char *name;
     void *data;
     int ref_count;
     int ref_count_init;
+    int visited;
+    int *restricted_map;
+    int restricted_map_num;
 };
 
 /* node */
@@ -44,8 +46,10 @@ int csi_node_add_in(struct csi_node *node, struct csi_node *in, int index);
 int csi_node_add_out(struct csi_node *node, struct csi_node *out, int index);
 int csi_node_get_in_number(struct csi_node *node);
 int csi_node_get_out_number(struct csi_node *node);
+int csi_node_get_non_const_in_number(struct csi_node *node);
 struct csi_node *csi_node_get_in(struct csi_node *node, int index);
 struct csi_node *csi_node_get_out(struct csi_node *node, int index);
+int csi_node_restrict_map_insert(int value, struct csi_node *node);
+int csi_node_find(struct csi_node **list, int len, struct csi_node *node);
 
-#endif
-
+#endif  // INCLUDE_CSI_NODE_H_

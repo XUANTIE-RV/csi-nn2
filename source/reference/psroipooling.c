@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
+
+#include <math.h>
 
 #include "csi_ref.h"
 #include "csi_utils.h"
-#include <math.h>
 
-int csi_ref_psroipooling_f32(struct csi_tensor *data,
-                             struct csi_tensor *rois,
-                             struct csi_tensor *output,
-                             struct psroipooling_params *params)
+int csi_ref_psroipooling_f32(struct csi_tensor *data, struct csi_tensor *rois,
+                             struct csi_tensor *output, struct psroipooling_params *params)
 {
     float *output_data = output->data;
     float *bottom_data = data->data;
@@ -35,57 +34,51 @@ int csi_ref_psroipooling_f32(struct csi_tensor *data,
     int height = data->dim[2];
     int num_rois = rois->dim[0];
 
-    for(int n = 0; n < num_rois; n++){
-        int   roi_add = n * 5;
+    for (int n = 0; n < num_rois; n++) {
+        int roi_add = n * 5;
         float roi_start_w = (float)(round(bottom_rois[roi_add + 1]) * params->spatial_scale);
         float roi_start_h = (float)(round(bottom_rois[roi_add + 2]) * params->spatial_scale);
-        float roi_end_w   = (float)(round(bottom_rois[roi_add + 3] + 1.0) * params->spatial_scale);
-        float roi_end_h   = (float)(round(bottom_rois[roi_add + 4] + 1.0) * params->spatial_scale);
+        float roi_end_w = (float)(round(bottom_rois[roi_add + 3] + 1.0) * params->spatial_scale);
+        float roi_end_h = (float)(round(bottom_rois[roi_add + 4] + 1.0) * params->spatial_scale);
 
         float roi_height = fmaxf(roi_end_h - roi_start_h, 0.1);
-        float roi_width  = fmaxf(roi_end_w - roi_start_w, 0.1);
+        float roi_width = fmaxf(roi_end_w - roi_start_w, 0.1);
         float bin_size_h = (float)(roi_height) / (float)(params->group_size);
         float bin_size_w = (float)(roi_width) / (float)(params->group_size);
 
         int ctop, ph, pw, h, w;
-        for (ctop = 0; ctop < params->output_dim; ++ctop)
-        {
-            for (ph = 0; ph < params->group_size; ++ph)
-            {
-                for (pw = 0; pw < params->group_size; ++pw)
-                {
-                    int index  = n * params->output_dim * params->group_size * params->group_size + \
-                                    ctop * params->group_size * params->group_size + ph * params->group_size + pw;
+        for (ctop = 0; ctop < params->output_dim; ++ctop) {
+            for (ph = 0; ph < params->group_size; ++ph) {
+                for (pw = 0; pw < params->group_size; ++pw) {
+                    int index = n * params->output_dim * params->group_size * params->group_size +
+                                ctop * params->group_size * params->group_size +
+                                ph * params->group_size + pw;
 
-                    int hstart = (int)(floor((float)(ph)    * bin_size_h + roi_start_h));
-                    int wstart = (int)(floor((float)(pw)    * bin_size_w + roi_start_w));
-                    int hend   = (int)(ceil((float)(ph + 1) * bin_size_h + roi_start_h));
-                    int wend   = (int)(ceil((float)(pw + 1) * bin_size_w + roi_start_w));
+                    int hstart = (int)(floor((float)(ph)*bin_size_h + roi_start_h));
+                    int wstart = (int)(floor((float)(pw)*bin_size_w + roi_start_w));
+                    int hend = (int)(ceil((float)(ph + 1) * bin_size_h + roi_start_h));
+                    int wend = (int)(ceil((float)(pw + 1) * bin_size_w + roi_start_w));
                     hstart = fminf(fmaxf(hstart, 0), height);
-                    hend   = fminf(fmaxf(hend  , 0), height);
+                    hend = fminf(fmaxf(hend, 0), height);
                     wstart = fminf(fmaxf(wstart, 0), width);
-                    wend   = fminf(fmaxf(wend  , 0), width);
+                    wend = fminf(fmaxf(wend, 0), width);
 
                     int is_empty = (hend <= hstart) || (wend <= wstart);
                     int gw = pw;
                     int gh = ph;
-                    int c = (ctop*params->group_size + gh)*params->group_size + gw;
+                    int c = (ctop * params->group_size + gh) * params->group_size + gw;
                     float out_sum = 0;
-                    for (h = hstart; h < hend; ++h)
-                    {
-                        for (w = wstart; w < wend; ++w)
-                        {
+                    for (h = hstart; h < hend; ++h) {
+                        for (w = wstart; w < wend; ++w) {
                             int bottom_index = h * width + w;
                             out_sum += bottom_data[c * height * width + bottom_index];
                         }
                     }
                     float bin_area = (hend - hstart) * (wend - wstart);
-                    if (is_empty)
-                    {
+                    if (is_empty) {
                         output_data[index] = 0;
-                    }else
-                    {
-                        output_data[index] = out_sum/bin_area;
+                    } else {
+                        output_data[index] = out_sum / bin_area;
                     }
                 }
             }
@@ -95,10 +88,8 @@ int csi_ref_psroipooling_f32(struct csi_tensor *data,
     return CSINN_TRUE;
 }
 
-int csi_ref_psroipooling_quant(struct csi_tensor *data,
-                               struct csi_tensor *rois,
-                               struct csi_tensor *output,
-                               struct psroipooling_params *params)
+int csi_ref_psroipooling_quant(struct csi_tensor *data, struct csi_tensor *rois,
+                               struct csi_tensor *output, struct psroipooling_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(data);

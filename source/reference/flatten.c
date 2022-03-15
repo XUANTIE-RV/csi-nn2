@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,28 +16,26 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_flatten_init(struct csi_tensor *input,
-                         struct csi_tensor *output,
+int csi_ref_flatten_init(struct csi_tensor *input, struct csi_tensor *output,
                          struct reshape_params *params)
 {
-    if (input->quant_channel == output->quant_channel){
+    if (input->quant_channel == output->quant_channel) {
         int quant_size = input->quant_channel * sizeof(struct csi_quant_info);
         int t = memcmp(input->qinfo, output->qinfo, quant_size);
-        if (t == 0){
+        if (t == 0) {
             params->base.bc = csi_ref_flatten;
             return CSINN_TRUE;
         }
     }
-    params->base.bc = csi_ref_flatten_requant;
+    params->base.bc = csi_ref_flatten_quant;
     return CSINN_TRUE;
 }
 
-int csi_ref_flatten(struct csi_tensor *input,
-                    struct csi_tensor *output,
+int csi_ref_flatten(struct csi_tensor *input, struct csi_tensor *output,
                     struct flatten_params *params)
 {
     uint8_t *input_data = input->data;
@@ -53,9 +51,8 @@ int csi_ref_flatten(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_flatten_requant(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct flatten_params *params)
+int csi_ref_flatten_quant(struct csi_tensor *input, struct csi_tensor *output,
+                          struct flatten_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_flatten);
 }

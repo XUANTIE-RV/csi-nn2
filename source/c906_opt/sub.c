@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -61,6 +61,39 @@ int csi_c906_sub_f32(struct csi_tensor *input0,
     int in_size0 = csi_tensor_size(input0);
     int in_size1 = csi_tensor_size(input1);
     int out_size = csi_tensor_size(output);
+
+    // HACK: special case
+    // example: [1, 64, 55, 55] + [1, 64, 1, 1] = [1, 64, 55, 55]
+    if ((input1->dim[2] == 1) && (input1->dim[3] == 1) && (input1->dim[1] == input0->dim[1])) {
+        int inner_size = input0->dim[2] * input0->dim[3];
+        int outer_size = input0->dim[1];
+        asm volatile(
+            "1:\n\t"
+            "flw        ft0, 0(%2)\n\t"
+            "mv         t1, %4\n\t"
+            "2:\n\t"
+            "vsetvli    t0, t1, e32, m2\n\t"
+            "vle.v      v8, (%1)\n\t"
+            "sub        t1, t1, t0\n\t"
+            "slli       t0, t0, 2\n\t"  // element: 4 bytes
+            "add        %1, %1, t0\n\t"
+            "vfsub.vf   v16, v8, ft0\n\t"
+            "vse.v      v16, (%0)\n\t"
+            "add        %0, %0, t0\n\t"
+            "bnez       t1, 2b\n\t"
+            "addi       %3, %3, -1\n\t"
+            "addi       %2, %2, 4\n\t"
+            "bnez       %3, 1b\n\t"
+
+            : "=r"(output_data),  // %0
+              "=r"(input0_data),  // %1
+              "=r"(input1_data),  // %2
+              "=r"(outer_size),   // %3
+              "=r"(inner_size)    // %4
+            : "0"(output_data), "1"(input0_data), "2"(input1_data), "3"(outer_size), "4"(inner_size)
+            : "v8", "v9", "v16", "v17", "t0", "t1", "ft0");
+        return CSINN_TRUE;
+    }
 
     // example: [1, 3, 224, 224] + [1] = [1, 3, 224, 224]
     if (in_size1 == 1) {
@@ -182,6 +215,37 @@ int csi_c906_sub_fp16(struct csi_tensor *input0,
     int in_size0 = csi_tensor_size(input0);
     int in_size1 = csi_tensor_size(input1);
     int out_size = csi_tensor_size(output);
+
+    if ((input1->dim[2] == 1) && (input1->dim[3] == 1) && (input1->dim[1] == input0->dim[1])) {
+        int inner_size = input0->dim[2] * input0->dim[3];
+        int outer_size = input0->dim[1];
+        asm volatile(
+            "1:\n\t"
+            "flh        ft0, 0(%2)\n\t"
+            "mv         t1, %4\n\t"
+            "2:\n\t"
+            "vsetvli    t0, t1, e16, m2\n\t"
+            "vle.v      v8, (%1)\n\t"
+            "sub        t1, t1, t0\n\t"
+            "slli       t0, t0, 1\n\t"
+            "add        %1, %1, t0\n\t"
+            "vfsub.vf   v16, v8, ft0\n\t"
+            "vse.v      v16, (%0)\n\t"
+            "add        %0, %0, t0\n\t"
+            "bnez       t1, 2b\n\t"
+            "addi       %3, %3, -1\n\t"
+            "addi       %2, %2, 2\n\t"
+            "bnez       %3, 1b\n\t"
+
+            : "=r"(output_data),  // %0
+              "=r"(input0_data),  // %1
+              "=r"(input1_data),  // %2
+              "=r"(outer_size),   // %3
+              "=r"(inner_size)    // %4
+            : "0"(output_data), "1"(input0_data), "2"(input1_data), "3"(outer_size), "4"(inner_size)
+            : "v8", "v9", "v16", "v17", "t0", "t1", "ft0");
+        return CSINN_TRUE;
+    }
 
     if (in_size1 == 1) {
         asm volatile(

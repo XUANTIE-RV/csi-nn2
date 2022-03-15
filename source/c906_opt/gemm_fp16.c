@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -552,6 +552,92 @@ void csi_c906_reorder_input_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
          "t0", "t1", "t2", "t3", "t4", "t5", "t6", "s2", "s3"
     );
 }
+
+
+void csi_c906_reorder_input_fp16_1(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
+{
+    asm volatile(
+        "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
+
+        "slli           t2, %4, 1\n\t"      // t2 = ldx * 2 (line stride)
+
+        "srai           t0, %3, 3\n\t"  // t0 = n8
+        "beqz           t0, 3f\n\t"     // jump to packn_tail
+
+        "1:\n\t"    // n8
+            "mv             a0, %0\n\t"
+            "addi           %0, %0, 16\n\t"
+            "mv             t1, %2\n\t" // k
+
+            "2:\n\t"
+                // start packn8k1
+                "vle.v          v2, (a0)\n\t"
+                "add            a0, a0, t2\n\t"
+                "vse.v          v2, (%1)\n\t"
+                "addi           %1, %1, 16\n\t"
+
+                "addi           t1, t1, -1\n\t"
+                "bnez           t1, 2b\n\t"
+
+            "addi           t0, t0, -1\n\t"
+            "bnez           t0, 1b\n\t"
+
+        "3:\n\t"    // n_tail
+            "andi           t0, %3, 7\n\t"  // n & 7u
+            "beqz           t0, 8f\n\t"
+
+            "srai           t3, %2, 3\n\t"  // k8
+            "slli           t5, %4, 4\n\t"  // t5 = ldx * 8 * 2 (8 lines)
+            "andi           t6, %2, 7\n\t"  // k_tail
+            "slli           t4, t6, 1\n\t"  // k_tail * 2
+
+        "4:\n\t"
+            "mv             a0, %0\n\t"
+            "addi           %0, %0, 2\n\t"
+            "mv             t1, t3\n\t"     // t1 = k8
+            "beqz           t3, 6f\n\t"
+
+            "5:\n\t"
+                "vsetvli        zero, zero, e16, m1\n\t"
+                "vlse.v         v2, (a0), t2\n\t"
+                "add            a0, a0, t5\n\t"
+                "vse.v          v2, (%1)\n\t"
+                "addi           %1, %1, 16\n\t"
+
+                "addi           t1, t1, -1\n\t"
+                "bnez           t1, 5b\n\t"
+
+            "6:\n\t"
+                "vsetvli        zero, t6, e16, m1\n\t"
+                "vlse.v         v2, (a0), t2\n\t"
+                "vse.v          v2, (%1)\n\t"
+                "add            %1, %1, t4\n\t"
+
+        "7:\n\t"
+            "addi           t0, t0, -1\n\t"
+            "bnez           t0, 4b\n\t"
+
+
+        "8:\n\t"    // ending
+
+
+        :"=r"(b),   // %0
+        "=r"(sb),   // %1
+        "=r"(k),    // %2
+        "=r"(n),    // %3
+        "=r"(ldx)   // %4
+        :"0"(b),
+        "1"(sb),
+        "2"(k),
+        "3"(n),
+        "4"(ldx)
+        :"v0", "v2", "a0",
+         "t0", "t1", "t2", "t3", "t4", "t5", "t6"
+    );
+
+}
+
+
 
 /*
     (1) Algorithm works as follows:
@@ -3351,6 +3437,259 @@ static void kernel_m8_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, in
 }
 
 
+static void kernel_m8_fp16_1(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+{
+    asm volatile(
+        "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
+
+        "flh            fs0, 0(%2)\n\t"
+        "flh            fs1, 2(%2)\n\t"
+        "flh            fs2, 4(%2)\n\t"
+        "flh            fs3, 6(%2)\n\t"
+        "flh            fs4, 8(%2)\n\t"
+        "flh            fs5, 10(%2)\n\t"
+        "flh            fs6, 12(%2)\n\t"
+        "flh            fs7, 14(%2)\n\t"    // load 8 bias_data for 8 out_channels
+
+        // init output addr
+        "slli           t5, %6, 1\n\t"      // t5_tmp = ldx * 2
+        "mv             a0, %3\n\t"
+        "add            a1, a0, t5\n\t"
+        "add            a2, a1, t5\n\t"
+        "add            a3, a2, t5\n\t"
+        "add            a4, a3, t5\n\t"
+        "add            a5, a4, t5\n\t"
+        "add            a6, a5, t5\n\t"
+        "add            a7, a6, t5\n\t"
+
+        "srai           t0, %5, 3\n\t"  // t0 = n >> 3 (n8)
+        "beqz           t0, 7f\n\t"     // jump to m8n4
+
+    "1:\n\t"    // m8n8
+        // start kernel_m8n8
+        "vfmv.v.f       v24, fs0\n\t"
+        "vfmv.v.f       v25, fs1\n\t"
+        "vfmv.v.f       v26, fs2\n\t"
+        "vfmv.v.f       v27, fs3\n\t"
+        "vfmv.v.f       v28, fs4\n\t"
+        "vfmv.v.f       v29, fs5\n\t"
+        "vfmv.v.f       v30, fs6\n\t"
+        "vfmv.v.f       v31, fs7\n\t"   // init out_tmp = bias
+
+        "mv             t6, %0\n\t"     // t6 hold kernel 8 lines start addr
+        "mv             t5, %4\n\t"     // t5 = k (k > 0)
+
+        "2:\n\t"
+            // start subkernel_m8n8k1
+            "vle.v          v1, (%1)\n\t"
+            "addi           %1, %1, 16\n\t"
+            "flh            fa0, 0(t6)\n\t"
+            "flh            fa1, 2(t6)\n\t"
+            "flh            fa2, 4(t6)\n\t"
+            "flh            fa3, 6(t6)\n\t"
+            "flh            fa4, 8(t6)\n\t"
+            "flh            fa5, 10(t6)\n\t"
+            "flh            fa6, 12(t6)\n\t"
+            "flh            fa7, 14(t6)\n\t"
+            "addi           t6, t6, 16\n\t"
+
+            "vfmacc.vf      v24, fa0, v1\n\t"
+            "vfmacc.vf      v25, fa1, v1\n\t"
+            "vfmacc.vf      v26, fa2, v1\n\t"
+            "vfmacc.vf      v27, fa3, v1\n\t"
+            "vfmacc.vf      v28, fa4, v1\n\t"
+            "vfmacc.vf      v29, fa5, v1\n\t"
+            "vfmacc.vf      v30, fa6, v1\n\t"
+            "vfmacc.vf      v31, fa7, v1\n\t"   // 0
+
+            "addi           t5, t5, -1\n\t"
+            "bnez           t5, 2b\n\t"
+
+    "6:\n\t" // end kernel_m8n8
+
+        "vse.v          v24, (a0)\n\t"
+        "addi           a0, a0, 16\n\t"
+        "vse.v          v25, (a1)\n\t"
+        "addi           a1, a1, 16\n\t"
+        "vse.v          v26, (a2)\n\t"
+        "addi           a2, a2, 16\n\t"
+        "vse.v          v27, (a3)\n\t"
+        "addi           a3, a3, 16\n\t"
+        "vse.v          v28, (a4)\n\t"
+        "addi           a4, a4, 16\n\t"
+        "vse.v          v29, (a5)\n\t"
+        "addi           a5, a5, 16\n\t"
+        "vse.v          v30, (a6)\n\t"
+        "addi           a6, a6, 16\n\t"
+        "vse.v          v31, (a7)\n\t"
+        "addi           a7, a7, 16\n\t"     // store output
+
+        "addi           t0, t0, -1\n\t"
+        "bnez           t0, 1b\n\t"
+
+
+    "7:\n\t"    // m8n4
+        "andi           t0, %5, 7\n\t"  // n & 7
+        "srai           t0, t0, 2\n\t"  // (n & 7) >> 2
+        "beqz           t0, 13f\n\t"    // jump to m8n2
+        // start kernel_m8n4
+
+        "vle.v          v28, (%2)\n\t"  // v28[0..7] = bias_data[0..7]
+        "vle.v          v29, (%2)\n\t"
+        "vle.v          v30, (%2)\n\t"
+        "vle.v          v31, (%2)\n\t"  // init out_tmp = bias
+
+        // init addr for pa, pb and pc
+        "slli           t0, %4, 1\n\t"  // t0_tmp = k * 2
+
+        "mv             t6, %0\n\t"     // t6 hold pa(kernel) 8 lines start addr
+
+        "mv             a4, %1\n\t"
+        "add            a5, a4, t0\n\t"
+        "add            a6, a5, t0\n\t"
+        "add            a7, a6, t0\n\t" // a4-a7 hold pb(input) 4 cols addr
+
+        "addi           a1, a0, 2\n\t"
+        "addi           a2, a1, 2\n\t"
+        "addi           a3, a2, 2\n\t"  // a0-a3 hold pc(output) addr
+
+        "mv             t5, %4\n\t"     // t5 = k
+
+        "8:\n\t"
+            // start subkernel_m8n4k1
+            "vle.v          v1, (t6)\n\t"   // load pa for next
+            "addi           t6, t6, 16\n\t"
+            "flh            fa0, 0(a4)\n\t"
+            "vfmacc.vf      v28, fa0, v1\n\t"
+            "flh            fa1, 0(a5)\n\t"
+            "vfmacc.vf      v29, fa1, v1\n\t"
+            "flh            fa2, 0(a6)\n\t"
+            "vfmacc.vf      v30, fa2, v1\n\t"
+            "flh            fa3, 0(a7)\n\t"
+            "vfmacc.vf      v31, fa3, v1\n\t"   // 0
+
+            "addi           a4, a4, 2\n\t"
+            "addi           a5, a5, 2\n\t"
+            "addi           a6, a6, 2\n\t"
+            "addi           a7, a7, 2\n\t"
+
+            "addi           t5, t5, -1\n\t"
+            "bnez           t5, 8b\n\t"
+
+    "12:\n\t"   // end kernel_m8n4
+        "slli           t0, %6, 1\n\t"      // t0_tmp = ldx * 2 (store_stride)
+
+        "vsse.v         v28, (a0), t0\n\t"
+        "vsse.v         v29, (a1), t0\n\t"
+        "vsse.v         v30, (a2), t0\n\t"
+        "vsse.v         v31, (a3), t0\n\t"
+
+        "addi           a0, a0, 8\n\t"      // updata output start addr ( +4 cols)
+        "slli           t0, %4, 3\n\t"      // t_tmp = k * 4 * 2
+        "add            %1, %1, t0\n\t"     // updata pb start addr
+
+    "13:\n\t" // m8n2
+        "andi           t0, %5, 3\n\t"  // n & 3
+        "srai           t0, t0, 1\n\t"  // (n & 3) >> 1
+        "beqz           t0, 19f\n\t"    // jump to m8n1
+        // start kernel_m8n2
+
+        "vle.v          v28, (%2)\n\t"  // v28[0..7] = bias[0..7]
+        "vle.v          v29, (%2)\n\t"  // init out_tmp = bias
+
+        // init addr for pa, pb and pc
+        "slli           t0, %4, 1\n\t"  // t_tmp = k * 2
+
+        "mv             t6, %0\n\t"     // t6 hold pa(kernel) 8 lines start addr
+
+        "mv             a4, %1\n\t"
+        "add            a5, a4, t0\n\t" // a4-a5 hold pb(input) 2 cols addr
+
+        "addi           a1, a0, 2\n\t"  // a0-a1 hold pc(output) addr
+
+        "mv             t5, %4\n\t"     // t5 = k
+
+        "14:\n\t"
+            // start subkernel_m8n2k8
+            "vle.v          v1, (t6)\n\t"
+            "addi           t6, t6, 16\n\t"
+            "flh            fa0, 0(a4)\n\t"
+            "vfmacc.vf      v28, fa0, v1\n\t"
+            "flh            fa1, 0(a5)\n\t"
+            "vfmacc.vf      v29, fa1, v1\n\t"   // 0
+
+            "addi           a4, a4, 2\n\t"
+            "addi           a5, a5, 2\n\t"
+
+            "addi           t5, t5, -1\n\t"
+            "bnez           t5, 14b\n\t"
+
+    "18:\n\t" // end kernel_m8n2
+        "slli           t0, %6, 1\n\t"      // t0_tmp = ldx * 2 (store_stride)
+
+        "vsse.v         v28, (a0), t0\n\t"
+        "vsse.v         v29, (a1), t0\n\t"
+
+        "addi           a0, a0, 4\n\t"      // updata output start addr ( +2 cols)
+        "slli           t0, %4, 2\n\t"      // t_tmp = k * 2 * 2
+        "add            %1, %1, t0\n\t"     // updata pb start addr (+2 cols)
+
+    "19:\n\t" // m8n1
+        "andi           t0, %5, 1\n\t"  // n & 1
+        "beqz           t0, 25f\n\t"    // jump to ending
+        // start kernel_m8n1
+
+        "vle.v          v28, (%2)\n\t"  // init out_tmp = bias
+
+        // init addr for pa, pb and pc
+        "mv             t6, %0\n\t"     // t6 hold pa(kernel) 8 lines start addr
+        "mv             a4, %1\n\t"     // a4 hold pb(input) 1 cols addr
+                                        // a0 hold pc(output) addr
+
+        "mv             t5, %4\n\t"     // t5 = k
+
+        "20:\n\t"
+            // start subkernel_m8n1k8
+            "vle.v          v1, (t6)\n\t"
+            "addi           t6, t6, 16\n\t"
+            "flh            fa0, 0(a4)\n\t"
+            "vfmacc.vf      v28, fa0, v1\n\t"   // 0
+
+            "addi           a4, a4, 2\n\t"
+
+            "addi           t5, t5, -1\n\t"
+            "bnez           t5, 20b\n\t"
+
+    "24:\n\t"   // end kernel_m8n1
+        "slli           t0, %6, 1\n\t"      // t0_tmp = ldx * 2 (store_stride)
+
+        "vsse.v         v28, (a0), t0\n\t"
+
+    "25:\n\t"   // ending
+
+
+    :"=r"(sa),  // %0
+    "=r"(sb),   // %1
+    "=r"(bias), // %2
+    "=r"(dst),  // %3
+    "=r"(k),    // %4
+    "=r"(n),    // %5
+    "=r"(ldc)   // %6
+    :"0"(sa),
+    "1"(sb),
+    "2"(bias),
+    "3"(dst),
+    "4"(k),
+    "5"(n),
+    "6"(ldc)
+    :"v1", "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
+     "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "t0", "t5", "t6",
+     "fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", "fs0", "fs1", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7"
+    );
+
+}
+
+
 void csi_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
 {
     __fp16* pa = (__fp16 *)sa;
@@ -3367,7 +3706,7 @@ void csi_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb,
     const int mm = (m >> 3) << 3;
 
     for (int i = 0; i < mm; i += 8) {
-        kernel_m8_fp16(pc + i * ldc, pa + i * k, pb, m, k, n, ldc, bias_tmp + i);
+        kernel_m8_fp16_1(pc + i * ldc, pa + i * k, pb, m, k, n, ldc, bias_tmp + i);
     }
 
     pa += mm * k;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
 /* logsoftmax = logits - log(reduce_sum(exp(logits), axis)) */
-int csi_ref_log_softmax_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
+int csi_ref_log_softmax_f32(struct csi_tensor *input, struct csi_tensor *output,
                             struct softmax_params *params)
 {
     // now only support 2D input
@@ -32,31 +31,32 @@ int csi_ref_log_softmax_f32(struct csi_tensor *input,
     float *output_data = (float *)output->data;
 
     int in_size = 1, out_size = 1;
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         in_size *= input->dim[i];
     }
     out_size = in_size;
     int input_outer_size = 1;
-    for(int i = 0; i < params->axis; i++) {
+    for (int i = 0; i < params->axis; i++) {
         input_outer_size *= input->dim[i];
     }
     int input_inner_size = 1;
-    for(int i = params->axis + 1; i < input->dim_count; i++) {
+    for (int i = params->axis + 1; i < input->dim_count; i++) {
         input_inner_size *= input->dim[i];
     }
     int axis_dim = input->dim[params->axis];
 
-    for(int i = 0; i < input_outer_size; i++) {
-        for(int k = 0; k < input_inner_size; k++) {
+    for (int i = 0; i < input_outer_size; i++) {
+        for (int k = 0; k < input_inner_size; k++) {
             float acc = 0.0f;
             float input_val = 0.0f;
-            for(int j = 0; j < axis_dim; j++) {
+            for (int j = 0; j < axis_dim; j++) {
                 input_val = *(input_data + j * input_inner_size + k);
                 acc += exp(input_val);
             }
             acc = log(acc);
-            for(int j = 0; j < axis_dim; j++) {
-                *(output_data + j * input_inner_size + k) = *(input_data + j * input_inner_size + k) - acc;
+            for (int j = 0; j < axis_dim; j++) {
+                *(output_data + j * input_inner_size + k) =
+                    *(input_data + j * input_inner_size + k) - acc;
             }
         }
         input_data += input_inner_size * axis_dim;
@@ -65,8 +65,7 @@ int csi_ref_log_softmax_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_log_softmax_quant(struct csi_tensor *input,
-                              struct csi_tensor *output,
+int csi_ref_log_softmax_quant(struct csi_tensor *input, struct csi_tensor *output,
                               struct softmax_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_log_softmax_f32);

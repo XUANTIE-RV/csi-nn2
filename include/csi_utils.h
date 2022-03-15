@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,46 +16,34 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
-#ifndef _CSI_NN_UTIL_H
-#define _CSI_NN_UTIL_H
+#ifndef INCLUDE_CSI_UTILS_H_
+#define INCLUDE_CSI_UTILS_H_
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
 #include <assert.h>
 #include <float.h>
-#if ((!defined CSI_BUILD_I805) && (!defined CSI_BUILD_E804) && (!defined CSI_BUILD_REF_I805))
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#if (!defined CSI_BUILD_RTOS)
 #include <omp.h>
 #endif
 #include "csi_internal.h"
 
-struct csi_session {
-    int32_t base_dtype;
-    int32_t base_layout;
-    int32_t base_api;
-    int32_t base_run_mode;
-    enum csinn_quant_enum base_quant_type;
-    char *model_name;
-    int32_t model_save;
-    int32_t debug_level;
-    int32_t input_num;
-    int32_t output_num;
-    struct csi_tensor **input;
-    struct csi_tensor **output;
-    void *td;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* misc */
 void csi_get_top5(float *buf, uint32_t size, float *prob, uint32_t *cls);
 void csi_show_top5(struct csi_tensor *output, struct csi_session *sess);
 uint64_t csi_get_timespec();
+void csi_print_time_interval(uint64_t start, uint64_t end, const char *msg);
 void csi_statistical_mean_std(float *data, int sz);
-void csi_quantize_multiplier(double double_multiplier, int32_t* quantized_multiplier, int* shift);
-
+void csi_quantize_multiplier(double double_multiplier, int32_t *quantized_multiplier, int *shift);
 
 /* tensor */
 int csi_tensor_size(struct csi_tensor *tensor);
@@ -95,8 +83,7 @@ int csi_set_tensor_entry(struct csi_tensor *tensor, struct csi_session *sess);
 /*
  * model setup and run
  */
-void csi_nn_init(struct csi_tensor *input,
-                 struct csi_tensor *output);
+void csi_nn_init(struct csi_tensor *input, struct csi_tensor *output);
 
 void csi_nn_setup(void *td);
 
@@ -104,11 +91,18 @@ void csi_nn_run(void *td);
 
 void csi_nn_postprocess(void *td);
 
-void csi_nn_deinit(struct csi_tensor *input,
-                   struct csi_tensor *output);
+void csi_nn_deinit(struct csi_tensor *input, struct csi_tensor *output);
 
 void *csi_nn_presetup(int input, int output);
 void *csi_bc_map(int api, int rmode, int op, int dtype);
 void *csi_init_map(int api, int op, int dtype);
+
+struct csi_bc_op_list *csi_bc_list_end(struct csi_bc_op_list *list);
+void *csi_bc_list_match(struct csi_bc_op_list *list, enum csinn_dtype_enum dtype,
+                        enum csinn_op_enum op_name);
+
+#ifdef __cplusplus
+}
 #endif
 
+#endif  // INCLUDE_CSI_UTILS_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -50,7 +50,7 @@ int csi_ref_split_f32(struct csi_tensor *input, struct csi_tensor **output,
             s_index = params->split_index[i - 1];
         }
 
-        float* output_i_data = output[i]->data;
+        float *output_i_data = output[i]->data;
 
         for (int out = 0; out < out_size; out++) {
             int in_index = out * input->dim[params->axis] * inner_size + s_index * inner_size;
@@ -59,25 +59,21 @@ int csi_ref_split_f32(struct csi_tensor *input, struct csi_tensor **output,
         }
     }
 
-
     return CSINN_TRUE;
 }
 
-
-
-int csi_ref_split_quant(struct csi_tensor *input,
-                        struct csi_tensor **output,
+int csi_ref_split_quant(struct csi_tensor *input, struct csi_tensor **output,
                         struct split_params *params)
 {
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
 
     struct csi_tensor *foutput[params->output_num];
-    for (int i = 0; i < params->output_num; i++){
+    for (int i = 0; i < params->output_num; i++) {
         foutput[i] = csi_ref_tensor_transform_f32(output[i]);
     }
     int ret = csi_ref_split_f32(finput, foutput, params);
 
-    for (int i = 0; i < params->output_num; i++){
+    for (int i = 0; i < params->output_num; i++) {
         csi_tensor_data_convert(output[i], foutput[i]);
         csi_ref_tensor_transform_free_f32(foutput[i]);
     }

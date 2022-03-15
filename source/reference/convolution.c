@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #ifdef CSI_AVX_OPT
-#include "conv_avx.c"
+#include "conv_avx.h"
 #endif
 
-/* reference https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/reference/conv.h */
+/* reference
+ * https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/reference/conv.h
+ */
 
-static int csi_ref_conv2d_nhwc_f32(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
+static int csi_ref_conv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                   struct csi_tensor *kernel, struct csi_tensor *bias,
                                    struct conv2d_params *params)
 {
-    float *input_data  = input->data;
+    float *input_data = input->data;
     float *output_data = output->data;
     float *kernel_data = kernel->data;
-    float *bias_data   = bias->data;
+    float *bias_data = bias->data;
     const int32_t dilation_width_factor = params->dilation_width;
     const int32_t dilation_height_factor = params->dilation_height;
 
@@ -59,13 +59,14 @@ static int csi_ref_conv2d_nhwc_f32(struct csi_tensor *input,
                         for (int32_t filter_x = 0; filter_x < filter_width; ++filter_x) {
                             for (int32_t in_channel = 0; in_channel < input_depth; ++in_channel) {
                                 const int32_t in_x = in_x_origin + dilation_width_factor * filter_x;
-                                const int32_t in_y = in_y_origin + dilation_height_factor * filter_y;
+                                const int32_t in_y =
+                                    in_y_origin + dilation_height_factor * filter_y;
                                 // If the location is outside the bounds of the input image,
                                 // use zero as a default value.
                                 if ((in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
                                     (in_y < input_height)) {
-                                    int32_t input_index =
-                                        csi_ref_get_index(input->dim, batch, in_y, in_x, in_channel);
+                                    int32_t input_index = csi_ref_get_index(input->dim, batch, in_y,
+                                                                            in_x, in_channel);
                                     float input_val = input_data[input_index];
                                     int32_t filter_index = csi_ref_get_index(
                                         kernel->dim, out_channel, filter_y, filter_x, in_channel);
@@ -79,7 +80,8 @@ static int csi_ref_conv2d_nhwc_f32(struct csi_tensor *input,
                     if (bias_data && bias->dim_count != 0) {
                         bias_value = bias_data[out_channel];
                     }
-                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, out_channel)] = acc + bias_value;
+                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, out_channel)] =
+                        acc + bias_value;
                 }
             }
         }
@@ -88,10 +90,8 @@ static int csi_ref_conv2d_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
+static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                   struct csi_tensor *kernel, struct csi_tensor *bias,
                                    struct conv2d_params *params)
 {
 #ifdef CSI_AVX_OPT
@@ -101,8 +101,8 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
     int32_t pad_a[4] = {0, 0, params->pad_down, params->pad_right};
     t_input->dim[2] = input->dim[2] + params->pad_top + params->pad_down;
     t_input->dim[3] = input->dim[3] + params->pad_left + params->pad_right;
-    t_input->data = csi_mem_alloc(t_input->dim[0] * t_input->dim[1] *
-                           t_input->dim[2] * t_input->dim[3] * 4);
+    t_input->data =
+        csi_mem_alloc(t_input->dim[0] * t_input->dim[1] * t_input->dim[2] * t_input->dim[3] * 4);
     struct pad_params pparams;
     pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
@@ -118,18 +118,17 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
 
     struct csi_tensor *t_kernel = csi_alloc_tensor(NULL);
     conv_trans_kernel_avx(kernel, t_kernel);
-    conv_im2col_sgemm_avx(t_input, output, t_kernel, bias,
-                          kernel->dim[3], kernel->dim[2],
+    conv_im2col_sgemm_avx(t_input, output, t_kernel, bias, kernel->dim[3], kernel->dim[2],
                           params->stride_width, params->stride_height);
 
     csi_mem_free(t_input->data);
     csi_mem_free(t_kernel->data);
 #else
-    struct csi_tensor* t_input;
-    struct csi_tensor* t_output;
-    struct csi_tensor* t_kernel;
-    struct csi_tensor* t_bias = bias;
-    t_input =  csi_ref_nchw_to_nhwc_f32(input);
+    struct csi_tensor *t_input;
+    struct csi_tensor *t_output;
+    struct csi_tensor *t_kernel;
+    struct csi_tensor *t_bias = bias;
+    t_input = csi_ref_nchw_to_nhwc_f32(input);
     t_kernel = csi_ref_nchw_to_nhwc_f32(kernel);
     t_output = csi_ref_nchw_to_nhwc_f32(output);
     csi_ref_conv2d_nhwc_f32(t_input, t_output, t_kernel, t_bias, params);
@@ -143,10 +142,8 @@ static int csi_ref_conv2d_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_depthwise_conv2d_nhwc_f32(struct csi_tensor *input,
-                                             struct csi_tensor *output,
-                                             struct csi_tensor *kernel,
-                                             struct csi_tensor *bias,
+static int csi_ref_depthwise_conv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                             struct csi_tensor *kernel, struct csi_tensor *bias,
                                              struct conv2d_params *params)
 {
     float *input_data = input->data;
@@ -166,7 +163,8 @@ static int csi_ref_depthwise_conv2d_nhwc_f32(struct csi_tensor *input,
     const int32_t output_width = output->dim[2];
     const int32_t depth_multiplier = output_depth / input_depth;
 
-    assert(input_depth * depth_multiplier == output_depth);    // The input and output channels are equal for dw convolution
+    assert(input_depth * depth_multiplier ==
+           output_depth);  // The input and output channels are equal for dw convolution
 
     for (int32_t b = 0; b < batches; ++b) {
         for (int32_t out_y = 0; out_y < output_height; ++out_y) {
@@ -174,19 +172,22 @@ static int csi_ref_depthwise_conv2d_nhwc_f32(struct csi_tensor *input,
                 for (int32_t ic = 0; ic < input_depth; ++ic) {
                     for (int32_t m = 0; m < depth_multiplier; m++) {
                         const int32_t oc = m + ic * depth_multiplier;
-                        const int32_t in_x_origin = (out_x * params->stride_width) - params->pad_left;
-                        const int32_t in_y_origin = (out_y * params->stride_height) - params->pad_top;
+                        const int32_t in_x_origin =
+                            (out_x * params->stride_width) - params->pad_left;
+                        const int32_t in_y_origin =
+                            (out_y * params->stride_height) - params->pad_top;
                         float acc = 0;
                         for (int32_t filter_y = 0; filter_y < filter_height; ++filter_y) {
                             for (int32_t filter_x = 0; filter_x < filter_width; ++filter_x) {
                                 const int32_t in_x = in_x_origin + dilation_width_factor * filter_x;
-                                const int32_t in_y = in_y_origin + dilation_height_factor * filter_y;
+                                const int32_t in_y =
+                                    in_y_origin + dilation_height_factor * filter_y;
                                 // If the location is outside the bounds of the input image,
                                 // use zero as a default value.
                                 if ((in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
                                     (in_y < input_height)) {
-                                    float input_val =
-                                        input_data[csi_ref_get_index(input->dim, b, in_y, in_x, ic)];
+                                    float input_val = input_data[csi_ref_get_index(input->dim, b,
+                                                                                   in_y, in_x, ic)];
                                     float filter_val = kernel_data[csi_ref_get_index(
                                         kernel->dim, 0, filter_y, filter_x, oc)];
                                     acc += (filter_val) * (input_val);
@@ -205,10 +206,8 @@ static int csi_ref_depthwise_conv2d_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_depthwise_conv2d_nchw_f32(struct csi_tensor *input,
-                                             struct csi_tensor *output,
-                                             struct csi_tensor *kernel,
-                                             struct csi_tensor *bias,
+static int csi_ref_depthwise_conv2d_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                             struct csi_tensor *kernel, struct csi_tensor *bias,
                                              struct conv2d_params *params)
 {
     float *input_data = (float *)input->data;
@@ -228,7 +227,8 @@ static int csi_ref_depthwise_conv2d_nchw_f32(struct csi_tensor *input,
     const int32_t output_height = output->dim[2];
     const int32_t output_width = output->dim[3];
     const int32_t depth_multiplier = output_depth / input_depth;
-    assert(input_depth * depth_multiplier == output_depth);    // The input and output channels are equal for dw convolution
+    assert(input_depth * depth_multiplier ==
+           output_depth);  // The input and output channels are equal for dw convolution
 
     for (int32_t b = 0; b < batches; ++b) {
         for (int32_t ic = 0; ic < input_depth; ++ic) {
@@ -236,19 +236,22 @@ static int csi_ref_depthwise_conv2d_nchw_f32(struct csi_tensor *input,
                 for (int32_t out_x = 0; out_x < output_width; ++out_x) {
                     for (int32_t m = 0; m < depth_multiplier; m++) {
                         const int32_t oc = m + ic * depth_multiplier;
-                        const int32_t in_x_origin = (out_x * params->stride_width) - params->pad_left;
-                        const int32_t in_y_origin = (out_y * params->stride_height) - params->pad_top;
+                        const int32_t in_x_origin =
+                            (out_x * params->stride_width) - params->pad_left;
+                        const int32_t in_y_origin =
+                            (out_y * params->stride_height) - params->pad_top;
                         float acc = 0;
                         for (int32_t filter_y = 0; filter_y < filter_height; ++filter_y) {
                             for (int32_t filter_x = 0; filter_x < filter_width; ++filter_x) {
                                 const int32_t in_x = in_x_origin + dilation_width_factor * filter_x;
-                                const int32_t in_y = in_y_origin + dilation_height_factor * filter_y;
+                                const int32_t in_y =
+                                    in_y_origin + dilation_height_factor * filter_y;
                                 // If the location is outside the bounds of the input image,
                                 // use zero as a default value.
                                 if ((in_x >= 0) && (in_x < input_width) && (in_y >= 0) &&
                                     (in_y < input_height)) {
-                                    float input_val =
-                                        input_data[csi_ref_get_index(input->dim, b, ic, in_y, in_x)];
+                                    float input_val = input_data[csi_ref_get_index(input->dim, b,
+                                                                                   ic, in_y, in_x)];
                                     float filter_val = kernel_data[csi_ref_get_index(
                                         kernel->dim, oc, 0, filter_y, filter_x)];
                                     acc += (filter_val) * (input_val);
@@ -264,13 +267,10 @@ static int csi_ref_depthwise_conv2d_nchw_f32(struct csi_tensor *input,
             }
         }
     }
-
 }
 
-static int csi_ref_group_conv2d_nhwc_f32(struct csi_tensor *o_input,
-                                         struct csi_tensor *o_output,
-                                         struct csi_tensor *o_kernel,
-                                         struct csi_tensor *o_bias,
+static int csi_ref_group_conv2d_nhwc_f32(struct csi_tensor *o_input, struct csi_tensor *o_output,
+                                         struct csi_tensor *o_kernel, struct csi_tensor *o_bias,
                                          struct conv2d_params *params)
 {
     struct csi_tensor *input = csi_alloc_tensor(NULL);
@@ -307,10 +307,8 @@ static int csi_ref_group_conv2d_nhwc_f32(struct csi_tensor *o_input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_group_conv2d_nchw_f32(struct csi_tensor *o_input,
-                                         struct csi_tensor *o_output,
-                                         struct csi_tensor *o_kernel,
-                                         struct csi_tensor *o_bias,
+static int csi_ref_group_conv2d_nchw_f32(struct csi_tensor *o_input, struct csi_tensor *o_output,
+                                         struct csi_tensor *o_kernel, struct csi_tensor *o_bias,
                                          struct conv2d_params *params)
 {
     struct csi_tensor *input = csi_alloc_tensor(NULL);
@@ -347,10 +345,8 @@ static int csi_ref_group_conv2d_nchw_f32(struct csi_tensor *o_input,
     return CSINN_TRUE;
 }
 
-int csi_ref_conv2d_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct csi_tensor *kernel,
-                       struct csi_tensor *bias,
+int csi_ref_conv2d_f32(struct csi_tensor *input, struct csi_tensor *output,
+                       struct csi_tensor *kernel, struct csi_tensor *bias,
                        struct conv2d_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NHWC) {
@@ -362,19 +358,40 @@ int csi_ref_conv2d_f32(struct csi_tensor *input,
     }
 }
 
-int csi_ref_conv2d_quant(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct csi_tensor *kernel,
-                         struct csi_tensor *bias,
+int csi_ref_conv2d_quant(struct csi_tensor *input, struct csi_tensor *output,
+                         struct csi_tensor *kernel, struct csi_tensor *bias,
                          struct conv2d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_conv2d_f32);
+    int ret;
+    if (params->conv_extra.fuse_zp2bias) {
+        struct csi_tensor *tmp_bias = csi_ref_tensor_transform_f32(bias);
+        struct csi_tensor *tmp_kernel = csi_ref_tensor_transform_f32(kernel);
+        float *tmp_bias_data = tmp_bias->data;
+        float *tmp_kernel_data = tmp_kernel->data;
+
+        int k_len = kernel->dim[0];
+        int k_inner = csi_tensor_size(kernel) / k_len;
+        float sp = input->qinfo->scale * input->qinfo->zero_point;
+        for (int i = 0; i < k_len; i++) {
+            float t_k = 0;
+            for (int j = 0; j < k_inner; j++) {
+                int k_idx = i * k_inner + j;
+                t_k += tmp_kernel_data[k_idx] * sp;
+            }
+            tmp_bias_data[i] += t_k;
+        }
+        csi_ref_tensor_transform_free_f32(tmp_kernel);
+        ret =
+            csi_ref_conv_callback_base(input, output, kernel, tmp_bias, params, csi_ref_conv2d_f32);
+        csi_ref_tensor_transform_free_f32(tmp_bias);
+    } else {
+        ret = csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_conv2d_f32);
+    }
+    return ret;
 }
 
-int csi_ref_depthwise_conv2d_f32(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *kernel,
-                                 struct csi_tensor *bias,
+int csi_ref_depthwise_conv2d_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                 struct csi_tensor *kernel, struct csi_tensor *bias,
                                  struct conv2d_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NHWC) {
@@ -386,19 +403,54 @@ int csi_ref_depthwise_conv2d_f32(struct csi_tensor *input,
     }
 }
 
-int csi_ref_depthwise_conv2d_quant(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
+int csi_ref_depthwise_conv2d_quant(struct csi_tensor *input, struct csi_tensor *output,
+                                   struct csi_tensor *kernel, struct csi_tensor *bias,
                                    struct conv2d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_depthwise_conv2d_f32);
+    int ret;
+    if (params->conv_extra.fuse_zp2bias) {
+        struct csi_tensor *tmp_bias = csi_ref_tensor_transform_f32(bias);
+        struct csi_tensor *tmp_kernel = csi_ref_tensor_transform_f32(kernel);
+        float *tmp_bias_data = tmp_bias->data;
+        float *tmp_kernel_data = tmp_kernel->data;
+        if (params->base.layout == CSINN_LAYOUT_NCHW) {
+            int k_len = kernel->dim[0];
+            int k_inner = csi_tensor_size(kernel) / k_len;
+            float sp = input->qinfo->scale * input->qinfo->zero_point;
+            for (int i = 0; i < k_len; i++) {
+                float t_k = tmp_bias_data[i];
+                for (int j = 0; j < k_inner; j++) {
+                    int k_idx = i * k_inner + j;
+                    t_k += tmp_kernel_data[k_idx] * sp;
+                }
+                tmp_bias_data[i] = t_k;
+            }
+        } else {
+            int k_len = kernel->dim[3];
+            int k_outer = csi_tensor_size(kernel) / k_len;
+            float sp = input->qinfo->scale * input->qinfo->zero_point;
+            for (int i = 0; i < k_len; i++) {
+                float t_k = tmp_bias_data[i];
+                for (int j = 0; j < k_outer; j++) {
+                    int k_idx = j * k_len + i;
+                    t_k += tmp_kernel_data[k_idx] * sp;
+                }
+                tmp_bias_data[i] = t_k;
+            }
+        }
+        csi_ref_tensor_transform_free_f32(tmp_kernel);
+        ret = csi_ref_conv_callback_base(input, output, kernel, tmp_bias, params,
+                                         csi_ref_depthwise_conv2d_f32);
+        csi_ref_tensor_transform_free_f32(tmp_bias);
+    } else {
+        ret = csi_ref_conv_callback_base(input, output, kernel, bias, params,
+                                         csi_ref_depthwise_conv2d_f32);
+    }
+    return ret;
 }
 
-int csi_ref_group_conv2d_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct csi_tensor *kernel,
-                             struct csi_tensor *bias,
+int csi_ref_group_conv2d_f32(struct csi_tensor *input, struct csi_tensor *output,
+                             struct csi_tensor *kernel, struct csi_tensor *bias,
                              struct conv2d_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NHWC) {
@@ -410,12 +462,36 @@ int csi_ref_group_conv2d_f32(struct csi_tensor *input,
     }
 }
 
-int csi_ref_group_conv2d_quant(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct csi_tensor *kernel,
-                               struct csi_tensor *bias,
+int csi_ref_group_conv2d_quant(struct csi_tensor *input, struct csi_tensor *output,
+                               struct csi_tensor *kernel, struct csi_tensor *bias,
                                struct conv2d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_group_conv2d_f32);
-}
+    int ret;
+    if (params->conv_extra.fuse_zp2bias) {
+        struct csi_tensor *tmp_bias = csi_ref_tensor_transform_f32(bias);
+        struct csi_tensor *tmp_kernel = csi_ref_tensor_transform_f32(kernel);
+        float *tmp_bias_data = tmp_bias->data;
+        float *tmp_kernel_data = tmp_kernel->data;
 
+        int k_len = kernel->dim[0];
+        int k_inner = csi_tensor_size(kernel) / k_len;
+        float sp = input->qinfo->scale * input->qinfo->zero_point;
+        for (int i = 0; i < k_len; i++) {
+            float t_k = 0;
+            for (int j = 0; j < k_inner; j++) {
+                int k_idx = i * k_inner + j;
+                t_k += tmp_kernel_data[k_idx] * sp;
+            }
+            tmp_bias_data[i] += t_k;
+        }
+        csi_ref_tensor_transform_free_f32(tmp_kernel);
+        ret = csi_ref_conv_callback_base(input, output, kernel, tmp_bias, params,
+                                         csi_ref_group_conv2d_f32);
+        csi_ref_tensor_transform_free_f32(tmp_bias);
+    } else {
+        ret = csi_ref_conv_callback_base(input, output, kernel, bias, params,
+                                         csi_ref_group_conv2d_f32);
+    }
+
+    return ret;
+}

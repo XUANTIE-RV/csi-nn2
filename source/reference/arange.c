@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,22 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_arange_f32(struct csi_tensor *output,
-                       struct arange_params *params)
+int csi_ref_arange_f32(struct csi_tensor *output, struct arange_params *params)
 {
-    float_t * data = output->data;
+    float *data = output->data;
     int j = 0;
     float i = params->start;
     while (1) {
         if (params->step > FLT_EPSILON) {
-            if (i - params->stop > FLT_EPSILON) //i > stop
+            if (i - params->stop > FLT_EPSILON)  // i > stop
                 break;
         } else {
-            if (i - params->stop < FLT_EPSILON) //i < stop
+            if (i - params->stop < FLT_EPSILON)  // i < stop
                 break;
         }
 
@@ -42,8 +41,7 @@ int csi_ref_arange_f32(struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_arange_quant(struct csi_tensor *output,
-                         struct arange_params *params)
+int csi_ref_arange_quant(struct csi_tensor *output, struct arange_params *params)
 {
     struct csi_quant_info qinfo;
     qinfo.zero_point = 0;

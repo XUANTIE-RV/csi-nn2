@@ -44,7 +44,7 @@ def global_avgpool2d_f32():
     print(para)
 
 
-    with open("global_avgpool2d_nchw_data_f32.bin", "wb") as fp:
+    with open("global_avgpool_nchw_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

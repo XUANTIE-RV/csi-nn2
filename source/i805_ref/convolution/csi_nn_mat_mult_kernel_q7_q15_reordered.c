@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2019 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -23,8 +23,6 @@
  * -------------------------------------------------------------------- */
 
 #include "csi_nnfunctions.h"
-#include "csi_nnsupportfunctions.h"
-#include "csi_math.h"
 
   /**
    * @brief Matrix-multiplication function for convolution with reordered columns

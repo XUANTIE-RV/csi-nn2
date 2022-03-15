@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-int csi_ref_avgpool2d_nhwc_f32(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct pool_params *params)
+int csi_ref_avgpool2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
+                               struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -53,8 +52,8 @@ int csi_ref_avgpool2d_nhwc_f32(struct csi_tensor *input,
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            total +=
-                                input_data[csi_ref_get_index(input->dim, batch, in_y, in_x, channel)];
+                            total += input_data[csi_ref_get_index(input->dim, batch, in_y, in_x,
+                                                                  channel)];
                             filter_count++;
                         }
                     }
@@ -71,9 +70,8 @@ int csi_ref_avgpool2d_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_avgpool2d_nchw_f32(struct csi_tensor *input,
-                                        struct csi_tensor *output,
-                                        struct pool_params *params)
+static int csi_ref_avgpool2d_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                      struct pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -104,8 +102,8 @@ static int csi_ref_avgpool2d_nchw_f32(struct csi_tensor *input,
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            total +=
-                                input_data[csi_ref_get_index(input->dim, batch, channel, in_y, in_x)];
+                            total += input_data[csi_ref_get_index(input->dim, batch, channel, in_y,
+                                                                  in_x)];
                             filter_count++;
                         }
                     }
@@ -122,9 +120,8 @@ static int csi_ref_avgpool2d_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_avgpool2d_f32(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pool_params *params)
+int csi_ref_avgpool2d_f32(struct csi_tensor *input, struct csi_tensor *output,
+                          struct pool_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
         csi_ref_avgpool2d_nchw_f32(input, output, params);
@@ -135,10 +132,8 @@ int csi_ref_avgpool2d_f32(struct csi_tensor *input,
     }
 }
 
-int csi_ref_avgpool2d_quant(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct pool_params *params)
+int csi_ref_avgpool2d_quant(struct csi_tensor *input, struct csi_tensor *output,
+                            struct pool_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_avgpool2d_f32);
 }
-

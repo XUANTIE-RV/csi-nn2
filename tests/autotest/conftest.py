@@ -20,10 +20,10 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--board", action="store", default="c860", help="board option: c860|c906|anole|x86_ref"
+        "--board", action="store", default="c860", help="board option: c860|c906|anole|x86_ref|c910"
     )
     parser.addoption(
-        "--accuracy", action="store", default="0.1", help="error measures accuracy"
+        "--accuracy", action="store", default="0.99", help="error measures accuracy"
     )
 
 

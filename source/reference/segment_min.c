@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,114 +16,108 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_unsorted_segment_min_f32(struct csi_tensor *input,
-                                     struct csi_tensor *segment_ids,
-                                     struct csi_tensor *output,
-                                     struct segment_params *params)
+int csi_ref_unsorted_segment_min_f32(struct csi_tensor *input, struct csi_tensor *segment_ids,
+                                     struct csi_tensor *output, struct segment_params *params)
 {
-    float *input_data  = input->data;
-    int *segment_data  = segment_ids->data;
+    float *input_data = input->data;
+    int *segment_data = segment_ids->data;
     float *output_data = output->data;
 
-    int input_dim    = input->dim_count;
+    int input_dim = input->dim_count;
     int num_segments = params->num_segments;
 
-    for(int n = 0; n < num_segments; n++) {
+    for (int n = 0; n < num_segments; n++) {
         /* init the outputdata data */
-        for(int h = 0; h < input->dim[1]; h++) {
-            for(int w = 0; w < input->dim[2]; w++) {
-                for(int c = 0; c < input->dim[3]; c++) {
+        for (int h = 0; h < input->dim[1]; h++) {
+            for (int w = 0; w < input->dim[2]; w++) {
+                for (int c = 0; c < input->dim[3]; c++) {
                     int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
                     output_data[output_index] = FLT_MAX;
                 }
             }
         }
         int flag = 0;
-        for(int i = 0; i < input->dim[0]; i++) {
+        for (int i = 0; i < input->dim[0]; i++) {
             if (segment_data[i] == n) {
                 flag = 1;
             }
             if (flag) {
-                for(int h = 0; h < input->dim[1]; h++) {
-                    for(int w = 0; w < input->dim[2]; w++) {
-                        for(int c = 0; c < input->dim[3]; c++) {
+                for (int h = 0; h < input->dim[1]; h++) {
+                    for (int w = 0; w < input->dim[2]; w++) {
+                        for (int c = 0; c < input->dim[3]; c++) {
                             int32_t input_index = csi_ref_get_index(input->dim, i, h, w, c);
                             int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
-                            output_data[output_index]
-                                = input_data[input_index] < output_data[output_index]
-                                ? input_data[input_index] : output_data[output_index];
+                            output_data[output_index] =
+                                input_data[input_index] < output_data[output_index]
+                                    ? input_data[input_index]
+                                    : output_data[output_index];
                         }
                     }
                 }
                 flag = 0;
             }
         }
-
     }
 
     return CSINN_TRUE;
 }
 
-int csi_ref_segment_min_f32(struct csi_tensor *input,
-                            struct csi_tensor *segment_ids,
-                            struct csi_tensor *output,
-                            struct segment_params *params)
+int csi_ref_segment_min_f32(struct csi_tensor *input, struct csi_tensor *segment_ids,
+                            struct csi_tensor *output, struct segment_params *params)
 {
-    float *input_data  = input->data;
-    int *segment_data  = segment_ids->data;
+    float *input_data = input->data;
+    int *segment_data = segment_ids->data;
     float *output_data = output->data;
 
-    int input_dim    = input->dim_count;
+    int input_dim = input->dim_count;
     int num_segments = params->num_segments;
     int i = 0;
 
-    for(int n = 0; n < num_segments; n++) {
+    for (int n = 0; n < num_segments; n++) {
         /* init the outputdata data */
-        for(int h = 0; h < input->dim[1]; h++) {
-            for(int w = 0; w < input->dim[2]; w++) {
-                for(int c = 0; c < input->dim[3]; c++) {
+        for (int h = 0; h < input->dim[1]; h++) {
+            for (int w = 0; w < input->dim[2]; w++) {
+                for (int c = 0; c < input->dim[3]; c++) {
                     int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
                     output_data[output_index] = FLT_MAX;
                 }
             }
         }
         int flag = 0;
-        for(; i < input->dim[0]; i++) {
+        for (; i < input->dim[0]; i++) {
             if (segment_data[i] == n) {
                 flag = 1;
-            } else  {
+            } else {
                 break;
             }
             if (flag) {
-                for(int h = 0; h < input->dim[1]; h++) {
-                    for(int w = 0; w < input->dim[2]; w++) {
-                        for(int c = 0; c < input->dim[3]; c++) {
+                for (int h = 0; h < input->dim[1]; h++) {
+                    for (int w = 0; w < input->dim[2]; w++) {
+                        for (int c = 0; c < input->dim[3]; c++) {
                             int32_t input_index = csi_ref_get_index(input->dim, i, h, w, c);
                             int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
-                            output_data[output_index]
-                                = input_data[input_index] < output_data[output_index]
-                                ? input_data[input_index] : output_data[output_index];
+                            output_data[output_index] =
+                                input_data[input_index] < output_data[output_index]
+                                    ? input_data[input_index]
+                                    : output_data[output_index];
                         }
                     }
                 }
                 flag = 0;
             }
         }
-
     }
 
     return CSINN_TRUE;
 }
 
-int csi_ref_unsorted_segment_min_quant(struct csi_tensor *input,
-                                       struct csi_tensor *segment_ids,
-                                       struct csi_tensor *output,
-                                       struct segment_params *params)
+int csi_ref_unsorted_segment_min_quant(struct csi_tensor *input, struct csi_tensor *segment_ids,
+                                       struct csi_tensor *output, struct segment_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
@@ -135,10 +129,8 @@ int csi_ref_unsorted_segment_min_quant(struct csi_tensor *input,
     return ret;
 }
 
-int csi_ref_segment_min_quant(struct csi_tensor *input,
-                              struct csi_tensor *segment_ids,
-                              struct csi_tensor *output,
-                              struct segment_params *params)
+int csi_ref_segment_min_quant(struct csi_tensor *input, struct csi_tensor *segment_ids,
+                              struct csi_tensor *output, struct segment_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);

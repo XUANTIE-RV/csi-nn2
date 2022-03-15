@@ -7,7 +7,7 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def maxpool2d_f32():
+def maxpool2d_f32(test_type):
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
@@ -15,26 +15,61 @@ def maxpool2d_f32():
     in_height = int(np.random.randint(32, high=64, size=1))
     in_width  = int(np.random.randint(32, high=64, size=1))
 
-    stride_h   = int(np.random.randint(1, high=4, size=1))
-    stride_w   = int(np.random.randint(1, high=4, size=1))
+    if test_type == "random":
+        stride_h   = int(np.random.randint(1, high=4, size=1))
+        stride_w   = int(np.random.randint(1, high=4, size=1))
 
-    kernel_h   = int(np.random.randint(stride_h, high=9, size=1))
-    kernel_w   = int(np.random.randint(stride_w, high=9, size=1))
+        kernel_h   = int(np.random.randint(stride_h, high=9, size=1))
+        kernel_w   = int(np.random.randint(stride_w, high=9, size=1))
+        pad_left  = pad_right = 0
+        pad_top   = pad_down  = 0
 
-    pad_left  = pad_right = 0
-    pad_top   = pad_down  = 0
+        pad_w      = (in_width - kernel_w) -  int((in_width - kernel_w) / stride_w) * stride_w
+        if(pad_w !=0):
+            pad_w      = int((in_width - kernel_w) / stride_w) * stride_w + stride_w - (in_width - kernel_w)
+            pad_left   = int(np.random.randint(0, high=pad_w, size=1))
+            pad_right  = pad_w - pad_left
 
-    pad_w      = (in_width - kernel_w) -  int((in_width - kernel_w) / stride_w) * stride_w
-    if(pad_w !=0):
-        pad_w      = int((in_width - kernel_w) / stride_w) * stride_w + stride_w - (in_width - kernel_w)
-        pad_left   = int(np.random.randint(0, high=pad_w, size=1))
-        pad_right  = pad_w - pad_left
+        pad_h      = (in_height - kernel_h) -  int((in_height - kernel_h) / stride_h) * stride_h
+        if(pad_h !=0):
+            pad_h      = int((in_height - kernel_h) / stride_h) * stride_h + stride_h - (in_height - kernel_h)
+            pad_top   = int(np.random.randint(0, high=pad_h, size=1))
+            pad_down  = pad_h - pad_top
 
-    pad_h      = (in_height - kernel_h) -  int((in_height - kernel_h) / stride_h) * stride_h
-    if(pad_h !=0):
-        pad_h      = int((in_height - kernel_h) / stride_h) * stride_h + stride_h - (in_height - kernel_h)
-        pad_top   = int(np.random.randint(0, high=pad_h, size=1))
-        pad_down  = pad_h - pad_top
+    elif test_type == "2x2s2":
+        stride_h    =  stride_w    = 2
+        kernel_h    =  kernel_w    = 2
+        pad_left  = pad_top = 0
+        pad_right  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = int(np.random.randint(0, high=1, size=1))
+    elif test_type == "2x2s2_p1":
+        stride_h    =  stride_w   = 2
+        kernel_h    =  kernel_w   = 2
+        pad_left  = pad_top = 1
+        pad_right  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = int(np.random.randint(0, high=1, size=1))
+
+
+    elif test_type == "3x3s2":
+        stride_h    =  stride_w    = 2
+        kernel_h    =  kernel_w    = 3
+        pad_left  = pad_top = 0
+        pad_right  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = int(np.random.randint(0, high=1, size=1))
+
+    elif test_type == "3x3s2_p1":
+        stride_h    =  stride_w    = 2
+        kernel_h    =  kernel_w     = 3
+        pad_left  = pad_top = 1
+        pad_right  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = int(np.random.randint(0, high=1, size=1))
+
+    elif test_type == "3x3s1_p1":
+        stride_h    =  stride_w     = 1
+        kernel_h    =  kernel_w     = 3
+        pad_left = pad_right = pad_top = pad_down = 1
+
+
 
     zero_point = int(np.random.randint(-8, high=8, size=1))
     std        = int(np.random.randint(1, high=3, size=1))
@@ -72,7 +107,7 @@ def maxpool2d_f32():
     para.append(out_width)
     print(para)
 
-    with open("maxpool2d_nchw_data_f32.bin", "wb") as fp:
+    with open("maxpool_nchw_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
@@ -85,5 +120,6 @@ def maxpool2d_f32():
 
 
 if __name__ == '__main__':
-    maxpool2d_f32()
+    test_type = sys.argv[1]
+    maxpool2d_f32(test_type)
     print("end")

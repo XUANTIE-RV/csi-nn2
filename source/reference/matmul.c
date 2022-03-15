@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_matmul_f32(struct csi_tensor *mat0,
-                       struct csi_tensor *mat1,
-                       struct csi_tensor *output,
+int csi_ref_matmul_f32(struct csi_tensor *mat0, struct csi_tensor *mat1, struct csi_tensor *output,
                        struct matmul_params *params)
 {
     float *mat0_data = mat0->data;
@@ -33,7 +31,7 @@ int csi_ref_matmul_f32(struct csi_tensor *mat0,
     int batches = 1;
 
     /* compute the outer size */
-    for(int i = 0; i < dims_count - 2; i++ ){
+    for (int i = 0; i < dims_count - 2; i++) {
         batches *= mat0->dim[i];
     }
 
@@ -42,9 +40,9 @@ int csi_ref_matmul_f32(struct csi_tensor *mat0,
     const int dim_j = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
     const int mat0_offset = dim_i * dim_k;
     const int mat1_offset = dim_k * dim_j;
-    const int out_offset  = dim_i * dim_j;
+    const int out_offset = dim_i * dim_j;
 
-    if ( !params->trans_a && !params->trans_b) {
+    if (!params->trans_a && !params->trans_b) {
         for (int b = 0; b < batches; ++b) {
             for (int i = 0; i < dim_i; ++i) {
                 for (int j = 0; j < dim_j; ++j) {
@@ -105,10 +103,8 @@ int csi_ref_matmul_f32(struct csi_tensor *mat0,
     return CSINN_TRUE;
 }
 
-int csi_ref_matmul_quant(struct csi_tensor *mat0,
-                         struct csi_tensor *mat1,
-                         struct csi_tensor *output,
-                         struct matmul_params *params)
+int csi_ref_matmul_quant(struct csi_tensor *mat0, struct csi_tensor *mat1,
+                         struct csi_tensor *output, struct matmul_params *params)
 {
     return csi_ref_diso_callback_base(mat0, mat1, output, params, csi_ref_matmul_f32);
 }

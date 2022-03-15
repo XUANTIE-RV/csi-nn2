@@ -78,7 +78,7 @@ def deconvolution_f32():
     para.append(out_size_y)
     print(para)
 
-    with open("deconvolution_data_32.bin", "wb") as fp:
+    with open("deconvolution_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

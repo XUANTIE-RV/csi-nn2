@@ -26,8 +26,9 @@ import conftest
 TOPDIR = os.path.dirname(__file__) + "/../"
 
 python_path = "{TOPDIR_}/python_ref".format(TOPDIR_=TOPDIR)
-elf_path = "{TOPDIR_}/validation".format(TOPDIR_=TOPDIR)
+elf_path = "{TOPDIR_}/validation_layer".format(TOPDIR_=TOPDIR)
 valid_dir = "{TOPDIR_}/valid_datas".format(TOPDIR_=TOPDIR)
+unit_test_elf_path = "{TOPDIR_}/unit_test".format(TOPDIR_=TOPDIR)
 
 
 def mkdir(path):
@@ -90,8 +91,9 @@ def compile_execute(cmdopt):
     if board == "c860":
         qemu = "qemu-cskyv2 -cpu ck860v"
     elif board == "c906":
-        qemu = "qemu-riscv64"
-    os.system("make clean;make -j16 test_" + board)
+        qemu = "qemu-riscv64 -cpu c906fdv"
+    elif board == "c910":
+        qemu = "qemu-riscv64 -cpu c910v"
     mkdir(valid_dir)
     return qemu, accuracy
 
@@ -108,3 +110,97 @@ def test_inference(cmdopt, elf_data, compile_execute):
     ret = os.system(cmd)
     assert ret == 0
     run_base(compile_execute[0], elf_data, valid_dir + "/" + python_data + "_data_f32.bin", compile_execute[1])
+
+
+def get_testtype(op_type):
+    if "averagepool" in op_type or "maxpool" in op_type:
+        test_type = ["random","2x2s2","2x2s2_p1","3x3s2","3x3s2_p1","3x3s1_p1"]
+    elif op_type == "convolution":
+        test_type = ["random","gemm_conv1x1s1","conv3x3s1_im2col_sgemm","conv3x3s1_winograd64","conv3x3s1_winograd64","gemm_random"]
+    elif op_type == "depthwise_convolution":
+        test_type = ["random","3x3s1","3x3s2"]
+    else:
+        test_type =[]
+    return test_type
+
+    
+
+@pytest.mark.usefixtures("compile_execute")
+class TestCSINN:
+    @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
+    def test_layer(self,elf_data,compile_execute):
+        flag = 0
+        data = elf_data.split("/")[-1].split(".")[0]
+        if "argmax" in data or "argmin" in data:
+            path = os.path.join(python_path, data + "_stride.py")
+        elif "roipool" in data:
+            path = os.path.join(python_path, data + "_caffe.py")
+        else:
+            path = os.path.join(python_path, data + "_nchw.py")
+        if not os.path.exists(path):
+            path = os.path.join(python_path, data + ".py")
+            flag = 1
+
+        os.chdir(valid_dir)
+        if "roipool" in data:
+            cmd = f'docker run --rm -v {valid_dir}:mnt tvm_caffe:rfcn sh -c "cd mnt && python3 {path}"'
+        else:
+            cmd = f"python {path}"
+        ret = os.system(cmd)
+        assert ret == 0
+        if flag == 1:
+            run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_data_f32.bin", compile_execute[1])
+        else:
+            if "argmax" in data or "argmin" in data:
+                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_stride_data_f32.bin", compile_execute[1])
+            else:
+                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_nchw_data_f32.bin", compile_execute[1])
+
+    
+    @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
+    def test_rvv_layer(self,elf_data,compile_execute):
+        flag = 0
+        data = elf_data.split("/")[-1].split(".")[0]
+        test_type = get_testtype(data)
+        path = os.path.join(python_path, data + "_nchw.py")
+        if not os.path.exists(path):
+            path = os.path.join(python_path, data + ".py")
+            flag = 1 
+        if test_type != []:
+            for i in test_type:                             
+                cmd = f"python {path} {i}"
+                ret = os.system(cmd)
+                assert ret == 0
+                if flag == 1:
+                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1])
+                else:
+                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1])
+        else:             
+            cmd = f"python {path}"
+            ret = os.system(cmd)
+            assert ret == 0
+            if flag == 1:
+                run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1])
+            else:
+                run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1])
+
+
+
+    @pytest.mark.parametrize('unit_test_elf_data', numberOffile(unit_test_elf_path, "elf"))
+    def test_opt_interface(self, unit_test_elf_data, compile_execute):
+        run_base(compile_execute[0], unit_test_elf_data, "", compile_execute[1])
+
+
+class TestHeterogeneous:
+    def test_subgraph_fuse(self):
+        hlight_test_dir = os.path.join(TOPDIR, "validation_graph", "hlight")
+        compile_cmd = f"make -C {hlight_test_dir}"
+
+        ret = os.system(compile_cmd)
+        assert ret == 0, "Compiling subgraph fusion test fails."
+
+        os.chdir(hlight_test_dir)
+        exec_cmd = f"./run.sh"
+        ret = os.system(exec_cmd)
+        assert ret == 0, "Execute subgraph fusion test fails"
+

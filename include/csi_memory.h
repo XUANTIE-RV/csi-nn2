@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
-#ifndef _CSI_MEMORY_H
-#define _CSI_MEMORY_H
+/* CSI-NN2 version 1.12.x */
+#ifndef INCLUDE_CSI_MEMORY_H_
+#define INCLUDE_CSI_MEMORY_H_
 
 void csi_mem_print_map();
 void *csi_mem_alloc(int64_t size);
+void *csi_mem_alloc_aligned(int64_t size, int aligned_bytes);
+void *csi_mem_calloc(size_t nmemb, size_t size);
+void *csi_mem_realloc(void *ptr, size_t size);
 void csi_mem_free(void *ptr);
 
-#endif
+#endif  // INCLUDE_CSI_MEMORY_H_

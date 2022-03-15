@@ -1,9 +1,9 @@
-LIB_DIR = ../../lib
-INCLUDE = -I../../include -I../utils 
+LIB_DIR = ../../csky_elf_build
+INCLUDE = -I../../include -I../utils
 CFLAGS = -O0 -g3 -static
 CFLAGS += -mcpu=i805
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
-CFLAGS += -DCSINN_API=11 -DCSI_BUILD_REF_I805
+CFLAGS += -DCSINN_API=11 -DCSI_BUILD_REF_I805 -DCSI_BUILD_RTOS
 LIB_NAME = csi_nn2_ref_i805
 CC = csky-abiv2-elf-gcc
 BOARD = ./board/smartl/crt0.o -T./board/smartl/ckcpu.ld ./board/smartl/uart.o

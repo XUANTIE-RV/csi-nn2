@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
@@ -26,15 +26,18 @@ void *csi_init_map_ref(int op, int dtype)
         return csi_ref_flatten_init;
     } else if (op == CSINN_OP_RESHAPE) {
         return csi_ref_reshape_init;
-    } else if(op == CSINN_OP_TRANSPOSE) {
+    } else if (op == CSINN_OP_TRANSPOSE) {
         return csi_ref_transpose_init;
+    } else if (op == CSINN_OP_CACHE_MATMUL) {
+        return csi_ref_cache_matmul_init;
+    } else if (op == CSINN_OP_CACHE_CONV1D) {
+        return csi_ref_cache_conv1d_init;
     }
 
     return NULL;
 }
 
-void csi_ref_nn_init(struct csi_tensor *input,
-                     struct csi_tensor *output)
+void csi_ref_nn_init(struct csi_tensor *input, struct csi_tensor *output)
 {
     int size = 1;
     for (int i = 0; i < input->dim_count; i++) {
@@ -42,13 +45,36 @@ void csi_ref_nn_init(struct csi_tensor *input,
     }
     int q_size = output->quant_channel;
     int inner_size = size / q_size;
-    if (output->dtype == CSINN_DTYPE_UINT8){
+    if (output->dtype == CSINN_DTYPE_INT4) {
         float *input_data = input->data;
-        uint8_t *output_data = output->data;
-        for (int i = 0; i < q_size; i++){
+        int8_t *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
-                int32_t input_val = round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                int32_t input_val =
+                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                if (input_val < -8) {
+                    input_val = -8;
+                } else if (input_val > 7) {
+                    input_val = 7;
+                }
+                int out_index = index / 2;
+                /* int4 little endian */
+                if (index % 2) {
+                    output_data[out_index] = (output_data[out_index] & 0xf) | (input_val << 4);
+                } else {
+                    output_data[out_index] = (output_data[out_index] & 0xf0) | (input_val & 0xf);
+                }
+            }
+        }
+    } else if (output->dtype == CSINN_DTYPE_UINT8) {
+        float *input_data = input->data;
+        uint8_t *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                int32_t input_val =
+                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
                 if (input_val < 0) {
                     input_val = 0;
                 } else if (input_val > 255) {
@@ -57,17 +83,34 @@ void csi_ref_nn_init(struct csi_tensor *input,
                 output_data[index] = input_val;
             }
         }
-    } else if (output->dtype == CSINN_DTYPE_INT8){
+    } else if (output->dtype == CSINN_DTYPE_INT8) {
         float *input_data = input->data;
         int8_t *output_data = output->data;
         for (int i = 0; i < q_size; i++) {
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
-                int32_t input_val = round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                int32_t input_val =
+                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
                 if (input_val < -127) {
-                    input_val = 0;
+                    input_val = -127;
                 } else if (input_val > 127) {
                     input_val = 127;
+                }
+                output_data[index] = input_val;
+            }
+        }
+    } else if (output->dtype == CSINN_DTYPE_INT16) {
+        float *input_data = input->data;
+        int16_t *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                int32_t input_val =
+                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                if (input_val < -32768) {
+                    input_val = -32768;
+                } else if (input_val > 32767) {
+                    input_val = 32767;
                 }
                 output_data[index] = input_val;
             }
@@ -81,13 +124,21 @@ void csi_ref_nn_init(struct csi_tensor *input,
                 output_data[index] = csi_ref_float32_to_float16(input_data[index]);
             }
         }
+    } else if (output->dtype == CSINN_DTYPE_BFLOAT16) {
+        float *input_data = input->data;
+        int16_t *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                output_data[index] = csi_ref_float32_to_bfloat16(input_data[index]);
+            }
+        }
     } else {
         csi_debug_error("csi_ref_nn_init: unsupport dtype\n");
     }
 }
 
-void csi_ref_nn_deinit(struct csi_tensor *input,
-                       struct csi_tensor *output)
+void csi_ref_nn_deinit(struct csi_tensor *input, struct csi_tensor *output)
 {
     int size = 1;
     for (int i = 0; i < input->dim_count; i++) {
@@ -95,7 +146,28 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
     }
     int q_size = input->quant_channel;
     int inner_size = size / q_size;
-    if (input->dtype == CSINN_DTYPE_UINT8){
+    if (input->dtype == CSINN_DTYPE_INT4) {
+        int8_t *input_data = input->data;
+        float *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                int in_index = index / 2;
+                float x;
+                int8_t tmp_in = 0;
+                /* int4 little endian */
+                if (index % 2) {
+                    tmp_in = input_data[in_index] & 0xf0;
+                    x = tmp_in >> 4;
+                } else {
+                    tmp_in = (input_data[in_index] & 0xf) << 4;
+                    x = tmp_in >> 4;
+                }
+                x -= input->qinfo[i].zero_point;
+                output_data[index] = x * input->qinfo[i].scale;
+            }
+        }
+    } else if (input->dtype == CSINN_DTYPE_UINT8) {
         uint8_t *input_data = input->data;
         float *output_data = output->data;
         for (int i = 0; i < q_size; i++) {
@@ -106,7 +178,7 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
                 output_data[index] = x * input->qinfo[i].scale;
             }
         }
-    } else if (input->dtype == CSINN_DTYPE_INT8){
+    } else if (input->dtype == CSINN_DTYPE_INT8) {
         int8_t *input_data = input->data;
         float *output_data = output->data;
         for (int i = 0; i < q_size; i++) {
@@ -117,9 +189,9 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
                 output_data[index] = x * input->qinfo[i].scale;
             }
         }
-    } else if (input->dtype == CSINN_DTYPE_INT32){
+    } else if (input->dtype == CSINN_DTYPE_INT32) {
         int size = csi_tensor_size(input);
-        memcpy(output->data, input->data, size*4);
+        memcpy(output->data, input->data, size * 4);
     } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
         int16_t *input_data = input->data;
         float *output_data = output->data;
@@ -127,6 +199,15 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
                 output_data[index] = csi_ref_float16_to_float32(input_data[index]);
+            }
+        }
+    } else if (input->dtype == CSINN_DTYPE_BFLOAT16) {
+        int16_t *input_data = input->data;
+        float *output_data = output->data;
+        for (int i = 0; i < q_size; i++) {
+            for (int j = 0; j < inner_size; j++) {
+                int index = i * inner_size + j;
+                output_data[index] = csi_ref_bfloat16_to_float32(input_data[index]);
             }
         }
     } else if (input->dtype == CSINN_DTYPE_BOOL) {
@@ -139,8 +220,8 @@ void csi_ref_nn_deinit(struct csi_tensor *input,
 
 static void *setup_bc_map()
 {
-    static void* bc_map[CSINN_OP_AND_UTILS_SIZE][CSINN_DTYPE_SIZE];
-    for (int i = CSINN_DTYPE_UINT8; i <= CSINN_DTYPE_FLOAT16; i++) {
+    static void *bc_map[CSINN_OP_AND_UTILS_SIZE][CSINN_DTYPE_SIZE];
+    for (int i = CSINN_DTYPE_INT4; i <= CSINN_DTYPE_BFLOAT16; i++) {
         bc_map[CSINN_OP_ABS][i] = csi_ref_abs_quant;
         bc_map[CSINN_OP_ACOS][i] = csi_ref_acos_quant;
         bc_map[CSINN_OP_ACOSH][i] = csi_ref_acosh_quant;
@@ -157,12 +238,15 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_BN][i] = csi_ref_batch_normalization_quant;
         bc_map[CSINN_OP_BATCH_TO_SPACE][i] = csi_ref_batch_to_space_quant;
         bc_map[CSINN_OP_BROADCOST][i] = csi_ref_broadcast_to_quant;
+        bc_map[CSINN_OP_CACHE_MATMUL][i] = csi_ref_cache_matmul_quant;
+        bc_map[CSINN_OP_CACHE_CONV1D][i] = csi_ref_cache_conv1d_quant;
         bc_map[CSINN_OP_CEIL][i] = csi_ref_ceil_quant;
         bc_map[CSINN_OP_CLIP][i] = csi_ref_clip_quant;
         bc_map[CSINN_OP_CONCAT][i] = csi_ref_concat_quant;
         bc_map[CSINN_OP_COS][i] = csi_ref_cos_quant;
         bc_map[CSINN_OP_COSH][i] = csi_ref_cosh_quant;
         bc_map[CSINN_OP_CUMPROD][i] = csi_ref_cumprod_quant;
+        bc_map[CSINN_OP_DATA_CONVERT][i] = csi_ref_data_convert_quant;
         bc_map[CSINN_OP_CUMSUM][i] = csi_ref_cumsum_quant;
         bc_map[CSINN_OP_DEPTH_TO_SPACE][i] = csi_ref_depth_to_space_quant;
         bc_map[CSINN_OP_DIV][i] = csi_ref_div_quant;
@@ -279,8 +363,10 @@ static void *setup_bc_map()
         bc_map[CSINN_OP_DEPTHWISE_CONV2D_RELU][i] = csi_ref_depthwise_conv2d_relu_quant;
         bc_map[CSINN_OP_DEPTHWISE_CONV2D_RELU6][i] = csi_ref_depthwise_conv2d_relu6_quant;
         bc_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL][i] = csi_ref_depthwise_conv2d_channel_quant;
-        bc_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU][i] = csi_ref_depthwise_conv2d_channel_relu_quant;
-        bc_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6][i] = csi_ref_depthwise_conv2d_channel_relu6_quant;
+        bc_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU][i] =
+            csi_ref_depthwise_conv2d_channel_relu_quant;
+        bc_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6][i] =
+            csi_ref_depthwise_conv2d_channel_relu6_quant;
         bc_map[CSINN_OP_GROUP_CONV2D][i] = csi_ref_group_conv2d_quant;
         bc_map[CSINN_OP_GROUP_CONV2D_RELU][i] = csi_ref_group_conv2d_relu_quant;
         bc_map[CSINN_OP_GROUP_CONV2D_RELU6][i] = csi_ref_group_conv2d_relu6_quant;
@@ -338,6 +424,8 @@ static void *setup_bc_map()
     bc_map[CSINN_OP_BN][CSINN_DTYPE_FLOAT32] = csi_ref_batch_normalization_f32;
     bc_map[CSINN_OP_BATCH_TO_SPACE][CSINN_DTYPE_FLOAT32] = csi_ref_batch_to_space_f32;
     bc_map[CSINN_OP_BROADCOST][CSINN_DTYPE_FLOAT32] = csi_ref_broadcast_to_f32;
+    bc_map[CSINN_OP_CACHE_MATMUL][CSINN_DTYPE_FLOAT32] = csi_ref_cache_matmul_f32;
+    bc_map[CSINN_OP_CACHE_CONV1D][CSINN_DTYPE_FLOAT32] = csi_ref_cache_conv1d_f32;
     bc_map[CSINN_OP_CEIL][CSINN_DTYPE_FLOAT32] = csi_ref_ceil_f32;
     bc_map[CSINN_OP_CLIP][CSINN_DTYPE_FLOAT32] = csi_ref_clip_f32;
     bc_map[CSINN_OP_CONCAT][CSINN_DTYPE_FLOAT32] = csi_ref_concat_f32;
@@ -470,10 +558,7 @@ static void *setup_bc_map()
     return bc_map;
 }
 
-static int get_bc_map_index(int op, int dtype)
-{
-    return op * CSINN_DTYPE_SIZE + dtype;
-}
+static int get_bc_map_index(int op, int dtype) { return op * CSINN_DTYPE_SIZE + dtype; }
 
 void *csi_bc_map_ref(int op, int dtype)
 {

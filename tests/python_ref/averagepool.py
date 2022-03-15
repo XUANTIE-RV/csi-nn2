@@ -73,7 +73,7 @@ def avgpool2d_f32():
     print(para)
     print(len(src_out_1))
 
-    with open("avgpool2d_data_f32.bin", "wb") as fp:
+    with open("averagepool_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

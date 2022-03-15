@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,20 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
-#ifndef _CSI_INTERNAL_C860_H
-#define _CSI_INTERNAL_C860_H
+#ifndef INCLUDE_CSI_C860_H_
+#define INCLUDE_CSI_C860_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+
 #include "csi_internal.h"
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-void csi_dequantize_f32_c860(uint8_t *input, float *output, int32_t offset, 
-                             int32_t multiplier, int32_t shift, int32_t length);
+void csi_dequantize_f32_c860(uint8_t *input, float *output, int32_t offset, int32_t multiplier,
+                             int32_t shift, int32_t length);
 
-#endif
+#endif  // INCLUDE_CSI_C860_H_

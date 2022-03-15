@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,92 +16,69 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
-#ifndef _CSI_INTERNAL_E804_H
-#define _CSI_INTERNAL_E804_H
+#ifndef INCLUDE_CSI_E804_H_
+#define INCLUDE_CSI_E804_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+
 #include "csi_internal.h"
 #include "csi_ref.h"
 #include "csi_utils.h"
-// #include "csi_math.h"
-// #include "csi_nnfunctions.h"
 #include "csky_dsp2_nnfunctions.h"
 
-
-int csi_e804_conv2d_init_q7(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct csi_tensor *kernel,
-                            struct csi_tensor *bias,
+int csi_e804_conv2d_init_q7(struct csi_tensor *input, struct csi_tensor *output,
+                            struct csi_tensor *kernel, struct csi_tensor *bias,
                             struct conv2d_params *params);
 
-int csi_e804_conv2d_init_q15(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct csi_tensor *kernel,
-                             struct csi_tensor *bias,
+int csi_e804_conv2d_init_q15(struct csi_tensor *input, struct csi_tensor *output,
+                             struct csi_tensor *kernel, struct csi_tensor *bias,
                              struct conv2d_params *params);
 
-int csi_e804_depthwise_conv2d_init_q7(struct csi_tensor *input,
-                                      struct csi_tensor *output,
-                                      struct csi_tensor *kernel,
-                                      struct csi_tensor *bias,
+int csi_e804_depthwise_conv2d_init_q7(struct csi_tensor *input, struct csi_tensor *output,
+                                      struct csi_tensor *kernel, struct csi_tensor *bias,
                                       struct conv2d_params *params);
 
-int csi_e804_avgpool2d_init_q7(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params);
+int csi_e804_avgpool2d_init_q7(struct csi_tensor *input, struct csi_tensor *output,
+                               struct pool_params *params);
 
-int csi_e804_maxpool2d_init_q7(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params);
+int csi_e804_maxpool2d_init_q7(struct csi_tensor *input, struct csi_tensor *output,
+                               struct pool_params *params);
 
-int csi_e804_fullyconnected_q7(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct csi_tensor *weights,
-                               struct csi_tensor *bias,
+int csi_e804_fullyconnected_q7(struct csi_tensor *input, struct csi_tensor *output,
+                               struct csi_tensor *weights, struct csi_tensor *bias,
                                struct fc_params *params);
 
-int csi_e804_fullyconnected_q15(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *weights,
-                                struct csi_tensor *bias,
+int csi_e804_fullyconnected_q15(struct csi_tensor *input, struct csi_tensor *output,
+                                struct csi_tensor *weights, struct csi_tensor *bias,
                                 struct fc_params *params);
 
-int csi_e804_softmax_q7(struct csi_tensor *input,
-                        struct csi_tensor *output,
+int csi_e804_softmax_q7(struct csi_tensor *input, struct csi_tensor *output,
                         struct softmax_params *params);
 
-int csi_e804_softmax_q15(struct csi_tensor *input,
-                         struct csi_tensor *output,
+int csi_e804_softmax_q15(struct csi_tensor *input, struct csi_tensor *output,
                          struct softmax_params *params);
 
-int csi_e804_relu_q7(struct csi_tensor *input,
-                     struct csi_tensor *output,
+int csi_e804_relu_q7(struct csi_tensor *input, struct csi_tensor *output,
                      struct relu_params *params);
 
-int csi_e804_relu_q15(struct csi_tensor *input,
-                      struct csi_tensor *output,
+int csi_e804_relu_q15(struct csi_tensor *input, struct csi_tensor *output,
                       struct relu_params *params);
 
-int csi_e804_sigmoid_q7(struct csi_tensor *input,
-                        struct csi_tensor *output,
+int csi_e804_sigmoid_q7(struct csi_tensor *input, struct csi_tensor *output,
                         struct sigmoid_params *params);
 
-int csi_e804_sigmoid_q15(struct csi_tensor *input,
-                         struct csi_tensor *output,
+int csi_e804_sigmoid_q15(struct csi_tensor *input, struct csi_tensor *output,
                          struct sigmoid_params *params);
 
-int csi_e804_tanh_q7(struct csi_tensor *input,
-                     struct csi_tensor *output,
+int csi_e804_tanh_q7(struct csi_tensor *input, struct csi_tensor *output,
                      struct siso_params *params);
 
-int csi_e804_tanh_q15(struct csi_tensor *input,
-                      struct csi_tensor *output,
+int csi_e804_tanh_q15(struct csi_tensor *input, struct csi_tensor *output,
                       struct siso_params *params);
 
-
-#endif
+#endif  // INCLUDE_CSI_E804_H_

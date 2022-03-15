@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,35 +16,32 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_topk_f32(struct csi_tensor *input,
-                     struct csi_tensor *output1,
-                     struct csi_tensor *output2,
-                     struct topk_params *params)
+int csi_ref_topk_f32(struct csi_tensor *input, struct csi_tensor *output1,
+                     struct csi_tensor *output2, struct topk_params *params)
 {
-    float *input_data  = (float *)input->data;
+    float *input_data = (float *)input->data;
     float *values_data = (float *)output1->data;
-    int *indices_data  = (int *)output2->data;
+    int *indices_data = (int *)output2->data;
 
     int k = params->k;
     int last_dim = input->dim[input->dim_count - 1];
     int inner_size = 1;
-    for(int i = 0; i < input->dim_count - 1; i++)
-    {
+    for (int i = 0; i < input->dim_count - 1; i++) {
         inner_size *= input->dim[i];
     }
     float *input_sort_addr = input_data;
-    for(int n = 0; n < inner_size; n++) {
+    for (int n = 0; n < inner_size; n++) {
         int *flag = (int *)csi_mem_alloc(last_dim * sizeof(int));
-        for(int i = 0; i < k; i++) {
+        for (int i = 0; i < k; i++) {
             values_data[i] = -FLT_MAX;
-            for(int j = 0; j < last_dim; j++) {
-                if(input_sort_addr[j] > values_data[i] && !flag[j]) {
-                    values_data[i]  = input_sort_addr[j];
+            for (int j = 0; j < last_dim; j++) {
+                if (input_sort_addr[j] > values_data[i] && !flag[j]) {
+                    values_data[i] = input_sort_addr[j];
                     indices_data[i] = j;
                 }
             }
@@ -59,10 +56,8 @@ int csi_ref_topk_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_topk_quant(struct csi_tensor *input,
-                       struct csi_tensor *output0,
-                       struct csi_tensor *output1,
-                       struct topk_params *params)
+int csi_ref_topk_quant(struct csi_tensor *input, struct csi_tensor *output0,
+                       struct csi_tensor *output1, struct topk_params *params)
 {
     int ret;
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,29 +16,27 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 
-/* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/nn_impl.py#L1474-L1542 */
-int csi_ref_batch_normalization_f32(struct csi_tensor *input,
-                                    struct csi_tensor *mean,
-                                    struct csi_tensor *variance,
-                                    struct csi_tensor *gamma,
-                                    struct csi_tensor *beta,
-                                    struct csi_tensor *output,
+/* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/nn_impl.py#L1474-L1542
+ */
+int csi_ref_batch_normalization_f32(struct csi_tensor *input, struct csi_tensor *mean,
+                                    struct csi_tensor *variance, struct csi_tensor *gamma,
+                                    struct csi_tensor *beta, struct csi_tensor *output,
                                     struct bn_params *params)
 {
     float *input_data = input->data;
-    float *mean_data  = mean->data;
-    float *var_data   = variance->data;
-    float *beta_data  = beta->data;
+    float *mean_data = mean->data;
+    float *var_data = variance->data;
+    float *beta_data = beta->data;
     float *output_data = output->data;
     const int dims_count = input->dim_count;
     int batches = 1;
 
     /* compute the outer size */
-    for(int i = 0; i < dims_count - 1; i++ ){
+    for (int i = 0; i < dims_count - 1; i++) {
         batches *= input->dim[i];
     }
 
@@ -47,14 +45,14 @@ int csi_ref_batch_normalization_f32(struct csi_tensor *input,
     for (int b = 0; b < batches; ++b) {
         for (int c = 0; c < input->dim[dims_count - 1]; ++c) {
             float intput_val = input_data[b * batch_offset + c];
-            float mean_val   = mean_data[c];
-            float var_val    = var_data[c];
-            float beta_val   = beta_data[c];
-            float result = 1/sqrt(var_val + params->epsilon);
+            float mean_val = mean_data[c];
+            float var_val = var_data[c];
+            float beta_val = beta_data[c];
+            float result = 1 / sqrt(var_val + params->epsilon);
             result *= (intput_val - mean_val);
             if (gamma != NULL) {
-                float *gamma_data  = gamma->data;
-                result *=  gamma_data[c];
+                float *gamma_data = gamma->data;
+                result *= gamma_data[c];
             }
             result += beta_val;
             output_data[b * batch_offset + c] = result;
@@ -64,13 +62,9 @@ int csi_ref_batch_normalization_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-int csi_ref_batch_normalization_quant(struct csi_tensor *input,
-                                      struct csi_tensor *mean,
-                                      struct csi_tensor *variance,
-                                      struct csi_tensor *gamma,
-                                      struct csi_tensor *beta,
-                                      struct csi_tensor *output,
+int csi_ref_batch_normalization_quant(struct csi_tensor *input, struct csi_tensor *mean,
+                                      struct csi_tensor *variance, struct csi_tensor *gamma,
+                                      struct csi_tensor *beta, struct csi_tensor *output,
                                       struct bn_params *params)
 {
     int ret;

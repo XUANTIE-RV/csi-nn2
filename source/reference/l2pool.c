@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-int csi_ref_l2pool_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
+int csi_ref_l2pool_f32(struct csi_tensor *input, struct csi_tensor *output,
                        struct pool_params *params)
 {
     float *input_data = input->data;
@@ -53,14 +52,15 @@ int csi_ref_l2pool_f32(struct csi_tensor *input,
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            const float val =
-                                input_data[csi_ref_get_index(input->dim, batch, in_y, in_x, channel)];
+                            const float val = input_data[csi_ref_get_index(input->dim, batch, in_y,
+                                                                           in_x, channel)];
                             sum_squares += val * val;
                             filter_count++;
                         }
                     }
                     const float l2pool_result = sqrt(sum_squares / filter_count);
-                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] = l2pool_result;
+                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] =
+                        l2pool_result;
                 }
             }
         }

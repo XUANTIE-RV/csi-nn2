@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
@@ -24,9 +24,8 @@
 // input_data layout:NCHW
 // https://github.com/pjreddie/darknet/blob/master/src/im2col.c
 // output_data: row = channels*ksize_h*ksize_w, col = batch*height_col*width_col
-static int csi_ref_im2col_nchw_f32(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct im2col_params *params)
+static int csi_ref_im2col_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                   struct im2col_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -39,26 +38,29 @@ static int csi_ref_im2col_nchw_f32(struct csi_tensor *input,
     int32_t stride_h = params->stride_h;
     int32_t stride_w = params->stride_w;
 
-    int height_col = (height + params->pad_top + params->pad_down - ksize_h) / stride_h + 1;    // output_height
-    int width_col  = (width + params->pad_left + params->pad_right - ksize_w) / stride_w + 1;   // output_width,  batch * output_height * output_width = matrix_col
+    int height_col =
+        (height + params->pad_top + params->pad_down - ksize_h) / stride_h + 1;  // output_height
+    int width_col = (width + params->pad_left + params->pad_right - ksize_w) / stride_w +
+                    1;  // output_width,  batch * output_height * output_width = matrix_col
     int channel_col = channel * ksize_h * ksize_w;
 
-    for(int c = 0; c < channel_col; ++c) {
+    for (int c = 0; c < channel_col; ++c) {
         int w_offset = c % ksize_w;
         int h_offset = c / ksize_w % ksize_h;
         int c_im = c / ksize_h / ksize_w;
-        for(int b = 0; b < batch; ++b) {
-            for(int h = 0; h < height_col; ++h) {
-                for(int w = 0; w < width_col; ++w) {
+        for (int b = 0; b < batch; ++b) {
+            for (int h = 0; h < height_col; ++h) {
+                for (int w = 0; w < width_col; ++w) {
                     int im_row = h_offset + h * stride_h;
                     int im_col = w_offset + w * stride_w;
                     int col_index = ((c * batch + b) * height_col + h) * width_col + w;
                     im_row = im_row - params->pad_top;
                     im_col = im_col - params->pad_left;
-                    if(im_row < 0 || im_col < 0 || im_row >= height || im_col >= width) {
+                    if (im_row < 0 || im_col < 0 || im_row >= height || im_col >= width) {
                         output_data[col_index] = 0.0f;
                     } else {
-                        output_data[col_index] = input_data[csi_ref_get_index(input->dim, b, c_im, im_row, im_col)];
+                        output_data[col_index] =
+                            input_data[csi_ref_get_index(input->dim, b, c_im, im_row, im_col)];
                     }
                 }
             }
@@ -69,9 +71,8 @@ static int csi_ref_im2col_nchw_f32(struct csi_tensor *input,
 
 // input_data layout:NHWC
 // output_data: row = batch*height_col*width_col, col = channels*ksize_h*ksize_w
-static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct im2col_params *params)
+static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
+                                   struct im2col_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -84,15 +85,16 @@ static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input,
     int32_t stride_h = params->stride_h;
     int32_t stride_w = params->stride_w;
 
-
-    int height_col = (height + params->pad_top + params->pad_down - ksize_h) / stride_h + 1;    // output_height
-    int width_col  = (width + params->pad_left + params->pad_right - ksize_w) / stride_w + 1;   // output_width,  output_height * output_width = matrix_
+    int height_col =
+        (height + params->pad_top + params->pad_down - ksize_h) / stride_h + 1;  // output_height
+    int width_col = (width + params->pad_left + params->pad_right - ksize_w) / stride_w +
+                    1;  // output_width,  output_height * output_width = matrix_
     int channel_col = channel * ksize_h * ksize_w;
 
-    for(int b = 0; b < batch; ++b) {
-        for(int h = 0; h < height_col; ++h) {
-            for(int w = 0; w < width_col; ++w) {
-                for(int c = 0; c < channel_col; ++c) {
+    for (int b = 0; b < batch; ++b) {
+        for (int h = 0; h < height_col; ++h) {
+            for (int w = 0; w < width_col; ++w) {
+                for (int c = 0; c < channel_col; ++c) {
                     int w_offset = c % ksize_w;
                     int h_offset = c / ksize_w % ksize_h;
                     int c_im = c / ksize_h / ksize_w;
@@ -102,10 +104,11 @@ static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input,
                     int col_index = ((b * height_col + h) * width_col + w) * channel_col + c;
                     im_row = im_row - params->pad_top;
                     im_col = im_col - params->pad_left;
-                    if(im_row < 0 || im_col < 0 || im_row >= height || im_col >= width) {
+                    if (im_row < 0 || im_col < 0 || im_row >= height || im_col >= width) {
                         output_data[col_index] = 0.0f;
                     } else {
-                        output_data[col_index] = input_data[csi_ref_get_index(input->dim, b, im_row, im_col, c_im)];
+                        output_data[col_index] =
+                            input_data[csi_ref_get_index(input->dim, b, im_row, im_col, c_im)];
                     }
                 }
             }
@@ -115,8 +118,7 @@ static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_im2col_f32(struct csi_tensor *input,
-                       struct csi_tensor *output,
+int csi_ref_im2col_f32(struct csi_tensor *input, struct csi_tensor *output,
                        struct im2col_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
@@ -129,8 +131,7 @@ int csi_ref_im2col_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_im2col_quant(struct csi_tensor *input,
-                         struct csi_tensor *output,
+int csi_ref_im2col_quant(struct csi_tensor *input, struct csi_tensor *output,
                          struct im2col_params *params)
 {
     return csi_ref_siso_callback_base(input, output, params, csi_ref_im2col_f32);

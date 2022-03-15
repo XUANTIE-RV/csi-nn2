@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -109,7 +109,7 @@ static int csi_c906_conv_im2col_sgemm_base(struct csi_tensor *input,
             float *pc = output_data;
 
             // pack
-            csi_c906_reorder_input(im2col_data, pb, k, n, n);
+            csi_c906_reorder_input_1(im2col_data, pb, k, n, n);
             // GEMM
             csi_c906_sgemm_kernel_f32(pc, pa, pb, m, k, n, n, bias_data + g * m, fuse_relu);
             input_data += in_ch / group * in_height * in_width;

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #define DWCONV3X3S1_PACK4 csi_c906_dwconv3x3s1_pack4_fuse_relu
 #define DWCONV3X3S2_PACK4 csi_c906_dwconv3x3s2_pack4_fuse_relu

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
 
-static int csi_ref_maxpool2d_locat_nhwc_f32(struct csi_tensor *input,
-                                            struct csi_tensor *output,
+static int csi_ref_maxpool2d_locat_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
                                             struct pool_params *params)
 {
     float *input_data = input->data;
@@ -49,19 +48,22 @@ static int csi_ref_maxpool2d_locat_nhwc_f32(struct csi_tensor *input,
                     const int filter_y_end =
                         csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = FLT_MIN;
-                    int locat = (in_y_origin + filter_y_start) * input->dim[2] + (in_x_origin + filter_x_start);
+                    int locat = (in_y_origin + filter_y_start) * input->dim[2] +
+                                (in_x_origin + filter_x_start);
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            int in_index = csi_ref_get_index(input->dim, batch, channel, in_y, in_x);
-                            if (input_data[in_index] > max){
+                            int in_index =
+                                csi_ref_get_index(input->dim, batch, channel, in_y, in_x);
+                            if (input_data[in_index] > max) {
                                 max = input_data[in_index];
                                 locat = in_y * input->dim[2] + in_x;
                             }
                         }
                     }
-                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] = locat;
+                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] =
+                        locat;
                 }
             }
         }
@@ -69,8 +71,7 @@ static int csi_ref_maxpool2d_locat_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_ref_maxpool2d_locat_nchw_f32(struct csi_tensor *input,
-                                            struct csi_tensor *output,
+static int csi_ref_maxpool2d_locat_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
                                             struct pool_params *params)
 {
     float *input_data = input->data;
@@ -97,19 +98,22 @@ static int csi_ref_maxpool2d_locat_nchw_f32(struct csi_tensor *input,
                     const int filter_y_end =
                         csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = FLT_MIN;
-                    int locat = (in_y_origin + filter_y_start) * input->dim[3] + (in_x_origin + filter_x_start);
+                    int locat = (in_y_origin + filter_y_start) * input->dim[3] +
+                                (in_x_origin + filter_x_start);
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            int in_index = csi_ref_get_index(input->dim, batch, channel, in_y, in_x);
-                            if (input_data[in_index] > max){
+                            int in_index =
+                                csi_ref_get_index(input->dim, batch, channel, in_y, in_x);
+                            if (input_data[in_index] > max) {
                                 max = input_data[in_index];
                                 locat = in_y * input->dim[3] + in_x;
                             }
                         }
                     }
-                    output_data[csi_ref_get_index(output->dim, batch, channel, out_y, out_x)] = locat;
+                    output_data[csi_ref_get_index(output->dim, batch, channel, out_y, out_x)] =
+                        locat;
                 }
             }
         }
@@ -117,8 +121,7 @@ static int csi_ref_maxpool2d_locat_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_maxpool2d_locat_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
+int csi_ref_maxpool2d_locat_f32(struct csi_tensor *input, struct csi_tensor *output,
                                 struct pool_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
@@ -131,8 +134,7 @@ int csi_ref_maxpool2d_locat_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_ref_maxpool2d_locat_quant(struct csi_tensor *input,
-                                  struct csi_tensor *output,
+int csi_ref_maxpool2d_locat_quant(struct csi_tensor *input, struct csi_tensor *output,
                                   struct pool_params *params)
 {
     struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);

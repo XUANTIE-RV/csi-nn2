@@ -7,19 +7,36 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def depthwise_convolution_f32():
+def depthwise_convolution_f32(test_type):
     para = []
-    # init the input data and parameters
-    batch      = int(np.random.randint(1, high=4, size=1))
+    batch = int(np.random.randint(1, high=4, size=1))
     in_size_x  = int(np.random.randint(32, high=64, size=1))
     in_size_y  = int(np.random.randint(32, high=64, size=1))
     in_channel = int(np.random.randint(2, high=32, size=1))
-    stride_x   = int(np.random.randint(1, high=3, size=1))
-    stride_y   = int(np.random.randint(1, high=3, size=1))
-    kernel_x   = int(np.random.randint(stride_x + 1, high=7, size=1))
-    kernel_y   = int(np.random.randint(stride_y + 1, high=7, size=1))
     dilation_x = int(np.random.randint(1, high=5, size=1))
     dilation_y = int(np.random.randint(1, high=5, size=1))
+
+    # init the input data and parameters
+    if test_type == "random":
+        stride_x   = int(np.random.randint(1, high=3, size=1))
+        stride_y   = int(np.random.randint(1, high=3, size=1))
+        kernel_x   = int(np.random.randint(stride_x + 1, high=7, size=1))
+        kernel_y   = int(np.random.randint(stride_y + 1, high=7, size=1))
+
+    elif test_type == "3x3s1":
+        stride_x    = 1
+        stride_y    = 1
+        kernel_x    = 3
+        kernel_y    = 3
+        dilation_x = dilation_y = 1
+
+    elif test_type == "3x3s2":
+        stride_x    = 2
+        stride_y    = 2
+        kernel_x    = 3
+        kernel_y    = 3
+        dilation_x = dilation_y = 1
+
     kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     kernel_y_t = kernel_y + (kernel_y - 1) * (dilation_y - 1)
     pad_left   = pad_right = pad_top = pad_down = 0
@@ -101,5 +118,6 @@ def depthwise_convolution_f32():
 
 
 if __name__ == '__main__':
-    depthwise_convolution_f32()
+    test_type = sys.argv[1]
+    depthwise_convolution_f32(test_type)
     print("end")

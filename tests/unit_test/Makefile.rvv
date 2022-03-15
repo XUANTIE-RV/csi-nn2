@@ -1,0 +1,45 @@
+LIB_DIR = ../../riscv_build
+INCLUDE = -I../../include -I../utils
+CFLAGS = -O0 -g3 -static
+CFLAGS += -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+CFLAGS += -DCSINN_API=15
+LIB_NAME = csi_nn2_rvv
+CC = riscv64-unknown-linux-gnu-gcc
+
+
+test_objs =
+
+test_objs += maxpool.o
+test_objs += avgpool.o
+test_objs += dwconv2d.o
+test_objs += relu.o
+test_objs += leaky_relu.o
+test_objs += add.o
+#test_objs += mul.o
+test_objs += pad.o
+test_objs += concat.o
+test_objs += fullyconnected.o
+test_objs += gemm.o
+test_objs += conv2d_1x1s1_gemm.o
+test_objs += conv2d_im2col_gemm.o
+test_objs += conv2d_winograd.o
+
+utils_objs =
+
+utils_objs += ../utils/math_snr.o
+utils_objs += ../utils/test_utils.o
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+	$(CC) $@ $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

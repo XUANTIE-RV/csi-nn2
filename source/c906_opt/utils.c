@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.11.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_c906.h"
 
@@ -349,4 +349,46 @@ void csi_c906_crop_output_fp16(__fp16 *output_trans, __fp16 *output, int out_c, 
             crop_ptr += wino_w;
         }
     }
+}
+
+
+/*
+    fcsr: float control status register
+    bit region:
+    9-10: Vxrm - 矢量舍入模式
+    8: Vxsat - 矢量溢出标志位
+    5-7: RM - 舍入模式:
+        • 当RM=0 时, RNE 舍入模式, 向最近偶数舍入;
+        • 当RM=1 时, RTZ 舍入模式, 向 0 舍入;
+        • 当RM=2 时, RDN 舍入模式, 向负无穷舍入;
+        • 当RM=3 时, RUP 舍入模式, 向正无穷舍入;
+        • 当RM=4 时, RMM 舍入模式, 向最近舍入
+    4: NV - 无效操作数异常
+    3: DZ - 除0异常
+    2: OF - 上溢异常
+    1: UF - 下溢异常
+    0: NX - 非精确异常
+*/
+
+void csi_c906_reset_fcsr()
+{
+    asm volatile(
+        "csrrw x0, fcsr, zero\n\t"
+        :
+        :
+        :"memory"
+    );
+}
+
+int csi_c906_get_fcsr()
+{
+    int f_flag = 0;
+    asm volatile(
+        "csrrs %0, fcsr, zero\n\t"
+
+        :"=r"(f_flag)
+        :
+        :"memory"
+    );
+    return f_flag;
 }

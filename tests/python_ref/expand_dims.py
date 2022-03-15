@@ -38,7 +38,7 @@ def expand_dims_f32():
     with open("expand_dims_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
-        data = struct.pack(('%df' % len(in_shape)), *in_shape)
+        data = struct.pack(('%di' % len(in_shape)), *in_shape)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
         fp.write(data)

@@ -7,19 +7,51 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def convolution_f32():
+def convolution_f32(test_type):
     para = []
-    # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
-    in_size_x   = int(np.random.randint(64, high=128, size=1)) #width
-    in_size_y   = int(np.random.randint(64, high=128, size=1)) #height
-    in_channel  = int(np.random.randint(2, high=16, size=1))
-    stride_x    = int(np.random.randint(1, high=3, size=1))
-    stride_y    = int(np.random.randint(1, high=3, size=1))
-    kernel_x    = int(np.random.randint(stride_x, high=7, size=1))
-    kernel_y    = int(np.random.randint(stride_y, high=7, size=1))
-    dilation_x  = int(np.random.randint(1, high=2, size=1))
-    dilation_y  = int(np.random.randint(1, high=2, size=1))
+    in_size_x   = int(np.random.randint(6, high=10, size=1)) #width
+    in_size_y   = int(np.random.randint(6, high=10, size=1)) #height
+    in_channel  = int(np.random.randint(2, high=10, size=1))
+    out_channel = int(np.random.randint(1, high=10, size=1))
+
+    # init the input data and parameters
+    if test_type == "random":
+        stride_x    = int(np.random.randint(1, high=3, size=1))
+        stride_y    = int(np.random.randint(1, high=3, size=1))
+        kernel_x    = int(np.random.randint(stride_x, high=7, size=1))
+        kernel_y    = int(np.random.randint(stride_y, high=7, size=1))
+        dilation_x  = int(np.random.randint(1, high=2, size=1))
+        dilation_y  = int(np.random.randint(1, high=2, size=1))
+    elif test_type == "gemm_conv1x1s1":
+        stride_x    = 1
+        stride_y    = 1
+        kernel_x    = 1
+        kernel_y    = 1
+        dilation_x  = 1
+        dilation_y  = 1
+
+    elif test_type == "conv3x3s1_im2col_sgemm" or test_type == "conv3x3s1_winograd64":
+        stride_x    = 1
+        stride_y    = 1
+        kernel_x    = 3
+        kernel_y    = 3
+        dilation_x  = 1
+        dilation_y  = 1
+        if test_type == "conv3x3s1_winograd64":
+            n = int(np.random.randint(1, high=4, size=1))
+            in_channel  = 8 * n
+            out_channel = 8 * n
+
+    elif test_type == "gemm_random":
+        stride_x    = int(np.random.randint(2, high=3, size=1))
+        stride_y    = int(np.random.randint(2, high=3, size=1))
+        kernel_x    = int(np.random.randint(stride_x, high=7, size=1))
+        kernel_y    = int(np.random.randint(stride_y, high=7, size=1))
+        dilation_x  = int(np.random.randint(1, high=2, size=1))
+        dilation_y  = int(np.random.randint(1, high=2, size=1))
+
+
     kernel_x_t  = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     kernel_y_t  = kernel_y + (kernel_y - 1) * (dilation_y - 1)
     pad_left   = pad_right = pad_top = pad_down = 0
@@ -36,7 +68,6 @@ def convolution_f32():
         pad_top    = int(np.random.randint(0, high=pad_y, size=1))
         pad_down   = pad_y - pad_top
 
-    out_channel = int(np.random.randint(1, high=64, size=1))
     zero_point1 = int(np.random.randint(-3, high=3, size=1))
     std1        = int(np.random.randint(1, high=3, size=1))
     zero_point2 = int(np.random.randint(-3, high=3, size=1))
@@ -51,7 +82,7 @@ def convolution_f32():
     weight = weight.astype(np.float32)
     bias   = bias.astype(np.float32)
 
- 
+
     t_src_in  = tensor(src_in)
     t_weight  = tensor(weight)
     t_bias    = tensor(bias)
@@ -72,19 +103,19 @@ def convolution_f32():
     para.append(batch)
     para.append(in_channel)
     para.append(in_size_y)  #height
-    para.append(in_size_x)  #width   
+    para.append(in_size_x)  #width
     para.append(stride_y)
     para.append(stride_x)
-    para.append(kernel_y) 
-    para.append(kernel_x) 
+    para.append(kernel_y)
+    para.append(kernel_x)
     para.append(pad_left)
     para.append(pad_right)
     para.append(pad_top)
     para.append(pad_down)
-    para.append(out_channel) 
+    para.append(out_channel)
     para.append(dilation_x)
     para.append(dilation_y)
-    para.append(out_size_x) #width  
+    para.append(out_size_x) #width
     para.append(out_size_y) #height
     print(para)
 
@@ -106,5 +137,6 @@ def convolution_f32():
 
 
 if __name__ == '__main__':
-    convolution_f32()
+    test_type = sys.argv[1]
+    convolution_f32(test_type)
     print("end")

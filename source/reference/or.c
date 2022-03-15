@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,14 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
-#include <assert.h>
 
-int csi_ref_or_u32(struct csi_tensor *input0,
-                   struct csi_tensor *input1,
-                   struct csi_tensor *output,
+int csi_ref_or_u32(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
                    struct diso_params *params)
 {
     uint32_t *input0_data = input0->data;
@@ -37,9 +34,7 @@ int csi_ref_or_u32(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_ref_or_u8(struct csi_tensor *input0,
-                  struct csi_tensor *input1,
-                  struct csi_tensor *output,
+int csi_ref_or_u8(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
                   struct diso_params *params)
 {
     uint8_t *input0_data = input0->data;
@@ -53,9 +48,7 @@ int csi_ref_or_u8(struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_ref_or_i8(struct csi_tensor *input0,
-                  struct csi_tensor *input1,
-                  struct csi_tensor *output,
+int csi_ref_or_i8(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
                   struct diso_params *params)
 {
     int8_t *input0_data = input0->data;

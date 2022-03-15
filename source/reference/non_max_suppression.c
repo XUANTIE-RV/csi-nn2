@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2021 C-SKY Limited. All rights reserved.
+ * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,18 +16,17 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.10.x */
+/* CSI-NN2 version 1.12.x */
 
 #include "csi_ref.h"
 #include "csi_utils.h"
-
 
 static int find_max_score_idx(const float *scores, int *flag, int len)
 {
     int res = 0;
     float max = FLT_MIN;
-    for(int i = 0; i < len; i++) {
-        if(scores[i] > max && !flag[i]) {
+    for (int i = 0; i < len; i++) {
+        if (scores[i] > max && !flag[i]) {
             max = scores[i];
             res = i;
         }
@@ -47,21 +46,21 @@ static float get_iou(const float *box1, const float *box2)
     float inter_area = fmax(0, x2 - x1) * fmax(0, y2 - y1);
     // compute the area of both the prediction and ground-truth rectangles
     float box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1]);
-    float box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1]);;
-	// compute the intersection over union by taking the intersection area and
+    float box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1]);
+    ;
+    // compute the intersection over union by taking the intersection area and
     // dividing it by the sum of prediction + ground-truth areas - the interesection area
     float iou = inter_area / (box1_area + box2_area - inter_area);
     return iou;
 }
 
-int csi_ref_non_max_suppression_std(struct csi_tensor *input0,
-                                struct csi_tensor *input1,
-                                struct csi_tensor *output,
-                                struct non_max_suppression_params *params)
+int csi_ref_non_max_suppression_std(struct csi_tensor *input0, struct csi_tensor *input1,
+                                    struct csi_tensor *output,
+                                    struct non_max_suppression_params *params)
 {
-    float *boxes  = (float *)input0->data;
+    float *boxes = (float *)input0->data;
     float *scores = (float *)input1->data;
-    int *indices  = (int *)output->data;
+    int *indices = (int *)output->data;
 
     float iou_threshold = params->iou_threshold;
     int max_output_size = params->max_output_size;
@@ -72,21 +71,21 @@ int csi_ref_non_max_suppression_std(struct csi_tensor *input0,
     int *flag = (int *)csi_mem_alloc(box_num * sizeof(int));
 
     int box_cnt = 0;
-    while(box_num_exist) {
+    while (box_num_exist) {
         int max_box_idx = find_max_score_idx(scores, flag, box_num);
         flag[max_box_idx] = 1;
         box_num_exist--;
         *indices++ = max_box_idx;
         box_cnt++;
-        if(box_cnt == max_output_size) {
+        if (box_cnt == max_output_size) {
             break;
         }
-        for(int i = 0; i < box_num; i++) {
-            if(!flag[i]) {
+        for (int i = 0; i < box_num; i++) {
+            if (!flag[i]) {
                 float *box1_addr = boxes + 4 * max_box_idx;
                 float *box2_addr = boxes + 4 * i;
                 float iou = get_iou(box1_addr, box2_addr);
-                if(iou > iou_threshold) {
+                if (iou > iou_threshold) {
                     flag[i] = 1;
                     box_num_exist--;
                 }
