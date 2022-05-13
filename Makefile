@@ -9,6 +9,9 @@ nn2_rvv:
 nn2_c906:
 	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make c906_static -j8; cd -
 
+nn2_c906_so:
+	mkdir -p riscv_build; cd riscv_build; cmake ../ -DBUILD_RISCV=ON -DCMAKE_BUILD_TYPE=Release; make c906_share -j8; cd -
+
 nn2_c906_elf:
 	mkdir -p riscv_elf_build; cd riscv_elf_build; cmake ../ -DBUILD_RISCV_ELF=ON -DCMAKE_BUILD_TYPE=Release; make c906_elf_static -j8; cd -
 

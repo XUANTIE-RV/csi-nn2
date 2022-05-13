@@ -65,6 +65,8 @@ if(CSINN_LAYER_BENCHMARK)
     message(STATUS "Print the execution time of each layer - ON")
 endif()
 
+set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install")
+
 if(BUILD_X86)
     # build x86_ref so
     LIST(APPEND X86_LST ${NN2_SRCS} ${REF_SRCS})
@@ -95,6 +97,12 @@ if(BUILD_RISCV)
     target_compile_options(c906_static PRIVATE ${C906_BUILD_FLAGS})
 
     install(TARGETS c906_static DESTINATION lib)
+
+    add_library(c906_share SHARED ${C906_LST})
+    SET_TARGET_PROPERTIES(c906_share PROPERTIES OUTPUT_NAME "csi_nn2_c906")
+    target_compile_options(c906_share PRIVATE ${C906_BUILD_FLAGS})
+
+    install(TARGETS c906_share DESTINATION lib)
 
 endif()
 

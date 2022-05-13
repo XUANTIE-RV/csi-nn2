@@ -18,6 +18,7 @@
 
 /* CSI-NN2 version 1.12.x */
 
+#ifdef __riscv_xtheadv
 #include "csi_thead_rvv.h"
 
 void csi_nn_rvv_conv_im2col_sgemm_transform_kernel_int4(struct csi_tensor *kernel,
@@ -185,3 +186,4 @@ int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor
     csi_mem_free(shift);
     return CSINN_TRUE;
 }
+#endif
