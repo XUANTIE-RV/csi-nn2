@@ -5,3 +5,4 @@ csky_build/
 riscv_elf_build/
 x86_build/
 install_nn2/
+tools/

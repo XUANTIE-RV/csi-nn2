@@ -13,8 +13,14 @@ option(BUILD_CSKY_ELF "build csky elf" OFF)
 
 # riscv linux compiler
 if (BUILD_RISCV)
-    set(CMAKE_C_COMPILER riscv64-unknown-linux-gnu-gcc)
-    set(CMAKE_CXX_COMPILER riscv64-unknown-linux-gnu-g++)
+    if(IS_DIRECTORY $ENV{RISCV_GNU_GCC_PATH})
+        set(RISCV_GNU_GCC $ENV{RISCV_GNU_GCC_PATH})
+    else()
+        set(RISCV_GNU_GCC "${PROJECT_SOURCE_DIR}/tools/gcc-toolchain/bin")
+    endif()
+
+    set(CMAKE_C_COMPILER ${RISCV_GNU_GCC}/riscv64-unknown-linux-gnu-gcc)
+    set(CMAKE_CXX_COMPILER ${RISCV_GNU_GCC}/riscv64-unknown-linux-gnu-g++)
 endif()
 
 # riscv elf compiler
