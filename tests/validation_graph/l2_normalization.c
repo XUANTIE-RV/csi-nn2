@@ -80,16 +80,7 @@ int main(int argc, char** argv)
 
     struct csi_tensor *input_tensor = convert_input(input, test_dtype);
     input->dtype = sess->base_dtype;
-    /*
-    light:
-        software layer, across_spatial = true  channel_shared_ = true (scale = 1.0f).
-        in fact, axis = (1, 2, 3) because  across_spatial = true.
-        it means normalize with (channel * height * width), so params axis and epsilon are invaild
-        by test: axis can be (1) (2) (3) or (1,2) (2,3)
-                 can not be (0) (4) (1,2,3) ....
-    anole:
-        l2_norm compute init set axis = 2 (channel axis), so axis would be ignored here
-    */
+
     if (csi_l2_normalization_init(input, output, &params) != CSINN_TRUE) {
         printf("l2 normalization init fail.\n\t");
         return -1;

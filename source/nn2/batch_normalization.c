@@ -28,10 +28,6 @@ int csi_batch_normalization_init(struct csi_tensor *input,
                                  struct csi_tensor *output,
                                  struct bn_params *params)
 {
-    // pnna(light) use bn by nchw layout
-    // if (params->base.layout == CSINN_LAYOUT_NCHW) {
-    //     return CSINN_UNSUPPORT_DTYPE;
-    // }
     params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_BN, input->dtype);
     if (params->base.bc == NULL) {
         return CSINN_UNSUPPORT_DTYPE;
