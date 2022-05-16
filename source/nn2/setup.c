@@ -27,16 +27,10 @@ void csi_free_session(struct csi_session *sess) { csi_mem_free(sess); }
 
 void *csi_bc_map_ref(int op, int dtype);
 void *csi_bc_map_gref(int op, int dtype);
-void *csi_bc_map_ovx(int op, int dtype);
 void *csi_bc_map_c906(int op, int dtype);
-void *csi_bc_map_pnna(int op, int dtype);
-void *csi_bc_map_dp1k(int op, int dtype);
-void *csi_bc_map_ch8601(int op, int dtype);
 void *csi_bc_map_i805(int op, int dtype);
 void *csi_bc_map_e804(int op, int dtype);
 void *csi_bc_map_ref_i805(int op, int dtype);
-void *csi_bc_map_c908(int op, int dtype);
-void *csi_bc_map_asp(int op, int dtype);
 void *csi_bc_map_rvv(int op, int dtype);
 void *csi_bc_func_table[CSINN_API_SIZE] = {
 #ifdef CSI_BUILD_REF
@@ -55,27 +49,11 @@ void *csi_bc_func_table[CSINN_API_SIZE] = {
 #else
     NULL, /* c906 */
 #endif
-    NULL, /* c910 */
-#ifdef CSI_BUILD_OPENVX
-    csi_bc_map_ovx,
-#else
-    NULL, /* anole */
-#endif
-#ifdef CSI_BUILD_CH8601
-    csi_bc_map_ch8601,
-#else
-    NULL, /* ch8601 */
-#endif
-#ifdef CSI_BUILD_PNNA
-    csi_bc_map_pnna,
-#else
-    NULL, /* light */
-#endif
-#ifdef CSI_BUILD_DP1K
-    csi_bc_map_dp1k,
-#else
-    NULL, /* dp1000 */
-#endif
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
 #ifdef CSI_BUILD_I805
     csi_bc_map_i805,
 #else
@@ -91,17 +69,9 @@ void *csi_bc_func_table[CSINN_API_SIZE] = {
 #else
     NULL,
 #endif
-#ifdef CSI_BUILD_C908
-    csi_bc_map_c908,
-#else
-    NULL, /* c908 */
-#endif
-    NULL, /* tvmgen */
-#ifdef CSI_BUILD_ASP
-    csi_bc_map_asp,
-#else
-    NULL, /* asp */
-#endif
+    NULL,
+    NULL,
+    NULL,
 #ifdef CSI_BUILD_RVV
     csi_bc_map_rvv,
 #else
@@ -140,11 +110,11 @@ void *csi_init_func_table[CSINN_API_SIZE] = {
 #else
     NULL, /* c906 */
 #endif
-    NULL, /* c910 */
-    NULL, /* anole */
-    NULL, /* ch8601 */
-    NULL, /* light */
-    NULL, /* dp1000 */
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
 #ifdef CSI_BUILD_I805
     csi_init_map_i805,
 #else
@@ -160,13 +130,9 @@ void *csi_init_func_table[CSINN_API_SIZE] = {
 #else
     NULL,
 #endif
-#ifdef CSI_BUILD_C908
-    csi_init_map_c908,
-#else
-    NULL, /* c908 */
-#endif
-    NULL, /* tvmgen */
-    NULL, /* asp */
+    NULL,
+    NULL,
+    NULL,
 #ifdef CSI_BUILD_RVV
     csi_init_map_rvv,
 #else

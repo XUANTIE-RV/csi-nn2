@@ -19,7 +19,7 @@ def reduce_mean_f32():
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(50, high=60, size=1))
 
-    axis_count = int(np.random.randint(1, high=2, size=1))  # must be 1 for anole
+    axis_count = int(np.random.randint(1, high=2, size=1))
     axis_dim = [2, 3]
     axis_shape = random.sample(axis_dim, axis_count)
 
