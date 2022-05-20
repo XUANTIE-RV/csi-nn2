@@ -2220,22 +2220,12 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
 
         /*********************************** dot ***************************************/
         // reorder input_tm1_buf
-        int size_input_tm2 = 0;
-        if (tiles >= 8) {
-            size_input_tm2 = 64 * (tiles / 8 + (tiles % 8) / 4 + (tiles % 4) / 2 + tiles % 2) * in_c * 8;
-        } else if (tiles >= 4) {
-            size_input_tm2 = 64 * (tiles / 4 + (tiles % 4) / 2 + tiles % 2) * in_c * 4;
-        } else if (tiles >= 2) {
-            size_input_tm2 = 64 * (tiles / 2 + tiles % 2) * in_c * 2;
-        } else {
-            size_input_tm2 = 64 * tiles * in_c;
-        }
-        float *input_tm2_buf = (float *)csi_mem_alloc(size_input_tm2 * sizeof(float));
+        float *input_tm2_buf = (float *)csi_mem_alloc(64 * tiles * in_c * sizeof(float));
 
         #pragma omp parallel for num_threads(1)
         for (int r = 0; r < 64; r++) {
 
-            float *img_tm2 = input_tm2_buf + r * size_input_tm2 / 64;  // input_tm2 r channel data
+            float *img_tm2 = input_tm2_buf + r * tiles * in_c;  // input_tm2 r channel data
 
             int t = 0;
             for (; t + 7 < tiles; t += 8) {
@@ -2305,7 +2295,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
                 );
             }
             for (; t + 3 < tiles; t += 4) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4) * in_c * 8;   // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -2358,7 +2348,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
                 );
             }
             for (; t + 1 < tiles; t += 2) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2) * in_c * 8;   // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -2406,7 +2396,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
 
             }
             for (; t < tiles; t++) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2 + t % 2) * in_c * 8; // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -2466,7 +2456,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
 
             for (int r = 0; r < 64; r++) {
 
-                float *img_tm2 = input_tm2_buf + r * size_input_tm2 / 64;   // img_tm2 第r个channel
+                float *img_tm2 = input_tm2_buf + r * tiles * in_c;  // img_tm2 第r个channel
 
                 int t = 0;
                 for (; t + 7 < tiles; t += 8) {
@@ -2546,7 +2536,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
                     );
                 }
                 for (; t + 3 < tiles; t += 4) {
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
@@ -2597,7 +2587,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
                     );
                 }
                 for (; t + 1 < tiles; t += 2) {
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
@@ -2639,7 +2629,7 @@ int csi_c906_conv3x3s1_winograd64_pack4(struct csi_tensor *input,
                 }
                 for (; t < tiles; t++) {
 
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2 + t % 2) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
@@ -3320,22 +3310,12 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
 
         /*********************************** dot ***************************************/
         // reorder input_tm1_buf
-        int size_input_tm2 = 0;
-        if (tiles >= 8) {
-            size_input_tm2 = 36 * (tiles / 8 + (tiles % 8) / 4 + (tiles % 4) / 2 + tiles % 2) * in_c * 8;
-        } else if (tiles >= 4) {
-            size_input_tm2 = 36 * (tiles / 4 + (tiles % 4) / 2 + tiles % 2) * in_c * 4;
-        } else if (tiles >= 2) {
-            size_input_tm2 = 36 * (tiles / 2 + tiles % 2) * in_c * 2;
-        } else {
-            size_input_tm2 = 36 * tiles * in_c;
-        }
-        float *input_tm2_buf = (float *)csi_mem_alloc(size_input_tm2 * sizeof(float));
+        float *input_tm2_buf = (float *)csi_mem_alloc(36 * tiles * in_c * sizeof(float));
 
         #pragma omp parallel for num_threads(1)
         for (int r = 0; r < 36; r++) {
 
-            float *img_tm2 = input_tm2_buf + r * size_input_tm2 / 36;  // input_tm2 r channel data
+            float *img_tm2 = input_tm2_buf + r * tiles * in_c;  // input_tm2 r channel data
 
             int t = 0;
             for (; t + 7 < tiles; t += 8) {
@@ -3361,7 +3341,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
                 }
             }
             for (; t + 3 < tiles; t += 4) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4) * in_c * 8;   // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -3378,7 +3358,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
                 }
             }
             for (; t + 1 < tiles; t += 2) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2) * in_c * 8;   // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -3393,7 +3373,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
 
             }
             for (; t < tiles; t++) {
-                float *tm2 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2 + t % 2) * in_c * 8; // img_tm2 row data
+                float *tm2 = img_tm2 + t * in_c;  // img_tm2 row data
                 float *tm1 = input_tm1_buf;
 
                 tm1 += (r * tiles + t) * 4;
@@ -3420,7 +3400,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
 
             for (int r = 0; r < 36; r++) {
 
-                float *img_tm2 = input_tm2_buf + r * size_input_tm2 / 36;   // img_tm2 第r个channel
+                float *img_tm2 = input_tm2_buf + r * tiles * in_c;  // img_tm2 第r个channel
 
                 int t = 0;
                 for (; t + 7 < tiles; t += 8) {
@@ -3500,7 +3480,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
                     );
                 }
                 for (; t + 3 < tiles; t += 4) {
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
@@ -3551,7 +3531,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
                     );
                 }
                 for (; t + 1 < tiles; t += 2) {
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
@@ -3593,7 +3573,7 @@ int csi_c906_conv3x3s1_winograd43_pack4(struct csi_tensor *input,
                 }
                 for (; t < tiles; t++) {
 
-                    float *r0 = img_tm2 + (t / 8 + (t % 8) / 4 + (t % 4) / 2 + t % 2) * in_c * 8;
+                    float *r0 = img_tm2 + t * in_c;
                     float *k0 = kernel0_tm + r * in_c * 4;
 
                     asm volatile(
