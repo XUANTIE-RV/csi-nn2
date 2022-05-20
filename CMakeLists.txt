@@ -13,8 +13,14 @@ option(BUILD_CSKY_ELF "build csky elf" OFF)
 
 # riscv linux compiler
 if (BUILD_RISCV)
-    set(CMAKE_C_COMPILER riscv64-unknown-linux-gnu-gcc)
-    set(CMAKE_CXX_COMPILER riscv64-unknown-linux-gnu-g++)
+    if(IS_DIRECTORY $ENV{RISCV_GNU_GCC_PATH})
+        set(RISCV_GNU_GCC $ENV{RISCV_GNU_GCC_PATH})
+    else()
+        set(RISCV_GNU_GCC "${PROJECT_SOURCE_DIR}/tools/gcc-toolchain/bin")
+    endif()
+
+    set(CMAKE_C_COMPILER ${RISCV_GNU_GCC}/riscv64-unknown-linux-gnu-gcc)
+    set(CMAKE_CXX_COMPILER ${RISCV_GNU_GCC}/riscv64-unknown-linux-gnu-g++)
 endif()
 
 # riscv elf compiler
@@ -49,7 +55,6 @@ file(GLOB_RECURSE NN2_SRCS source/nn2/*.c source/utils/*.c)
 file(GLOB_RECURSE REF_SRCS source/reference/*.c)
 file(GLOB_RECURSE GREF_SRCS source/graph_ref/*.c)
 file(GLOB_RECURSE OPENVX_SRCS source/openvx/*.c)
-file(GLOB_RECURSE PNNA_SRCS source/pnna/*.c source/pnna/*.cpp)
 file(GLOB_RECURSE C906_SRCS source/c906_opt/*.c)
 file(GLOB_RECURSE C908_SRCS source/c908/*.c)
 file(GLOB_RECURSE THEAD_RVV_SRCS source/thead_rvv/*.c)
@@ -57,9 +62,6 @@ file(GLOB_RECURSE C860_SRCS source/c860_opt/*.S)
 file(GLOB_RECURSE I805_REF_SRCS source/i805_ref/*.c)
 file(GLOB_RECURSE I805_SRCS source/i805_opt/*.c source/i805_opt/*.S)
 file(GLOB_RECURSE E804_SRCS source/e804_opt/*.c source/e804_opt/*.S)
-file(GLOB_RECURSE CH8601_SRCS source/ch8601/*.c)
-file(GLOB_RECURSE DP1K_SRCS source/dp1k/*.c)
-file(GLOB_RECURSE ASP_SRCS source/asp/*.c)
 
 include_directories(include)
 
@@ -68,6 +70,8 @@ if(CSINN_LAYER_BENCHMARK)
     add_definitions(-DCSINN_LAYER_BENCHMARK)
     message(STATUS "Print the execution time of each layer - ON")
 endif()
+
+set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install")
 
 if(BUILD_X86)
     # build x86_ref so
@@ -79,47 +83,6 @@ if(BUILD_X86)
 
     install(TARGETS x86_share DESTINATION lib)
 
-    # build pnna x86 simulate so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "csi_nn2_pnna_x86")
-    set(PNNA_BUILD_FLAGS -DCSI_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna x86 simulate so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "csi_nn2_hlight_x86")
-    set(HLIGHT_BUILD_FLAGS -DCSI_BUILD_REF -DCSI_BUILD_GREF -DCSI_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS hlight_share DESTINATION lib)
-
-    # build ch8601 so
-    LIST(APPEND CH8601_LST ${NN2_SRCS} ${CH8601_SRCS})
-    add_library(ch8601_share SHARED ${CH8601_LST})
-    SET_TARGET_PROPERTIES(ch8601_share PROPERTIES OUTPUT_NAME "csi_nn2_ch8601")
-    set(CH8601_BUILD_FLAGS -DCSI_BUILD_REF -DCSI_BUILD_CH8601)
-    target_compile_options(ch8601_share PRIVATE ${PNNA_BUILD_FLAGS})
-
-    install(TARGETS ch8601_share DESTINATION lib)
-
-    # build dp1k so
-    LIST(APPEND DP1K_LST ${NN2_SRCS} ${DP1K_SRCS})
-    add_library(dp1k_share SHARED ${DP1K_LST})
-    SET_TARGET_PROPERTIES(dp1k_share PROPERTIES OUTPUT_NAME "csi_nn2_dp1000")
-    set(DP1K_BUILD_FLAGS -DCSI_BUILD_DP1K -DCSI_BUILD_REF)
-    target_compile_options(dp1k_share PRIVATE ${DP1K_BUILD_FLAGS})
-
-    install(TARGETS dp1k_share DESTINATION lib)
 endif()
 
 if(BUILD_RISCV)
@@ -141,38 +104,12 @@ if(BUILD_RISCV)
 
     install(TARGETS c906_static DESTINATION lib)
 
-    # build c908 a
-    LIST(APPEND C908_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C908_SRCS})
-    add_library(c908_static STATIC ${C908_LST})
-    SET_TARGET_PROPERTIES(c908_static PROPERTIES OUTPUT_NAME "csi_nn2_c908")
-    set(C908_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadv -mabi=lp64d -DCSI_BUILD_C908 -DCSI_BUILD_REF -DCSI_BUILD_GREF)
-    target_compile_options(c908_static PRIVATE ${C908_BUILD_FLAGS})
+    add_library(c906_share SHARED ${C906_LST})
+    SET_TARGET_PROPERTIES(c906_share PROPERTIES OUTPUT_NAME "csi_nn2_c906")
+    target_compile_options(c906_share PRIVATE ${C906_BUILD_FLAGS})
 
-    install(TARGETS c908_static DESTINATION lib)
+    install(TARGETS c906_share DESTINATION lib)
 
-    # build pnna so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "csi_nn2_pnna")
-    set(PNNA_BUILD_FLAGS -DCSI_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "csi_nn2_hlight")
-    set(HLIGHT_BUILD_FLAGS -DCSI_BUILD_REF -DCSI_BUILD_GREF -DCSI_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS hlight_share DESTINATION lib)
 endif()
 
 if(BUILD_RISCV_ELF)

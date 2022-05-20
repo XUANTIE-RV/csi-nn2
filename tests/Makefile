@@ -1,6 +1,6 @@
 TEST_ROOT := $(shell pwd)
 
-all: test_ref test_anole
+all: test_ref
 
 test_ref_x86:
 	make -C validation_layer -f Makefile.ref_x86
@@ -13,15 +13,6 @@ test_c860:
 
 test_c906:
 	make -C validation_layer -f Makefile.c906
-
-test_anole:
-	make -C validation_graph -f Makefile.anole
-
-test_pnna:
-	make -C validation_graph -f Makefile.pnna
-
-test_pnna_x86:
-	make -C validation_graph -f Makefile.pnna_x86
 
 test_i805:
 	make -C validation_xt800 -f Makefile.i805

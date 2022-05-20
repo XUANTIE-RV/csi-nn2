@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     params.bias = *((float *)buffer + 5);
     params.alpha = *((float *)buffer + 6);
     params.beta = *((float *)buffer + 7);
-    params.norm_region = CSINN_LRN_ACROSS_CHANNELS;     // FIXME: only anole support lrn mode
+    params.norm_region = CSINN_LRN_ACROSS_CHANNELS;
 
     /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
