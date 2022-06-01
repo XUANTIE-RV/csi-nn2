@@ -75,10 +75,10 @@ set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install")
 
 if(BUILD_X86)
     # build x86_ref so
-    LIST(APPEND X86_LST ${NN2_SRCS} ${REF_SRCS})
+    LIST(APPEND X86_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS})
     add_library(x86_share SHARED ${X86_LST})
     SET_TARGET_PROPERTIES(x86_share PROPERTIES OUTPUT_NAME "csi_nn2_ref_x86")
-    set(X86_BUILD_FLAGS -DCSI_AVX_OPT -DCSI_BUILD_REF -mavx -mfma -fopenmp)
+    set(X86_BUILD_FLAGS -DCSI_AVX_OPT -DCSI_BUILD_REF -DCSI_BUILD_GREF -mavx -mfma -fopenmp)
     target_compile_options(x86_share PRIVATE ${X86_BUILD_FLAGS})
 
     install(TARGETS x86_share DESTINATION lib)
