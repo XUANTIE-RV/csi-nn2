@@ -16,16 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_e804.h"
+#include "e804_function.h"
+#include "shl_e804.h"
 
-
-int csi_e804_fullyconnected_q7(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct csi_tensor *weights,
-                               struct csi_tensor *bias,
-                               struct fc_params *params)
+int shl_e804_fullyconnected_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weights, struct csinn_tensor *bias,
+                               struct csinn_fc_params *params)
 {
     q7_t *input_data = (q7_t *)input->data;
     q7_t *weight_data = (q7_t *)weights->data;
@@ -37,11 +35,9 @@ int csi_e804_fullyconnected_q7(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_e804_fullyconnected_q15(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *weights,
-                                struct csi_tensor *bias,
-                                struct fc_params *params)
+int shl_e804_fullyconnected_q15(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                struct csinn_fc_params *params)
 {
     q15_t *input_data = (q15_t *)input->data;
     q15_t *weight_data = (q15_t *)weights->data;
@@ -52,4 +48,3 @@ int csi_e804_fullyconnected_q15(struct csi_tensor *input,
                                   bias->qinfo->shift, output->qinfo->shift, bias_data, output_data);
     return CSINN_TRUE;
 }
-              

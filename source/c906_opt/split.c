@@ -18,11 +18,10 @@
 
 /* CSI-NN2 version 1.9.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_split_f32(struct csi_tensor *input,
-                       struct csi_tensor **output,
-                       struct split_params *params)
+int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
+                       struct csinn_split_params *params)
 {
 
     int32_t inner_size = 1;
@@ -56,16 +55,15 @@ int csi_c906_split_f32(struct csi_tensor *input,
         for (int out = 0; out < out_size; out++) {
             int in_index = out * input->dim[params->axis] * inner_size + s_index * inner_size;
             int out_index = out * inner_size;
-            csi_c906_memcpy(output_i_data + out_index, input_data + in_index, p_size * sizeof(float));
+            shl_c906_memcpy(output_i_data + out_index, input_data + in_index,
+                            p_size * sizeof(float));
         }
     }
     return CSINN_TRUE;
 }
 
-
-int csi_c906_split_fp16(struct csi_tensor *input,
-                        struct csi_tensor **output,
-                        struct split_params *params)
+int shl_c906_split_fp16(struct csinn_tensor *input, struct csinn_tensor **output,
+                        struct csinn_split_params *params)
 {
     int32_t inner_size = 1;
     int32_t out_size = 1;
@@ -98,7 +96,8 @@ int csi_c906_split_fp16(struct csi_tensor *input,
         for (int out = 0; out < out_size; out++) {
             int in_index = out * input->dim[params->axis] * inner_size + s_index * inner_size;
             int out_index = out * inner_size;
-            csi_c906_memcpy(output_i_data + out_index, input_data + in_index, p_size * sizeof(__fp16));
+            shl_c906_memcpy(output_i_data + out_index, input_data + in_index,
+                            p_size * sizeof(__fp16));
         }
     }
     return CSINN_TRUE;

@@ -16,27 +16,28 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_flatten_init(struct csi_tensor *input, struct csi_tensor *output,
-                         struct reshape_params *params)
+int shl_ref_flatten_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_reshape_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     if (input->quant_channel == output->quant_channel) {
-        int quant_size = input->quant_channel * sizeof(struct csi_quant_info);
+        int quant_size = input->quant_channel * sizeof(struct csinn_quant_info);
         int t = memcmp(input->qinfo, output->qinfo, quant_size);
         if (t == 0) {
-            params->base.bc = csi_ref_flatten;
+            cb->exec = shl_ref_flatten;
             return CSINN_TRUE;
         }
     }
-    params->base.bc = csi_ref_flatten_quant;
+    cb->exec = shl_ref_flatten_quant;
     return CSINN_TRUE;
 }
 
-int csi_ref_flatten(struct csi_tensor *input, struct csi_tensor *output,
-                    struct flatten_params *params)
+int shl_ref_flatten(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_flatten_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
@@ -45,14 +46,14 @@ int csi_ref_flatten(struct csi_tensor *input, struct csi_tensor *output,
         return CSINN_TRUE;
     }
 
-    int size = csi_tensor_byte_size(input);
+    int size = csinn_tensor_byte_size(input);
 
     memcpy(output_data, input_data, size);
     return CSINN_TRUE;
 }
 
-int csi_ref_flatten_quant(struct csi_tensor *input, struct csi_tensor *output,
-                          struct flatten_params *params)
+int shl_ref_flatten_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_flatten_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_flatten);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_flatten);
 }

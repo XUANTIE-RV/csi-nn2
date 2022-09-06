@@ -16,28 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "./valid_data/fully_data_q15.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "./valid_data/fully_data_q15.dat"
+#include "test_utils.h"
 
-
-static void verify_fullyconnected_q15(void *input_data,
-                                      void *weight_data,
-                                      void *bias_data,
-                                      void *ref_data,
-                                      uint16_t in_nodes,
-                                      uint16_t out_nodes,
-                                      uint16_t bias_shift,
-                                      uint16_t out_shift,
-                                      float difference)
+static void verify_fullyconnected_q15(void *input_data, void *weight_data, void *bias_data,
+                                      void *ref_data, uint16_t in_nodes, uint16_t out_nodes,
+                                      uint16_t bias_shift, uint16_t out_shift, float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, out_size, weight_size = 0, bias_size = 0;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = 1;
     input->dim[1] = in_nodes;
     input->dim_count = 2;
@@ -45,7 +38,7 @@ static void verify_fullyconnected_q15(void *input_data,
     input->name = "input";
     in_size = input->dim[0] * input->dim[1];
 
-    struct csi_tensor *weight = csi_alloc_tensor(NULL);
+    struct csinn_tensor *weight = csinn_alloc_tensor(NULL);
     weight->dim[0] = out_nodes;
     weight->dim[1] = in_nodes;
     weight->dim_count = 2;
@@ -53,7 +46,7 @@ static void verify_fullyconnected_q15(void *input_data,
     weight->name = "weight";
     weight_size = weight->dim[0] * weight->dim[1];
 
-    struct csi_tensor *bias = csi_alloc_tensor(NULL);
+    struct csinn_tensor *bias = csinn_alloc_tensor(NULL);
     bias->dim[0] = out_nodes;
     bias->dim_count = 1;
     bias->dtype = CSINN_DTYPE_INT16;
@@ -61,7 +54,7 @@ static void verify_fullyconnected_q15(void *input_data,
     bias_size = bias->dim[0];
     bias->qinfo->shift = bias_shift;
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = out_nodes;
     output->dim_count = 2;
@@ -70,22 +63,21 @@ static void verify_fullyconnected_q15(void *input_data,
     out_size = output->dim[0] * output->dim[1];
     output->qinfo->shift = out_shift;
 
-    struct fc_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.units = out_nodes;
+    struct csinn_fc_params *params = csinn_alloc_params(sizeof(struct csinn_fc_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->units = out_nodes;
 
-    input->data      = (uint16_t *)input_data;
-    weight->data     = (uint16_t *)weight_data;
-    bias->data       = (uint16_t *)bias_data;
-    reference->data  = (uint16_t *)ref_data;
+    input->data = (uint16_t *)input_data;
+    weight->data = (uint16_t *)weight_data;
+    bias->data = (uint16_t *)bias_data;
+    reference->data = (uint16_t *)ref_data;
     uint16_t *output_tmp = (uint16_t *)malloc(out_size * sizeof(uint16_t));
-    output->data     = output_tmp;
+    output->data = output_tmp;
 
-    if (csi_fullyconnected_init(input, output, weight, bias, &params) == CSINN_TRUE) {
-        csi_fullyconnected(input, output, weight, bias, &params);
+    if (csinn_fullyconnected_init(input, output, weight, bias, params) == CSINN_TRUE) {
+        csinn_fullyconnected(input, output, weight, bias, params);
     }
 
     result_verify_q15(reference->data, output->data, input->data, difference, out_size, false);
@@ -97,26 +89,25 @@ static void verify_fullyconnected_q15(void *input_data,
     free(reference);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of fullyconnected q15 for xt800.\n");
 
-    verify_fullyconnected_q15(fully_connect_input_3, fully_connect_weight_3, fully_connect_bias_3, fully_connect_result_6,
-                              256, 128, 0, 8, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_3, fully_connect_weight_3, fully_connect_bias_3,
+                              fully_connect_result_6, 256, 128, 0, 8, 0.0f);
 
-    verify_fullyconnected_q15(fully_connect_input_4, fully_connect_weight_4, fully_connect_bias_4, fully_connect_result_7,
-                              256, 64, 0, 10, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_4, fully_connect_weight_4, fully_connect_bias_4,
+                              fully_connect_result_7, 256, 64, 0, 10, 0.0f);
 
-    verify_fullyconnected_q15(fully_connect_input_5, fully_connect_weight_5, fully_connect_bias_5, fully_connect_result_8,
-                              128, 128, 0, 12, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_5, fully_connect_weight_5, fully_connect_bias_5,
+                              fully_connect_result_8, 128, 128, 0, 12, 0.0f);
 
-    verify_fullyconnected_q15(fully_connect_input_3, fully_connect_weight_3, fully_connect_bias_3, fully_connect_result_9,
-                              255, 127, 0, 8, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_3, fully_connect_weight_3, fully_connect_bias_3,
+                              fully_connect_result_9, 255, 127, 0, 8, 0.0f);
 
-    verify_fullyconnected_q15(fully_connect_input_4, fully_connect_weight_4, fully_connect_bias_4, fully_connect_result_10,
-                              255, 63, 0, 10, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_4, fully_connect_weight_4, fully_connect_bias_4,
+                              fully_connect_result_10, 255, 63, 0, 10, 0.0f);
 
-    verify_fullyconnected_q15(fully_connect_input_5, fully_connect_weight_5, fully_connect_bias_5, fully_connect_result_11,
-                              127, 127, 0, 12, 0.0f);
+    verify_fullyconnected_q15(fully_connect_input_5, fully_connect_weight_5, fully_connect_bias_5,
+                              fully_connect_result_11, 127, 127, 0, 12, 0.0f);
 }

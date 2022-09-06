@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of ndarray size u8.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct ndarray_size_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_ndarray_size_params *params;
     int in_size = 1, out_size = 1;
     int zp, quantized_multiplier, shift;
     float scale, min_value, max_value;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     int *buffer = read_input_data_f32(argv[1]);
     input->dim_count = buffer[0];
     output->dim_count = 1;
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         input->dim[i] = buffer[i + 1];
         in_size *= input->dim[i];
     }
@@ -55,33 +55,29 @@ int main(int argc, char** argv)
     input->is_const = 0;
     input->quant_channel = 1;
 
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.base.layout = CSINN_LAYOUT_NCHW;
+    params->base.api = CSINN_API;
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    float *src_in     = (float *)(buffer + 1 + input->dim_count);
+    float *src_in = (float *)(buffer + 1 + input->dim_count);
     float *ref = (float *)(buffer + 1 + input->dim_count + in_size);
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
-
     input->data = src_in;
     get_quant_info(input);
 
-    for(int i = 0; i < in_size; i++) {
-        src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp[i] = shl_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
     }
-
 
     output->data = ref;
     get_quant_info(output);
-    input->data     = src_tmp;
+    input->data = src_tmp;
     reference->data = ref;
-    output->data    = malloc(out_size * sizeof(char));
+    output->data = malloc(out_size * sizeof(char));
 
-
-    if (csi_ndarray_size_init(input, output, &params) == CSINN_TRUE) {
-        csi_ndarray_size(input, output, &params);
+    if (csinn_ndarray_size_init(input, output, params) == CSINN_TRUE) {
+        csinn_ndarray_size(input, output, params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

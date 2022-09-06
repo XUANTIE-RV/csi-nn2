@@ -16,36 +16,35 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of batch normalization(graph).\n");
 
     int *buffer = read_input_data_f32(argv[1]);
     int channel_size = buffer[4];
 
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size = 0, out_size = 0;
     enum csinn_dtype_enum test_dtype = CSINN_TEST_DTYPE;
     /* session configuration */
-    struct csi_session *sess = csi_alloc_session();
+    struct csinn_session *sess = csinn_alloc_session();
     sess->base_api = CSINN_API;
-    csi_session_init(sess);
-    csi_set_input_number(1, sess);
-    csi_set_output_number(1, sess);
-
+    csinn_session_init(sess);
+    csinn_set_input_number(1, sess);
+    csinn_set_output_number(1, sess);
 
     /* input tensor configuration */
-    struct csi_tensor *input  = csi_alloc_tensor(sess);
-    input->dim[0] = buffer[1];          // batch
-    input->dim[1] = buffer[4];          // channel
-    input->dim[2] = buffer[2];          // height
-    input->dim[3] = buffer[3];          // width
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    input->dim[0] = buffer[1];  // batch
+    input->dim[1] = buffer[4];  // channel
+    input->dim[2] = buffer[2];  // height
+    input->dim[3] = buffer[3];  // width
     input->dim_count = 4;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     input->name = "input";
@@ -55,7 +54,7 @@ int main(int argc, char** argv)
     input->dtype = CSINN_DTYPE_FLOAT32;
 
     /* mean tensor configuration */
-    struct csi_tensor *mean  = csi_alloc_tensor(sess);
+    struct csinn_tensor *mean = csinn_alloc_tensor(sess);
     mean->dim[0] = channel_size;
     mean->dim_count = 1;
     mean->name = "mean";
@@ -65,7 +64,7 @@ int main(int argc, char** argv)
     mean->dtype = CSINN_DTYPE_FLOAT32;
 
     /* variance tensor configuration */
-    struct csi_tensor *variance  = csi_alloc_tensor(sess);
+    struct csinn_tensor *variance = csinn_alloc_tensor(sess);
     variance->dim[0] = channel_size;
     variance->dim_count = 1;
     variance->name = "variance";
@@ -75,7 +74,7 @@ int main(int argc, char** argv)
     mean->dtype = CSINN_DTYPE_FLOAT32;
 
     /* gamma tensor configuration */
-    struct csi_tensor *gamma  = csi_alloc_tensor(sess);
+    struct csinn_tensor *gamma = csinn_alloc_tensor(sess);
     gamma->dim[0] = channel_size;
     gamma->dim_count = 1;
     gamma->name = "gamma";
@@ -85,7 +84,7 @@ int main(int argc, char** argv)
     gamma->dtype = CSINN_DTYPE_FLOAT32;
 
     /* beta tensor configuration */
-    struct csi_tensor *beta  = csi_alloc_tensor(sess);
+    struct csinn_tensor *beta = csinn_alloc_tensor(sess);
     beta->dim[0] = channel_size;
     beta->dim_count = 1;
     beta->name = "beta";
@@ -95,7 +94,7 @@ int main(int argc, char** argv)
     beta->dtype = CSINN_DTYPE_FLOAT32;
 
     /* output tensor configuration */
-    struct csi_tensor *output = csi_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
     output->dim[2] = input->dim[2];
@@ -107,56 +106,56 @@ int main(int argc, char** argv)
     output->name = "output";
     get_quant_info(output);
 
-
     /* operator parameter configuration */
-    struct bn_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_NPU_GRAPH;
-    params.epsilon = *((float *)buffer + 5);
+    struct csinn_bn_params *params = csinn_alloc_params(sizeof(struct csinn_bn_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->epsilon = *((float *)buffer + 5);
 
-    struct csi_tensor *input_tensor = convert_input(input, test_dtype);
+    struct csinn_tensor *input_tensor = convert_input(input, test_dtype);
     input->dtype = sess->base_dtype;
-    struct csi_tensor *mean_tensor = convert_input(mean, test_dtype);
+    struct csinn_tensor *mean_tensor = convert_input(mean, test_dtype);
     mean->dtype = sess->base_dtype;
-    struct csi_tensor *variance_tensor = convert_input(variance, test_dtype);
+    struct csinn_tensor *variance_tensor = convert_input(variance, test_dtype);
     variance->dtype = sess->base_dtype;
-    struct csi_tensor *gamma_tensor = convert_input(gamma, test_dtype);
+    struct csinn_tensor *gamma_tensor = convert_input(gamma, test_dtype);
     gamma->dtype = sess->base_dtype;
-    struct csi_tensor *beta_tensor = convert_input(beta, test_dtype);
+    struct csinn_tensor *beta_tensor = convert_input(beta, test_dtype);
     beta->dtype = sess->base_dtype;
-    if (csi_batch_normalization_init(input, mean, variance, gamma, beta, output, &params) != CSINN_TRUE) {
+    if (csinn_batch_normalization_init(input, mean, variance, gamma, beta, output, params) !=
+        CSINN_TRUE) {
         printf("batch normalization init fail.\n\t");
         return -1;
     }
 
-    csi_set_tensor_entry(input, sess);
-    csi_set_input(0, input, sess);
+    csinn_set_tensor_entry(input, sess);
+    csinn_set_input(0, input, sess);
 
-    csi_batch_normalization(input, mean, variance, gamma, beta, output, &params);
+    csinn_batch_normalization(input, mean, variance, gamma, beta, output, params);
 
-    csi_set_output(0, output, sess);
-    csi_session_setup(sess);
+    csinn_set_output(0, output, sess);
+    csinn_session_setup(sess);
 
-    csi_update_input(0, input_tensor, sess);
-    csi_session_run(sess);
+    csinn_update_input(0, input_tensor, sess);
+    csinn_session_run(sess);
 
-    struct csi_tensor *output_tensor = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output_tensor = csinn_alloc_tensor(NULL);
     output_tensor->data = NULL;
     output_tensor->dtype = sess->base_dtype;
     output_tensor->is_const = 0;
-    int output_num = csi_get_output_number(sess);
+    int output_num = csinn_get_output_number(sess);
     printf("output_num = %d\n", output_num);
-    csi_get_output(0, output_tensor, sess);
-    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csi_quant_info));
+    csinn_get_output(0, output_tensor, sess);
+    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csinn_quant_info));
 
     /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
     if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
         result_verify_8(reference->data, output_tensor, input->data, difference, out_size, false);
-    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32 && output_tensor->dtype == CSINN_DTYPE_INT8) {
-        struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output_tensor);
+    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32 &&
+               output_tensor->dtype == CSINN_DTYPE_INT8) {
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output_tensor);
         result_verify_f32(reference->data, foutput->data, input->data, difference, out_size, false);
     }
 
@@ -169,7 +168,7 @@ int main(int argc, char** argv)
     free(reference->qinfo);
     free(reference);
 
-    csi_session_deinit(sess);
-    csi_free_session(sess);
+    csinn_session_deinit(sess);
+    csinn_free_session(sess);
     return done_testing();
 }

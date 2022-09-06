@@ -1,6 +1,6 @@
 CC = riscv64-unknown-linux-gnu-gcc
 INCLUDE = -I../../../include -I../../utils
-CFLAGS = -O2 -g3 -march=rv64gcvxthead -mabi=lp64dv -static
+CFLAGS = -O2 -g3 -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -static
 
 test_objs =
 
@@ -66,8 +66,8 @@ $(utils_objs): %.o: %.c
 $(test_objs): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
 	$(CC) -c $(CFLAGS) $(INCLUDE) ../$< -o ../$@
-	$(CC) $@ ../$@ $(CFLAGS) $(BOARD) $(utils_objs) -L../../../lib/ \
-	../../../lib/libcsi_nn2_c906.a -lpthread -lc -lm -lstdc++ -o $@.elf
+	$(CC) $@ ../$@ $(CFLAGS) $(BOARD) $(utils_objs) -L../../../riscv_build/ \
+	../../../riscv_build/libshl_c906.a -lpthread -lc -lm -lstdc++ -o $@.elf
 
 clean:
 	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

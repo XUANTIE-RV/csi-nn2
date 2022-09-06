@@ -16,37 +16,34 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.13.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-int csi_nn_rvv_avgpool2d_init(struct csi_tensor *input, struct csi_tensor *output,
-                              struct pool_params *params)
+int shl_rvv_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
 {
-    int32_t input_h = input->dim[2];
-    int32_t input_w = input->dim[3];
-
+    int32_t in_c = input->dim[1];
+    int32_t in_h = input->dim[2];
+    int32_t in_w = input->dim[3];
     int32_t kernel_h = params->filter_height;
     int32_t kernel_w = params->filter_width;
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-
     int32_t pad_left = params->pad_left;
     int32_t pad_right = params->pad_right;
     int32_t pad_top = params->pad_top;
     int32_t pad_down = params->pad_down;
 
-    params->base.bc = NULL;
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = NULL;
+
+    const int packn = csrr_vlenb() / sizeof(float);
 
     // global avgpool2d
-    if (input_h == kernel_h && input_w == kernel_w) {
-        if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_nn_rvv_global_avgpool2d_fp32;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_nn_rvv_global_avgpool2d_fp16;
-        } else if (input->dtype == CSINN_DTYPE_INT8) {
-            params->base.bc = csi_ref_avgpool2d_quant;
-        }
+    if (in_h == kernel_h && in_w == kernel_w) {
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_fp32
+                                       : shl_rvv_global_avgpool2d_fp32;
         return CSINN_TRUE;
     }
 
@@ -54,74 +51,194 @@ int csi_nn_rvv_avgpool2d_init(struct csi_tensor *input, struct csi_tensor *outpu
         if (kernel_h == 2 && kernel_w == 2) {
             if (pad_left == 0 && pad_top == 0) {
                 // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
-                if (input_h % 2 == 1 && params->ceil_mode == 1) {
+                if (in_h % 2 == 1 && params->ceil_mode == 1) {
                     if (params->pad_down) params->pad_down++;
                 }
-                if (input_w % 2 == 1 && params->ceil_mode == 1) {
+                if (in_w % 2 == 1 && params->ceil_mode == 1) {
                     if (params->pad_right) params->pad_right++;
                 }
                 // end consider ceil_mode 2x2s2p0
-
-                if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = csi_nn_rvv_avgpool2x2s2_fp32;
-                } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = csi_nn_rvv_avgpool2x2s2_fp16;
-                }
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp32
+                                               : shl_rvv_avgpool2x2s2_fp32;
             } else if (pad_left == 1 && pad_top == 1) {
-                if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = csi_nn_rvv_avgpool2x2s2_p1_fp32;
-                } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = csi_nn_rvv_avgpool2x2s2_p1_fp16;
-                }
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp32
+                                               : shl_rvv_avgpool2x2s2_p1_fp32;
             }
         } else if (kernel_h == 3 && kernel_w == 3) {
             if (pad_left == 0 && pad_top == 0) {
                 // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
-                if (input_h % 2 == 0 && params->ceil_mode == 1) {
-                    if (params->pad_down)
+                if (in_h % 2 == 0 && params->ceil_mode == 1) {
+                    if (params->pad_down == 0)
                         params->pad_down++;  // origin pad_down mast be equal to zero ?
                 }
-                if (input_w % 2 == 0 && params->ceil_mode == 1) {
-                    if (params->pad_right) params->pad_right++;
+                if (in_w % 2 == 0 && params->ceil_mode == 1) {
+                    if (params->pad_right == 0) params->pad_right++;
                 }
                 // end consider ceil_mode 3x3s2p0
-
-                if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s2_fp32;
-                } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s2_fp16;
-                }
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp32
+                                               : shl_rvv_avgpool3x3s2_fp32;
             } else if (pad_left == 1 && pad_top == 1) {
-                if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s2_p1_fp32;
-                } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s2_p1_fp16;
-                }
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp32
+                                               : shl_rvv_avgpool3x3s2_p1_fp32;
             }
         }
     } else if (stride_h == 1 && stride_w == 1) {
         if (kernel_h == 3 && kernel_w == 3) {
             if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
-                if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s1_p1_fp32;
-                } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = csi_nn_rvv_avgpool3x3s1_p1_fp16;
-                }
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s1_packn_fp32
+                                               : shl_rvv_avgpool3x3s1_p1_fp32;
             }
         }
     }
 
-    if (params->base.bc == NULL) {
-        csi_debug_warning(
-            "avgpool is not optimized to achieve under this condition on RVV, call reference func "
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
             "replaced.\n");
-        if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_ref_avgpool2d_f32;
-        } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_ref_avgpool2d_quant;
-        } else if (input->dtype == CSINN_DTYPE_INT8) {
-            params->base.bc = csi_ref_avgpool2d_quant;
-        }
+        cb->exec = shl_ref_avgpool2d_f32;  // fixme: consider ncxhwx
     }
     return CSINN_TRUE;
+}
+
+int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
+{
+    int32_t in_c = input->dim[1];
+    int32_t in_h = input->dim[2];
+    int32_t in_w = input->dim[3];
+    int32_t kernel_h = params->filter_height;
+    int32_t kernel_w = params->filter_width;
+    int32_t stride_h = params->stride_height;
+    int32_t stride_w = params->stride_width;
+    int32_t pad_left = params->pad_left;
+    int32_t pad_right = params->pad_right;
+    int32_t pad_top = params->pad_top;
+    int32_t pad_down = params->pad_down;
+
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = NULL;
+
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+
+    // global avgpool2d
+    if (in_h == kernel_h && in_w == kernel_w) {
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_fp16
+                                       : shl_rvv_global_avgpool2d_fp16;
+        return CSINN_TRUE;
+    }
+
+    if (stride_h == 2 && stride_w == 2) {
+        if (kernel_h == 2 && kernel_w == 2) {
+            if (pad_left == 0 && pad_top == 0) {
+                // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                if (in_h % 2 == 1 && params->ceil_mode == 1) {
+                    if (params->pad_down) params->pad_down++;
+                }
+                if (in_w % 2 == 1 && params->ceil_mode == 1) {
+                    if (params->pad_right) params->pad_right++;
+                }
+                // end consider ceil_mode 2x2s2p0
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp16
+                                               : shl_rvv_avgpool2x2s2_fp16;
+            } else if (pad_left == 1 && pad_top == 1) {
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp16
+                                               : shl_rvv_avgpool2x2s2_p1_fp16;
+            }
+        } else if (kernel_h == 3 && kernel_w == 3) {
+            if (pad_left == 0 && pad_top == 0) {
+                // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                if (in_h % 2 == 0 && params->ceil_mode == 1) {
+                    if (params->pad_down == 0)
+                        params->pad_down++;  // origin pad_down mast be equal to zero ?
+                }
+                if (in_w % 2 == 0 && params->ceil_mode == 1) {
+                    if (params->pad_right == 0) params->pad_right++;
+                }
+                // end consider ceil_mode 3x3s2p0
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp16
+                                               : shl_rvv_avgpool3x3s2_fp16;
+            } else if (pad_left == 1 && pad_top == 1) {
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp16
+                                               : shl_rvv_avgpool3x3s2_p1_fp16;
+            }
+        }
+    } else if (stride_h == 1 && stride_w == 1) {
+        if (kernel_h == 3 && kernel_w == 3) {
+            if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
+                cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s1_packn_fp16
+                                               : shl_rvv_avgpool3x3s1_p1_fp16;
+            }
+        }
+    }
+
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
+            "replaced.\n");
+        cb->exec = shl_ref_avgpool2d_quant;  // fixme: consider ncxhwx
+    }
+    return CSINN_TRUE;
+}
+
+int shl_rvv_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
+{
+    int32_t in_c = input->dim[1];
+    int32_t in_h = input->dim[2];
+    int32_t in_w = input->dim[3];
+    int32_t kernel_h = params->filter_height;
+    int32_t kernel_w = params->filter_width;
+    int32_t stride_h = params->stride_height;
+    int32_t stride_w = params->stride_width;
+    int32_t pad_left = params->pad_left;
+    int32_t pad_right = params->pad_right;
+    int32_t pad_top = params->pad_top;
+    int32_t pad_down = params->pad_down;
+
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = NULL;
+
+    const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+
+    // global avgpool2d
+    if (in_h == kernel_h && in_w == kernel_w) {
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
+                                       : shl_ref_global_avgpool2d_quant;
+        return CSINN_TRUE;
+    }
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
+            "replaced.\n");
+        cb->exec = shl_ref_avgpool2d_quant;  // fixme: consider ncxhwx
+    }
+}
+
+int shl_rvv_avgpool2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
+{
+    return CSINN_FALSE;
+}
+
+int shl_rvv_global_avgpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_pool_params *params)
+{
+    int32_t in_c = input->dim[1];
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = NULL;
+    int packn = 0;
+
+    if (input->dtype == CSINN_DTYPE_FLOAT32) {
+        packn = csrr_vlenb() / sizeof(float);
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_fp32
+                                       : shl_rvv_global_avgpool2d_fp32;
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        packn = csrr_vlenb() / sizeof(__fp16);
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_fp16
+                                       : shl_rvv_global_avgpool2d_fp16;
+    } else if (input->dtype == CSINN_DTYPE_INT8) {
+        packn = csrr_vlenb() / sizeof(int8_t) / 2;
+        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
+                                       : shl_ref_global_avgpool2d_quant;
+    }
 }

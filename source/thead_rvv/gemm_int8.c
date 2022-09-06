@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
-#ifdef __riscv_xtheadv
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
-
+#include "shl_thead_rvv.h"
+#ifdef XTHEADV
 static vint8mf2_t requantize_m2(vint32m2_t _src, int32_t multiplier, int32_t shift, int32_t out_zp,
                                 int vl)
 {
@@ -85,177 +84,9 @@ static vint8mf4_t requantize_m1_s(vint32m1_t _src, int32_t *multiplier, int32_t 
     return _tmp2;
 }
 
-/*************************************************************
-    note: VLEN = 128
-*************************************************************/
-void csi_nn_rvv_reorder_kernel_n8_int8(int8_t *a, int8_t *sa, int m, int k, int ldx)
-{
-    int i = 0;
-    for (; i + 7 < m; i += 8) {
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 8; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, 4);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, 4);
-                sa += 4;
-            }
-        }
-        // k_tail
-        if (j < k) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 8; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, k & 3);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, k & 3);
-                sa += 4;
-            }
-        }
-        a += 8 * k;
-    }
-    for (; i + 3 < m; i += 4) {
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 4; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, 4);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, 4);
-                sa += 4;
-            }
-        }
-        if (j < k) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 4; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, k & 3);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, k & 3);
-                sa += 4;
-            }
-        }
-        a += 4 * k;
-    }
-    for (; i + 1 < m; i += 2) {
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 2; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, 4);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, 4);
-                sa += 4;
-            }
-        }
-        if (j < k) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 2; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, k & 3);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, k & 3);
-                sa += 4;
-            }
-        }
-        a += 2 * k;
-    }
-    for (; i < m; i++) {
-        memcpy(sa, a, k * sizeof(int8_t));
-    }
-}
-
-void csi_nn_rvv_reorder_input_z8_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
-{
-    int vl = vsetvl_e8m1(8);
-    int i = 0;
-    for (; i + 7 < n; i += 8) {
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb += 32 - 3;
-        }
-        // k_tail
-        if (j < k) {
-            int8_t *sb0 = sb;
-            for (; j < k; j++) {
-                vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-                b0 += n;
-                vsse8_v_i8m1(sb0, 4 * sizeof(int8_t), _tmp, vl);
-                sb0++;
-            }
-            sb += 32;
-        }
-    }
-    for (; i + 3 < n; i += 4) {
-        vl = vsetvl_e8m1(4);
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb += 13;
-        }
-        // k_tail
-        if (j < k) {
-            int8_t *sb0 = sb;
-            for (; j < k; j++) {
-                vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-                b0 += n;
-                vsse8_v_i8m1(sb0, 4 * sizeof(int8_t), _tmp, vl);
-                sb0++;
-            }
-            sb += 16;
-        }
-    }
-    // n_tail
-    for (; i < n; i++) {
-        vl = vsetvl_e8m1(16);
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 15 < k; j += 16) {
-            vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
-            b0 += 16 * ldx;
-            vse8_v_i8m1(sb, _tmp, vl);
-            sb += 16;
-        }
-        if (j < k) {
-            vl = vsetvl_e8m1(k & 15);
-            vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
-            vse8_v_i8m1(sb, _tmp, vl);
-            sb += ((k & 15) / 4 + 1) * 4;
-        }
-    }
-}
-
-void csi_nn_rvv_gemm_8x8_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int m, int k,
-                               int n, int ldc, int32_t *bias)
+// vlen=128
+void shl_rvv_gemm_8x8_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias, int m,
+                            int k, int n, int ldc)
 {
     int8_t *kernel_data = (int8_t *)sa;
     int8_t *input_data = (int8_t *)sb;
@@ -638,8 +469,8 @@ void csi_nn_rvv_gemm_8x8_int32(int32_t *dst, const int8_t *sa, const int8_t *sb,
     }
 }
 
-void csi_nn_rvv_gemm_8x8_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k, int n,
-                              int ldc, int32_t *bias, int32_t out_zp, int32_t *mult, int32_t *shift)
+void shl_rvv_gemm_8x8_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias, int m,
+                           int k, int n, int ldc, int32_t out_zp, int32_t *mult, int32_t *shift)
 {
     int8_t *kernel_data = (int8_t *)sa;
     int8_t *input_data = (int8_t *)sb;
@@ -1068,101 +899,8 @@ void csi_nn_rvv_gemm_8x8_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, i
 /*************************************************************
     note: VLEN = 256
 *************************************************************/
-// kernel 数据排布 可复用 csi_nn_rvv_reorder_kernel_n8_int8
-
-void csi_nn_rvv256_reorder_input_z16_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
-{
-    int vl = vsetvl_e8m1(16);
-    int i = 0;
-    for (; i + 15 < n; i += 16) {
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb += 64 - 3;
-        }
-        // k_tail
-        if (j < k) {
-            int8_t *sb0 = sb;
-            for (; j < k; j++) {
-                vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-                b0 += n;
-                vsse8_v_i8m1(sb0, 4 * sizeof(int8_t), _tmp, vl);
-                sb0++;
-            }
-            sb += 64;
-        }
-    }
-    for (; i + 7 < n; i += 8) {
-        vl = vsetvl_e8m1(8);
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb++;
-            _tmp = vle8_v_i8m1(b0, vl);
-            b0 += n;
-            vsse8_v_i8m1(sb, 4 * sizeof(int8_t), _tmp, vl);
-            sb += 32 - 3;
-        }
-        // k_tail
-        if (j < k) {
-            int8_t *sb0 = sb;
-            for (; j < k; j++) {
-                vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
-                b0 += n;
-                vsse8_v_i8m1(sb0, 4 * sizeof(int8_t), _tmp, vl);
-                sb0++;
-            }
-            sb += 32;
-        }
-    }
-    // n_tail
-    for (; i < n; i++) {
-        vl = vsetvl_e8m1(16);
-        int8_t *b0 = b + i;
-        int j = 0;
-        for (; j + 15 < k; j += 16) {
-            vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
-            b0 += 16 * ldx;
-            vse8_v_i8m1(sb, _tmp, vl);
-            sb += 16;
-        }
-        if (j < k) {
-            vl = vsetvl_e8m1(k & 15);
-            vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
-            vse8_v_i8m1(sb, _tmp, vl);
-            sb += ((k & 15) / 4 + 1) * 4;
-        }
-    }
-}
-
-void csi_nn_rvv256_gemm_8x16_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int m, int k,
-                                   int n, int ldc, int32_t *bias)
+void shl_rvv256_gemm_8x16_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias,
+                                int m, int k, int n, int ldc)
 {
     int8_t *kernel_data = (int8_t *)sa;
     int8_t *input_data = (int8_t *)sb;

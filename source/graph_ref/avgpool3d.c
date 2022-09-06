@@ -16,23 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
+#include "shl_gref.h"
 
-#include "csi_gref.h"
-
-int csi_gref_avgpool3d(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct pool_params *params)
+int shl_gref_avgpool3d(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_pool_params *params)
 {
-    csi_gref_siso_op(input, output, CSINN_OP_AVGPOOL2D, params);
+    shl_gref_siso_op(input, output, CSINN_OP_AVGPOOL2D, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_global_avgpool3d(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct pool_params *params)
+int shl_gref_global_avgpool3d(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params)
 {
-    csi_gref_siso_op(input, output, CSINN_OP_GLOBAL_AVGPOOL2D, params);
+    shl_gref_siso_op(input, output, CSINN_OP_GLOBAL_AVGPOOL2D, params);
     return CSINN_TRUE;
 }

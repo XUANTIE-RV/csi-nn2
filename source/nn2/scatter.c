@@ -16,33 +16,32 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-
-int csi_scatter_nd_init(struct csi_tensor *input,
-                        struct csi_tensor *indices,
-                        struct csi_tensor *updates,
-                        struct csi_tensor *output,
-                        struct scatter_nd_params *params)
+int csinn_scatter_nd_init(struct csinn_tensor *input, struct csinn_tensor *indices,
+                          struct csinn_tensor *updates, struct csinn_tensor *output,
+                          struct csinn_scatter_nd_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_SCATTER_ND, input->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_SCATTER_ND, input->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, indices, updates, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_scatter_nd(struct csi_tensor *input,
-                   struct csi_tensor *indices,
-                   struct csi_tensor *updates,
-                   struct csi_tensor *output,
-                   struct scatter_nd_params *params)
+int csinn_scatter_nd(struct csinn_tensor *input, struct csinn_tensor *indices,
+                     struct csinn_tensor *updates, struct csinn_tensor *output,
+                     struct csinn_scatter_nd_params *params)
 {
-    CSI_DEBUG_CALL(csi_scatter_nd_debug_info(input, indices, updates, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, indices, updates, output, params);
+    SHL_DEBUG_CALL(shl_scatter_nd_debug_info(input, indices, updates, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, indices, updates, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

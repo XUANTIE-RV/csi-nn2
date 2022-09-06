@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 // reduce_sum
-int csi_c906_sum_stride_fp16(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct reduce_params *params)
+int shl_c906_sum_stride_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_reduce_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

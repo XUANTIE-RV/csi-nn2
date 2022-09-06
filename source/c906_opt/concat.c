@@ -18,12 +18,10 @@
 
 /* CSI-NN2 version 1.9.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-
-int csi_c906_concat_f32(struct csi_tensor **input,
-                        struct csi_tensor *output,
-                        struct concat_params *params)
+int shl_c906_concat_f32(struct csinn_tensor **input, struct csinn_tensor *output,
+                        struct csinn_concat_params *params)
 {
     int64_t outer_size = 1;
     for (int i = 0; i < params->axis; ++i) {
@@ -38,21 +36,19 @@ int csi_c906_concat_f32(struct csi_tensor **input,
     float *output_ptr = output->data;
     for (int k = 0; k < outer_size; k++) {
         for (int i = 0; i < params->inputs_count; ++i) {
-            struct csi_tensor *input_item = input[i];
+            struct csinn_tensor *input_item = input[i];
             float *input_item_data = input_item->data;
             const int copy_size = input_item->dim[params->axis] * base_inner_size;
             const float *input_ptr = input_item_data + k * copy_size;
-            csi_c906_memcpy(output_ptr, input_ptr, copy_size * sizeof(float));
+            shl_c906_memcpy(output_ptr, input_ptr, copy_size * sizeof(float));
             output_ptr += copy_size;
         }
     }
     return CSINN_TRUE;
 }
 
-
-int csi_c906_concat_fp16(struct csi_tensor **input,
-                         struct csi_tensor *output,
-                         struct concat_params *params)
+int shl_c906_concat_fp16(struct csinn_tensor **input, struct csinn_tensor *output,
+                         struct csinn_concat_params *params)
 {
     int64_t outer_size = 1;
     for (int i = 0; i < params->axis; ++i) {
@@ -67,11 +63,11 @@ int csi_c906_concat_fp16(struct csi_tensor **input,
     __fp16 *output_ptr = output->data;
     for (int k = 0; k < outer_size; k++) {
         for (int i = 0; i < params->inputs_count; ++i) {
-            struct csi_tensor *input_item = input[i];
+            struct csinn_tensor *input_item = input[i];
             __fp16 *input_item_data = input_item->data;
             const int copy_size = input_item->dim[params->axis] * base_inner_size;
             const __fp16 *input_ptr = input_item_data + k * copy_size;
-            csi_c906_memcpy(output_ptr, input_ptr, copy_size * sizeof(__fp16));
+            shl_c906_memcpy(output_ptr, input_ptr, copy_size * sizeof(__fp16));
             output_ptr += copy_size;
         }
     }

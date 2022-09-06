@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of lrn u8.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct lrn_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_lrn_params *params = csinn_alloc_params(sizeof(struct csinn_lrn_params), NULL);
     int in_size = 1;
     int out_size = 1;
     int zp, quantized_multiplier, shift;
@@ -47,8 +47,8 @@ int main(int argc, char** argv)
     output->dim[2] = input->dim[2];
     output->dim[3] = input->dim[3];
 
-    params.range = buffer[4];
-    params.base.layout = CSINN_LAYOUT_NCHW;
+    params->range = buffer[4];
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
     input->dtype = CSINN_DTYPE_UINT8;
     input->layout = CSINN_LAYOUT_NCHW;
@@ -65,46 +65,42 @@ int main(int argc, char** argv)
 
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = in_size;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-
-    float *src_in   = (float *)(buffer + 8);
-    float *ref      = (float *)(buffer + 8 + in_size);
+    float *src_in = (float *)(buffer + 8);
+    float *ref = (float *)(buffer + 8 + in_size);
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
 
     input->data = src_in;
     get_quant_info(input);
 
-    for(int i = 0; i < in_size; i++) {
-        src_tmp[i] = csi_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp[i] = shl_ref_quantize_f32_to_u8(src_in[i], input->qinfo);
     }
 
+    shl_quantize_multiplier(*(float *)(buffer + 5), &quantized_multiplier, &shift);
+    params->bias_multiplier = quantized_multiplier;
+    params->bias_shift = shift;
 
-    csi_quantize_multiplier(*(float *)(buffer + 5), &quantized_multiplier, &shift);
-    params.bias_multiplier  = quantized_multiplier;
-    params.bias_shift       = shift;
+    shl_quantize_multiplier(*(float *)(buffer + 6), &quantized_multiplier, &shift);
+    params->alpha_multiplier = quantized_multiplier;
+    params->alpha_shift = shift;
 
-    csi_quantize_multiplier(*(float *)(buffer + 6), &quantized_multiplier, &shift);
-    params.alpha_multiplier  = quantized_multiplier;
-    params.alpha_shift       = shift;
-
-
-    csi_quantize_multiplier(*(float *)(buffer + 7), &quantized_multiplier, &shift);
-    params.beta_multiplier  = quantized_multiplier;
-    params.beta_shift       = shift;
+    shl_quantize_multiplier(*(float *)(buffer + 7), &quantized_multiplier, &shift);
+    params->beta_multiplier = quantized_multiplier;
+    params->beta_shift = shift;
 
     output->data = ref;
     get_quant_info(output);
 
-    input->data     = src_tmp;
+    input->data = src_tmp;
     reference->data = ref;
-    output->data    = malloc(out_size * sizeof(char));
+    output->data = malloc(out_size * sizeof(char));
 
     float difference = argc > 2 ? atof(argv[2]) : 1e-2;
 
-    if (csi_lrn_init(input, output, &params) == CSINN_TRUE) {
-        csi_lrn(input, output, &params);
+    if (csinn_lrn_init(input, output, params) == CSINN_TRUE) {
+        csinn_lrn(input, output, params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

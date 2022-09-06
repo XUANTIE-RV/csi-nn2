@@ -16,99 +16,17 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-/*************************************************************
-    note: VLEN = 128
-*************************************************************/
-void csi_nn_rvv_reorder_kernel_n8_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx)
-{
-    int i = 0;
-    for (; i + 7 < m; i += 8) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 8 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 8 * j + 1] = a[(i + 1) * k + j];
-            sa[i * k + 8 * j + 2] = a[(i + 2) * k + j];
-            sa[i * k + 8 * j + 3] = a[(i + 3) * k + j];
-            sa[i * k + 8 * j + 4] = a[(i + 4) * k + j];
-            sa[i * k + 8 * j + 5] = a[(i + 5) * k + j];
-            sa[i * k + 8 * j + 6] = a[(i + 6) * k + j];
-            sa[i * k + 8 * j + 7] = a[(i + 7) * k + j];
-        }
-    }
+/************************************************************************
+ * input matrix and kernel matrix have been reordered
+ ***********************************************************************/
 
-    for (; i + 3 < m; i += 4) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 4 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 4 * j + 1] = a[(i + 1) * k + j];
-            sa[i * k + 4 * j + 2] = a[(i + 2) * k + j];
-            sa[i * k + 4 * j + 3] = a[(i + 3) * k + j];
-        }
-    }
-
-    for (; i + 1 < m; i += 2) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 2 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 2 * j + 1] = a[(i + 1) * k + j];
-        }
-    }
-
-    for (; i < m; i++) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 1 * j + 0] = a[(i + 0) * k + j];
-        }
-    }
-}
-
-void csi_nn_rvv_reorder_input_z16_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
-{
-    int vl = vsetvl_e16m2(16);
-    __fp16 *b0 = NULL;
-    int i = 0;
-    for (; i + 15 < n; i += 16) {
-        b0 = b + i;
-        for (int j = 0; j < k; j++) {
-            vfloat16m2_t _tmp = vle16_v_f16m2(b0, vl);
-            b0 += ldx;
-            vse16_v_f16m2(sb, _tmp, vl);
-            sb += 16;
-        }
-    }
-
-    for (; i + 7 < n; i += 8) {
-        vl = vsetvl_e16m1(8);
-        b0 = b + i;
-        for (int j = 0; j < k; j++) {
-            vfloat16m1_t _tmp = vle16_v_f16m1(b0, vl);
-            b0 += ldx;
-            vse16_v_f16m1(sb, _tmp, vl);
-            sb += 8;
-        }
-    }
-
-    for (; i < n; i++) {
-        vl = vsetvl_e16m2(16);
-        b0 = b + i;
-        int j = 0;
-        for (; j + 15 < k; j += 16) {
-            vfloat16m2_t _tmp = vlse16_v_f16m2(b0, ldx * sizeof(__fp16), vl);
-            b0 += 16 * ldx;
-            vse16_v_f16m2(sb, _tmp, vl);
-            sb += 16;
-        }
-        if (j < k) {
-            vl = vsetvl_e16m2(k & 15);
-            vfloat16m2_t _tmp = vlse16_v_f16m2(b0, ldx * sizeof(__fp16), vl);
-            vse16_v_f16m2(sb, _tmp, vl);
-            sb += vl;
-        }
-    }
-}
-
-void csi_nn_rvv_gemm_8x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int m, int k, int n,
-                               int ldc, __fp16 *bias)
+// vlen=128
+void shl_rvv_gemm_8x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias, int m,
+                            int k, int n, int ldc)
 {
     __fp16 *kernel_data = (__fp16 *)sa;
     __fp16 *input_data = (__fp16 *)sb;
@@ -117,7 +35,7 @@ void csi_nn_rvv_gemm_8x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, 
     int flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16 *)csi_mem_alloc(m * sizeof(__fp16));
+        bias = (__fp16 *)shl_mem_alloc(m * sizeof(__fp16));
     }
     __fp16 *bias_ptr = bias;
 
@@ -553,111 +471,14 @@ void csi_nn_rvv_gemm_8x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, 
     }
 
     if (!flag_bias) {
-        csi_mem_free(bias);
+        shl_mem_free(bias);
         bias = NULL;
     }
 }
 
-/*************************************************************
-    note: VLEN = 256
-*************************************************************/
-void csi_nn_rvv256_reorder_kernel_n16_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx)
-{
-    int i = 0;
-
-    for (; i + 15 < m; i += 16) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 16 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 16 * j + 1] = a[(i + 1) * k + j];
-            sa[i * k + 16 * j + 2] = a[(i + 2) * k + j];
-            sa[i * k + 16 * j + 3] = a[(i + 3) * k + j];
-            sa[i * k + 16 * j + 4] = a[(i + 4) * k + j];
-            sa[i * k + 16 * j + 5] = a[(i + 5) * k + j];
-            sa[i * k + 16 * j + 6] = a[(i + 6) * k + j];
-            sa[i * k + 16 * j + 7] = a[(i + 7) * k + j];
-            sa[i * k + 16 * j + 8] = a[(i + 8) * k + j];
-            sa[i * k + 16 * j + 9] = a[(i + 9) * k + j];
-            sa[i * k + 16 * j + 10] = a[(i + 10) * k + j];
-            sa[i * k + 16 * j + 11] = a[(i + 11) * k + j];
-            sa[i * k + 16 * j + 12] = a[(i + 12) * k + j];
-            sa[i * k + 16 * j + 13] = a[(i + 13) * k + j];
-            sa[i * k + 16 * j + 14] = a[(i + 14) * k + j];
-            sa[i * k + 16 * j + 15] = a[(i + 15) * k + j];
-        }
-    }
-
-    for (; i + 7 < m; i += 8) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 8 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 8 * j + 1] = a[(i + 1) * k + j];
-            sa[i * k + 8 * j + 2] = a[(i + 2) * k + j];
-            sa[i * k + 8 * j + 3] = a[(i + 3) * k + j];
-            sa[i * k + 8 * j + 4] = a[(i + 4) * k + j];
-            sa[i * k + 8 * j + 5] = a[(i + 5) * k + j];
-            sa[i * k + 8 * j + 6] = a[(i + 6) * k + j];
-            sa[i * k + 8 * j + 7] = a[(i + 7) * k + j];
-        }
-    }
-
-    for (; i + 3 < m; i += 4) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 4 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 4 * j + 1] = a[(i + 1) * k + j];
-            sa[i * k + 4 * j + 2] = a[(i + 2) * k + j];
-            sa[i * k + 4 * j + 3] = a[(i + 3) * k + j];
-        }
-    }
-
-    for (; i + 1 < m; i += 2) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 2 * j + 0] = a[(i + 0) * k + j];
-            sa[i * k + 2 * j + 1] = a[(i + 1) * k + j];
-        }
-    }
-
-    for (; i < m; i++) {
-        for (int j = 0; j < k; j++) {
-            sa[i * k + 1 * j + 0] = a[(i + 0) * k + j];
-        }
-    }
-}
-
-void csi_nn_rvv256_reorder_input_z16_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
-{
-    int vl = vsetvl_e16m1(16);
-    __fp16 *b0 = NULL;
-    int i = 0;
-    for (; i + 15 < n; i += 16) {
-        b0 = b + i;
-        for (int j = 0; j < k; j++) {
-            vfloat16m1_t _tmp = vle16_v_f16m1(b0, vl);
-            b0 += ldx;
-            vse16_v_f16m1(sb, _tmp, vl);
-            sb += 16;
-        }
-    }
-
-    for (; i < n; i++) {
-        vl = vsetvl_e16m1(16);
-        b0 = b + i;
-        int j = 0;
-        for (; j + 15 < k; j += 16) {
-            vfloat16m1_t _tmp = vlse16_v_f16m1(b0, ldx * sizeof(__fp16), vl);
-            b0 += 16 * ldx;
-            vse16_v_f16m1(sb, _tmp, vl);
-            sb += 16;
-        }
-        if (j < k) {
-            vl = vsetvl_e16m1(k & 15);
-            vfloat16m1_t _tmp = vlse16_v_f16m1(b0, ldx * sizeof(__fp16), vl);
-            vse16_v_f16m1(sb, _tmp, vl);
-            sb += vl;
-        }
-    }
-}
-
-void csi_nn_rvv256_gemm_16x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int m, int k,
-                                   int n, int ldc, __fp16 *bias)
+// vlen=256
+void shl_rvv256_gemm_16x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
+                                int m, int k, int n, int ldc)
 {
     __fp16 *kernel_data = (__fp16 *)sa;
     __fp16 *input_data = (__fp16 *)sb;
@@ -666,7 +487,7 @@ void csi_nn_rvv256_gemm_16x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *
     int flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16 *)csi_mem_alloc(m * 2);
+        bias = (__fp16 *)shl_mem_alloc(m * 2);
     }
     __fp16 *bias_ptr = bias;
 
@@ -1143,7 +964,7 @@ void csi_nn_rvv256_gemm_16x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *
     }
 
     if (!flag_bias) {
-        csi_mem_free(bias);
+        shl_mem_free(bias);
         bias = NULL;
     }
 }

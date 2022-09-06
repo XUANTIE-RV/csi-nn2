@@ -16,20 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_select_f32(struct csi_tensor *condition, struct csi_tensor *input0,
-                       struct csi_tensor *input1, struct csi_tensor *output,
-                       struct select_params *params)
+int shl_ref_select_f32(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                       struct csinn_tensor *input1, struct csinn_tensor *output,
+                       struct csinn_select_params *params)
 {
     float *input_data0 = input0->data;
     float *input_data1 = input1->data;
     float *conlist_data = condition->data;
     float *output_data = output->data;
-    int size = csi_tensor_size(input0);
+    int size = csinn_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = conlist_data[i] ? input_data0[i] : input_data1[i];
@@ -37,15 +36,15 @@ int csi_ref_select_f32(struct csi_tensor *condition, struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_ref_select_u8(struct csi_tensor *condition, struct csi_tensor *input0,
-                      struct csi_tensor *input1, struct csi_tensor *output,
-                      struct select_params *params)
+int shl_ref_select_u8(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                      struct csinn_tensor *input1, struct csinn_tensor *output,
+                      struct csinn_select_params *params)
 {
     uint8_t *input_data0 = input0->data;
     uint8_t *input_data1 = input1->data;
     uint8_t *conlist_data = condition->data;
     uint8_t *output_data = output->data;
-    int size = csi_tensor_size(input0);
+    int size = csinn_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = conlist_data[i] ? input_data0[i] : input_data1[i];
@@ -53,15 +52,15 @@ int csi_ref_select_u8(struct csi_tensor *condition, struct csi_tensor *input0,
     return CSINN_TRUE;
 }
 
-int csi_ref_select_i8(struct csi_tensor *condition, struct csi_tensor *input0,
-                      struct csi_tensor *input1, struct csi_tensor *output,
-                      struct select_params *params)
+int shl_ref_select_i8(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                      struct csinn_tensor *input1, struct csinn_tensor *output,
+                      struct csinn_select_params *params)
 {
     int8_t *input_data0 = input0->data;
     int8_t *input_data1 = input1->data;
     int8_t *conlist_data = condition->data;
     int8_t *output_data = output->data;
-    int size = csi_tensor_size(input0);
+    int size = csinn_tensor_size(input0);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = conlist_data[i] ? input_data0[i] : input_data1[i];

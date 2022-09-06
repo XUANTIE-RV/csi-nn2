@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_utils.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -28,24 +27,26 @@ int main(int argc, char** argv)
 {
     init_testsuite("Testing function of softmax(layer)\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct softmax_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_softmax_params *params = csinn_alloc_params(sizeof(struct csinn_softmax_params), sess);
     int in_size;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];         
-    input->dim[1] = buffer[1];          
-    input->dim[2] = buffer[2];          
-    input->dim[3] = buffer[3];          
+    input->dim[0] = buffer[0];
+    input->dim[1] = buffer[1];
+    input->dim[2] = buffer[2];
+    input->dim[3] = buffer[3];
 
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
     output->dim[2] = input->dim[2];
     output->dim[3] = input->dim[3];
 
-    params.axis = buffer[4];
+    params->axis = buffer[4];
 
     input->dim_count = 4;
     output->dim_count = 4;
@@ -58,24 +59,23 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    
-    params.base.layout = CSINN_LAYOUT_NCHW;
+
+    params->base.layout = CSINN_LAYOUT_NCHW;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
 
     input->data   = (float *)(buffer + 5);
     reference->data      = (float *)(buffer + 5 + in_size);
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
-   
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_softmax_init,
-                   csi_softmax, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT16, csi_softmax_init,
-                   csi_softmax, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_SYM, csi_softmax_init,
-                   csi_softmax, &difference);
+
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_softmax_init,
+                   csinn_softmax, &difference);
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_softmax_init,
+                   csinn_softmax, &difference);
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_softmax_init,
+                   csinn_softmax, &difference);
 
     return done_testing();
 }

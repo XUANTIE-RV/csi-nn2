@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-static void csi_ref_resize_bilinear_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                             bool align_corners)
+static void shl_ref_resize_bilinear_nhwc_f32(struct csinn_tensor *input,
+                                             struct csinn_tensor *output, bool align_corners)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -49,22 +48,22 @@ static void csi_ref_resize_bilinear_nhwc_f32(struct csi_tensor *input, struct cs
         for (int y = 0; y < output_height; ++y) {
             float input_y = y * height_scale;
             int32_t y0 = (int32_t)(floor(input_y));
-            int32_t y1 = csi_ref_min_internal_s32(y0 + 1, input_height - 1);
+            int32_t y1 = shl_ref_min_internal_s32(y0 + 1, input_height - 1);
             for (int x = 0; x < output_width; ++x) {
                 float input_x = x * width_scale;
                 int32_t x0 = (int32_t)(floor(input_x));
-                int32_t x1 = csi_ref_min_internal_s32(x0 + 1, input_width - 1);
+                int32_t x1 = shl_ref_min_internal_s32(x0 + 1, input_width - 1);
                 for (int c = 0; c < depth; ++c) {
                     float interpolation =
-                        (float)(input_data[csi_ref_get_index(input->dim, b, y0, x0, c)] *
+                        (float)(input_data[shl_ref_get_index(input->dim, b, y0, x0, c)] *
                                     (1 - (input_y - y0)) * (1 - (input_x - x0)) +
-                                input_data[csi_ref_get_index(input->dim, b, y1, x0, c)] *
+                                input_data[shl_ref_get_index(input->dim, b, y1, x0, c)] *
                                     (input_y - y0) * (1 - (input_x - x0)) +
-                                input_data[csi_ref_get_index(input->dim, b, y0, x1, c)] *
+                                input_data[shl_ref_get_index(input->dim, b, y0, x1, c)] *
                                     (1 - (input_y - y0)) * (input_x - x0) +
-                                input_data[csi_ref_get_index(input->dim, b, y1, x1, c)] *
+                                input_data[shl_ref_get_index(input->dim, b, y1, x1, c)] *
                                     (input_y - y0) * (input_x - x0));
-                    output_data[csi_ref_get_index(output->dim, b, y, x, c)] = interpolation;
+                    output_data[shl_ref_get_index(output->dim, b, y, x, c)] = interpolation;
                 }
             }
         }
@@ -74,8 +73,8 @@ static void csi_ref_resize_bilinear_nhwc_f32(struct csi_tensor *input, struct cs
 /*reference
  * https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/reference/resize_nearest_neighbor.h
  */
-static void csi_ref_resize_nearest_neighbor_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                                bool align_corners)
+static void shl_ref_resize_nearest_neighbor_f32(struct csinn_tensor *input,
+                                                struct csinn_tensor *output, bool align_corners)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -107,13 +106,13 @@ static void csi_ref_resize_nearest_neighbor_f32(struct csi_tensor *input, struct
     for (int b = 0; b < batches; ++b) {
         for (int y = 0; y < output_height; ++y) {
             int32_t in_y =
-                csi_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
                                                        : (int32_t)(floor(y * height_scale)),
                                          input_height - 1);
             const float *y_input_ptr = input_ptr + in_y * row_offset;
             for (int x = 0; x < output_width; ++x) {
                 int32_t in_x =
-                    csi_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
                                                            : (int32_t)(floor(x * width_scale)),
                                              input_width - 1);
                 const float *x_input_ptr = y_input_ptr + in_x * col_offset;
@@ -125,41 +124,41 @@ static void csi_ref_resize_nearest_neighbor_f32(struct csi_tensor *input, struct
     }
 }
 
-static void csi_ref_resize_nearest_neighbor_nchw_f32(struct csi_tensor *o_input,
-                                                     struct csi_tensor *o_output,
+static void shl_ref_resize_nearest_neighbor_nchw_f32(struct csinn_tensor *o_input,
+                                                     struct csinn_tensor *o_output,
                                                      bool align_corners)
 {
-    struct csi_tensor *input = csi_ref_nchw_to_nhwc_f32(o_input);
-    struct csi_tensor *output = csi_ref_nchw_to_nhwc_f32(o_output);
-    csi_ref_resize_nearest_neighbor_f32(input, output, align_corners);
-    csi_ref_nhwc_to_nchw_f32(o_output, output);
-    csi_ref_free_float_tensor(input);
+    struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(o_input);
+    struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(o_output);
+    shl_ref_resize_nearest_neighbor_f32(input, output, align_corners);
+    shl_ref_nhwc_to_nchw_f32(o_output, output);
+    shl_ref_free_float_tensor(input);
 }
 
-static void csi_ref_resize_bilinear_nchw_f32(struct csi_tensor *o_input,
-                                             struct csi_tensor *o_output, bool align_corners)
+static void shl_ref_resize_bilinear_nchw_f32(struct csinn_tensor *o_input,
+                                             struct csinn_tensor *o_output, bool align_corners)
 {
-    struct csi_tensor *input = csi_ref_nchw_to_nhwc_f32(o_input);
-    struct csi_tensor *output = csi_ref_nchw_to_nhwc_f32(o_output);
-    csi_ref_resize_bilinear_nhwc_f32(input, output, align_corners);
-    csi_ref_nhwc_to_nchw_f32(o_output, output);
-    csi_ref_free_float_tensor(input);
+    struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(o_input);
+    struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(o_output);
+    shl_ref_resize_bilinear_nhwc_f32(input, output, align_corners);
+    shl_ref_nhwc_to_nchw_f32(o_output, output);
+    shl_ref_free_float_tensor(input);
 }
 
-int csi_ref_resize_f32(struct csi_tensor *input, struct csi_tensor *output,
-                       struct resize_params *params)
+int shl_ref_resize_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_resize_params *params)
 {
     if (params->resize_mode == CSINN_RESIZE_BILINEAR) {
         if (params->base.layout == CSINN_LAYOUT_NCHW) {
-            csi_ref_resize_bilinear_nchw_f32(input, output, params->align_corners);
+            shl_ref_resize_bilinear_nchw_f32(input, output, params->align_corners);
         } else {
-            csi_ref_resize_bilinear_nhwc_f32(input, output, params->align_corners);
+            shl_ref_resize_bilinear_nhwc_f32(input, output, params->align_corners);
         }
     } else if (params->resize_mode == CSINN_RESIZE_NEAREST_NEIGHBOR) {
         if (params->base.layout == CSINN_LAYOUT_NCHW) {
-            csi_ref_resize_nearest_neighbor_nchw_f32(input, output, params->align_corners);
+            shl_ref_resize_nearest_neighbor_nchw_f32(input, output, params->align_corners);
         } else {
-            csi_ref_resize_nearest_neighbor_f32(input, output, params->align_corners);
+            shl_ref_resize_nearest_neighbor_f32(input, output, params->align_corners);
         }
     } else {
         return CSINN_FALSE;
@@ -167,8 +166,8 @@ int csi_ref_resize_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_resize_quant(struct csi_tensor *input, struct csi_tensor *output,
-                         struct resize_params *params)
+int shl_ref_resize_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_resize_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_resize_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_resize_f32);
 }

@@ -16,37 +16,36 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_segment_sum_init(struct csi_tensor *input0,
-                         struct csi_tensor *input1,
-                         struct csi_tensor *output,
-                         struct segment_params *params)
+int csinn_segment_sum_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                           struct csinn_tensor *output, struct csinn_segment_params *params)
 {
+    enum csinn_rmode_enum run_mode = shl_get_run_mode(&params->base);
+    void *cbf = NULL;
     if (params->unsorted == CSINN_TRUE) {
-        params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_UNSORTED_SEGMENT_SUM, input0->dtype);
-        if (params->base.bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
+        shl_op_callback_map(&params->base, CSINN_OP_UNSORTED_SEGMENT_SUM, input0->dtype);
     } else {
-        params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_SEGMENT_SUM, input0->dtype);
-        if (params->base.bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
-        }
+        shl_op_callback_map(&params->base, CSINN_OP_SEGMENT_SUM, input0->dtype);
+    }
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input0, input1, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_segment_sum(struct csi_tensor *input0,
-                    struct csi_tensor *input1,
-                    struct csi_tensor *output,
-                    struct segment_params *params)
+int csinn_segment_sum(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                      struct csinn_tensor *output, struct csinn_segment_params *params)
 {
-    CSI_DEBUG_CALL(csi_segment_debug_info(input0, input1, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input0, input1, output, params);
+    SHL_DEBUG_CALL(shl_segment_debug_info(input0, input1, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input0, input1, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

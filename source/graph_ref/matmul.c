@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_matmul(struct csi_tensor *mat0,
-                    struct csi_tensor *mat1,
-                    struct csi_tensor *output,
-                    struct matmul_params *params)
+int shl_gref_matmul(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                    struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
-    csi_gref_diso_op(mat0, mat1, output, CSINN_OP_MATMUL, params);
+    shl_gref_diso_op(mat0, mat1, output, CSINN_OP_MATMUL, params);
     return CSINN_TRUE;
 }

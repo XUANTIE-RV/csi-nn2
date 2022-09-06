@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,10 +28,12 @@ int main(int argc, char **argv)
 {
     init_testsuite("Testing function of global avgpool(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct pool_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_pool_params *params = (csinn_pool_params *)csinn_alloc_params(sizeof(struct csinn_pool_params), sess);
     int in_size = 0;
     int out_size = 0;
 
@@ -62,27 +63,23 @@ int main(int argc, char **argv)
 
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->base.api = CSINN_API;
 
     input->data = (float *)(buffer + 6);
     reference->data = (float *)(buffer + 6 + in_size);
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if THEAD_RVV
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_global_avgpool2d_init,
-                  csi_nn_rvv_global_avgpool2d_fp32, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT16, csi_global_avgpool2d_init,
-                  csi_nn_rvv_global_avgpool2d_fp16, &difference);
-#else
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_global_avgpool2d_init,
-                  csi_global_avgpool2d, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_UINT8_ASYM, csi_global_avgpool2d_init,
-                  csi_global_avgpool2d, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_SYM, csi_global_avgpool2d_init,
-                  csi_global_avgpool2d, &difference);
+#if (DTYPE==32)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_global_avgpool2d_init,
+                  csinn_global_avgpool2d, &difference);
+#elif (DTYPE==16)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_global_avgpool2d_init,
+                  csinn_global_avgpool2d, &difference);
+#elif (DTYPE==8)
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_global_avgpool2d_init,
+                  csinn_global_avgpool2d, &difference);
 #endif
 
     return done_testing();

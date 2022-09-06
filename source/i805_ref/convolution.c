@@ -16,21 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref_i805.h"
+#include "i805_ref_function.h"
+#include "shl_ref_i805.h"
 
-
-static int csi_ref_i805_conv2d_q7(struct csi_tensor *input,
-                                  struct csi_tensor *output,
-                                  struct csi_tensor *kernel,
-                                  struct csi_tensor *bias,
-                                  struct conv2d_params *params)
+static int shl_i805_ref_conv2d_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                  struct csinn_conv2d_params *params)
 {
-    q7_t *input_data    = (q7_t *)input->data;
-    q7_t *kernel_data   = (q7_t *)kernel->data;
-    q7_t *bias_data     = (q7_t *)bias->data;
-    q7_t *output_data   = (q7_t *)output->data;
+    q7_t *input_data = (q7_t *)input->data;
+    q7_t *kernel_data = (q7_t *)kernel->data;
+    q7_t *bias_data = (q7_t *)bias->data;
+    q7_t *output_data = (q7_t *)output->data;
 
     uint16_t batch = input->dim[0];
     uint16_t in_h = input->dim[1];
@@ -51,80 +49,77 @@ static int csi_ref_i805_conv2d_q7(struct csi_tensor *input,
     uint16_t pad_x = params->pad_left;  // e.g. pad_x = params->pad_right
     uint16_t pad_y = params->pad_top;   // e.g. pad_y = params->pad_down
 
-    q15_t buffer_tmp[2 * in_c * kernel_h * kernel_w];  // buffer_size = in_c * kernel_size * kernel_size
+    q15_t buffer_tmp[2 * in_c * kernel_h *
+                     kernel_w];  // buffer_size = in_c * kernel_size * kernel_size
 
-    if ( (in_c % 4 == 0) && (out_c % 2 == 0) ) {
-        if ( (kernel_h == 1) && (kernel_w == 1) ) {
-            csi_convolve_1x1_HWC_q7_fast(input_data, in_w, in_h, in_c, kernel_data, out_c,
-                                         bias_data, bias->qinfo->shift, output->qinfo->shift, output_data,
-                                         out_w, out_h, buffer_tmp);
+    if ((in_c % 4 == 0) && (out_c % 2 == 0)) {
+        if ((kernel_h == 1) && (kernel_w == 1)) {
+            shl_convolve_1x1_HWC_q7_fast(input_data, in_w, in_h, in_c, kernel_data, out_c,
+                                         bias_data, bias->qinfo->shift, output->qinfo->shift,
+                                         output_data, out_w, out_h, buffer_tmp);
         } else {
-            csi_convolve_HWC_q7_fast_nonsquare(input_data, in_w, in_h, in_c, kernel_data, out_c,
+            shl_convolve_HWC_q7_fast_nonsquare(input_data, in_w, in_h, in_c, kernel_data, out_c,
                                                kernel_w, kernel_h, pad_x, pad_y, stride_w, stride_h,
-                                               bias_data, bias->qinfo->shift, output->qinfo->shift, output_data,
-                                               out_w, out_h, buffer_tmp);
+                                               bias_data, bias->qinfo->shift, output->qinfo->shift,
+                                               output_data, out_w, out_h, buffer_tmp);
         }
     } else if (in_c == 3) {
-        csi_convolve_HWC_q7_RGB(input_data, in_h, kernel_data, out_c, kernel_h,
-                                pad_y, stride_h, bias_data, bias->qinfo->shift, output->qinfo->shift,
-                                output_data, out_h, buffer_tmp);
+        shl_convolve_HWC_q7_RGB(input_data, in_h, kernel_data, out_c, kernel_h, pad_y, stride_h,
+                                bias_data, bias->qinfo->shift, output->qinfo->shift, output_data,
+                                out_h, buffer_tmp);
     } else {
-        csi_convolve_HWC_q7_basic(input_data, in_h, in_c, kernel_data, out_c, kernel_h,
-                                    pad_y, stride_h, bias_data, bias->qinfo->shift, output->qinfo->shift,
-                                    output_data, out_h, buffer_tmp);
+        shl_convolve_HWC_q7_basic(input_data, in_h, in_c, kernel_data, out_c, kernel_h, pad_y,
+                                  stride_h, bias_data, bias->qinfo->shift, output->qinfo->shift,
+                                  output_data, out_h, buffer_tmp);
     }
     return CSINN_TRUE;
 }
 
-
-
-static int csi_ref_i805_conv2d_q15(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
-                                   struct conv2d_params *params)
+static int shl_i805_ref_conv2d_q15(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                   struct csinn_conv2d_params *params)
 {
-    q15_t *input_data   = (q15_t *)input->data;
-    q15_t *kernel_data  = (q15_t *)kernel->data;
-    q15_t *bias_data    = (q15_t *)bias->data;
-    q15_t *output_data  = (q15_t *)output->data;
+    q15_t *input_data = (q15_t *)input->data;
+    q15_t *kernel_data = (q15_t *)kernel->data;
+    q15_t *bias_data = (q15_t *)bias->data;
+    q15_t *output_data = (q15_t *)output->data;
 
     uint16_t batch = input->dim[0];
-    uint16_t in_hw = input->dim[1]; // e.g. in_hw = input->dim[2];
-    uint16_t in_c  = input->dim[3];
+    uint16_t in_hw = input->dim[1];  // e.g. in_hw = input->dim[2];
+    uint16_t in_c = input->dim[3];
 
-    uint16_t out_hw = output->dim[1]; // e.g. out_hw = output->dim[2]
+    uint16_t out_hw = output->dim[1];  // e.g. out_hw = output->dim[2]
     uint16_t out_c = output->dim[3];
 
-    uint16_t kernel_size = kernel->dim[2];      // e.g. kernel_size = kernel->dim[3];
-    uint16_t stride = params->stride_height;    // e.g. stride = params->stride_width
-    uint16_t padding = params->pad_top;         // e.g. padding = params->down = params->left = params->right
+    uint16_t kernel_size = kernel->dim[2];    // e.g. kernel_size = kernel->dim[3];
+    uint16_t stride = params->stride_height;  // e.g. stride = params->stride_width
+    uint16_t padding =
+        params->pad_top;  // e.g. padding = params->down = params->left = params->right
 
-    if ( (in_c % 2 == 0) && (out_c % 2 == 0) ) {
-        q15_t buffer_tmp[2 * in_c * kernel_size * kernel_size];  // buffer_size = in_c * kernel_size * kernel_size
-        csi_convolve_HWC_q15_fast(input_data, in_hw, in_c, kernel_data, out_c,
-                                  kernel_size, padding, stride, bias_data, bias->qinfo->shift,
-                                  output->qinfo->shift, output_data, out_hw, buffer_tmp);
+    if ((in_c % 2 == 0) && (out_c % 2 == 0)) {
+        q15_t buffer_tmp[2 * in_c * kernel_size *
+                         kernel_size];  // buffer_size = in_c * kernel_size * kernel_size
+        shl_convolve_HWC_q15_fast(input_data, in_hw, in_c, kernel_data, out_c, kernel_size, padding,
+                                  stride, bias_data, bias->qinfo->shift, output->qinfo->shift,
+                                  output_data, out_hw, buffer_tmp);
     } else {
-        q15_t buffer_tmp[in_c * kernel_size * kernel_size];  // buffer_size = in_c * kernel_size * kernel_size
-        csi_convolve_HWC_q15_basic(input_data, in_hw, in_c, kernel_data, out_c,
-                                   kernel_size, padding, stride, bias_data, bias->qinfo->shift,
+        q15_t buffer_tmp[in_c * kernel_size *
+                         kernel_size];  // buffer_size = in_c * kernel_size * kernel_size
+        shl_convolve_HWC_q15_basic(input_data, in_hw, in_c, kernel_data, out_c, kernel_size,
+                                   padding, stride, bias_data, bias->qinfo->shift,
                                    output->qinfo->shift, output_data, out_hw, buffer_tmp);
     }
     return CSINN_TRUE;
 }
 
-
-static int csi_ref_i805_depthwise_conv2d_q7(struct csi_tensor *input,
-                                            struct csi_tensor *output,
-                                            struct csi_tensor *kernel,
-                                            struct csi_tensor *bias,
-                                            struct conv2d_params *params)
+static int shl_i805_ref_depthwise_conv2d_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                            struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                            struct csinn_conv2d_params *params)
 {
-    q7_t *input_data    = (q7_t *)input->data;
-    q7_t *kernel_data   = (q7_t *)kernel->data;
-    q7_t *bias_data     = (q7_t *)bias->data;
-    q7_t *output_data   = (q7_t *)output->data;
+    q7_t *input_data = (q7_t *)input->data;
+    q7_t *kernel_data = (q7_t *)kernel->data;
+    q7_t *bias_data = (q7_t *)bias->data;
+    q7_t *output_data = (q7_t *)output->data;
 
     uint16_t batch = input->dim[0];
     uint16_t in_h = input->dim[1];
@@ -144,61 +139,63 @@ static int csi_ref_i805_depthwise_conv2d_q7(struct csi_tensor *input,
     uint16_t pad_x = params->pad_left;
     uint16_t pad_y = params->pad_top;
 
-    q15_t buffer_tmp[2 * in_c * kernel_h * kernel_w];  // buffer_size = in_c * kernel_size * kernel_size
+    q15_t buffer_tmp[2 * in_c * kernel_h *
+                     kernel_w];  // buffer_size = in_c * kernel_size * kernel_size
 
-    if ( (in_h == in_w) && (kernel_h == kernel_w) && (pad_x == pad_y) && (stride_h == stride_w) ) {
-        csi_depthwise_separable_conv_HWC_q7(input_data, in_h, in_c, kernel_data, out_c, kernel_h,
-                                            pad_y, stride_h, bias_data, bias->qinfo->shift, output->qinfo->shift,
-                                            output_data, out_h, buffer_tmp);
+    if ((in_h == in_w) && (kernel_h == kernel_w) && (pad_x == pad_y) && (stride_h == stride_w)) {
+        shl_depthwise_separable_conv_HWC_q7(input_data, in_h, in_c, kernel_data, out_c, kernel_h,
+                                            pad_y, stride_h, bias_data, bias->qinfo->shift,
+                                            output->qinfo->shift, output_data, out_h, buffer_tmp);
     } else {
-        csi_depthwise_separable_conv_HWC_q7_nonsquare(input_data, in_w, in_h, in_c, kernel_data, out_c,
-                                                      kernel_w, kernel_h, pad_x, pad_y, stride_h, stride_w,
-                                                      bias_data, bias->qinfo->shift, output->qinfo->shift, output_data,
-                                                      out_w, out_h, buffer_tmp);
+        shl_depthwise_separable_conv_HWC_q7_nonsquare(
+            input_data, in_w, in_h, in_c, kernel_data, out_c, kernel_w, kernel_h, pad_x, pad_y,
+            stride_h, stride_w, bias_data, bias->qinfo->shift, output->qinfo->shift, output_data,
+            out_w, out_h, buffer_tmp);
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_i805_conv2d_init_q7(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *kernel,
-                                 struct csi_tensor *bias,
-                                 struct conv2d_params *params)
+int shl_i805_ref_conv2d_init_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                struct csinn_conv2d_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     uint8_t flag = 0;
-    if ( (params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ) {
+    if ((params->pad_top != params->pad_down) || (params->pad_left != params->pad_right)) {
         flag |= 0x01;
     }
 
-    if ( (input->dim[3] % 4 != 0) || (output->dim[3] % 2 != 0) ) {
-        if ( (input->dim[1] != input->dim[2]) || (kernel->dim[2] != kernel->dim[3]) || 
-             (params->pad_left != params->pad_top) || (params->stride_height != params->stride_width) ) {
+    if ((input->dim[3] % 4 != 0) || (output->dim[3] % 2 != 0)) {
+        if ((input->dim[1] != input->dim[2]) || (kernel->dim[2] != kernel->dim[3]) ||
+            (params->pad_left != params->pad_top) ||
+            (params->stride_height != params->stride_width)) {
             flag |= 0x02;
         }
     }
 
     if (flag > 0) {
-        csi_debug_warning("conv2d q7 is not optimized to achieve under this condition on ref_i805, call reference func replaced.\n");
-        params->base.bc = csi_ref_conv2d_quant;
+        shl_debug_warning(
+            "conv2d q7 is not optimized to achieve under this condition on ref_i805, call "
+            "reference func replaced.\n");
+        cb->exec = shl_ref_conv2d_quant;
     } else {
-        params->base.bc = csi_ref_i805_conv2d_q7;
+        cb->exec = shl_i805_ref_conv2d_q7;
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_i805_conv2d_init_q15(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *kernel,
-                                 struct csi_tensor *bias,
-                                 struct conv2d_params *params)
+int shl_i805_ref_conv2d_init_q15(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                 struct csinn_conv2d_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     uint8_t flag = 0;
-    if ( (params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ||
-         (params->pad_top != params->pad_left) ) {
+    if ((params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ||
+        (params->pad_top != params->pad_left)) {
         flag |= 0x01;
     }
     if (input->dim[1] != input->dim[2]) {
-        flag |= 0x02;   
+        flag |= 0x02;
     }
     if (kernel->dim[2] != kernel->dim[3]) {
         flag |= 0x04;
@@ -207,29 +204,32 @@ int csi_ref_i805_conv2d_init_q15(struct csi_tensor *input,
         flag |= 0x08;
     }
     if (flag > 0) {
-        csi_debug_warning("conv2d q15 is not optimized to achieve under this condition on ref_i805, call reference func replaced.\n");
-        params->base.bc = csi_ref_conv2d_quant;
+        shl_debug_warning(
+            "conv2d q15 is not optimized to achieve under this condition on ref_i805, call "
+            "reference func replaced.\n");
+        cb->exec = shl_ref_conv2d_quant;
     } else {
-        params->base.bc = csi_ref_i805_conv2d_q15;
+        cb->exec = shl_i805_ref_conv2d_q15;
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_i805_depthwise_conv2d_init_q7(struct csi_tensor *input,
-                                          struct csi_tensor *output,
-                                          struct csi_tensor *kernel,
-                                          struct csi_tensor *bias,
-                                          struct conv2d_params *params)
+int shl_i805_ref_depthwise_conv2d_init_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                          struct csinn_conv2d_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     uint8_t flag = 0;
-    if ( (params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ) {
+    if ((params->pad_top != params->pad_down) || (params->pad_left != params->pad_right)) {
         flag |= 0x01;
     }
     if (flag > 0) {
-        csi_debug_warning("depthwise_conv2d q7 is not optimized to achieve under this condition on ref_i805, call reference func replaced.\n");
-        params->base.bc = csi_ref_depthwise_conv2d_quant;
+        shl_debug_warning(
+            "depthwise_conv2d q7 is not optimized to achieve under this condition on ref_i805, "
+            "call reference func replaced.\n");
+        cb->exec = shl_ref_depthwise_conv2d_quant;
     } else {
-        params->base.bc = csi_ref_i805_depthwise_conv2d_q7;
+        cb->exec = shl_i805_ref_depthwise_conv2d_q7;
     }
     return CSINN_TRUE;
 }

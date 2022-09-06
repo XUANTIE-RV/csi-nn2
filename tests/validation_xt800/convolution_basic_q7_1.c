@@ -16,49 +16,33 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "./valid_data/q7_conv_basic.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "./valid_data/q7_conv_basic.dat"
+#include "test_utils.h"
 
+extern void verify_conv2d_q7(void *input_data, void *kernel_data, void *bias_data, void *ref_data,
+                             uint16_t batch, uint16_t in_h, uint16_t in_w, uint16_t in_c,
+                             uint16_t out_h, uint16_t out_w, uint16_t out_c, uint16_t kernel_h,
+                             uint16_t kernel_w, uint16_t stride_h, uint16_t stride_w,
+                             uint16_t pad_x, uint16_t pad_y, uint16_t bias_shift,
+                             uint16_t out_shift, float difference);
 
-extern void verify_conv2d_q7(void *input_data,
-                             void *kernel_data,
-                             void *bias_data,
-                             void *ref_data,
-                             uint16_t batch,
-                             uint16_t in_h,
-                             uint16_t in_w,
-                             uint16_t in_c,
-                             uint16_t out_h,
-                             uint16_t out_w,
-                             uint16_t out_c,
-                             uint16_t kernel_h,
-                             uint16_t kernel_w,
-                             uint16_t stride_h,
-                             uint16_t stride_w,
-                             uint16_t pad_x,
-                             uint16_t pad_y,
-                             uint16_t bias_shift,
-                             uint16_t out_shift,
-                             float difference);
-
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("First testing function of convolution basic q7 for xt800.\n");
 
-    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_0,
-                     1, 32, 32, 16, 30, 30, 32, 3, 3, 1, 1, 0, 0, 0, 11, 0.0f);
+    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_0, 1, 32, 32,
+                     16, 30, 30, 32, 3, 3, 1, 1, 0, 0, 0, 11, 0.0f);
 
-    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_1,
-                     1, 32, 32, 16, 32, 32, 32, 3, 3, 1, 1, 1, 1, 0, 12, 0.0f);
+    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_1, 1, 32, 32,
+                     16, 32, 32, 32, 3, 3, 1, 1, 1, 1, 0, 12, 0.0f);
 
-    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_8,
-                     1, 31, 31, 15, 29, 29, 30, 3, 3, 1, 1, 0, 0, 0, 11, 0.0f);
+    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_8, 1, 31, 31,
+                     15, 29, 29, 30, 3, 3, 1, 1, 0, 0, 0, 11, 0.0f);
 
-    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_9,
-                     1, 31, 31, 15, 31, 31, 30, 3, 3, 1, 1, 1, 1, 0, 12, 0.0f);
+    verify_conv2d_q7(q7_conv_input_0, q7_conv_weight_0, q7_conv_bias_0, q7_conv_result_9, 1, 31, 31,
+                     15, 31, 31, 30, 3, 3, 1, 1, 1, 1, 0, 12, 0.0f);
 }

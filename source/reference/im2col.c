@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 // input_data layout:NCHW
 // https://github.com/pjreddie/darknet/blob/master/src/im2col.c
 // output_data: row = channels*ksize_h*ksize_w, col = batch*height_col*width_col
-static int csi_ref_im2col_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                   struct im2col_params *params)
+static int shl_ref_im2col_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_im2col_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -60,7 +59,7 @@ static int csi_ref_im2col_nchw_f32(struct csi_tensor *input, struct csi_tensor *
                         output_data[col_index] = 0.0f;
                     } else {
                         output_data[col_index] =
-                            input_data[csi_ref_get_index(input->dim, b, c_im, im_row, im_col)];
+                            input_data[shl_ref_get_index(input->dim, b, c_im, im_row, im_col)];
                     }
                 }
             }
@@ -71,8 +70,8 @@ static int csi_ref_im2col_nchw_f32(struct csi_tensor *input, struct csi_tensor *
 
 // input_data layout:NHWC
 // output_data: row = batch*height_col*width_col, col = channels*ksize_h*ksize_w
-static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                   struct im2col_params *params)
+static int shl_ref_im2col_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_im2col_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -108,7 +107,7 @@ static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input, struct csi_tensor *
                         output_data[col_index] = 0.0f;
                     } else {
                         output_data[col_index] =
-                            input_data[csi_ref_get_index(input->dim, b, im_row, im_col, c_im)];
+                            input_data[shl_ref_get_index(input->dim, b, im_row, im_col, c_im)];
                     }
                 }
             }
@@ -118,21 +117,21 @@ static int csi_ref_im2col_nhwc_f32(struct csi_tensor *input, struct csi_tensor *
     return CSINN_TRUE;
 }
 
-int csi_ref_im2col_f32(struct csi_tensor *input, struct csi_tensor *output,
-                       struct im2col_params *params)
+int shl_ref_im2col_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_im2col_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_im2col_nchw_f32(input, output, params);
+        shl_ref_im2col_nchw_f32(input, output, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_im2col_nhwc_f32(input, output, params);
+        shl_ref_im2col_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_im2col_quant(struct csi_tensor *input, struct csi_tensor *output,
-                         struct im2col_params *params)
+int shl_ref_im2col_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_im2col_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_im2col_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_im2col_f32);
 }

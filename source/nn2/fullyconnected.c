@@ -16,39 +16,32 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_fullyconnected_init(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct csi_tensor *weights,
-                            struct csi_tensor *bias,
-                            struct fc_params *params)
+int csinn_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *weights, struct csinn_tensor *bias,
+                              struct csinn_fc_params *params)
 {
-    if (params->base.run_mode != CSINN_RM_CPU_GRAPH) {
-        int (*init_func)();
-        init_func = csi_init_map(params->base.api, CSINN_OP_FULLYCONNECTED, input->dtype);
-        if (init_func != NULL) {
-            return init_func(input, output, weights, bias, params);
-        }
-    }
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_FULLYCONNECTED, input->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_FULLYCONNECTED, input->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, weights, bias, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_fullyconnected(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct csi_tensor *weights,
-                       struct csi_tensor *bias,
-                       struct fc_params *params)
+int csinn_fullyconnected(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *weights, struct csinn_tensor *bias,
+                         struct csinn_fc_params *params)
 {
-    CSI_DEBUG_CALL(csi_fullyconnected_debug_info(input, output, weights, bias, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, output, weights, bias, params);
+    SHL_DEBUG_CALL(shl_fullyconnected_debug_info(input, output, weights, bias, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, weights, bias, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

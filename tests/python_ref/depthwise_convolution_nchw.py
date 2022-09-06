@@ -29,6 +29,8 @@ def depthwise_convolution_f32(test_type):
         kernel_x    = 3
         kernel_y    = 3
         dilation_x = dilation_y = 1
+        in_size_y  = 35
+        in_size_x  = 33
 
     elif test_type == "3x3s2":
         stride_x    = 2
@@ -36,6 +38,7 @@ def depthwise_convolution_f32(test_type):
         kernel_x    = 3
         kernel_y    = 3
         dilation_x = dilation_y = 1
+        in_size_x  = 46
 
     kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     kernel_y_t = kernel_y + (kernel_y - 1) * (dilation_y - 1)

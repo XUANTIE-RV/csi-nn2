@@ -3,8 +3,8 @@ INCLUDE = -I../../include -I../utils
 CFLAGS = -O0 -g3 -static
 CFLAGS += -mhard-float -mcpu=ck860fv
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
-CFLAGS += -DCSINN_API=0	# params.api = CSINN_API = CSINN_C860 = 0
-LIB_NAME = csi_nn2_c860
+CFLAGS += -DCSINN_API=0	# params->api = CSINN_API = CSINN_C860 = 0
+LIB_NAME = shl_c860
 CC = csky-abiv2-linux-gcc
 
 test_objs =

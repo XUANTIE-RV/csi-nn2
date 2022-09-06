@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of atan i8.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct siso_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_siso_params *params = csinn_alloc_params(sizeof(struct csinn_siso_params), NULL);
     int in_size = 1, out_size = 1;
     int zero_point, multiplier, shift;
     float scale, min_value, max_value;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     int *buffer = read_input_data_f32(argv[1]);
     input->dim_count = buffer[0];
     output->dim_count = input->dim_count;
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         input->dim[i] = buffer[i + 1];
         output->dim[i] = input->dim[i];
         in_size *= input->dim[i];
@@ -54,9 +54,8 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+
+    params->base.api = CSINN_API;
 
     float *src_in_data = (float *)(buffer + 1 + input->dim_count);
     float *ref_data = (float *)(buffer + 1 + input->dim_count + in_size);
@@ -66,23 +65,24 @@ int main(int argc, char** argv)
     input->data = src_in_data;
     get_quant_info(input);
 
-    for(int i = 0; i < in_size; i++) {
-        input_data[i] = csi_ref_quantize_f32_to_i8(src_in_data[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        input_data[i] = shl_ref_quantize_f32_to_i8(src_in_data[i], input->qinfo);
     }
 
     /* compute the max quantize error */
-    for(int i = 0; i < in_size; i++) {
+    for (int i = 0; i < in_size; i++) {
         float error1;
-        float output_tmp  = csi_ref_dequantize_i8_to_f32(input_data[i], input->qinfo);
-        if(isinf(src_in_data[i]) && isinf(output_tmp) || isnan(src_in_data[i]) && isnan(output_tmp)) {
+        float output_tmp = shl_ref_dequantize_i8_to_f32(input_data[i], input->qinfo);
+        if (isinf(src_in_data[i]) && isinf(output_tmp) ||
+            isnan(src_in_data[i]) && isnan(output_tmp)) {
             continue;
         } else {
             error1 = fabs(src_in_data[i] - output_tmp);
-            if(error1 > 1e-6) {
-                error1 = fabs(src_in_data[i] - output_tmp)/fabs(src_in_data[i] + 1e-9);
+            if (error1 > 1e-6) {
+                error1 = fabs(src_in_data[i] - output_tmp) / fabs(src_in_data[i] + 1e-9);
             }
         }
-        if(error1 > error) {
+        if (error1 > error) {
             error = error1;
         }
     }
@@ -96,8 +96,8 @@ int main(int argc, char** argv)
     // max error: 0.4 for input [-100, 100]
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_atan_init(input, output, &params) == CSINN_TRUE) {
-        csi_atan(input, output, &params);
+    if (csinn_atan_init(input, output, params) == CSINN_TRUE) {
+        csinn_atan(input, output, params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

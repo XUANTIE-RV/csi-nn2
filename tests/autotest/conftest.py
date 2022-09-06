@@ -20,10 +20,13 @@ import pytest
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--board", action="store", default="c860", help="board option: c860|c906|x86_ref"
+        "--board", action="store", default="c860", help="board option: c860|c906|c908|anole|x86_ref|c910"
     )
     parser.addoption(
         "--accuracy", action="store", default="0.99", help="error measures accuracy"
+    )
+    parser.addoption(
+        "--vlen", action="store", default="8", help="8|16|32"
     )
 
 
@@ -32,6 +35,7 @@ def cmdopt(request):
     config_param = {}
     config_param["board"] = request.config.getoption("--board")
     config_param["accuracy"] = request.config.getoption("--accuracy")
+    config_param["vlen"] = request.config.getoption("--vlen")
     return dict(config_param)
 
 

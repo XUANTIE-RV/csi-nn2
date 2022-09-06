@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
-
+#include "shl_c906.h"
 
 static void element_add_f32(float *input0, float *input1, float *output, int size)
 {
@@ -49,18 +48,16 @@ static void element_add_f32(float *input0, float *input1, float *output, int siz
     );
 }
 
-int csi_c906_add_f32(struct csi_tensor *input0,
-                     struct csi_tensor *input1,
-                     struct csi_tensor *output,
-                     struct diso_params *params)
+int shl_c906_add_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     float *input0_data = (float *)input0->data;
     float *input1_data = (float *)input1->data;
     float *output_data = (float *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     // HACK: special case: tensorflow densenet121
     // example: [1, 64, 55, 55] + [1, 64, 1, 1] = [1, 64, 55, 55]
@@ -135,29 +132,28 @@ int csi_c906_add_f32(struct csi_tensor *input0,
         }
         // example: [1, 3, 224, 224] + [3, 224, 1] or [1, 3, 224, 224] + [3, 1, 224]
         if (!flag) {
+            float *in0_data_b = shl_mem_alloc(out_size * 4);
+            float *in1_data_b = shl_mem_alloc(out_size * 4);
 
-            float *in0_data_b = csi_mem_alloc(out_size * 4);
-            float *in1_data_b = csi_mem_alloc(out_size * 4);
-
-            struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
-            struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
-            csi_tensor_copy(b_input0, output);
-            csi_tensor_copy(b_input1, output);
+            struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
+            struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);
+            csinn_tensor_copy(b_input0, output);
+            csinn_tensor_copy(b_input1, output);
             b_input0->data = in0_data_b;
             b_input1->data = in1_data_b;
 
-            csi_ref_broadcast_to_shape_f32(input0, b_input0, output->dim, output->dim_count);
-            csi_ref_broadcast_to_shape_f32(input1, b_input1, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_f32(input0, b_input0, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_f32(input1, b_input1, output->dim, output->dim_count);
 
             input0_data = b_input0->data;
             input1_data = b_input1->data;
 
             element_add_f32(input0_data, input1_data, output_data, out_size);
 
-            csi_mem_free(in0_data_b);
-            csi_mem_free(in1_data_b);
-            csi_mem_free(b_input0);
-            csi_mem_free(b_input1);
+            shl_mem_free(in0_data_b);
+            shl_mem_free(in1_data_b);
+            shl_mem_free(b_input0);
+            shl_mem_free(b_input1);
         }
         // example: [1, 3, 224, 224] + [224] = [1, 3, 224, 224]  or  [1, 3, 224, 224] + [224, 224] = [1, 3, 224, 224]
         else {
@@ -202,19 +198,16 @@ static void element_add_fp16(__fp16 *input0, __fp16 *input1, __fp16 *output, int
     );
 }
 
-
-int csi_c906_add_fp16(struct csi_tensor *input0,
-                      struct csi_tensor *input1,
-                      struct csi_tensor *output,
-                      struct diso_params *params)
+int shl_c906_add_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                      struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     __fp16 *input0_data = (__fp16 *)input0->data;
     __fp16 *input1_data = (__fp16 *)input1->data;
     __fp16 *output_data = (__fp16 *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     if ((input1->dim[2] == 1) && (input1->dim[3] == 1) && (input1->dim[1] == input0->dim[1])) {
         int inner_size = input0->dim[2] * input0->dim[3];
@@ -281,29 +274,28 @@ int csi_c906_add_fp16(struct csi_tensor *input0,
             }
         }
         if (!flag) {
+            __fp16 *in0_data_b = shl_mem_alloc(out_size * 2);
+            __fp16 *in1_data_b = shl_mem_alloc(out_size * 2);
 
-            __fp16 *in0_data_b = csi_mem_alloc(out_size * 2);
-            __fp16 *in1_data_b = csi_mem_alloc(out_size * 2);
-
-            struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
-            struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
-            csi_tensor_copy(b_input0, output);
-            csi_tensor_copy(b_input1, output);
+            struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
+            struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);
+            csinn_tensor_copy(b_input0, output);
+            csinn_tensor_copy(b_input1, output);
             b_input0->data = in0_data_b;
             b_input1->data = in1_data_b;
 
-            csi_ref_broadcast_to_shape_quant(input0, b_input0, output->dim, output->dim_count);
-            csi_ref_broadcast_to_shape_quant(input1, b_input1, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_quant(input0, b_input0, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_quant(input1, b_input1, output->dim, output->dim_count);
 
             input0_data = b_input0->data;
             input1_data = b_input1->data;
 
             element_add_fp16(input0_data, input1_data, output_data, out_size);
 
-            csi_mem_free(in0_data_b);
-            csi_mem_free(in1_data_b);
-            csi_mem_free(b_input0);
-            csi_mem_free(b_input1);
+            shl_mem_free(in0_data_b);
+            shl_mem_free(in1_data_b);
+            shl_mem_free(b_input0);
+            shl_mem_free(b_input1);
         } else {
             int inner_size = in_size1;
             int outer_size = out_size / in_size1;

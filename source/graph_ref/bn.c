@@ -16,19 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_batch_normalization(struct csi_tensor *input,
-                                 struct csi_tensor *mean,
-                                 struct csi_tensor *variance,
-                                 struct csi_tensor *gamma,
-                                 struct csi_tensor *beta,
-                                 struct csi_tensor *output,
-                                 struct bn_params *params)
+int shl_gref_batch_normalization(struct csinn_tensor *input, struct csinn_tensor *mean,
+                                 struct csinn_tensor *variance, struct csinn_tensor *gamma,
+                                 struct csinn_tensor *beta, struct csinn_tensor *output,
+                                 struct csinn_bn_params *params)
 {
-    csi_debug_error("csi_gref_batch_normalization unsupport\n");
+    shl_debug_error("shl_gref_batch_normalization unsupport\n");
     return CSINN_TRUE;
 }
-

@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,12 +28,14 @@ int main(int argc, char** argv)
 {
     init_testsuite("Testing function of fullyconnected(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct csi_tensor *weight = csi_alloc_tensor(NULL);
-    struct csi_tensor *bias = csi_alloc_tensor(NULL);
-    struct fc_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_tensor *weight = csinn_alloc_tensor(sess);
+    struct csinn_tensor *bias = csinn_alloc_tensor(sess);
+    struct csinn_fc_params *params = (csinn_fc_params *)csinn_alloc_params(sizeof(struct csinn_fc_params), sess);
     int in_size0, in_size1, out_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
     weight->is_const = 1;
     weight->quant_channel = 1;
 
-    bias->dtype = CSINN_DTYPE_FLOAT32;  
+    bias->dtype = CSINN_DTYPE_FLOAT32;
     bias->layout = CSINN_LAYOUT_O;
     bias->is_const = 1;
     bias->quant_channel = 1;
@@ -70,8 +71,7 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NC;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input->data     = (float *)(buffer + 3);
     weight->data    = (float *)(buffer + 3 + in_size0);
@@ -81,19 +81,19 @@ int main(int argc, char** argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if THEAD_RVV
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_FLOAT32, csi_fullyconnected_init,
-                   csi_nn_rvv_fullyconnected_packn_fp32, &difference);
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_FLOAT16, csi_fullyconnected_init,
-                   csi_nn_rvv_fullyconnected_packn_fp16, &difference);
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_INT8_SYM, csi_fullyconnected_init,
-                   csi_nn_rvv_fullyconnected_packn_int8, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT32, csinn_fullyconnected_init,
+                   shl_rvv_fullyconnected_packn_fp32, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT16, csinn_fullyconnected_init,
+                   shl_rvv_fullyconnected_packn_fp16, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_INT8_SYM, csinn_fullyconnected_init,
+                   shl_rvv_fullyconnected_packn_int8, &difference);
 #else
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_FLOAT32,
-                   csi_fullyconnected_init, csi_fullyconnected, &difference);
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_FLOAT16,
-                   csi_fullyconnected_init, csi_fullyconnected, &difference);
-    test_conv2d_op(input, output, weight, bias, &params, CSINN_QUANT_INT8_SYM,
-                   csi_fullyconnected_init, csi_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT32,
+                   csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT16,
+                   csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_INT8_SYM,
+                   csinn_fullyconnected_init, csinn_fullyconnected, &difference);
 #endif
 
     return done_testing();

@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 // the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-int csi_ref_batch_to_space_f32(struct csi_tensor *input, struct csi_tensor *output,
-                               struct batch_to_space_params *params)
+int shl_ref_batch_to_space_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_batch_to_space_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -46,8 +46,8 @@ int csi_ref_batch_to_space_f32(struct csi_tensor *input, struct csi_tensor *outp
         for (int in_h = 0; in_h < in_height; ++in_h) {
             for (int in_w = 0; in_w < in_width; ++in_w) {
                 for (int out_c = 0; out_c < out_channel; ++out_c) {
-                    float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
-                    int in_start_addr = csi_ref_get_index(input->dim, out_b, out_c, in_h, in_w);
+                    float *temp = (float *)shl_mem_alloc(block_size2 * sizeof(float));
+                    int in_start_addr = shl_ref_get_index(input->dim, out_b, out_c, in_h, in_w);
                     for (int i = 0; i < block_size2; ++i) {
                         temp[i] = input_data[in_start_addr +
                                              i * out_batch * out_channel * in_height * in_width];
@@ -60,12 +60,12 @@ int csi_ref_batch_to_space_f32(struct csi_tensor *input, struct csi_tensor *outp
                             if (h_now >= 0 && h_now < out_height && w_now >= 0 &&
                                 w_now < out_width) {
                                 int out_addr =
-                                    csi_ref_get_index(output->dim, out_b, out_c, h_now, w_now);
+                                    shl_ref_get_index(output->dim, out_b, out_c, h_now, w_now);
                                 output_data[out_addr] = temp[h * block_size + w];
                             }
                         }
                     }
-                    csi_mem_free(temp);
+                    shl_mem_free(temp);
                 }
             }
         }
@@ -73,8 +73,8 @@ int csi_ref_batch_to_space_f32(struct csi_tensor *input, struct csi_tensor *outp
     return CSINN_TRUE;
 }
 
-int csi_ref_batch_to_space_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                 struct batch_to_space_params *params)
+int shl_ref_batch_to_space_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_batch_to_space_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_batch_to_space_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_batch_to_space_f32);
 }

@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_greater_equal(struct csi_tensor *input0,
-                           struct csi_tensor *input1,
-                           struct csi_tensor *output,
-                           struct diso_params *params)
+int shl_gref_greater_equal(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                           struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    csi_gref_diso_op(input0, input1, output, CSINN_OP_GREATHER_EQUAL, params);
+    shl_gref_diso_op(input0, input1, output, CSINN_OP_GREATHER_EQUAL, params);
     return CSINN_TRUE;
 }

@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
 #include "rvv_mathfun.h"
+#include "shl_thead_rvv.h"
 
-int csi_nn_rvv_softmax_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                            struct softmax_params *params)
+int shl_rvv_softmax_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_softmax_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

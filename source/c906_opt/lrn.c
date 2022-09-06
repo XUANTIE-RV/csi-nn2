@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.13.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_lrn_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                      struct lrn_params *params)
+int shl_c906_lrn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_lrn_params *params)
 {
     __fp16 *input_data = input->data;
     __fp16 *output_data = output->data;
@@ -34,8 +34,8 @@ int csi_c906_lrn_fp16(struct csi_tensor *input, struct csi_tensor *output,
 
     for (int j = 0; j < input->dim[0]; j++) {
         for (int c = 0; c < depth; ++c) {
-            const int begin_input_c = csi_ref_max_internal_s32(0, c - half_range);
-            const int end_input_c = csi_ref_min_internal_s32(depth, c + half_range + 1);
+            const int begin_input_c = shl_ref_max_internal_s32(0, c - half_range);
+            const int end_input_c = shl_ref_min_internal_s32(depth, c + half_range + 1);
             for (int i = 0; i < inner_size; ++i) {
                 float accum = 0.f;
                 for (int input_c = begin_input_c; input_c < end_input_c; ++input_c) {

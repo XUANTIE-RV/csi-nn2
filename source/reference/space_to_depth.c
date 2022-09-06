@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 // the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-int csi_ref_space_to_depth_f32(struct csi_tensor *input, struct csi_tensor *output,
-                               struct space_to_depth_params *params)
+int shl_ref_space_to_depth_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_space_to_depth_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -45,20 +44,20 @@ int csi_ref_space_to_depth_f32(struct csi_tensor *input, struct csi_tensor *outp
         for (int out_h = 0; out_h < out_height; ++out_h) {
             for (int out_w = 0; out_w < out_width; ++out_w) {
                 for (int in_c = 0; in_c < in_channel; ++in_c) {
-                    float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
-                    int in_start_addr = csi_ref_get_index(input->dim, out_b, in_c,
+                    float *temp = (float *)shl_mem_alloc(block_size2 * sizeof(float));
+                    int in_start_addr = shl_ref_get_index(input->dim, out_b, in_c,
                                                           out_h * block_size, out_w * block_size);
                     for (int h = 0; h < block_size; h++) {
                         for (int w = 0; w < block_size; w++) {
                             temp[h * block_size + w] = input_data[in_start_addr + h * in_width + w];
                         }
                     }
-                    int out_start_addr = csi_ref_get_index(output->dim, out_b, in_c, out_h, out_w);
+                    int out_start_addr = shl_ref_get_index(output->dim, out_b, in_c, out_h, out_w);
                     for (int i = 0; i < block_size2; i++) {
                         output_data[out_start_addr + i * in_channel * out_height * out_width] =
                             temp[i];
                     }
-                    csi_mem_free(temp);
+                    shl_mem_free(temp);
                 }
             }
         }
@@ -66,8 +65,8 @@ int csi_ref_space_to_depth_f32(struct csi_tensor *input, struct csi_tensor *outp
     return CSINN_TRUE;
 }
 
-int csi_ref_space_to_depth_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                 struct space_to_depth_params *params)
+int shl_ref_space_to_depth_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_space_to_depth_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_space_to_depth_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_space_to_depth_f32);
 }

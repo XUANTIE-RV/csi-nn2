@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include <math.h>
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a > b ? b : a)
 
@@ -83,8 +82,9 @@ static struct bbox generate_anchor(float ratio, float scale, int32_t base_size)
     return _bbox;
 }
 
-static float *predict_bbox(struct csi_tensor *cls_prob_tensor, struct csi_tensor *bbox_pred_tensor,
-                           struct csi_tensor *im_info_tensor, float *ratios, int32_t ratios_num,
+static float *predict_bbox(struct csinn_tensor *cls_prob_tensor,
+                           struct csinn_tensor *bbox_pred_tensor,
+                           struct csinn_tensor *im_info_tensor, float *ratios, int32_t ratios_num,
                            float *scales, int32_t scales_num, int32_t feature_stride,
                            int32_t iou_loss, int32_t rpn_min_size)
 {
@@ -100,7 +100,7 @@ static float *predict_bbox(struct csi_tensor *cls_prob_tensor, struct csi_tensor
     float *bbox_pred = bbox_pred_tensor->data;
     float *im_info = im_info_tensor->data;
 
-    float *output = csi_mem_alloc(batch * height * width * num_anchors * 5 * sizeof(float));
+    float *output = shl_mem_alloc(batch * height * width * num_anchors * 5 * sizeof(float));
 
     for (int i = 0; i < batch * height * width; i++) {
         int w = i % width;
@@ -119,7 +119,7 @@ static float *predict_bbox(struct csi_tensor *cls_prob_tensor, struct csi_tensor
             int x2 = anchor.x2 + w * feature_stride;
             int y2 = anchor.y2 + h * feature_stride;
 
-            float *delta = csi_mem_alloc(4 * sizeof(float));
+            float *delta = shl_mem_alloc(4 * sizeof(float));
             for (int j = 0; j < 4; j++) {
                 delta[j] = bbox_pred[(((b * num_anchors + k) * 4 + j) * height + h) * width + w];
             }
@@ -190,7 +190,7 @@ static float calculate_overlap(float *out_tensor, int box_a_idx, int box_b_idx)
 
 static float *compute_nms(int batch, int num_bbox, float *sorted_bbox, float threshold)
 {
-    float *out = csi_mem_alloc(batch * num_bbox * sizeof(float));
+    float *out = shl_mem_alloc(batch * num_bbox * sizeof(float));
     for (int b = 0; b < batch; b++) {
         int base_idx = b * num_bbox;
         for (int i = 0; i < num_bbox; i++) {
@@ -216,9 +216,9 @@ static float *compute_nms(int batch, int num_bbox, float *sorted_bbox, float thr
 static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch, int num_bbox,
                              int rpn_post_nms_top_n)
 {
-    int *i = csi_mem_alloc(batch * sizeof(int));
-    int *nkeep = csi_mem_alloc(batch * sizeof(int));
-    float *output = csi_mem_alloc(batch * rpn_post_nms_top_n * 5 * sizeof(int));
+    int *i = shl_mem_alloc(batch * sizeof(int));
+    int *nkeep = shl_mem_alloc(batch * sizeof(int));
+    float *output = shl_mem_alloc(batch * rpn_post_nms_top_n * 5 * sizeof(int));
 
     for (int b = 0; b < batch; b++) {
         nkeep[b] = 0;
@@ -252,9 +252,9 @@ static float *prepare_output(float *sorted_bbox, float *remove_mask, int batch, 
     return output;
 }
 
-int csi_ref_proposal_f32(struct csi_tensor *cls_prob, struct csi_tensor *bbox_pred,
-                         struct csi_tensor *im_info, struct csi_tensor *output,
-                         struct proposal_params *params)
+int shl_ref_proposal_f32(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_pred,
+                         struct csinn_tensor *im_info, struct csinn_tensor *output,
+                         struct csinn_proposal_params *params)
 {
     float *output_data = output->data;
 
@@ -271,7 +271,7 @@ int csi_ref_proposal_f32(struct csi_tensor *cls_prob, struct csi_tensor *bbox_pr
     float *bbox = predict_bbox(cls_prob, bbox_pred, im_info, params->ratios, params->ratios_num,
                                params->scales, params->scales_num, params->feature_stride,
                                params->iou_loss, params->rpn_min_size);
-    index_value *score = csi_mem_alloc(batch * num_bbox * sizeof(index_value));
+    index_value *score = shl_mem_alloc(batch * num_bbox * sizeof(index_value));
     for (int i = 0; i < batch; i++) {
         for (int j = 0; j < num_bbox; j++) {
             int id = j + i * num_bbox;
@@ -283,7 +283,7 @@ int csi_ref_proposal_f32(struct csi_tensor *cls_prob, struct csi_tensor *bbox_pr
 
     qsort(score, batch * num_bbox, sizeof(index_value), argsort);
 
-    float *sorted_bbox = csi_mem_alloc(batch * params->rpn_pre_nms_top_n * 5 * sizeof(float));
+    float *sorted_bbox = shl_mem_alloc(batch * params->rpn_pre_nms_top_n * 5 * sizeof(float));
     for (int b = 0; b < batch; b++) {
         for (int i = 0; i < params->rpn_pre_nms_top_n; i++) {
             int sorted_index = score[b * params->rpn_pre_nms_top_n + i].index;
@@ -307,32 +307,32 @@ int csi_ref_proposal_f32(struct csi_tensor *cls_prob, struct csi_tensor *bbox_pr
     return CSINN_TRUE;
 }
 
-int csi_ref_proposal_quant(struct csi_tensor *cls_prob, struct csi_tensor *bbox_pred,
-                           struct csi_tensor *im_info, struct csi_tensor *output,
-                           struct proposal_params *params)
+int shl_ref_proposal_quant(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_pred,
+                           struct csinn_tensor *im_info, struct csinn_tensor *output,
+                           struct csinn_proposal_params *params)
 {
-    float *scales = (float *)csi_mem_alloc(params->scales_num * sizeof(float));
+    float *scales = (float *)shl_mem_alloc(params->scales_num * sizeof(float));
     for (int i = 0; i < params->scales_num; i++) {
-        scales[i] = csi_ref_get_scale(params->scale_multipliers[i], params->scale_shifts[i]);
+        scales[i] = shl_ref_get_scale(params->scale_multipliers[i], params->scale_shifts[i]);
     }
 
-    float *ratios = (float *)csi_mem_alloc(params->scales_num * sizeof(float));
+    float *ratios = (float *)shl_mem_alloc(params->scales_num * sizeof(float));
     for (int i = 0; i < params->ratios_num; i++) {
-        ratios[i] = csi_ref_get_scale(params->ratio_multipliers[i], params->ratio_shifts[i]);
+        ratios[i] = shl_ref_get_scale(params->ratio_multipliers[i], params->ratio_shifts[i]);
     }
-    float threshold = csi_ref_get_scale(params->threshold_multiplier, params->threshold_shift);
+    float threshold = shl_ref_get_scale(params->threshold_multiplier, params->threshold_shift);
 
     params->ratios = ratios;
     params->scales = scales;
     params->threshold = threshold;
 
-    struct csi_tensor *fcls = csi_ref_tensor_transform_f32(cls_prob);
-    struct csi_tensor *fbbox = csi_ref_tensor_transform_f32(bbox_pred);
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    csi_ref_proposal_f32(fcls, fbbox, im_info, foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(fcls);
-    csi_ref_tensor_transform_free_f32(fbbox);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *fcls = shl_ref_tensor_transform_f32(cls_prob);
+    struct csinn_tensor *fbbox = shl_ref_tensor_transform_f32(bbox_pred);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    shl_ref_proposal_f32(fcls, fbbox, im_info, foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(fcls);
+    shl_ref_tensor_transform_free_f32(fbbox);
+    shl_ref_tensor_transform_free_f32(foutput);
     return CSINN_TRUE;
 }

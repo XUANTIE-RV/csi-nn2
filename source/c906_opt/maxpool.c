@@ -16,18 +16,17 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
     pad_left = pad_top = 0
     pad_right = 0 or 1
     pad_down = 0 or 1
 */
-static int maxpool2x2s2(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params)
+static int maxpool2x2s2(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -196,10 +195,8 @@ static int maxpool2x2s2(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int maxpool2x2s2_fp16(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_pool_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -370,9 +367,8 @@ static int maxpool2x2s2_fp16(struct csi_tensor *input,
     pad_right = 0 or 1
     pad_down = 0 or 1
 */
-static int maxpool2x2s2_p1(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pool_params *params)
+static int maxpool2x2s2_p1(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -618,10 +614,8 @@ static int maxpool2x2s2_p1(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int maxpool2x2s2_p1_fp16(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
 {
 
     __fp16 *input_data = (__fp16 *)input->data;
@@ -869,9 +863,8 @@ static int maxpool2x2s2_p1_fp16(struct csi_tensor *input,
     pad_right = 0 or 1
     pad_down = 0 or 1
 */
-static int maxpool3x3s2(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params)
+static int maxpool3x3s2(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -1107,10 +1100,8 @@ static int maxpool3x3s2(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int maxpool3x3s2_fp16(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_pool_params *params)
 {
     __fp16 *input_data  = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -1354,9 +1345,8 @@ static int maxpool3x3s2_fp16(struct csi_tensor *input,
     pad_right = 0 or 1
     pad_down = 0 or 1
 */
-static int maxpool3x3s2_p1(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pool_params *params)
+static int maxpool3x3s2_p1(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -1705,11 +1695,8 @@ static int maxpool3x3s2_p1(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-
-static int maxpool3x3s2_p1_fp16(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
 {
     __fp16 *input_data  = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -2080,9 +2067,8 @@ static int maxpool3x3s2_p1_fp16(struct csi_tensor *input,
     pad_left = pad_right = pad_top = pad_down = 1
     in_w = out_w   in_h = out_h
 */
-static int maxpool3x3s1_p1(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct pool_params *params)
+static int maxpool3x3s1_p1(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_pool_params *params)
 {
     float *input_data  = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -2399,10 +2385,8 @@ static int maxpool3x3s1_p1(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-static int maxpool3x3s1_p1_fp16(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct pool_params *params)
+static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_pool_params *params)
 {
     __fp16 *input_data  = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -2749,10 +2733,8 @@ static int maxpool3x3s1_p1_fp16(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-int csi_c906_maxpool2d_init(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct pool_params *params)
+int shl_c906_maxpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_pool_params *params)
 {
     int32_t input_h = input->dim[2];
     int32_t input_w = input->dim[3];
@@ -2767,14 +2749,15 @@ int csi_c906_maxpool2d_init(struct csi_tensor *input,
     int32_t pad_top   = params->pad_top;
     int32_t pad_down  = params->pad_down;
 
-    params->base.bc = NULL;
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = NULL;
 
     // global maxpool2d
     if (input_h == kernel_h && input_w == kernel_w) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_c906_global_maxpool2d_f32;
+            cb->exec = shl_c906_global_maxpool2d_f32;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_c906_global_maxpool2d_fp16;
+            cb->exec = shl_c906_global_maxpool2d_fp16;
         }
         return CSINN_TRUE;
     }
@@ -2792,15 +2775,15 @@ int csi_c906_maxpool2d_init(struct csi_tensor *input,
                 // end consider ceil_mode 2x2s2p0
 
                 if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = maxpool2x2s2;
+                    cb->exec = maxpool2x2s2;
                 } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = maxpool2x2s2_fp16;
+                    cb->exec = maxpool2x2s2_fp16;
                 }
             } else if (pad_left == 1 && pad_top == 1) {
                 if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = maxpool2x2s2_p1;
+                    cb->exec = maxpool2x2s2_p1;
                 } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = maxpool2x2s2_p1_fp16;
+                    cb->exec = maxpool2x2s2_p1_fp16;
                 }
             }
         } else if (kernel_h == 3 && kernel_w == 3) {    // 3x3s2
@@ -2815,15 +2798,15 @@ int csi_c906_maxpool2d_init(struct csi_tensor *input,
                 // end consider ceil_mode 3x3s2p0
 
                 if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = maxpool3x3s2;
+                    cb->exec = maxpool3x3s2;
                 } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = maxpool3x3s2_fp16;
+                    cb->exec = maxpool3x3s2_fp16;
                 }
             } else if (pad_left == 1 && pad_top == 1) {
                 if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = maxpool3x3s2_p1;
+                    cb->exec = maxpool3x3s2_p1;
                 } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = maxpool3x3s2_p1_fp16;
+                    cb->exec = maxpool3x3s2_p1_fp16;
                 }
             }
         }
@@ -2831,20 +2814,22 @@ int csi_c906_maxpool2d_init(struct csi_tensor *input,
         if (kernel_h == 3 && kernel_w == 3) {
             if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
                 if (input->dtype == CSINN_DTYPE_FLOAT32) {
-                    params->base.bc = maxpool3x3s1_p1;
+                    cb->exec = maxpool3x3s1_p1;
                 } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-                    params->base.bc = maxpool3x3s1_p1_fp16;
+                    cb->exec = maxpool3x3s1_p1_fp16;
                 }
             }
         }
     }
 
-    if (params->base.bc == NULL) {
-        csi_debug_warning("maxpool is not optimized to achieve under this condition on C906, call reference func replaced.\n");
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "maxpool is not optimized to achieve under this condition on C906, call reference func "
+            "replaced.\n");
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_ref_maxpool2d_f32;
+            cb->exec = shl_ref_maxpool2d_f32;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_ref_maxpool2d_quant;
+            cb->exec = shl_ref_maxpool2d_quant;
         }
     }
     return CSINN_TRUE;

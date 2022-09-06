@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,10 +28,12 @@ int main(int argc, char **argv)
 {
     init_testsuite("Testing function of sum(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct reduce_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_reduce_params *params = csinn_alloc_params(sizeof(struct csinn_reduce_params), sess);
     int in_size = 0;
     int out_size = 0;
 
@@ -82,24 +83,23 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    params.axis = &axis;
-    params.axis_count = 1;  // must be 1
-    params.m = m;
-    params.n = n;
-    params.out_strides = out_strides_0;
-    params.out_extents = out_extents_0;
-    params.inner_strides = inner_strides_0;
-    params.inner_extents = inner_extents_0;
-    params.base.api = CSINN_API;
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->axis = &axis;
+    params->axis_count = 1;  // must be 1
+    params->m = m;
+    params->n = n;
+    params->out_strides = out_strides_0;
+    params->out_extents = out_extents_0;
+    params->inner_strides = inner_strides_0;
+    params->inner_extents = inner_extents_0;
+    params->base.api = CSINN_API;
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
 
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_sum_init, csi_sum,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_sum_init, csinn_sum,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT16, csi_sum_init, csi_sum,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_sum_init, csinn_sum,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_SYM, csi_sum_init, csi_sum,
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_sum_init, csinn_sum,
                   &difference);
 
 

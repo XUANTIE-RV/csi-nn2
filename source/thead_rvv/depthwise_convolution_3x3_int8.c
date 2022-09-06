@@ -16,9 +16,8 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
-
-#include "csi_thead_rvv.h"
+/* CSI-NN2 version 2.0.x */
+#include "shl_thead_rvv.h"
 
 static vint8m1_t requantize_m4(vint32m4_t _src, int32_t multiplier, int32_t shift, int32_t out_zp,
                                int vl)
@@ -31,9 +30,9 @@ static vint8m1_t requantize_m4(vint32m4_t _src, int32_t multiplier, int32_t shif
     return _tmp2;
 }
 
-int csi_nn_rvv_dwconv3x3s1_int8(struct csi_tensor *input, struct csi_tensor *output,
-                                struct csi_tensor *kernel, struct csi_tensor *bias,
-                                struct conv2d_params *params)
+int shl_rvv_dwconv3x3s1_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -49,14 +48,14 @@ int csi_nn_rvv_dwconv3x3s1_int8(struct csi_tensor *input, struct csi_tensor *out
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
 
-    int8_t *input_padd_buf = (int8_t *)csi_mem_alloc((in_h + params->pad_top + params->pad_down) *
+    int8_t *input_padd_buf = (int8_t *)shl_mem_alloc((in_h + params->pad_top + params->pad_down) *
                                                      (in_w + params->pad_left + params->pad_right) *
                                                      in_c * sizeof(int8_t));
 
-    csi_nn_rvv_pad_input_int8(input_data, input_padd_buf, in_c, in_h, in_w,
-                              in_h + params->pad_top + params->pad_down,
-                              in_w + params->pad_left + params->pad_right, params->pad_top,
-                              params->pad_left, input->qinfo->zero_point);
+    shl_rvv_pad_input_int8(input_data, input_padd_buf, in_c, in_h, in_w,
+                           in_h + params->pad_top + params->pad_down,
+                           in_w + params->pad_left + params->pad_right, params->pad_top,
+                           params->pad_left, input->qinfo->zero_point);
 
     in_h = in_h + params->pad_top + params->pad_down;
     in_w = in_w + params->pad_left + params->pad_right;
@@ -288,13 +287,13 @@ int csi_nn_rvv_dwconv3x3s1_int8(struct csi_tensor *input, struct csi_tensor *out
         }
         output_data += out_h * out_w;
     }
-    csi_mem_free(input_padd_buf);
+    shl_mem_free(input_padd_buf);
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_dwconv3x3s2_int8(struct csi_tensor *input, struct csi_tensor *output,
-                                struct csi_tensor *kernel, struct csi_tensor *bias,
-                                struct conv2d_params *params)
+int shl_rvv_dwconv3x3s2_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -310,14 +309,14 @@ int csi_nn_rvv_dwconv3x3s2_int8(struct csi_tensor *input, struct csi_tensor *out
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
 
-    int8_t *input_padd_buf = (int8_t *)csi_mem_alloc((in_h + params->pad_top + params->pad_down) *
+    int8_t *input_padd_buf = (int8_t *)shl_mem_alloc((in_h + params->pad_top + params->pad_down) *
                                                      (in_w + params->pad_left + params->pad_right) *
                                                      in_c * sizeof(int8_t));
 
-    csi_nn_rvv_pad_input_int8(input_data, input_padd_buf, in_c, in_h, in_w,
-                              in_h + params->pad_top + params->pad_down,
-                              in_w + params->pad_left + params->pad_right, params->pad_top,
-                              params->pad_left, input->qinfo->zero_point);
+    shl_rvv_pad_input_int8(input_data, input_padd_buf, in_c, in_h, in_w,
+                           in_h + params->pad_top + params->pad_down,
+                           in_w + params->pad_left + params->pad_right, params->pad_top,
+                           params->pad_left, input->qinfo->zero_point);
 
     in_h = in_h + params->pad_top + params->pad_down;
     in_w = in_w + params->pad_left + params->pad_right;
@@ -420,10 +419,10 @@ int csi_nn_rvv_dwconv3x3s2_int8(struct csi_tensor *input, struct csi_tensor *out
                 vint8m1_t _res0;
                 if (kernel->quant_channel > 1) {
                     _res0 = requantize_m4(_acc0, kernel->qinfo[c].multiplier,
-                                          kernel->qinfo[c].shift, output->qinfo->zero_point, 16);
+                                          kernel->qinfo[c].shift, output->qinfo->zero_point, vl);
                 } else if (kernel->quant_channel == 1) {
                     _res0 = requantize_m4(_acc0, kernel->qinfo[0].multiplier,
-                                          kernel->qinfo[0].shift, output->qinfo->zero_point, 16);
+                                          kernel->qinfo[0].shift, output->qinfo->zero_point, vl);
                 }
                 vse8_v_i8m1(outptr0, _res0, vl);
                 outptr0 += vl;
@@ -435,6 +434,6 @@ int csi_nn_rvv_dwconv3x3s2_int8(struct csi_tensor *input, struct csi_tensor *out
         }
         output_data += out_h * out_w;
     }
-    csi_mem_free(input_padd_buf);
+    shl_mem_free(input_padd_buf);
     return CSINN_TRUE;
 }

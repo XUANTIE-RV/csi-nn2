@@ -30,18 +30,25 @@ def convolution_f32(test_type):
         kernel_y    = 1
         dilation_x  = 1
         dilation_y  = 1
+        out_channel = 8 + 4 + 2 + 1  
+        in_size_x = 7
+        in_size_y = 9 
 
-    elif test_type == "conv3x3s1_im2col_sgemm" or test_type == "conv3x3s1_winograd64":
+    elif test_type == "conv3x3s1_im2col_sgemm" or test_type == "conv3x3s1_winograd64" or test_type == "conv3x3s1_winograd64_pack":
         stride_x    = 1
         stride_y    = 1
         kernel_x    = 3
         kernel_y    = 3
         dilation_x  = 1
         dilation_y  = 1
-        if test_type == "conv3x3s1_winograd64":
+        if "conv3x3s1_winograd64" in test_type:
             n = int(np.random.randint(1, high=4, size=1))
             in_channel  = 8 * n
             out_channel = 8 * n
+            if test_type == "conv3x3s1_winograd64_pack":
+                in_size_x = 20
+                in_size_y = 32
+
 
     elif test_type == "gemm_random":
         stride_x    = int(np.random.randint(2, high=3, size=1))

@@ -16,26 +16,24 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_sequence_mask_init(struct csi_tensor *input0,
-                           struct csi_tensor *input1,
-                           struct csi_tensor *output,
-                           struct sequence_mask_params *params)
+int csinn_sequence_mask_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                             struct csinn_tensor *output, struct csinn_sequence_mask_params *params)
 {
     return CSINN_FALSE;
 }
 
-int csi_sequence_mask(struct csi_tensor *input0,
-                      struct csi_tensor *input1,
-                      struct csi_tensor *output,
-                      struct sequence_mask_params *params)
+int csinn_sequence_mask(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                        struct csinn_tensor *output, struct csinn_sequence_mask_params *params)
 {
-    CSI_DEBUG_CALL(csi_sequence_mask_debug_info(input0, input1, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input0, input1, output, params);
+    SHL_DEBUG_CALL(shl_sequence_mask_debug_info(input0, input1, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input0, input1, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

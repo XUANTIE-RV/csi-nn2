@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 static int Multiplication(int32_t *dim, int s, int e)
 {
@@ -30,8 +29,8 @@ static int Multiplication(int32_t *dim, int s, int e)
     return res;
 }
 
-int csi_ref_tile_f32(struct csi_tensor *input, struct csi_tensor *output,
-                     struct tile_params *params)
+int shl_ref_tile_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_tile_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -54,7 +53,7 @@ int csi_ref_tile_f32(struct csi_tensor *input, struct csi_tensor *output,
         int num = Multiplication(input->dim, 0, dim_idx) / (input->dim[dim_idx]);
         int step = Multiplication(input->dim, dim_idx, input->dim_count - 1) *
                    Multiplication(params->reps, dim_idx, reps_count - 1) / (params->reps[dim_idx]);
-        float *temp = (float *)csi_mem_alloc(reps_num * num * step * sizeof(float));
+        float *temp = (float *)shl_mem_alloc(reps_num * num * step * sizeof(float));
         float *temp_cpy_addr = temp;
         for (int input_pre_i = 0; input_pre_i < num; input_pre_i++) {
             for (int rep_i = 0; rep_i < reps_num; rep_i++) {
@@ -65,15 +64,15 @@ int csi_ref_tile_f32(struct csi_tensor *input, struct csi_tensor *output,
         }
         memcpy(output_data, temp, reps_num * num * step * sizeof(float));
         input_data = output_data;
-        csi_mem_free(temp);
+        shl_mem_free(temp);
         temp = NULL;
     }
     memcpy(output_data, input_data, out_size * sizeof(float));
     return CSINN_TRUE;
 }
 
-int csi_ref_tile_quant(struct csi_tensor *input, struct csi_tensor *output,
-                       struct tile_params *params)
+int shl_ref_tile_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_tile_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_tile_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_tile_f32);
 }

@@ -16,28 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_cumprod_init(struct csi_tensor *input,
-                     struct csi_tensor *output,
-                     struct cumprod_params *params)
+int csinn_cumprod_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_cumprod_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_CUMPROD, input->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_CUMPROD, input->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_cumprod(struct csi_tensor *input,
-                struct csi_tensor *output,
-                struct cumprod_params *params)
+int csinn_cumprod(struct csinn_tensor *input, struct csinn_tensor *output,
+                  struct csinn_cumprod_params *params)
 {
-    CSI_DEBUG_CALL(csi_cumprod_debug_info(input, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, output, params);
+    SHL_DEBUG_CALL(shl_cumprod_debug_info(input, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

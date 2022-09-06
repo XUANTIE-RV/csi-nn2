@@ -16,68 +16,47 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256 ...
 *************************************************************/
-int csi_nn_rvv_relu_fp32(struct csi_tensor *input, struct csi_tensor *output,
-                         struct relu_params *params)
+int shl_rvv_relu_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_relu_params *params)
 {
-    float *input_data = input->data;
-    float *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
+    float *input_data = (float *)input->data;
+    float *output_data = (float *)output->data;
 
-    int vl = vsetvl_e32m2(size);  // vl=8 if vlen=128
-
-    int i = 0;
-    for (; i + vl - 1 < size; i += vl) {
+    int size = csinn_tensor_size(input);
+    while (size > 0) {
+        int vl = vsetvl_e32m2(size);
         vfloat32m2_t _input = vle32_v_f32m2(input_data, vl);
         input_data += vl;
         vfloat32m2_t _output = vfmax_vf_f32m2(_input, 0.0f, vl);
         vse32_v_f32m2(output_data, _output, vl);
         output_data += vl;
-    }
-    if (i < size) {
-        vl = vsetvl_e32m2(size & (vl - 1));  // ???
-        vfloat32m2_t _input = vle32_v_f32m2(input_data, vl);
-        vfloat32m2_t _output = vfmax_vf_f32m2(_input, 0.0f, vl);
-        vse32_v_f32m2(output_data, _output, vl);
+        size -= vl;
     }
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_relu_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                         struct relu_params *params)
+int shl_rvv_relu_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_relu_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
 
-    int size = 1;
-    for (int i = 0; i < input->dim_count; i++) {
-        size = size * input->dim[i];
-    }
-
-    int vl = vsetvl_e16m2(size);
-
-    int i = 0;
-    for (; i + vl - 1 < size; i += vl) {
+    int size = csinn_tensor_size(input);
+    while (size > 0) {
+        int vl = vsetvl_e16m2(size);
         vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
         input_data += vl;
         vfloat16m2_t _output = vfmax_vf_f16m2(_input, 0.0f, vl);
         vse16_v_f16m2(output_data, _output, vl);
         output_data += vl;
-    }
-    if (i < size) {
-        vl = vsetvl_e16m2(size & (vl - 1));
-        vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
-        vfloat16m2_t _output = vfmax_vf_f16m2(_input, 0.0f, vl);
-        vse16_v_f16m2(output_data, _output, vl);
+        size -= vl;
     }
     return CSINN_TRUE;
 }
@@ -88,8 +67,8 @@ int csi_nn_rvv_relu_fp16(struct csi_tensor *input, struct csi_tensor *output,
  *
  * note：relu 一般接在全连接/卷积后面，可以直接和全连接/卷积 融合
  ************************************************************************************/
-int csi_nn_rvv_relu_int8(struct csi_tensor *input, struct csi_tensor *output,
-                         struct relu_params *params)
+int shl_rvv_relu_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_relu_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -97,9 +76,9 @@ int csi_nn_rvv_relu_int8(struct csi_tensor *input, struct csi_tensor *output,
     // TODO: move to init api
     // real_scale > 1 =>  output->qinfo->shift > 0  ==> shift left
     float real_scale = input->qinfo->scale / output->qinfo->scale;
-    csi_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
+    shl_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
 
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
     while (size > 0) {
         int vl = vsetvl_e8m1(size);
 

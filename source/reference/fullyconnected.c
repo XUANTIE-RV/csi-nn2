@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_fullyconnected_f32(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weights, struct csi_tensor *bias,
-                               struct fc_params *params)
+int shl_ref_fullyconnected_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weights, struct csinn_tensor *bias,
+                               struct csinn_fc_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -53,20 +53,20 @@ int csi_ref_fullyconnected_f32(struct csi_tensor *input, struct csi_tensor *outp
     return CSINN_TRUE;
 }
 
-int csi_ref_fullyconnected_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                 struct csi_tensor *weights, struct csi_tensor *bias,
-                                 struct fc_params *params)
+int shl_ref_fullyconnected_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                 struct csinn_fc_params *params)
 {
-    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *float_kernel = csi_ref_tensor_transform_f32(weights);
-    struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
+    struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *float_kernel = shl_ref_tensor_transform_f32(weights);
+    struct csinn_tensor *float_bias = shl_ref_tensor_transform_f32(bias);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
     if (params->fc_extra.fuse_zp2bias) {
         float *float_bias_data = float_bias->data;
         float *float_kernel_data = float_kernel->data;
 
         int k_len = weights->dim[0];
-        int k_inner = csi_tensor_size(weights) / k_len;
+        int k_inner = csinn_tensor_size(weights) / k_len;
         float sp = input->qinfo->scale * input->qinfo->zero_point;
         for (int i = 0; i < k_len; i++) {
             float t_k = 0;
@@ -79,11 +79,11 @@ int csi_ref_fullyconnected_quant(struct csi_tensor *input, struct csi_tensor *ou
     }
 
     int ret =
-        csi_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
-    csi_tensor_data_convert(output, float_output);
-    csi_ref_tensor_transform_free_f32(float_input);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_kernel);
-    csi_ref_tensor_transform_free_f32(float_bias);
+        shl_ref_fullyconnected_f32(float_input, float_output, float_kernel, float_bias, params);
+    csinn_tensor_data_convert(output, float_output);
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_kernel);
+    shl_ref_tensor_transform_free_f32(float_bias);
     return ret;
 }

@@ -16,30 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_sub_init(struct csi_tensor *input0,
-                 struct csi_tensor *input1,
-                 struct csi_tensor *output,
-                 struct diso_params *params)
+int csinn_sub_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                   struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_SUB, input0->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_SUB, input0->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input0, input1, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_sub(struct csi_tensor *input0,
-            struct csi_tensor *input1,
-            struct csi_tensor *output,
-            struct diso_params *params)
+int csinn_sub(struct csinn_tensor *input0, struct csinn_tensor *input1, struct csinn_tensor *output,
+              struct csinn_diso_params *params)
 {
-    CSI_DEBUG_CALL(csi_diso_debug_info(input0, input1, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input0, input1, output, params);
+    SHL_DEBUG_CALL(shl_diso_debug_info(input0, input1, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input0, input1, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

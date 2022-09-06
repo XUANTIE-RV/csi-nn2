@@ -16,34 +16,31 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_fsmn(struct csi_tensor *frame,
-                  struct csi_tensor *l_filter,
-                  struct csi_tensor *r_filter,
-                  struct csi_tensor *frame_sequence,
-                  struct csi_tensor *frame_counter,
-                  struct csi_tensor *output,
-                  struct fsmn_params *params)
+int shl_gref_fsmn(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+                  struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+                  struct csinn_tensor *frame_counter, struct csinn_tensor *output,
+                  struct csinn_fsmn_params *params)
 {
-    struct csi_params_base *ptr = (void *)params;
-    struct csi_node *layer = csi_node_alloc(CSINN_OP_FSMN, ptr->name, 5, 1, params);
-    struct csi_node *in0 = (struct csi_node *)frame->data;
-    struct csi_node *in1 = csi_node_const_var_alloc(l_filter->name, l_filter);
-    struct csi_node *in2 = csi_node_const_var_alloc(r_filter->name, r_filter);
-    struct csi_node *in3 = csi_node_const_var_alloc(frame_sequence->name, frame_sequence);
-    struct csi_node *in4 = csi_node_const_var_alloc(frame_counter->name, frame_counter);
-    struct csi_node *out = csi_node_var_alloc(output->name, output);
-    csi_node_add_in(layer, in0, 0);
-    csi_node_add_in(layer, in1, 1);
-    csi_node_add_in(layer, in2, 2);
-    csi_node_add_in(layer, in3, 3);
-    csi_node_add_in(layer, in4, 4);
-    csi_node_add_out(layer, out, 0);
+    struct csinn_params_base *ptr = (void *)params;
+    struct shl_node *layer = shl_node_alloc(CSINN_OP_FSMN, ptr->name, 5, 1, params);
+    struct shl_node *in0 = (struct shl_node *)frame->data;
+    struct shl_node *in1 = shl_node_const_var_alloc(l_filter->name, l_filter);
+    struct shl_node *in2 = shl_node_const_var_alloc(r_filter->name, r_filter);
+    struct shl_node *in3 = shl_node_const_var_alloc(frame_sequence->name, frame_sequence);
+    struct shl_node *in4 = shl_node_const_var_alloc(frame_counter->name, frame_counter);
+    struct shl_node *out = shl_node_var_alloc(output->name, output);
+    shl_node_add_in(layer, in0, 0);
+    shl_node_add_in(layer, in1, 1);
+    shl_node_add_in(layer, in2, 2);
+    shl_node_add_in(layer, in3, 3);
+    shl_node_add_in(layer, in4, 4);
+    shl_node_add_out(layer, out, 0);
     output->data = out;
-    struct csi_ref_graph *graph = csi_gref_get_graph(frame->sess);
-    csi_gref_graph_insert(layer, graph);
+    struct shl_ref_graph *graph = shl_gref_get_graph(frame->sess);
+    shl_gref_graph_insert(layer, graph);
     return CSINN_TRUE;
 }

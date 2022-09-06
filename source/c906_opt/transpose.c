@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_transpose_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                            struct transpose_params *params)
+int shl_c906_transpose_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_transpose_params *params)
 {
     if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 2 &&
         params->permute[2] == 1 && params->permute[3] == 3) {
@@ -77,5 +77,5 @@ int csi_c906_transpose_fp16(struct csi_tensor *input, struct csi_tensor *output,
         }
         return CSINN_TRUE;
     }
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_transpose);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_transpose);
 }

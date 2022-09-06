@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
-#include "csi_thead_rvv.h"
+/* CSI-NN2 version 2.0.x */
+#include "shl_thead_rvv.h"
 
-int csi_nn_rvv_concat_fp32(struct csi_tensor **input, struct csi_tensor *output,
-                           struct concat_params *params)
+int shl_rvv_concat_fp32(struct csinn_tensor **input, struct csinn_tensor *output,
+                        struct csinn_concat_params *params)
 {
     int64_t outer_size = 1;
     for (int i = 0; i < params->axis; ++i) {
@@ -35,7 +35,7 @@ int csi_nn_rvv_concat_fp32(struct csi_tensor **input, struct csi_tensor *output,
     float *output_ptr = output->data;
     for (int k = 0; k < outer_size; k++) {
         for (int i = 0; i < params->inputs_count; ++i) {
-            struct csi_tensor *input_item = input[i];
+            struct csinn_tensor *input_item = input[i];
             float *input_item_data = input_item->data;
             int copy_size = input_item->dim[params->axis] * base_inner_size;
             const float *input_ptr = input_item_data + k * copy_size;
@@ -52,8 +52,8 @@ int csi_nn_rvv_concat_fp32(struct csi_tensor **input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_concat_fp16(struct csi_tensor **input, struct csi_tensor *output,
-                           struct concat_params *params)
+int shl_rvv_concat_fp16(struct csinn_tensor **input, struct csinn_tensor *output,
+                        struct csinn_concat_params *params)
 {
     int64_t outer_size = 1;
     for (int i = 0; i < params->axis; ++i) {
@@ -68,7 +68,7 @@ int csi_nn_rvv_concat_fp16(struct csi_tensor **input, struct csi_tensor *output,
     __fp16 *output_ptr = output->data;
     for (int k = 0; k < outer_size; k++) {
         for (int i = 0; i < params->inputs_count; ++i) {
-            struct csi_tensor *input_item = input[i];
+            struct csinn_tensor *input_item = input[i];
             __fp16 *input_item_data = input_item->data;
             int copy_size = input_item->dim[params->axis] * base_inner_size;
             const __fp16 *input_ptr = input_item_data + k * copy_size;
@@ -85,8 +85,8 @@ int csi_nn_rvv_concat_fp16(struct csi_tensor **input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_concat_int8(struct csi_tensor **input, struct csi_tensor *output,
-                           struct concat_params *params)
+int shl_rvv_concat_int8(struct csinn_tensor **input, struct csinn_tensor *output,
+                        struct csinn_concat_params *params)
 {
     int64_t outer_size = 1;
     for (int i = 0; i < params->axis; ++i) {
@@ -100,7 +100,7 @@ int csi_nn_rvv_concat_int8(struct csi_tensor **input, struct csi_tensor *output,
     int8_t *output_ptr = (int8_t *)output->data;
     for (int k = 0; k < outer_size; k++) {
         for (int i = 0; i < params->inputs_count; ++i) {
-            struct csi_tensor *input_item = input[i];
+            struct csinn_tensor *input_item = input[i];
             int8_t *input_item_data = (int8_t *)input_item->data;
             int copy_size = input_item->dim[params->axis] * base_inner_size;
             const int8_t *input_ptr = input_item_data + k * copy_size;

@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
-#include "csi_memory.h"
+#include "shl_c906.h"
+#include "shl_memory.h"
 
 // asr data buffer
-void asr_buffer_init_c906(struct asr_buffer_t *buffer, size_t buffer_size, size_t data_lenth)
+void asr_buffer_init_c906(struct csinn_asr_buffer_t *buffer, size_t buffer_size, size_t data_lenth)
 {
-    buffer->buffer = csi_mem_alloc(buffer_size);
+    buffer->buffer = shl_mem_alloc(buffer_size);
     buffer->buffer_lenth = buffer_size;
     buffer->data_lenth = data_lenth;
     buffer->writer_index = buffer_size - data_lenth;
@@ -32,7 +32,7 @@ void asr_buffer_init_c906(struct asr_buffer_t *buffer, size_t buffer_size, size_
 }
 
 // insert front
-void *asr_buffer_insert_c906_front(struct asr_buffer_t *buffer, void *input, size_t len)
+void *asr_buffer_insert_c906_front(struct csinn_asr_buffer_t *buffer, void *input, size_t len)
 {
     int start_position = buffer->writer_index - len;
     uint8_t *p = NULL;
@@ -60,7 +60,7 @@ void *asr_buffer_insert_c906_front(struct asr_buffer_t *buffer, void *input, siz
     }
 }
 
-void *asr_buffer_insert_c906_back(struct asr_buffer_t *buffer, void *input, size_t len)
+void *asr_buffer_insert_c906_back(struct csinn_asr_buffer_t *buffer, void *input, size_t len)
 {
     int end_position = buffer->writer_index + len;
     uint8_t *p = NULL;
@@ -80,15 +80,15 @@ void *asr_buffer_insert_c906_back(struct asr_buffer_t *buffer, void *input, size
 }
 
 // get buffer
-void *asr_buffer_get_buffer_c906(struct asr_buffer_t *buffer)
+void *asr_buffer_get_buffer_c906(struct csinn_asr_buffer_t *buffer)
 {
     return asr_buffer_insert_c906_back(buffer, NULL, 0);
 }
 
 // reset buffer
-void asr_buffer_reset_c906(struct asr_buffer_t *buffer)
+void asr_buffer_reset_c906(struct csinn_asr_buffer_t *buffer)
 {
-    csi_mem_free(buffer->buffer);
+    shl_mem_free(buffer->buffer);
     buffer->writer_index = 0;
     buffer->buffer = NULL;
     buffer->buffer_lenth = 0;
@@ -96,9 +96,9 @@ void asr_buffer_reset_c906(struct asr_buffer_t *buffer)
     buffer->flag = 0;
 }
 
-int csi_c906_cache_matmul_init(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_matmul_params *params)
+int shl_c906_cache_matmul_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_matmul_params *params)
 {
     size_t data_size =
         params->shape[0] * params->shape[1] * params->shape[2] * params->shape[3] * sizeof(__fp16);
@@ -107,28 +107,29 @@ int csi_c906_cache_matmul_init(struct csi_tensor *input, struct csi_tensor *outp
     int accum_depth = weight->dim[0];
     int output_depth = weight->dim[1];
 
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT16) {
         __fp16 *weight_data = (__fp16 *)weight->data;
 
         int n = weight->dim[0];  // out_nodes
         int k = weight->dim[1];  // in_nodes
         if (k % 16 != 0) {
-            csi_debug_error("out_nodes num should be multiple of 16\n");
+            shl_debug_error("out_nodes num should be multiple of 16\n");
         }
-        __fp16 *pa_reorder = (__fp16 *)csi_mem_alloc(n * k * sizeof(__fp16));
-        csi_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
+        __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
+        shl_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
 
-        csi_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
+        shl_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
         params->data = weight_data;
-        csi_mem_free(pa_reorder);
-        params->base.bc = csi_c906_cache_matmul_fp16;
+        shl_mem_free(pa_reorder);
+        cb->exec = shl_c906_cache_matmul_fp16;
     }
     return CSINN_TRUE;
 }
 
-int csi_c906_cache_matmul_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_matmul_params *params)
+int shl_c906_cache_matmul_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_matmul_params *params)
 {
     int accum_depth = weight->dim[0];
     int output_depth = weight->dim[1];

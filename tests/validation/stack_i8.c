@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of stack i8.\n");
 
@@ -34,77 +34,75 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
 
-    struct stack_params params;
+    struct csinn_stack_params *params = csinn_alloc_params(sizeof(struct csinn_stack_params), NULL);
 
-    params.inputs_count = buffer[0];
-    params.axis = buffer[1];
+    params->inputs_count = buffer[0];
+    params->axis = buffer[1];
 
-    struct csi_tensor *input[params.inputs_count];
-    for (int i = 0; i < params.inputs_count; i++) {
-        input[i] = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input[params->inputs_count];
+    for (int i = 0; i < params->inputs_count; i++) {
+        input[i] = csinn_alloc_tensor(NULL);
         input[i]->dim_count = buffer[2] - 1;
         input[i]->layout = CSINN_LAYOUT_NCHW;
         input[i]->is_const = 0;
         input[i]->dtype = CSINN_DTYPE_INT8;
         for (int j = 0; j < input[i]->dim_count; j++) {
-            if (j < params.axis) {
-                input[i]->dim[j] = buffer[3+j];     // input[i]->dim[j] = output->dim[j]
+            if (j < params->axis) {
+                input[i]->dim[j] = buffer[3 + j];  // input[i]->dim[j] = output->dim[j]
             } else {
-                input[i]->dim[j] = buffer[3+j+1];   // input[i]->dim[j] = output->dim[j + 1]
+                input[i]->dim[j] = buffer[3 + j + 1];  // input[i]->dim[j] = output->dim[j + 1]
             }
         }
     }
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
 
     output->dim_count = buffer[2];
-    float *src_in[params.inputs_count];
+    float *src_in[params->inputs_count];
 
-    for(int i = 0; i < output->dim_count; i++) {
-        output->dim[i] = buffer[3+i];
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = buffer[3 + i];
         out_size *= output->dim[i];
     }
-    in_size = out_size / params.inputs_count;
+    in_size = out_size / params->inputs_count;
     output->dtype = CSINN_DTYPE_INT8;
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    int8_t *src_tmp[params.inputs_count];
+    int8_t *src_tmp[params->inputs_count];
 
-    for(int i = 0; i < params.inputs_count; i++) {
+    for (int i = 0; i < params->inputs_count; i++) {
         src_in[i] = (float *)(buffer + 3 + output->dim_count + in_size * i);
         src_tmp[i] = malloc(in_size * sizeof(char));
     }
 
-    float *ref      = (float *)(buffer + 3 + output->dim_count + in_size * params.inputs_count);
+    float *ref = (float *)(buffer + 3 + output->dim_count + in_size * params->inputs_count);
 
-    for(int j = 0; j < params.inputs_count; j++) {
+    for (int j = 0; j < params->inputs_count; j++) {
         input[j]->data = src_in[j];
         get_quant_info(input[j]);
-        for(int i = 0; i < in_size; i++) {
-            src_tmp[j][i] = csi_ref_quantize_f32_to_i8(src_in[j][i], input[j]->qinfo);
+        for (int i = 0; i < in_size; i++) {
+            src_tmp[j][i] = shl_ref_quantize_f32_to_i8(src_in[j][i], input[j]->qinfo);
         }
         input[j]->data = src_tmp[j];
-    } 
+    }
 
     output->data = ref;
     get_quant_info(output);
     reference->data = ref;
-    output->data    = malloc(out_size * sizeof(char));
+    output->data = malloc(out_size * sizeof(char));
 
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-
-    if (csi_stack_init(input, output, &params) == CSINN_TRUE) {
-        csi_stack(input, output, &params);
+    if (csinn_stack_init(input, output, params) == CSINN_TRUE) {
+        csinn_stack(input, output, params);
     }
 
     result_verify_8(reference->data, output, input[0]->data, difference, out_size, false);
 
     free(buffer);
-    for(int i = 0; i < params.inputs_count; i++) {
+    for (int i = 0; i < params->inputs_count; i++) {
         free(src_tmp[i]);
     }
     free(output->data);

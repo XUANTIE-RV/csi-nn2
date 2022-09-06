@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_col2im_f32(struct csi_tensor *input, struct csi_tensor *output,
-                       struct csi_tensor *kernel, struct col2im_params *params)
+int shl_ref_col2im_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_tensor *kernel, struct csinn_col2im_params *params)
 {
     int32_t height = input->dim[1];
     int32_t width = input->dim[2];

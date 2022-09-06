@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_shape_i32(struct csi_tensor *input, struct csi_tensor *output,
-                      struct shape_params *params)
+int shl_ref_shape_i32(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_shape_params *params)
 {
     int32_t *data = output->data;
     for (int i = 0; i < input->dim_count; i++) {
@@ -31,8 +30,8 @@ int csi_ref_shape_i32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_shape_u8(struct csi_tensor *input, struct csi_tensor *output,
-                     struct shape_params *params)
+int shl_ref_shape_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_shape_params *params)
 {
     uint8_t *data = output->data;
     for (int i = 0; i < input->dim_count; i++) {
@@ -41,8 +40,8 @@ int csi_ref_shape_u8(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_shape_i8(struct csi_tensor *input, struct csi_tensor *output,
-                     struct shape_params *params)
+int shl_ref_shape_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_shape_params *params)
 {
     uint8_t *data = output->data;
     for (int i = 0; i < input->dim_count; i++) {

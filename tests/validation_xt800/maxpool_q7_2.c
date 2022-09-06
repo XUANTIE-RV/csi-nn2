@@ -16,59 +16,48 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "./valid_data/pool_data.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "./valid_data/pool_data.dat"
+#include "test_utils.h"
 
-extern void verify_maxpool2d_q7(void *input_data,
-                              void *output_data,
-                              uint16_t batch,
-                              uint16_t in_h,
-                              uint16_t in_w,
-                              uint16_t in_c,
-                              uint16_t out_h,
-                              uint16_t out_w,
-                              uint16_t out_c,
-                              uint16_t kernel_h,
-                              uint16_t kernel_w,
-                              uint16_t stride_h,
-                              uint16_t stride_w,
-                              uint16_t pad_x,
-                              uint16_t pad_y,
-                              float difference);
+extern void verify_maxpool2d_q7(void *input_data, void *output_data, uint16_t batch, uint16_t in_h,
+                                uint16_t in_w, uint16_t in_c, uint16_t out_h, uint16_t out_w,
+                                uint16_t out_c, uint16_t kernel_h, uint16_t kernel_w,
+                                uint16_t stride_h, uint16_t stride_w, uint16_t pad_x,
+                                uint16_t pad_y, float difference);
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Second testing function of maxpool q7 for xt800.\n");
 
     /* ---------------- leftover ------------------------*/
-    verify_maxpool2d_q7(pooling_input_00, maxpool2d_result_9, 1, 31, 31, 4, 29, 29, 4,
-                      3, 3, 1, 1, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_00, maxpool2d_result_9, 1, 31, 31, 4, 29, 29, 4, 3, 3, 1, 1,
+                        0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_01, maxpool2d_result_10, 1, 31, 31, 4, 15, 15, 4,
-                      3, 3, 2, 2, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_01, maxpool2d_result_10, 1, 31, 31, 4, 15, 15, 4, 3, 3, 2, 2,
+                        0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_02, maxpool2d_result_11, 1, 31, 31, 4, 16, 16, 4,
-                      3, 3, 2, 2, 1, 1, 0.0f);
+    verify_maxpool2d_q7(pooling_input_02, maxpool2d_result_11, 1, 31, 31, 4, 16, 16, 4, 3, 3, 2, 2,
+                        1, 1, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_10, maxpool2d_result_12, 1, 63, 63, 1, 61, 61, 1,
-                      3, 3, 1, 1, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_10, maxpool2d_result_12, 1, 63, 63, 1, 61, 61, 1, 3, 3, 1, 1,
+                        0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_11, maxpool2d_result_13, 1, 63, 63, 1, 31, 31, 1,
-                      3, 3, 2, 2, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_11, maxpool2d_result_13, 1, 63, 63, 1, 31, 31, 1, 3, 3, 2, 2,
+                        0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_12, maxpool2d_result_14, 1, 63, 63, 1, 32, 32, 1,
-                      3, 3, 2, 2, 1, 1, 0.0f);
+    verify_maxpool2d_q7(pooling_input_12, maxpool2d_result_14, 1, 63, 63, 1, 32, 32, 1, 3, 3, 2, 2,
+                        1, 1, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_20, maxpool2d_result_15, 1, 15, 15, 16, 13, 13, 16,
-                      3, 3, 1, 1, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_20, maxpool2d_result_15, 1, 15, 15, 16, 13, 13, 16, 3, 3, 1,
+                        1, 0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_21, maxpool2d_result_16, 1, 15, 15, 16, 7, 7, 16,
-                      3, 3, 2, 2, 0, 0, 0.0f);
+    verify_maxpool2d_q7(pooling_input_21, maxpool2d_result_16, 1, 15, 15, 16, 7, 7, 16, 3, 3, 2, 2,
+                        0, 0, 0.0f);
 
-    verify_maxpool2d_q7(pooling_input_22, maxpool2d_result_17, 1, 15, 15, 16, 8, 8, 16,
-                      3, 3, 2, 2, 1, 1, 0.0f);
+    verify_maxpool2d_q7(pooling_input_22, maxpool2d_result_17, 1, 15, 15, 16, 8, 8, 16, 3, 3, 2, 2,
+                        1, 1, 0.0f);
 }

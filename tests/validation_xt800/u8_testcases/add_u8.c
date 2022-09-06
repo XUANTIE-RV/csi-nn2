@@ -16,24 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "../valid_data/basic_math_func_u8.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "../valid_data/basic_math_func_u8.dat"
+#include "test_utils.h"
 
-
-static void verify_add_u8(float *input_0_data,
-                          float *input_1_data,
-                          float *ref_data,
-                          int32_t size,
+static void verify_add_u8(float *input_0_data, float *input_1_data, float *ref_data, int32_t size,
                           float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, out_size;
 
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input0 = csinn_alloc_tensor(NULL);
     input0->dim[0] = 1;
     input0->dim[1] = 1;
     input0->dim[2] = 1;
@@ -47,13 +43,12 @@ static void verify_add_u8(float *input_0_data,
     in_size = input0->dim[0] * input0->dim[1] * input0->dim[2] * input0->dim[3];
 
     uint8_t *src_tmp_0 = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        src_tmp_0[i] = csi_ref_quantize_f32_to_u8(input_0_data[i], input0->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp_0[i] = shl_ref_quantize_f32_to_u8(input_0_data[i], input0->qinfo);
     }
     input0->data = src_tmp_0;
 
-
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input1 = csinn_alloc_tensor(NULL);
     input1->dim[0] = 1;
     input1->dim[1] = 1;
     input1->dim[2] = 1;
@@ -67,13 +62,12 @@ static void verify_add_u8(float *input_0_data,
     in_size = input1->dim[0] * input1->dim[1] * input1->dim[2] * input1->dim[3];
 
     uint8_t *src_tmp_1 = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        src_tmp_1[i] = csi_ref_quantize_f32_to_u8(input_1_data[i], input1->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp_1[i] = shl_ref_quantize_f32_to_u8(input_1_data[i], input1->qinfo);
     }
     input1->data = src_tmp_1;
 
-
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = 1;
     output->dim[2] = 1;
@@ -87,18 +81,16 @@ static void verify_add_u8(float *input_0_data,
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
     output->data = malloc(size);
 
-    struct diso_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
+    struct csinn_diso_params *params = csinn_alloc_params(sizeof(struct csinn_diso_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    if (csi_add_init(input0, input1, output, &params) == CSINN_TRUE) {
-        csi_add(input0, input1, output, &params);
+    if (csinn_add_init(input0, input1, output, params) == CSINN_TRUE) {
+        csinn_add(input0, input1, output, params);
     }
 
-
-    reference->data  = (float *)ref_data;
+    reference->data = (float *)ref_data;
     result_verify_8(reference->data, output, input0->data, difference, out_size, false);
 
     free(input0);
@@ -110,8 +102,7 @@ static void verify_add_u8(float *input_0_data,
     free(src_tmp_1);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of elementwise add(u8) for i805.\n");
 

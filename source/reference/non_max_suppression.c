@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 static int find_max_score_idx(const float *scores, int *flag, int len)
 {
@@ -54,9 +53,9 @@ static float get_iou(const float *box1, const float *box2)
     return iou;
 }
 
-int csi_ref_non_max_suppression_std(struct csi_tensor *input0, struct csi_tensor *input1,
-                                    struct csi_tensor *output,
-                                    struct non_max_suppression_params *params)
+int shl_ref_non_max_suppression_std(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                                    struct csinn_tensor *output,
+                                    struct csinn_non_max_suppression_params *params)
 {
     float *boxes = (float *)input0->data;
     float *scores = (float *)input1->data;
@@ -68,7 +67,7 @@ int csi_ref_non_max_suppression_std(struct csi_tensor *input0, struct csi_tensor
     int box_num = input1->dim[0];
     int box_num_exist = box_num;
 
-    int *flag = (int *)csi_mem_alloc(box_num * sizeof(int));
+    int *flag = (int *)shl_mem_alloc(box_num * sizeof(int));
 
     int box_cnt = 0;
     while (box_num_exist) {
@@ -92,6 +91,6 @@ int csi_ref_non_max_suppression_std(struct csi_tensor *input0, struct csi_tensor
             }
         }
     }
-    csi_mem_free(flag);
+    shl_mem_free(flag);
     return CSINN_TRUE;
 }

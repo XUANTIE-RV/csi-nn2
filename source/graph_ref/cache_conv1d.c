@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_cache_conv1d(struct csi_tensor *input, struct csi_tensor *output,
-                          struct csi_tensor *weight, struct csi_tensor *bias,
-                          struct cache_conv1d_params *params)
+int shl_gref_cache_conv1d(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_tensor *weight, struct csinn_tensor *bias,
+                          struct csinn_cache_conv1d_params *params)
 {
-    csi_gref_sidcso_op(input, output, weight, bias, CSINN_OP_CACHE_CONV1D, params);
+    shl_gref_sidcso_op(input, output, weight, bias, CSINN_OP_CACHE_CONV1D, params);
     return CSINN_TRUE;
 }

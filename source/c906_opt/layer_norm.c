@@ -16,22 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include <math.h>
 
-#include "csi_c906.h"
-#include "csi_utils.h"
+#include "shl_c906.h"
 
-int csi_c906_layer_norm_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                             struct csi_tensor *gamma, struct csi_tensor *beta,
-                             struct layer_norm_params *params)
+int shl_c906_layer_norm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                             struct csinn_layer_norm_params *params)
 {
     int flatten_size = 0;
     flatten_size *= input->dim[0] * input->dim[1] * input->dim[2];
 
-    __fp16 *sum = (__fp16 *)csi_mem_alloc(input->dim[1] * sizeof(__fp16));
-    __fp16 *sum2 = (__fp16 *)csi_mem_alloc(input->dim[1] * sizeof(__fp16));
+    __fp16 *sum = (__fp16 *)shl_mem_alloc(input->dim[1] * sizeof(__fp16));
+    __fp16 *sum2 = (__fp16 *)shl_mem_alloc(input->dim[1] * sizeof(__fp16));
     __fp16 *input_data = input->data;
     __fp16 *output_data = output->data;
     __fp16 *gamma_data = gamma->data;
@@ -98,8 +97,8 @@ int csi_c906_layer_norm_fp16(struct csi_tensor *input, struct csi_tensor *output
         }
     }
 
-    csi_mem_free(sum);
-    csi_mem_free(sum2);
+    shl_mem_free(sum);
+    shl_mem_free(sum2);
 
     return CSINN_TRUE;
 }

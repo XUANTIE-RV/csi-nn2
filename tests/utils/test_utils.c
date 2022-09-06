@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "test_utils.h"
 
@@ -266,7 +266,7 @@ void result_verify_bool(bool *reference, bool *output, float *input, float gap, 
     }
 }
 
-void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input, float gap,
+void result_verify_8(float *reference, struct csinn_tensor *output, int8_t *input, float gap,
                      int size, bool save)
 {
     int i;
@@ -279,10 +279,10 @@ void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input,
     for (i = 0; i < size; i++) {
         if (output->dtype == CSINN_DTYPE_UINT8) {
             output_tmp[i] =
-                csi_ref_dequantize_u8_to_f32(*((uint8_t *)output_data + i), output->qinfo);
+                shl_ref_dequantize_u8_to_f32(*((uint8_t *)output_data + i), output->qinfo);
         } else if (output->dtype == CSINN_DTYPE_INT8) {
             output_tmp[i] =
-                csi_ref_dequantize_i8_to_f32(*((int8_t *)output_data + i), output->qinfo);
+                shl_ref_dequantize_i8_to_f32(*((int8_t *)output_data + i), output->qinfo);
         }
         if (isinf(reference[i]) || isnan(reference[i])) {
             error = 0;
@@ -360,7 +360,7 @@ void result_verify_q15(int16_t *reference, int16_t *output, int16_t *input, floa
     printf("/====== total = %6d(size=%5d) || error = %5d =======/\n", test_number, size, failures);
 }
 
-void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp)
+void get_scale_and_zp(float max_value, float min_value, float *scale, int32_t *zp)
 {
     int valid_range = 255;
     float scale_tmp, zp_tmp;
@@ -383,7 +383,7 @@ void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp)
     *scale = scale_tmp;
 }
 
-void get_scale_and_zp_i8_asym(float max_value, float min_value, float *scale, int *zp)
+void get_scale_and_zp_i8_asym(float max_value, float min_value, float *scale, int32_t *zp)
 {
     int valid_range = 255;
     float scale_tmp, zp_tmp;
@@ -404,7 +404,7 @@ void get_scale_and_zp_i8_asym(float max_value, float min_value, float *scale, in
     *scale = scale_tmp;
 }
 
-void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int *zp)
+void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int32_t *zp)
 {
     int valid_range = 255;
     float scale_tmp, zp_tmp, max_tmp;
@@ -425,7 +425,7 @@ void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int *zp
     *scale = scale_tmp;
 }
 
-void get_scale_and_zp_power2_i8(float max_value, float min_value, float *scale, int *zp)
+void get_scale_and_zp_power2_i8(float max_value, float min_value, float *scale, int32_t *zp)
 {
     int valid_range = 255;
     float abs_max = fmax(fabs(min_value), fabs(max_value));
@@ -437,7 +437,7 @@ void get_scale_and_zp_power2_i8(float max_value, float min_value, float *scale, 
     *scale = 1.0f / pow(2, exponent - 1);
 }
 
-void get_scale_and_zp_power2_i16(float max_value, float min_value, float *scale, int *zp)
+void get_scale_and_zp_power2_i16(float max_value, float min_value, float *scale, int32_t *zp)
 {
     int valid_range = 65535;
     float abs_max = fmax(fabs(min_value), fabs(max_value));
@@ -470,14 +470,15 @@ void find_min_max(float *input, float *max_value, float *min_value, int size)
     *min_value = min_tmp;
 }
 
-void set_quant_info(struct csi_tensor *tensor, enum csinn_quant_enum qtype, enum csinn_api_enum api)
+void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
+                    enum csinn_api_enum api)
 {
     float max, min, scale;
-    int zp, quantized_multiplier, shift;
+    int32_t zp, quantized_multiplier, shift;
     if (tensor->qinfo == NULL) {
-        tensor->qinfo = malloc(sizeof(struct csi_quant_info));
+        tensor->qinfo = malloc(sizeof(struct csinn_quant_info));
     }
-    int size = csi_tensor_size(tensor);
+    int size = csinn_tensor_size(tensor);
     find_min_max(tensor->data, &max, &min, size);
 
     if (qtype == CSINN_QUANT_INT8_SYM) {
@@ -518,21 +519,21 @@ void set_quant_info(struct csi_tensor *tensor, enum csinn_quant_enum qtype, enum
 
     tensor->qinfo->max = max;
     tensor->qinfo->min = min;
-    csi_quantize_multiplier(scale, &quantized_multiplier, &shift);
+    shl_quantize_multiplier(scale, &quantized_multiplier, &shift);
     tensor->qinfo->scale = scale;
     tensor->qinfo->zero_point = zp;
     tensor->qinfo->multiplier = quantized_multiplier;
     tensor->qinfo->shift = shift;
 }
 
-void get_quant_info(struct csi_tensor *tensor)
+void get_quant_info(struct csinn_tensor *tensor)
 {
     float max, min, scale;
-    int zp, quantized_multiplier, shift;
+    int32_t zp, quantized_multiplier, shift;
     if (tensor->qinfo == NULL) {
-        tensor->qinfo = malloc(sizeof(struct csi_quant_info));
+        tensor->qinfo = malloc(sizeof(struct csinn_quant_info));
     }
-    int size = csi_tensor_size(tensor);
+    int size = csinn_tensor_size(tensor);
     find_min_max(tensor->data, &max, &min, size);
     if ((tensor->sess != NULL) && (tensor->sess->base_api == CSINN_LIGHT)) {
         get_scale_and_zp_power2_i8(max, min, &scale, &zp);
@@ -552,43 +553,44 @@ void get_quant_info(struct csi_tensor *tensor)
         tensor->qinfo->min = min;
     }
 
-    csi_quantize_multiplier(scale, &quantized_multiplier, &shift);
+    shl_quantize_multiplier(scale, &quantized_multiplier, &shift);
     tensor->qinfo->scale = scale;
     tensor->qinfo->zero_point = zp;
     tensor->qinfo->multiplier = quantized_multiplier;
     tensor->qinfo->shift = shift;
 }
 
-struct csi_tensor *convert_input(struct csi_tensor *tensor, int dtype)
+struct csinn_tensor *convert_input(struct csinn_tensor *tensor, int dtype)
 {
-    struct csi_tensor *ret = csi_alloc_tensor(tensor->sess);
-    csi_tensor_copy(ret, tensor);
+    struct csinn_tensor *ret = csinn_alloc_tensor(tensor->sess);
+    csinn_tensor_copy(ret, tensor);
     ret->dtype = dtype;
-    ret->data = malloc(csi_tensor_byte_size(ret));
-    csi_tensor_data_convert(ret, tensor);
+    ret->data = shl_mem_alloc(csinn_tensor_byte_size(ret));
+    csinn_tensor_data_convert(ret, tensor);
 
     return ret;
 }
 
-struct csi_tensor *convert_f32_input(struct csi_tensor *tensor, int dtype, struct csi_session *sess)
+struct csinn_tensor *convert_f32_input(struct csinn_tensor *tensor, int dtype,
+                                       struct csinn_session *sess)
 {
     set_quant_info(tensor, sess->base_quant_type, sess->base_api);
-    struct csi_tensor *ret = csi_alloc_tensor(sess);
-    csi_tensor_copy(ret, tensor);
+    struct csinn_tensor *ret = csinn_alloc_tensor(sess);
+    csinn_tensor_copy(ret, tensor);
     ret->sess = sess;
     ret->dtype = dtype;
-    ret->data = malloc(csi_tensor_byte_size(ret));
-    csi_tensor_data_convert(ret, tensor);
+    ret->data = shl_mem_alloc(csinn_tensor_byte_size(ret));
+    csinn_tensor_data_convert(ret, tensor);
 
     return ret;
 }
 
-struct csi_tensor *convert_f32_layer(struct csi_tensor *tensor, enum csinn_quant_enum qtype,
-                                     enum csinn_api_enum api)
+struct csinn_tensor *convert_f32_layer(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
+                                       enum csinn_api_enum api)
 {
     set_quant_info(tensor, qtype, api);
-    struct csi_tensor *ret = csi_alloc_tensor(NULL);
-    csi_tensor_copy(ret, tensor);
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(ret, tensor);
     if ((qtype == CSINN_QUANT_INT8_SYM) || (qtype == CSINN_QUANT_INT8_ASYM)) {
         ret->dtype = CSINN_DTYPE_INT8;
     } else if (qtype == CSINN_QUANT_UINT8_ASYM) {
@@ -603,30 +605,54 @@ struct csi_tensor *convert_f32_layer(struct csi_tensor *tensor, enum csinn_quant
         printf("unsupport qinfo\n");
     }
 
-    ret->data = malloc(csi_tensor_byte_size(ret));
-    csi_tensor_data_convert(ret, tensor);
+    ret->data = malloc(csinn_tensor_byte_size(ret));
+    csinn_tensor_data_convert(ret, tensor);
 
     return ret;
 }
 
-void free_input(struct csi_tensor *tensor)
+void free_input(struct csinn_tensor *tensor)
 {
-    csi_mem_free(tensor->data);
-    csi_free_tensor(tensor);
+    shl_mem_free(tensor->data);
+    csinn_free_tensor(tensor);
 }
 
-struct csi_tensor *fuse_zp_to_bias(struct csi_tensor *input, struct csi_tensor *weight,
-                                   struct csi_tensor *bias, enum csinn_api_enum api)
+struct csinn_tensor *convert_f32_bias(struct csinn_tensor *input, struct csinn_tensor *weight,
+                                      struct csinn_tensor *bias, enum csinn_api_enum api)
 {
     set_quant_info(input, CSINN_QUANT_INT8_ASYM, api);
     set_quant_info(weight, CSINN_QUANT_INT8_SYM, api);
-    int b_size = csi_tensor_size(bias);
-    struct csi_tensor *ret = csi_alloc_tensor(NULL);
-    csi_tensor_copy(ret, bias);
+    int b_size = csinn_tensor_size(bias);
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(ret, bias);
     ret->qinfo->scale = input->qinfo->scale * weight->qinfo->scale;
     ret->qinfo->zero_point = 0;
     ret->dtype = CSINN_DTYPE_INT32;
-    ret->data = malloc(csi_tensor_byte_size(ret));
+    ret->data = malloc(csinn_tensor_byte_size(ret));
+    int32_t *ret_data = ret->data;
+    float new_b = 0.0;
+    float *bias_data = (float *)bias->data;
+    int b_length = b_size ? bias->dim[0] : weight->dim[0];
+    for (int i = 0; i < b_length; i++) {
+        new_b = b_size ? bias_data[i] : 0.0;
+        ret_data[i] = new_b / ret->qinfo->scale;
+    }
+
+    return ret;
+}
+
+struct csinn_tensor *fuse_zp_to_bias(struct csinn_tensor *input, struct csinn_tensor *weight,
+                                     struct csinn_tensor *bias, enum csinn_api_enum api)
+{
+    set_quant_info(input, CSINN_QUANT_INT8_ASYM, api);
+    set_quant_info(weight, CSINN_QUANT_INT8_SYM, api);
+    int b_size = csinn_tensor_size(bias);
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(ret, bias);
+    ret->qinfo->scale = input->qinfo->scale * weight->qinfo->scale;
+    ret->qinfo->zero_point = 0;
+    ret->dtype = CSINN_DTYPE_INT32;
+    ret->data = malloc(csinn_tensor_byte_size(ret));
     int32_t *ret_data = ret->data;
 
     int b_length = b_size ? bias->dim[0] : weight->dim[0];
@@ -655,8 +681,8 @@ struct csi_tensor *fuse_zp_to_bias(struct csi_tensor *input, struct csi_tensor *
 
 void evaluate_error(void *out, void *ref, int size, enum csinn_dtype_enum dtype)
 {
-    float *output = csi_mem_alloc(size * sizeof(float));
-    float *reference = csi_mem_alloc(size * sizeof(float));
+    float *output = shl_mem_alloc(size * sizeof(float));
+    float *reference = shl_mem_alloc(size * sizeof(float));
     if (dtype == CSINN_DTYPE_FLOAT32) {
         memcpy(output, out, size * sizeof(float));
         memcpy(reference, ref, size * sizeof(float));
@@ -680,6 +706,6 @@ void evaluate_error(void *out, void *ref, int size, enum csinn_dtype_enum dtype)
     if (kl > 0.01f || cs < 0.99f) {
         failures++;
     }
-    csi_mem_free(output);
-    csi_mem_free(reference);
+    shl_mem_free(output);
+    shl_mem_free(reference);
 }

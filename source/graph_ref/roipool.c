@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_roipool(struct csi_tensor *data,
-                     struct csi_tensor *rois,
-                     struct csi_tensor *output,
-                     struct roi_pool_params *params)
+int shl_gref_roipool(struct csinn_tensor *data, struct csinn_tensor *rois,
+                     struct csinn_tensor *output, struct csinn_roi_pool_params *params)
 {
-    csi_debug_error("csi_gref_roipool unsupport\n");
+    shl_debug_error("shl_gref_roipool unsupport\n");
     return CSINN_FALSE;
 }

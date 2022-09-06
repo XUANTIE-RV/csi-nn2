@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_strided_slice_f32(struct csi_tensor *input, struct csi_tensor *output,
-                              struct strided_slice_params *params)
+int shl_ref_strided_slice_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_strided_slice_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -40,6 +39,7 @@ int csi_ref_strided_slice_f32(struct csi_tensor *input, struct csi_tensor *outpu
         inner_size *= input->dim[i];
     }
 
+    float *temp_copy = NULL;
     for (int slice_dim = 0; slice_dim < slice_dim_count; slice_dim++) {
         int begin = params->begin[slice_dim];
         int end = params->end[slice_dim];
@@ -59,8 +59,7 @@ int csi_ref_strided_slice_f32(struct csi_tensor *input, struct csi_tensor *outpu
         out_size *= inner_size_copy_num;
 
         float *temp =
-            (float *)csi_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
-        float *temp_copy = NULL;
+            (float *)shl_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
         float *temp_addr = temp;
         for (int n = 0; n < outer_size; n++) {
             for (int i = begin; i < end; i = i + stride) {
@@ -70,23 +69,23 @@ int csi_ref_strided_slice_f32(struct csi_tensor *input, struct csi_tensor *outpu
             input_data += inner_size * input->dim[slice_dim];
         }
         if (temp != NULL) {
-            csi_mem_free(temp_copy);
+            shl_mem_free(temp_copy);
         }
         temp_copy =
-            (float *)csi_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
+            (float *)shl_mem_alloc(outer_size * inner_size * inner_size_copy_num * sizeof(float));
         memcpy(temp_copy, temp, outer_size * inner_size * inner_size_copy_num * sizeof(float));
         input_data = temp_copy;
-        csi_mem_free(temp);
+        shl_mem_free(temp);
         temp = NULL;
     }
     out_size = out_size * inner_size;
     memcpy(output_data, input_data, out_size * sizeof(float));
-    csi_mem_free(input_data);
+    shl_mem_free(input_data);
     return CSINN_TRUE;
 }
 
-int csi_ref_strided_slice_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                struct strided_slice_params *params)
+int shl_ref_strided_slice_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_strided_slice_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_strided_slice_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_strided_slice_f32);
 }

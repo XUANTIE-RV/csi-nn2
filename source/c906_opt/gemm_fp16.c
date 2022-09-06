@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
     (1) Algorithm works as follows:
@@ -50,10 +50,10 @@
         a0-a7:      8 rows addr for load
         v0-v14:     memcpy load / store v reg
 
-    notice: called in the initialization function (csi_c906_conv2d_init)
+    notice: called in the initialization function (shl_c906_conv2d_init)
 
 */
-void csi_c906_reorder_kernel_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx)
+void shl_c906_reorder_kernel_fp16(__fp16* a, __fp16* sa, int m, int k, int ldx)
 {
 
     asm volatile(
@@ -382,7 +382,7 @@ void csi_c906_reorder_kernel_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx)
 
 */
 
-void csi_c906_reorder_input_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
+void shl_c906_reorder_input_fp16(__fp16* b, __fp16* sb, int k, int n, int ldx)
 {
 
     asm volatile(
@@ -553,8 +553,7 @@ void csi_c906_reorder_input_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
     );
 }
 
-
-void csi_c906_reorder_input_fp16_1(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
+void shl_c906_reorder_input_fp16_1(__fp16* b, __fp16* sb, int k, int n, int ldx)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
@@ -662,7 +661,8 @@ void csi_c906_reorder_input_fp16_1(__fp16 *b, __fp16 *sb, int k, int n, int ldx)
 
     TODO: if bias == NULL
 */
-static void kernel_m1_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+static void kernel_m1_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc,
+                           __fp16* bias)
 {
 
     asm volatile(
@@ -1069,7 +1069,8 @@ static void kernel_m1_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, in
 
     TODO: if bias == NULL
 */
-static void kernel_m2_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+static void kernel_m2_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc,
+                           __fp16* bias)
 {
 
     asm volatile(
@@ -1598,7 +1599,8 @@ static void kernel_m2_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, in
 
     TODO: if bias == NULL
 */
-static void kernel_m4_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+static void kernel_m4_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc,
+                           __fp16* bias)
 {
 
     asm volatile(
@@ -2460,7 +2462,8 @@ static void kernel_m4_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, in
 
     TODO: if bias == NULL
 */
-static void kernel_m8_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+static void kernel_m8_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc,
+                           __fp16* bias)
 {
 
     asm volatile(
@@ -3436,8 +3439,8 @@ static void kernel_m8_fp16(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, in
 
 }
 
-
-static void kernel_m8_fp16_1(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+static void kernel_m8_fp16_1(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, int n, int ldc,
+                             __fp16* bias)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
@@ -3689,8 +3692,8 @@ static void kernel_m8_fp16_1(__fp16* dst, __fp16* sa, __fp16* sb, int m, int k, 
 
 }
 
-
-void csi_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int m, int k, int n, int ldc, __fp16* bias)
+void shl_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int m, int k,
+                                int n, int ldc, __fp16* bias)
 {
     __fp16* pa = (__fp16 *)sa;
     __fp16* pb = (__fp16 *)sb;
@@ -3699,7 +3702,7 @@ void csi_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb,
     bool flag_bias = 1;     // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16 *)csi_mem_alloc(m * 2);
+        bias = (__fp16*)shl_mem_alloc(m * 2);
     }
     __fp16 *bias_tmp = bias;
 
@@ -3768,7 +3771,7 @@ void csi_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb,
             break;
     }
     if (!flag_bias) {
-        csi_mem_free(bias);
+        shl_mem_free(bias);
         bias = NULL;
     }
 }

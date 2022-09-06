@@ -16,16 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_layer_norm(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct csi_tensor *gamma,
-                        struct csi_tensor *beta,
-                        struct layer_norm_params *params)
+int shl_gref_layer_norm(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                        struct csinn_layer_norm_params *params)
 {
-    csi_gref_sidcso_op(input, output, gamma, beta, CSINN_OP_LAYER_NORM, params);
+    shl_gref_sidcso_op(input, output, gamma, beta, CSINN_OP_LAYER_NORM, params);
     return CSINN_TRUE;
 }

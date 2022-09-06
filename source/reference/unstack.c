@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_unstack_f32(struct csi_tensor *input, struct csi_tensor **output,
-                        struct unstack_params *params)
+int shl_ref_unstack_f32(struct csinn_tensor *input, struct csinn_tensor **output,
+                        struct csinn_unstack_params *params)
 {
     int axis = params->axis;
     int output_count = input->dim[axis];
@@ -42,7 +41,7 @@ int csi_ref_unstack_f32(struct csi_tensor *input, struct csi_tensor **output,
     float *input_data = (float *)input->data;
     for (int i = 0; i < outer_size; i++) {
         for (int j = 0; j < output_count; j++) {
-            struct csi_tensor *output_item = output[j];
+            struct csinn_tensor *output_item = output[j];
             float *output_item_data = (float *)output_item->data;
             float *output_ptr = output_item_data + i * copy_size;
             memcpy(output_ptr, input_data, copy_size * sizeof(float));
@@ -52,27 +51,27 @@ int csi_ref_unstack_f32(struct csi_tensor *input, struct csi_tensor **output,
     return CSINN_TRUE;
 }
 
-int csi_ref_unstack_qunat(struct csi_tensor *input, struct csi_tensor **output,
-                          struct unstack_params *params)
+int shl_ref_unstack_qunat(struct csinn_tensor *input, struct csinn_tensor **output,
+                          struct csinn_unstack_params *params)
 {
     int ret;
     int axis = params->axis;
     int output_count = input->dim[axis];
-    struct csi_tensor *foutput[output_count];
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
+    struct csinn_tensor *foutput[output_count];
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
     for (int i = 0; i < output_count; i++) {
-        foutput[i] = csi_ref_tensor_transform_f32(output[i]);
+        foutput[i] = shl_ref_tensor_transform_f32(output[i]);
     }
 
-    ret = csi_ref_unstack_f32(finput, foutput, params);
+    ret = shl_ref_unstack_f32(finput, foutput, params);
 
     for (int i = 0; i < output_count; i++) {
-        csi_tensor_data_convert(output[i], foutput[i]);
+        csinn_tensor_data_convert(output[i], foutput[i]);
     }
 
-    csi_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(finput);
     for (int i = 0; i < output_count; i++) {
-        csi_ref_tensor_transform_free_f32(foutput[i]);
+        shl_ref_tensor_transform_free_f32(foutput[i]);
     }
     return ret;
 }

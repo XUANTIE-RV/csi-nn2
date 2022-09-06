@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
-#ifdef __riscv_xtheadv
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
-
+#include "shl_thead_rvv.h"
+#ifdef XTHEADV
 static vint8mf4_t requantize_m2(vint32m2_t _src, int32_t multiplier, int32_t shift, int32_t out_zp,
                                 int vl)
 {
@@ -49,122 +48,125 @@ static vint8mf8_t requantize_m1(vint32m1_t _src, int32_t multiplier, int32_t shi
  * note: VLEN = 128
  * layerout: input/output-[n, h, w , c]  kernel-[o, h, w, i]
  *************************************************************/
-void csi_nn_rvv_reorder_input_n8_int4(int8_t *a, int8_t *sa, int m, int k, int ldx)
+void shl_rvv_reorder_input_n8_int4(int8_t *a, int8_t *sa, int m, int k, int ldx)
 {
-    int k4 = ((k - 1) & -4) + 4;
-    int i = 0;
-    // m8
-    for (; i + 7 < m; i += 8) {
-        int j = 0;
-        // k16
-        int32_t *in_ptr0 = (int32_t *)a;
-        int32_t *out_ptr0 = (int32_t *)sa;
-        for (; j + 15 < k; j += 16) {
-            vint32m2_t _nf0, _nf1, _nf2, _nf3;
-            vlsseg4e32_v_i32m2(&_nf0, &_nf1, &_nf2, &_nf3, in_ptr0, k * sizeof(int8_t), 8);
-            in_ptr0 += 4;
-            vse32_v_i32m2(out_ptr0, _nf0, 8);
-            out_ptr0 += 8;
-            vse32_v_i32m2(out_ptr0, _nf1, 8);
-            out_ptr0 += 8;
-            vse32_v_i32m2(out_ptr0, _nf2, 8);
-            out_ptr0 += 8;
-            vse32_v_i32m2(out_ptr0, _nf3, 8);
-            out_ptr0 += 8;
-        }
-        for (; j + 3 < k; j += 4) {
-            vint32m2_t _input = vlse32_v_i32m2(in_ptr0, k * sizeof(int8_t), 8);
-            in_ptr0++;
-            vse32_v_i32m2(out_ptr0, _input, 8);
-            out_ptr0 += 8;
-        }
-        if (j < k) {
-            int8_t *in_ptr1 = (int8_t *)in_ptr0;
-            int8_t *out_ptr1 = (int8_t *)out_ptr0;
-            for (int c = 0; c < 8; c++) {
-                vint8m1_t _input1 = vle8_v_i8m1(in_ptr1, k & 3);
-                in_ptr1 += k;
-                vse8_v_i8m1(out_ptr1, _input1, 4);
-                out_ptr1 += 4;
+    if (k % 4 == 0) {
+        int i = 0;
+        // m8
+        for (; i + 7 < m; i += 8) {
+            int j = 0;
+            // k16
+            int32_t *in_ptr0 = (int32_t *)a;
+            int32_t *out_ptr0 = (int32_t *)sa;
+            for (; j + 15 < k; j += 16) {
+                vint32m2_t _nf0, _nf1, _nf2, _nf3;
+                vlsseg4e32_v_i32m2(&_nf0, &_nf1, &_nf2, &_nf3, in_ptr0, k * sizeof(int8_t), 8);
+                in_ptr0 += 4;
+                vse32_v_i32m2(out_ptr0, _nf0, 8);
+                out_ptr0 += 8;
+                vse32_v_i32m2(out_ptr0, _nf1, 8);
+                out_ptr0 += 8;
+                vse32_v_i32m2(out_ptr0, _nf2, 8);
+                out_ptr0 += 8;
+                vse32_v_i32m2(out_ptr0, _nf3, 8);
+                out_ptr0 += 8;
             }
-        }
-        a += 8 * k;
-        sa += 8 * k4;
-    }
-    // m4
-    for (; i + 3 < m; i += 4) {
-        int j = 0;
-        int32_t *in_ptr0 = (int32_t *)a;
-        int32_t *out_ptr0 = (int32_t *)sa;
-        for (; j + 15 < k; j += 16) {
-            vint32m1_t _nf0, _nf1, _nf2, _nf3;
-            vlsseg4e32_v_i32m1(&_nf0, &_nf1, &_nf2, &_nf3, in_ptr0, k * sizeof(int8_t), 4);
-            in_ptr0 += 4;
-            vse32_v_i32m1(out_ptr0, _nf0, 4);
-            out_ptr0 += 4;
-            vse32_v_i32m1(out_ptr0, _nf1, 4);
-            out_ptr0 += 4;
-            vse32_v_i32m1(out_ptr0, _nf2, 4);
-            out_ptr0 += 4;
-            vse32_v_i32m1(out_ptr0, _nf3, 4);
-            out_ptr0 += 4;
-        }
-        for (; j + 3 < k; j += 4) {
-            vint32m1_t _input = vlse32_v_i32m1(in_ptr0, k * sizeof(int8_t), 4);
-            in_ptr0++;
-            vse32_v_i32m1(out_ptr0, _input, 4);
-            out_ptr0 += 4;
-        }
-        if (j < k) {
-            int8_t *in_ptr1 = (int8_t *)in_ptr0;
-            int8_t *out_ptr1 = (int8_t *)out_ptr0;
-            for (int c = 0; c < 4; c++) {
-                vint8m1_t _input1 = vle8_v_i8m1(in_ptr1, k & 3);
-                in_ptr1 += k;
-                vse8_v_i8m1(out_ptr1, _input1, 4);
-                out_ptr1 += 4;
+            for (; j + 3 < k; j += 4) {
+                vint32m2_t _input = vlse32_v_i32m2(in_ptr0, k * sizeof(int8_t), 8);
+                in_ptr0++;
+                vse32_v_i32m2(out_ptr0, _input, 8);
+                out_ptr0 += 8;
             }
-        }
-        a += 4 * k;
-        sa += 4 * k4;
-    }
-    // m2
-    for (; i + 1 < m; i += 2) {
-        int j = 0;
-        for (; j + 3 < k; j += 4) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 2; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, 4);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, 4);
-                sa += 4;
+            if (j < k) {
+                int8_t *in_ptr1 = (int8_t *)in_ptr0;
+                int8_t *out_ptr1 = (int8_t *)out_ptr0;
+                for (int c = 0; c < 8; c++) {
+                    vint8m1_t _input1 = vle8_v_i8m1(in_ptr1, k & 3);
+                    in_ptr1 += k;
+                    vse8_v_i8m1(out_ptr1, _input1, 4);
+                    out_ptr1 += 4;
+                }
             }
+            a += 8 * k;
+            sa += 8 * k;
         }
-        if (j < k) {
-            int8_t *in_ptr = a + j;
-            for (int c = 0; c < 2; c++) {
-                vint8m1_t _input = vle8_v_i8m1(in_ptr, k & 3);
-                in_ptr += k;
-                vse8_v_i8m1(sa, _input, k & 3);
-                sa += 4;
+        // m4
+        for (; i + 3 < m; i += 4) {
+            int j = 0;
+            int32_t *in_ptr0 = (int32_t *)a;
+            int32_t *out_ptr0 = (int32_t *)sa;
+            for (; j + 15 < k; j += 16) {
+                vint32m1_t _nf0, _nf1, _nf2, _nf3;
+                vlsseg4e32_v_i32m1(&_nf0, &_nf1, &_nf2, &_nf3, in_ptr0, k * sizeof(int8_t), 4);
+                in_ptr0 += 4;
+                vse32_v_i32m1(out_ptr0, _nf0, 4);
+                out_ptr0 += 4;
+                vse32_v_i32m1(out_ptr0, _nf1, 4);
+                out_ptr0 += 4;
+                vse32_v_i32m1(out_ptr0, _nf2, 4);
+                out_ptr0 += 4;
+                vse32_v_i32m1(out_ptr0, _nf3, 4);
+                out_ptr0 += 4;
             }
+            for (; j + 3 < k; j += 4) {
+                vint32m1_t _input = vlse32_v_i32m1(in_ptr0, k * sizeof(int8_t), 4);
+                in_ptr0++;
+                vse32_v_i32m1(out_ptr0, _input, 4);
+                out_ptr0 += 4;
+            }
+            if (j < k) {
+                int8_t *in_ptr1 = (int8_t *)in_ptr0;
+                int8_t *out_ptr1 = (int8_t *)out_ptr0;
+                for (int c = 0; c < 4; c++) {
+                    vint8m1_t _input1 = vle8_v_i8m1(in_ptr1, k & 3);
+                    in_ptr1 += k;
+                    vse8_v_i8m1(out_ptr1, _input1, 4);
+                    out_ptr1 += 4;
+                }
+            }
+            a += 4 * k;
+            sa += 4 * k;
         }
-        a += 2 * k;
-    }
-    // m1
-    for (; i < m; i++) {
-        memcpy(sa, a, k * sizeof(int8_t));
+        // m2
+        for (; i + 1 < m; i += 2) {
+            int j = 0;
+            for (; j + 3 < k; j += 4) {
+                int8_t *in_ptr = a + j;
+                for (int c = 0; c < 2; c++) {
+                    vint8m1_t _input = vle8_v_i8m1(in_ptr, 4);
+                    in_ptr += k;
+                    vse8_v_i8m1(sa, _input, 4);
+                    sa += 4;
+                }
+            }
+            if (j < k) {
+                int8_t *in_ptr = a + j;
+                for (int c = 0; c < 2; c++) {
+                    vint8m1_t _input = vle8_v_i8m1(in_ptr, k & 3);
+                    in_ptr += k;
+                    vse8_v_i8m1(sa, _input, k & 3);
+                    sa += 4;
+                }
+            }
+            a += 2 * k;
+        }
+        // m1
+        for (; i < m; i++) {
+            memcpy(sa, a, k * sizeof(int8_t));
+        }
+    } else {
+        shl_rvv_reorder_kernel_n8_int8(a, sa, m, k, ldx);
     }
 }
 
-// 和 csi_nn_rvv_reorder_kernel_n8_int8 实现相同， 可以直接调用 csi_nn_rvv_reorder_kernel_n8_int8
-void csi_nn_rvv_reorder_kernel_n8_int4(int8_t *b, int8_t *sb, int n, int k, int ldx)
+// 和 shl_rvv_reorder_kernel_n8_int8 实现相同， 可以直接调用 shl_rvv_reorder_kernel_n8_int8
+void shl_rvv_reorder_kernel_n8_int4(int8_t *b, int8_t *sb, int n, int k, int ldx)
 {
     // TODO:
 }
 
-void csi_nn_rvv_gemm_8x8_int4(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k, int n,
-                              int ldc, int32_t *bias, int32_t out_zp, int32_t *mult, int32_t *shift)
+void shl_rvv_gemm_8x8_int4(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k, int n,
+                           int ldc, int32_t *bias, int32_t out_zp, int32_t *mult, int32_t *shift)
 {
     int8_t *input_data = (int8_t *)sa;
     int8_t *kernel_data = (int8_t *)sb;

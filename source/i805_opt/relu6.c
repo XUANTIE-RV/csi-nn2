@@ -16,30 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_i805.h"
+#include "i805_function.h"
+#include "shl_i805.h"
 
-
-int csi_i805_relu6_init_u8(struct csi_tensor *input,
-                           struct csi_tensor *output,
-                           struct relu_params *params)
+int shl_i805_relu6_init_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_relu_params *params)
 {
     // compute out multiplier and shift for scale_in/scale_out
     float real_scale = input->qinfo->scale / output->qinfo->scale;
-    csi_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
-    params->base.bc = csi_i805_relu6_u8;
+    shl_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
+    struct csinn_callback *cb = params->base.cb;
+    cb->exec = shl_i805_relu6_u8;
     return CSINN_TRUE;
 }
 
-int csi_i805_relu6_u8(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct relu_params *params)
+int shl_i805_relu6_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_relu_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
-    int32_t size = csi_tensor_size(input);
+    int32_t size = csinn_tensor_size(input);
 
-    csi_i805_relu6_opt_u8(input_data, size, input->qinfo->zero_point, output->qinfo->multiplier, output->qinfo->shift);
+    shl_i805_relu6_opt_u8(input_data, size, input->qinfo->zero_point, output->qinfo->multiplier,
+                          output->qinfo->shift);
     output->data = input_data;
     return CSINN_TRUE;
 }

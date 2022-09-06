@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
    only support layout:NCHW
@@ -26,11 +26,9 @@
    kernel layout: O I h w
    output layout: N O H W
 */
-int csi_c906_conv2d_init(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct csi_tensor *kernel,
-                         struct csi_tensor *bias,
-                         struct conv2d_params *params)
+int shl_c906_conv2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv2d_params *params)
 {
     int32_t out_c = kernel->dim[0];
     int32_t in_c = kernel->dim[1];
@@ -42,6 +40,7 @@ int csi_c906_conv2d_init(struct csi_tensor *input,
     int32_t stride_w = params->stride_width;
     int32_t dalition_h = params->dilation_height;
     int32_t dalition_w = params->dilation_width;
+    struct csinn_callback *cb = params->base.cb;
 
     // check
     int out_height = (in_h + params->pad_top + params->pad_down - kernel_h) / stride_h + 1;
@@ -54,12 +53,12 @@ int csi_c906_conv2d_init(struct csi_tensor *input,
     if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 && dalition_w == 1) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            csi_c906_conv1x1s1_sgemm_transform_kernel(kernel, params);
-            params->base.bc = csi_c906_conv1x1s1_sgemm;
+            shl_c906_conv1x1s1_sgemm_transform_kernel(kernel, params);
+            cb->exec = shl_c906_conv1x1s1_sgemm;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            csi_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
-            params->base.bc = csi_c906_conv1x1s1_sgemm_fp16;
-            // params->base.bc = csi_c906_conv1x1s1_batch_gemv_fp16;
+            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
+            cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
+            // cb->exec = shl_c906_conv1x1s1_batch_gemv_fp16;
         }
 
     // winograd convolution condition:
@@ -67,66 +66,63 @@ int csi_c906_conv2d_init(struct csi_tensor *input,
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
             if (params->group > 1) {
                 params->conv_extra.conv_mode = CSINN_GEMM;
-                csi_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
-                params->base.bc = csi_c906_conv_im2col_sgemm;
+                shl_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
+                cb->exec = shl_c906_conv_im2col_sgemm;
                 return CSINN_TRUE;
             }
 
             // pack4 for winograd convolution
             if ( (out_c % 4 == 0) && (in_c % 4 ==0) ) {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
-                struct csi_tensor *t_kernel = csi_alloc_tensor(NULL);
-                csi_c906_conv3x3s1_winograd64_transform_kernel_pack4(kernel, t_kernel);
+                struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+                shl_c906_conv3x3s1_winograd64_transform_kernel_pack4(kernel, t_kernel);
                 params->conv_extra.kernel_tm = t_kernel;
-                params->base.bc = csi_c906_conv3x3s1_winograd64_pack4;
+                cb->exec = shl_c906_conv3x3s1_winograd64_pack4;
             } else {
                 params->conv_extra.conv_mode = CSINN_GEMM;
-                csi_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
-                params->base.bc = csi_c906_conv_im2col_sgemm;
+                shl_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
+                cb->exec = shl_c906_conv_im2col_sgemm;
             }
 
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
 
             if (params->group > 1) {
                 params->conv_extra.conv_mode = CSINN_GEMM;
-                csi_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
-                params->base.bc = csi_c906_conv_im2col_sgemm_fp16;
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+                cb->exec = shl_c906_conv_im2col_sgemm_fp16;
                 return CSINN_TRUE;
             }
 
             // pack8 for winograd convolution
             if ( (out_c % 8 == 0) && (in_c % 8 ==0) ) {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
-                struct csi_tensor *t_kernel = csi_alloc_tensor(NULL);
-                csi_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(kernel, t_kernel);
+                struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+                shl_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(kernel, t_kernel);
                 params->conv_extra.kernel_tm = t_kernel;
-                params->base.bc = csi_c906_conv3x3s1_winograd64_pack8_fp16;
+                cb->exec = shl_c906_conv3x3s1_winograd64_pack8_fp16;
             } else {
                 params->conv_extra.conv_mode = CSINN_GEMM;
-                csi_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
-                params->base.bc = csi_c906_conv_im2col_sgemm_fp16;
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+                cb->exec = shl_c906_conv_im2col_sgemm_fp16;
             }
         }
 
     } else {
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            csi_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
-            params->base.bc = csi_c906_conv_im2col_sgemm;
+            shl_c906_conv_im2col_sgemm_transform_kernel(kernel, params);
+            cb->exec = shl_c906_conv_im2col_sgemm;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            csi_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
-            params->base.bc = csi_c906_conv_im2col_sgemm_fp16;
+            shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            cb->exec = shl_c906_conv_im2col_sgemm_fp16;
         }
     }
     return CSINN_TRUE;
 }
 
-
-int csi_c906_depthwise_conv2d_init(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
-                                   struct conv2d_params *params)
+int shl_c906_depthwise_conv2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                   struct csinn_conv2d_params *params)
 {
     int32_t batch = input->dim[0];
     int32_t in_ch = input->dim[1];
@@ -141,48 +137,49 @@ int csi_c906_depthwise_conv2d_init(struct csi_tensor *input,
     int32_t kernel_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
+    struct csinn_callback *cb = params->base.cb;
 
     if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_c906_dwconv3x3s1;
+            cb->exec = shl_c906_dwconv3x3s1;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_c906_dwconv3x3s1_fp16;
+            cb->exec = shl_c906_dwconv3x3s1_fp16;
         }
     } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_c906_dwconv3x3s2;
+            cb->exec = shl_c906_dwconv3x3s2;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_c906_dwconv3x3s2_fp16;
+            cb->exec = shl_c906_dwconv3x3s2_fp16;
         }
     } else if (kernel_h == 5 && kernel_w == 5 && stride_h == 1 && stride_w == 1) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_c906_dwconv5x5s1;
+            cb->exec = shl_c906_dwconv5x5s1;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_ref_depthwise_conv2d_quant;
+            cb->exec = shl_ref_depthwise_conv2d_quant;
         }
     } else if (kernel_h == 5 && kernel_w == 5 && stride_h == 2 && stride_w == 2) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_c906_dwconv5x5s2;
+            cb->exec = shl_c906_dwconv5x5s2;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_ref_depthwise_conv2d_quant;
+            cb->exec = shl_ref_depthwise_conv2d_quant;
         }
     } else {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_ref_depthwise_conv2d_f32;
+            cb->exec = shl_ref_depthwise_conv2d_f32;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
             if (params->pad_left == 0 && params->pad_top == 0 && input->dim[1] == output->dim[1]) {
-                params->base.bc = csi_c906_dwconv2d_s1_pad0_fp16;
+                cb->exec = shl_c906_dwconv2d_s1_pad0_fp16;
             } else {
-                params->base.bc = csi_ref_depthwise_conv2d_quant;
+                cb->exec = shl_ref_depthwise_conv2d_quant;
             }
         }
     }
     return CSINN_TRUE;
 }
 
-int csi_c906_conv1d_init(struct csi_tensor *input, struct csi_tensor *output,
-                         struct csi_tensor *kernel, struct csi_tensor *bias,
-                         struct conv1d_params *params)
+int shl_c906_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv1d_params *params)
 {
     int32_t out_c = kernel->dim[0];
     int32_t in_c = kernel->dim[1];
@@ -190,6 +187,7 @@ int csi_c906_conv1d_init(struct csi_tensor *input, struct csi_tensor *output,
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_w = params->stride_width;
     int32_t dalition_w = params->dilation_width;
+    struct csinn_callback *cb = params->base.cb;
 
     // check output_dim
     int out_width = (in_w + params->pad_left + params->pad_right - kernel_w) / stride_w + 1;
@@ -199,17 +197,18 @@ int csi_c906_conv1d_init(struct csi_tensor *input, struct csi_tensor *output,
     }
     if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            csi_c906_conv1x1s1_sgemm_transform_kernel(kernel, (struct conv2d_params *)params);
-            params->base.bc = csi_c906_conv1x1s1_sgemm;
+            shl_c906_conv1x1s1_sgemm_transform_kernel(kernel, (struct csinn_conv2d_params *)params);
+            cb->exec = shl_c906_conv1x1s1_sgemm;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            csi_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, (struct conv2d_params *)params);
-            params->base.bc = csi_c906_conv1x1s1_sgemm_fp16;
+            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel,
+                                                           (struct csinn_conv2d_params *)params);
+            cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
         }
     } else {
         if (input->dtype == CSINN_DTYPE_FLOAT32) {
-            params->base.bc = csi_ref_conv1d_f32;
+            cb->exec = shl_ref_conv1d_f32;
         } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-            params->base.bc = csi_ref_conv1d_quant;
+            cb->exec = shl_ref_conv1d_quant;
         }
     }
     return CSINN_TRUE;

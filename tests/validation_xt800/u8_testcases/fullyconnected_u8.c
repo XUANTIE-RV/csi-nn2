@@ -16,26 +16,22 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
-#include "csi_nn.h"
-#include "math_snr.h"
 #include "../valid_data/fullyconnected_u8.dat"
 
+#include "csi_nn.h"
+#include "math_snr.h"
+#include "test_utils.h"
 
-static void verify_fullyconnected_u8(float *input_data,
-                                     float *weights_data,
-                                     float *bias_data,
-                                     float *ref_data,
-                                     int32_t in_nodes,
-                                     int32_t out_nodes,
+static void verify_fullyconnected_u8(float *input_data, float *weights_data, float *bias_data,
+                                     float *ref_data, int32_t in_nodes, int32_t out_nodes,
                                      float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, weights_size, bias_size, out_size;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = 1;
     input->dim[1] = in_nodes;
     input->dim_count = 2;
@@ -47,13 +43,12 @@ static void verify_fullyconnected_u8(float *input_data,
     in_size = input->dim[0] * input->dim[1];
 
     uint8_t *input_tmp = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        input_tmp[i] = csi_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        input_tmp[i] = shl_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
     }
     input->data = input_tmp;
 
-
-    struct csi_tensor *weights = csi_alloc_tensor(NULL);
+    struct csinn_tensor *weights = csinn_alloc_tensor(NULL);
     weights->dim[0] = out_nodes;
     weights->dim[1] = in_nodes;
     weights->dim_count = 2;
@@ -65,12 +60,12 @@ static void verify_fullyconnected_u8(float *input_data,
     weights_size = weights->dim[0] * weights->dim[1];
 
     uint8_t *weights_tmp = malloc(weights_size * sizeof(char));
-    for(int i = 0; i < weights_size; i++) {
-        weights_tmp[i] = csi_ref_quantize_f32_to_u8(weights_data[i], weights->qinfo);
+    for (int i = 0; i < weights_size; i++) {
+        weights_tmp[i] = shl_ref_quantize_f32_to_u8(weights_data[i], weights->qinfo);
     }
     weights->data = weights_tmp;
 
-    struct csi_tensor *bias = csi_alloc_tensor(NULL);
+    struct csinn_tensor *bias = csinn_alloc_tensor(NULL);
     bias->dim[0] = out_nodes;
     bias->dim_count = 1;
     bias->dtype = CSINN_DTYPE_INT32;
@@ -79,16 +74,14 @@ static void verify_fullyconnected_u8(float *input_data,
     bias->data = (float *)bias_data;
     bias_size = bias->dim[0];
 
-
     int32_t *bias_tmp = malloc(bias_size * sizeof(int32_t));
-    for(int i = 0; i < bias_size; i++) {
+    for (int i = 0; i < bias_size; i++) {
         bias_tmp[i] = (int32_t)(bias_data[i] / (input->qinfo->scale * weights->qinfo->scale));
     }
     bias->qinfo->scale = input->qinfo->scale * weights->qinfo->scale;
     bias->data = bias_tmp;
 
-
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = out_nodes;
     output->dim_count = 2;
@@ -101,20 +94,17 @@ static void verify_fullyconnected_u8(float *input_data,
     out_size = output->dim[0] * output->dim[1];
     output->data = malloc(out_size);
 
-    struct fc_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NHWC;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.units = out_nodes;   // out_nodes
+    struct csinn_fc_params *params = csinn_alloc_params(sizeof(struct csinn_fc_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NHWC;
+    params->units = out_nodes;  // out_nodes
 
-
-    if (csi_fullyconnected_init(input, output, weights, bias, &params) == CSINN_TRUE) {
-        csi_fullyconnected(input, output, weights, bias, &params);
+    if (csinn_fullyconnected_init(input, output, weights, bias, params) == CSINN_TRUE) {
+        csinn_fullyconnected(input, output, weights, bias, params);
     }
 
-
-    reference->data  = (float *)ref_data;
+    reference->data = (float *)ref_data;
     result_verify_8(reference->data, output, input->data, difference, out_size, false);
     free(input);
     free(weights);
@@ -127,8 +117,7 @@ static void verify_fullyconnected_u8(float *input_data,
     free(bias_tmp);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of fullyconnected(u8) for i805.\n");
 

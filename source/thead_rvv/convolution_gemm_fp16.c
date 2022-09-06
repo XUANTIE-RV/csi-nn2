@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-/*
-    pack kernel_data inplace, means the origin kernel_data be destoried.
-    The reason to do this is that the packaging process must not consume more memory.
-*/
-void csi_nn_rvv_conv_im2col_sgemm_transform_kernel_fp16(struct csi_tensor *kernel,
-                                                        struct conv2d_params *params)
+/*************************************************************************************
+ * reorder kernel_data inplace, means the origin kernel_data be destoried.
+ * The reason to do this is that the packaging process must not consume more memory.
+ **************************************************************************************/
+void shl_rvv_conv_im2col_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
+                                                  struct csinn_conv2d_params *params)
 {
     __fp16 *kernel_data = (__fp16 *)kernel->data;
     int group = params->group;
@@ -33,17 +33,17 @@ void csi_nn_rvv_conv_im2col_sgemm_transform_kernel_fp16(struct csi_tensor *kerne
     int m = kernel->dim[0] / group;  // m = out_ch / group
     int k = kernel->dim[1] * kernel->dim[2] * kernel->dim[3];
 
-    __fp16 *pa_reorder = (__fp16 *)csi_mem_alloc(group * m * k * sizeof(__fp16));
+    __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(group * m * k * sizeof(__fp16));
     for (int g = 0; g < group; g++) {
-        csi_nn_rvv_reorder_kernel_n8_fp16(kernel_data + g * m * k, pa_reorder + g * m * k, m, k, k);
+        shl_rvv_reorder_kernel_n8_fp16(kernel_data + g * m * k, pa_reorder + g * m * k, m, k, k);
     }
     memcpy(kernel_data, pa_reorder, group * m * k * sizeof(__fp16));
-    csi_mem_free(pa_reorder);
+    shl_mem_free(pa_reorder);
 }
 
-int csi_nn_rvv_conv_im2col_gemm_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                                     struct csi_tensor *kernel, struct csi_tensor *bias,
-                                     struct conv2d_params *params)
+int shl_rvv_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                  struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -73,8 +73,8 @@ int csi_nn_rvv_conv_im2col_gemm_fp16(struct csi_tensor *input, struct csi_tensor
     int32_t k = channel_col;
     int32_t n = out_height * out_width;
 
-    __fp16 *im2col_data = (__fp16 *)csi_mem_alloc(k * n * sizeof(__fp16));
-    __fp16 *pb_reorder = (__fp16 *)csi_mem_alloc(k * n * sizeof(__fp16));
+    __fp16 *im2col_data = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
+    __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
 
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
@@ -107,14 +107,14 @@ int csi_nn_rvv_conv_im2col_gemm_fp16(struct csi_tensor *input, struct csi_tensor
             __fp16 *pc = output_data;
 
             // pack
-            csi_nn_rvv_reorder_input_z16_fp16(im2col_data, pb, k, n, n);
+            shl_rvv_reorder_input_z16_fp16(im2col_data, pb, k, n, n);
             // GEMM
-            csi_nn_rvv_gemm_8x16_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
+            shl_rvv_gemm_8x16_fp16(pc, pa, pb, bias_data + g * m, m, k, n, n);
             input_data += in_ch / group * in_height * in_width;
             output_data += m * n;
         }
     }
-    csi_mem_free(pb_reorder);
-    csi_mem_free(im2col_data);
+    shl_mem_free(pb_reorder);
+    shl_mem_free(im2col_data);
     return CSINN_TRUE;
 }

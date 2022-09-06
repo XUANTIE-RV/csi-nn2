@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 // input:  NCDHW
 // kernel: IODHW
 // output: NODHW
-int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                         struct csi_tensor *kernel, struct csi_tensor *bias,
-                         struct conv3d_params *params)
+int shl_ref_deconv3d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv3d_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -55,7 +55,7 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
         num_elements *= output->dim[i];
     }
     // We need to initialize scratch_buffer to all 0s
-    float *scratch_buffer = csi_mem_alloc(num_elements * sizeof(float));
+    float *scratch_buffer = shl_mem_alloc(num_elements * sizeof(float));
 
     // Loop through input elements one at a time.
     for (int out_b = 0; out_b < batch; ++out_b) {
@@ -80,14 +80,14 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                                         if ((out_d >= 0) && (out_d < output_depth) &&
                                             (out_h >= 0) && (out_h < output_height) &&
                                             (out_w >= 0) && (out_w < output_width)) {
-                                            int32_t input_idx = csi_ref_get_index_5(
+                                            int32_t input_idx = shl_ref_get_index_5(
                                                 input->dim, out_b, in_ch, in_d, in_h, in_w);
                                             float input_val = input_data[input_idx];
                                             int32_t filter_idx =
-                                                csi_ref_get_index_5(kernel->dim, in_ch, out_ch,
+                                                shl_ref_get_index_5(kernel->dim, in_ch, out_ch,
                                                                     filter_d, filter_h, filter_w);
                                             float filter_val = kernel_data[filter_idx];
-                                            int32_t output_idx = csi_ref_get_index_5(
+                                            int32_t output_idx = shl_ref_get_index_5(
                                                 output->dim, out_b, out_ch, out_d, out_h, out_w);
                                             scratch_buffer[output_idx] += input_val * filter_val;
                                         }
@@ -107,7 +107,7 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                 for (int out_d = 0; out_d < output_depth; ++out_d) {
                     for (int out_h = 0; out_h < output_height; ++out_h) {
                         for (int out_w = 0; out_w < output_width; ++out_w) {
-                            int32_t out_idx = csi_ref_get_index_5(output->dim, out_b, out_ch, out_d,
+                            int32_t out_idx = shl_ref_get_index_5(output->dim, out_b, out_ch, out_d,
                                                                   out_h, out_w);
                             scratch_buffer[out_idx] += bias_data[out_ch];
                         }
@@ -119,13 +119,13 @@ int csi_ref_deconv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
     for (int i = 0; i < num_elements; ++i) {
         output_data[i] = scratch_buffer[i];
     }
-    csi_mem_free(scratch_buffer);
+    shl_mem_free(scratch_buffer);
     return CSINN_TRUE;
 }
 
-int csi_ref_deconv3d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                           struct csi_tensor *kernel, struct csi_tensor *bias,
-                           struct conv3d_params *params)
+int shl_ref_deconv3d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                           struct csinn_conv3d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_deconv3d_f32);
+    return shl_ref_conv_callback_base(input, output, kernel, bias, params, shl_ref_deconv3d_f32);
 }

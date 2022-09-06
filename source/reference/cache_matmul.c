@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_internal.h"
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 // asr data buffer
-void asr_buffer_init(struct asr_buffer_t *buffer, size_t buffer_size, size_t data_lenth)
+void asr_buffer_init(struct csinn_asr_buffer_t *buffer, size_t buffer_size, size_t data_lenth)
 {
-    buffer->buffer = csi_mem_alloc(buffer_size);
+    buffer->buffer = shl_mem_alloc(buffer_size);
     buffer->buffer_lenth = buffer_size;
     buffer->data_lenth = data_lenth;
     buffer->writer_index = buffer_size - data_lenth;
@@ -32,7 +31,7 @@ void asr_buffer_init(struct asr_buffer_t *buffer, size_t buffer_size, size_t dat
 }
 
 // insert front
-void *asr_buffer_insert_front(struct asr_buffer_t *buffer, void *input, size_t len)
+void *asr_buffer_insert_front(struct csinn_asr_buffer_t *buffer, void *input, size_t len)
 {
     int start_position = buffer->writer_index - len;
     uint8_t *p = NULL;
@@ -60,7 +59,7 @@ void *asr_buffer_insert_front(struct asr_buffer_t *buffer, void *input, size_t l
     }
 }
 
-void *asr_buffer_insert_back(struct asr_buffer_t *buffer, void *input, size_t len)
+void *asr_buffer_insert_back(struct csinn_asr_buffer_t *buffer, void *input, size_t len)
 {
     int end_position = buffer->writer_index + len;
     uint8_t *p = NULL;
@@ -80,13 +79,13 @@ void *asr_buffer_insert_back(struct asr_buffer_t *buffer, void *input, size_t le
 }
 
 // get buffer
-void *asr_buffer_get_buffer(struct asr_buffer_t *buffer)
+void *asr_buffer_get_buffer(struct csinn_asr_buffer_t *buffer)
 {
     return asr_buffer_insert_back(buffer, NULL, 0);
 }
 
 // reset buffer
-void asr_buffer_reset(struct asr_buffer_t *buffer)
+void asr_buffer_reset(struct csinn_asr_buffer_t *buffer)
 {
     free(buffer->buffer);
     buffer->writer_index = 0;
@@ -96,9 +95,9 @@ void asr_buffer_reset(struct asr_buffer_t *buffer)
     buffer->flag = 0;
 }
 
-int csi_ref_cache_matmul_init(struct csi_tensor *input, struct csi_tensor *output,
-                              struct csi_tensor *weight, struct csi_tensor *bias,
-                              struct cache_matmul_params *params)
+int shl_ref_cache_matmul_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *weight, struct csinn_tensor *bias,
+                              struct csinn_cache_matmul_params *params)
 {
     size_t data_size =
         params->shape[0] * params->shape[1] * params->shape[2] * params->shape[3] * sizeof(float);
@@ -107,18 +106,19 @@ int csi_ref_cache_matmul_init(struct csi_tensor *input, struct csi_tensor *outpu
     int accum_depth = weight->dim[0];
     int output_depth = weight->dim[1];
 
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->base.bc = csi_ref_cache_matmul_f32;
+        cb->exec = shl_ref_cache_matmul_f32;
     } else {
-        params->base.bc = csi_ref_cache_matmul_quant;
+        cb->exec = shl_ref_cache_matmul_quant;
     }
 
     return CSINN_TRUE;
 }
 
-int csi_ref_cache_matmul_f32(struct csi_tensor *input, struct csi_tensor *output,
-                             struct csi_tensor *weight, struct csi_tensor *bias,
-                             struct cache_matmul_params *params)
+int shl_ref_cache_matmul_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *weight, struct csinn_tensor *bias,
+                             struct csinn_cache_matmul_params *params)
 {
     int accum_depth = weight->dim[0];
     int output_depth = weight->dim[1];
@@ -185,23 +185,23 @@ int csi_ref_cache_matmul_f32(struct csi_tensor *input, struct csi_tensor *output
     return CSINN_TRUE;
 }
 
-int csi_ref_cache_matmul_quant(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_matmul_params *params)
+int shl_ref_cache_matmul_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_matmul_params *params)
 {
-    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
-    struct csi_tensor *float_weight = csi_ref_tensor_transform_f32(weight);
-    struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
+    struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
+    struct csinn_tensor *float_weight = shl_ref_tensor_transform_f32(weight);
+    struct csinn_tensor *float_bias = shl_ref_tensor_transform_f32(bias);
 
-    int ret = csi_ref_cache_matmul_f32(float_input, float_output, float_weight, float_bias, params);
+    int ret = shl_ref_cache_matmul_f32(float_input, float_output, float_weight, float_bias, params);
 
-    csi_tensor_data_convert(output, float_output);
+    csinn_tensor_data_convert(output, float_output);
 
-    csi_ref_tensor_transform_free_f32(float_input);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_weight);
-    csi_ref_tensor_transform_free_f32(float_bias);
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_weight);
+    shl_ref_tensor_transform_free_f32(float_bias);
 
     return CSINN_TRUE;
 }

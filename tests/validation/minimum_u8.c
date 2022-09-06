@@ -16,21 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of minimum u8.\n");
 
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct diso_params params;
+    struct csinn_tensor *input0 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *input1 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_diso_params *params = csinn_alloc_params(sizeof(struct csinn_diso_params), NULL);
     int in_size = 1, out_size = 1;
     int zp, quantized_multiplier, shift;
     float scale, min_value, max_value;
@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     input0->dim_count = buffer[0];
     input1->dim_count = buffer[0];
     output->dim_count = input0->dim_count;
-    for(int i = 0; i < input0->dim_count; i++) {
+    for (int i = 0; i < input0->dim_count; i++) {
         input0->dim[i] = buffer[i + 1];
         input1->dim[i] = buffer[i + 1];
         output->dim[i] = input0->dim[i];
@@ -62,36 +62,34 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    
-    float *src_in1   = (float *)(buffer + 1 + input0->dim_count);
-    float *src_in2   = (float *)(buffer + 1 + input0->dim_count + in_size);
-    float *ref      = (float *)(buffer + 1 + input0->dim_count + 2*in_size);
+    float *src_in1 = (float *)(buffer + 1 + input0->dim_count);
+    float *src_in2 = (float *)(buffer + 1 + input0->dim_count + in_size);
+    float *ref = (float *)(buffer + 1 + input0->dim_count + 2 * in_size);
     uint8_t *src_tmp1 = malloc(in_size * sizeof(char));
     uint8_t *src_tmp2 = malloc(in_size * sizeof(char));
 
     input0->data = src_in1;
     get_quant_info(input0);
 
-    for(int i = 0; i < in_size; i++) {
-        src_tmp1[i] = csi_ref_quantize_f32_to_u8(src_in1[i], input0->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp1[i] = shl_ref_quantize_f32_to_u8(src_in1[i], input0->qinfo);
     }
 
     /* compute the max quantize error */
-    for(int i = 0; i < in_size; i++) {
+    for (int i = 0; i < in_size; i++) {
         float error1;
-        float output_tmp  = csi_ref_dequantize_u8_to_f32(src_tmp1[i], input0->qinfo);
-        if(isinf(src_in1[i]) || isnan(src_in1[i])){
+        float output_tmp = shl_ref_dequantize_u8_to_f32(src_tmp1[i], input0->qinfo);
+        if (isinf(src_in1[i]) || isnan(src_in1[i])) {
             continue;
         } else {
-            error1 = fabs(src_in1[i] -output_tmp);
-            if(error1 > 1e-6) {
-                error1 = fabs(src_in1[i] - output_tmp)/fabs(src_in1[i] + 1e-9);
+            error1 = fabs(src_in1[i] - output_tmp);
+            if (error1 > 1e-6) {
+                error1 = fabs(src_in1[i] - output_tmp) / fabs(src_in1[i] + 1e-9);
             }
         }
-        if(error1 > max_error) {
+        if (error1 > max_error) {
             max_error = error1;
         }
     }
@@ -99,23 +97,23 @@ int main(int argc, char** argv)
     input1->data = src_in2;
     get_quant_info(input1);
 
-    for(int i = 0; i < in_size; i++) {
-        src_tmp2[i] = csi_ref_quantize_f32_to_u8(src_in2[i], input1->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp2[i] = shl_ref_quantize_f32_to_u8(src_in2[i], input1->qinfo);
     }
 
     /* compute the max quantize error */
-    for(int i = 0; i < in_size; i++) {
+    for (int i = 0; i < in_size; i++) {
         float error1;
-        float output_tmp  = csi_ref_dequantize_u8_to_f32(src_tmp2[i], input1->qinfo);
-        if(isinf(src_in2[i]) || isnan(src_in2[i])){
+        float output_tmp = shl_ref_dequantize_u8_to_f32(src_tmp2[i], input1->qinfo);
+        if (isinf(src_in2[i]) || isnan(src_in2[i])) {
             continue;
         } else {
-            error1 = fabs(src_in2[i] -output_tmp);
-            if(error1 > 1e-6) {
-                error1 = fabs(src_in2[i] - output_tmp)/fabs(src_in2[i] + 1e-9);
+            error1 = fabs(src_in2[i] - output_tmp);
+            if (error1 > 1e-6) {
+                error1 = fabs(src_in2[i] - output_tmp) / fabs(src_in2[i] + 1e-9);
             }
         }
-        if(error1 > max_error) {
+        if (error1 > max_error) {
             max_error = error1;
         }
     }
@@ -123,15 +121,15 @@ int main(int argc, char** argv)
     output->data = ref;
     get_quant_info(output);
 
-    input0->data     = src_tmp1;
-    input1->data     = src_tmp2;
+    input0->data = src_tmp1;
+    input1->data = src_tmp2;
     reference->data = ref;
-    output->data    = malloc(out_size * sizeof(char));
+    output->data = malloc(out_size * sizeof(char));
 
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_minimum_init(input0, input1, output, &params) == CSINN_TRUE) {
-        csi_minimum(input0, input1, output, &params);
+    if (csinn_minimum_init(input0, input1, output, params) == CSINN_TRUE) {
+        csinn_minimum(input0, input1, output, params);
     }
 
     result_verify_8(reference->data, output, input0->data, difference, out_size, false);

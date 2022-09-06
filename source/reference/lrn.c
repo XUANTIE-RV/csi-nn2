@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-static int csi_ref_lrn_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                struct lrn_params *params)
+static int shl_ref_lrn_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_lrn_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -37,8 +36,8 @@ static int csi_ref_lrn_nhwc_f32(struct csi_tensor *input, struct csi_tensor *out
 
     for (int i = 0; i < outer_size; ++i) {
         for (int c = 0; c < depth; ++c) {
-            const int begin_input_c = csi_ref_max_internal_s32(0, c - half_range);
-            const int end_input_c = csi_ref_min_internal_s32(depth, c + half_range + 1);
+            const int begin_input_c = shl_ref_max_internal_s32(0, c - half_range);
+            const int end_input_c = shl_ref_min_internal_s32(depth, c + half_range + 1);
             float accum = 0.f;
             for (int input_c = begin_input_c; input_c < end_input_c; ++input_c) {
                 const float input_val = input_data[i * depth + input_c];
@@ -52,8 +51,8 @@ static int csi_ref_lrn_nhwc_f32(struct csi_tensor *input, struct csi_tensor *out
     return CSINN_TRUE;
 }
 
-static int csi_ref_lrn_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                struct lrn_params *params)
+static int shl_ref_lrn_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_lrn_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -66,8 +65,8 @@ static int csi_ref_lrn_nchw_f32(struct csi_tensor *input, struct csi_tensor *out
 
     for (int j = 0; j < input->dim[0]; j++) {
         for (int c = 0; c < depth; ++c) {
-            const int begin_input_c = csi_ref_max_internal_s32(0, c - half_range);
-            const int end_input_c = csi_ref_min_internal_s32(depth, c + half_range + 1);
+            const int begin_input_c = shl_ref_max_internal_s32(0, c - half_range);
+            const int end_input_c = shl_ref_min_internal_s32(depth, c + half_range + 1);
             for (int i = 0; i < inner_size; ++i) {
                 float accum = 0.f;
                 for (int input_c = begin_input_c; input_c < end_input_c; ++input_c) {
@@ -85,39 +84,40 @@ static int csi_ref_lrn_nchw_f32(struct csi_tensor *input, struct csi_tensor *out
     return CSINN_TRUE;
 }
 
-int csi_ref_lrn_f32(struct csi_tensor *input, struct csi_tensor *output, struct lrn_params *params)
+int shl_ref_lrn_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_lrn_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_lrn_nchw_f32(input, output, params);
+        shl_ref_lrn_nchw_f32(input, output, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_lrn_nhwc_f32(input, output, params);
+        shl_ref_lrn_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_ref_lrn_quant(struct csi_tensor *input, struct csi_tensor *output,
-                      struct lrn_params *params)
+int shl_ref_lrn_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_lrn_params *params)
 {
     double bias_f, alpha_f, beta_f;
 
-    struct csi_quant_info qinfo;
+    struct csinn_quant_info qinfo;
     qinfo.zero_point = 0;
     qinfo.multiplier = params->bias_multiplier;
     qinfo.shift = params->bias_shift;
-    bias_f = csi_ref_dequantize_u8_to_f32(1, &qinfo);
+    bias_f = shl_ref_dequantize_u8_to_f32(1, &qinfo);
     qinfo.zero_point = 0;
     qinfo.multiplier = params->alpha_multiplier;
     qinfo.shift = params->alpha_shift;
-    alpha_f = csi_ref_dequantize_u8_to_f32(1, &qinfo);
+    alpha_f = shl_ref_dequantize_u8_to_f32(1, &qinfo);
     qinfo.zero_point = 0;
     qinfo.multiplier = params->beta_multiplier;
     qinfo.shift = params->beta_shift;
-    beta_f = csi_ref_dequantize_u8_to_f32(1, &qinfo);
+    beta_f = shl_ref_dequantize_u8_to_f32(1, &qinfo);
 
     params->bias = bias_f;
     params->alpha = alpha_f;
     params->beta = beta_f;
 
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_lrn_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_lrn_f32);
 }

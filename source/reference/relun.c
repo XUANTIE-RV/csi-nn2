@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 static float relun(float x, float y) { return fmin(x > 0.0 ? x : 0.0, y); }
 
-int csi_ref_relun_f32(struct csi_tensor *input, struct csi_tensor *output,
-                      struct relu_params *params)
+int shl_ref_relun_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_relu_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -39,8 +38,8 @@ int csi_ref_relun_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_relun_quant(struct csi_tensor *input, struct csi_tensor *output,
-                        struct relu_params *params)
+int shl_ref_relun_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_relu_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_relun_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_relun_f32);
 }

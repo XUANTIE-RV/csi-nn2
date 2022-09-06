@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -28,12 +27,13 @@
 int main(int argc, char **argv)
 {
     init_testsuite("Testing function of mul(layer).\n");
-
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct diso_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input0 = csinn_alloc_tensor(sess);
+    struct csinn_tensor *input1 = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_diso_params *params = csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
     int in_size0, in_size1, out_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -76,8 +76,7 @@ int main(int argc, char **argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input0->data = (float *)(buffer + 5);
     input1->data = (float *)(buffer + 5 + in_size0);
@@ -86,18 +85,18 @@ int main(int argc, char **argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
 #if THEAD_RVV
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_FLOAT32, csi_mul_init,
-                   csi_nn_rvv_mul_fp32, &difference);
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_FLOAT16, csi_mul_init,
-                   csi_nn_rvv_mul_fp16, &difference);
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_INT8_SYM, csi_mul_init,
-                   csi_nn_rvv_mul_int8, &difference);
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_mul_init,
+                   shl_rvv_mul_fp32, &difference);
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT16, csinn_mul_init,
+                   shl_rvv_mul_fp16, &difference);
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_SYM, csinn_mul_init,
+                   shl_rvv_mul_int8, &difference);
 #else
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_FLOAT32, csi_mul_init, csi_mul,
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_mul_init, csinn_mul,
                    &difference);
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_UINT8_ASYM, csi_mul_init, csi_mul,
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_UINT8_ASYM, csinn_mul_init, csinn_mul,
                    &difference);
-    test_binary_op(input0, input1, output, &params, CSINN_QUANT_INT8_SYM, csi_mul_init, csi_mul,
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_SYM, csinn_mul_init, csinn_mul,
                    &difference);
 #endif
 

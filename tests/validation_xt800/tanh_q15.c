@@ -16,25 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "./valid_data/active_data.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "./valid_data/active_data.dat"
+#include "test_utils.h"
 
-
-static void verify_tanh_q15(void *input_data,
-                            void *ref_data,
-                            int32_t size,
-                            float input_min,
-                            float input_max,
-                            float difference)
+static void verify_tanh_q15(void *input_data, void *ref_data, int32_t size, float input_min,
+                            float input_max, float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    int in_size, out_size; 
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    int in_size, out_size;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = size;
     input->dim_count = 1;
     input->dtype = CSINN_DTYPE_INT16;
@@ -43,24 +38,23 @@ static void verify_tanh_q15(void *input_data,
     input->qinfo->min = input_min;
     input->qinfo->max = input_max;
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = input->dim[0];
     output->dim_count = 1;
     output->dtype = CSINN_DTYPE_INT16;
     output->name = "output";
     out_size = output->dim[0];
 
-    struct siso_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
+    struct csinn_siso_params *params = csinn_alloc_params(sizeof(struct csinn_siso_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    input->data      = (uint16_t *)input_data;
-    reference->data  = (uint16_t *)ref_data;
+    input->data = (uint16_t *)input_data;
+    reference->data = (uint16_t *)ref_data;
 
-    if (csi_tanh_init(input, output, &params) == CSINN_TRUE) {
-        csi_tanh(input, output, &params);
+    if (csinn_tanh_init(input, output, params) == CSINN_TRUE) {
+        csinn_tanh(input, output, params);
     }
     result_verify_q15(reference->data, output->data, input->data, difference, out_size, false);
     free(input);
@@ -68,8 +62,7 @@ static void verify_tanh_q15(void *input_data,
     free(reference);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of tanh q15 for xt800.\n");
 

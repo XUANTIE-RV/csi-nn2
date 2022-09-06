@@ -16,58 +16,58 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 #include <unistd.h>
 
 #include "csi_nn.h"
 
-// #define CSI_MEM_DEBUG
-// #define CSI_MEM_DEBUG_VALID_WRITE
-// #define CSI_USE_ATAT_MALLOC
-struct csi_mem_alloc_debug_element_ {
+// #define SHL_MEM_DEBUG
+// #define SHL_MEM_DEBUG_VALID_WRITE
+// #define SHL_USE_ATAT_MALLOC
+struct shl_mem_alloc_debug_element_ {
     void *ptr;
     int64_t size;
     int is_free;
 };
 
-struct csi_mem_alloc_debug_map_ {
-    struct csi_mem_alloc_debug_element_ *element;
+struct shl_mem_alloc_debug_map_ {
+    struct shl_mem_alloc_debug_element_ *element;
     int element_number;
     int index;
     int64_t total_size;
 };
 
-static struct csi_mem_alloc_debug_map_ csi_mem_alloc_debug_map;
+static struct shl_mem_alloc_debug_map_ shl_mem_alloc_debug_map;
 
-void csi_mem_print_map()
+void shl_mem_print_map()
 {
-    printf("total size = %ld\n", csi_mem_alloc_debug_map.total_size);
-    for (int i = 0; i <= csi_mem_alloc_debug_map.index; i++) {
-        struct csi_mem_alloc_debug_element_ *e = csi_mem_alloc_debug_map.element + i;
+    printf("total size = %ld\n", shl_mem_alloc_debug_map.total_size);
+    for (int i = 0; i <= shl_mem_alloc_debug_map.index; i++) {
+        struct shl_mem_alloc_debug_element_ *e = shl_mem_alloc_debug_map.element + i;
         printf("element %d: ptr = %p, size = %ld, is_free = %d\n", i, e->ptr, e->size, e->is_free);
     }
 }
 
-static int csi_mem_map_insert(void *ptr, uint64_t size)
+static int shl_mem_map_insert(void *ptr, uint64_t size)
 {
-    int element_number = csi_mem_alloc_debug_map.element_number;
-    int index = csi_mem_alloc_debug_map.index;
+    int element_number = shl_mem_alloc_debug_map.element_number;
+    int index = shl_mem_alloc_debug_map.index;
     if (element_number == 0 || index == element_number - 1) {
-        csi_mem_alloc_debug_map.element_number += 512;
-        csi_mem_alloc_debug_map.element = realloc(csi_mem_alloc_debug_map.element,
-                                            csi_mem_alloc_debug_map.element_number *
-                                            sizeof(struct csi_mem_alloc_debug_element_));
+        shl_mem_alloc_debug_map.element_number += 512;
+        shl_mem_alloc_debug_map.element = realloc(
+            shl_mem_alloc_debug_map.element,
+            shl_mem_alloc_debug_map.element_number * sizeof(struct shl_mem_alloc_debug_element_));
     }
-    csi_mem_alloc_debug_map.element[index].ptr = ptr;
-    csi_mem_alloc_debug_map.element[index].size = size;
-    csi_mem_alloc_debug_map.element[index].is_free = 0;
-    csi_mem_alloc_debug_map.index++;
+    shl_mem_alloc_debug_map.element[index].ptr = ptr;
+    shl_mem_alloc_debug_map.element[index].size = size;
+    shl_mem_alloc_debug_map.element[index].is_free = 0;
+    shl_mem_alloc_debug_map.index++;
 }
 
-void *csi_mem_alloc(int64_t size)
+void *shl_mem_alloc(int64_t size)
 {
     void *ret;
-#ifdef CSI_MEM_DEBUG_VALID_WRITE
+#ifdef SHL_MEM_DEBUG_VALID_WRITE
     ret = calloc(1, size + 8);
     int8_t *check_ptr = ret + size;
     /* magic number */
@@ -80,67 +80,72 @@ void *csi_mem_alloc(int64_t size)
     check_ptr[6] = 0x67;
     check_ptr[7] = 0xff;
 #else
-#ifdef CSI_USE_ATAT_MALLOC
-    void *csi_atat_calloc(size_t n, size_t m);
-    ret = csi_atat_calloc(1, size);
+#ifdef SHL_USE_ATAT_MALLOC
+    void *shl_atat_calloc(size_t n, size_t m);
+    ret = shl_atat_calloc(1, size);
 #else
     ret = calloc(1, size);
 #endif
 #endif
     if (ret == NULL) {
-        csi_debug_error("cannot alloc memory\n");
+        shl_debug_error("cannot alloc memory\n");
     }
-#ifdef CSI_MEM_DEBUG
-    csi_mem_map_insert(ret, size);
-    csi_mem_alloc_debug_map.total_size += size;
-    printf("csi_mem_alloc: total size = %ld\n", csi_mem_alloc_debug_map.total_size);
+#ifdef SHL_MEM_DEBUG
+    shl_mem_map_insert(ret, size);
+    shl_mem_alloc_debug_map.total_size += size;
+    printf("shl_mem_alloc: total size = %ld\n", shl_mem_alloc_debug_map.total_size);
 #endif
     return ret;
 }
 
-void *csi_mem_calloc(size_t nmemb, size_t size) { return csi_mem_alloc(nmemb * size); }
+void *shl_mem_calloc(size_t nmemb, size_t size) { return shl_mem_alloc(nmemb * size); }
 
-void *csi_mem_realloc(void *ptr, size_t size)
+void *shl_mem_realloc(void *ptr, size_t size)
 {
-    void *ret = csi_mem_alloc(size);
+    void *ret = shl_mem_alloc(size);
     if (!ptr) {
         return ret;
     }
     memcpy(ret, ptr, size);
-    csi_mem_free(ptr);
+    shl_mem_free(ptr);
     return ret;
 }
 
-void *csi_mem_alloc_aligned(int64_t size, int aligned_bytes)
+void *shl_mem_alloc_aligned(int64_t size, int aligned_bytes)
 {
     void *ptr = NULL;
-#ifndef CSI_BUILD_RTOS
+#ifdef SHL_BUILD_RTOS
+    size_t real_size = size + aligned_bytes;
+    void *tptr = shl_mem_alloc(real_size);
+    int mask = ~(aligned_bytes - 1);
+    int addr = ((int)tptr + aligned_bytes) & mask;
+    ptr = (void *)addr;
+#else
     if (aligned_bytes == 0) {
         aligned_bytes = getpagesize();
     }
     int ret = posix_memalign(&ptr, aligned_bytes, size);
-    if (ret || ptr ==  NULL)
-      csi_debug_error("cannot alloc aligned memory\n");
+    if (ret || ptr == NULL) shl_debug_error("cannot alloc aligned memory\n");
 #endif
     return ptr;
 }
 
-void csi_mem_free(void *ptr)
+void shl_mem_free(void *ptr)
 {
-#ifdef CSI_MEM_DEBUG
-    for (int i = 0; i < csi_mem_alloc_debug_map.index; i++) {
-        struct csi_mem_alloc_debug_element_ *e = csi_mem_alloc_debug_map.element + i;
+#ifdef SHL_MEM_DEBUG
+    for (int i = 0; i < shl_mem_alloc_debug_map.index; i++) {
+        struct shl_mem_alloc_debug_element_ *e = shl_mem_alloc_debug_map.element + i;
         if (e->ptr == ptr && e->is_free == 0) {
             e->is_free = 1;
-            csi_mem_alloc_debug_map.total_size -= e->size;
-            printf("csi_mem_free: total size = %ld\n", csi_mem_alloc_debug_map.total_size);
-#ifdef CSI_MEM_DEBUG_VALID_WRITE
+            shl_mem_alloc_debug_map.total_size -= e->size;
+            printf("shl_mem_free: total size = %ld\n", shl_mem_alloc_debug_map.total_size);
+#ifdef SHL_MEM_DEBUG_VALID_WRITE
             uint8_t *cptr = ptr + e->size;
             if ((cptr[0] == 0xff) && (cptr[1] == 0x23) && (cptr[2] == 0x33) && (cptr[3] == 0x44) &&
                 (cptr[4] == 0x45) && (cptr[5] == 0x55) && (cptr[6] == 0x67) && (cptr[7] == 0xff)) {
                 break;
             } else {
-                printf("csi_mem_free: invalid write %p\n", ptr);
+                printf("shl_mem_free: invalid write %p\n", ptr);
             }
 #else
             break;
@@ -148,9 +153,9 @@ void csi_mem_free(void *ptr)
         }
     }
 #endif
-#ifdef CSI_USE_ATAT_MALLOC
-    void csi_atat_free(void *f);
-    csi_atat_free(ptr);
+#ifdef SHL_USE_ATAT_MALLOC
+    void shl_atat_free(void *f);
+    shl_atat_free(ptr);
 #else
     free(ptr);
 #endif

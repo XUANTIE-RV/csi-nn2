@@ -16,39 +16,38 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_ndarray_size_f32(struct csi_tensor *input, struct csi_tensor *output,
-                             struct ndarray_size_params *params)
+int shl_ref_ndarray_size_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_ndarray_size_params *params)
 {
     float *output_data = output->data;
-    output_data[0] = csi_tensor_size(input);
+    output_data[0] = csinn_tensor_size(input);
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_u8(struct csi_tensor *input, struct csi_tensor *output,
-                            struct ndarray_size_params *params)
+int shl_ref_ndarray_size_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_ndarray_size_params *params)
 {
     uint8_t *output_data = output->data;
-    output_data[0] = csi_tensor_size(input);
+    output_data[0] = csinn_tensor_size(input);
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_i8(struct csi_tensor *input, struct csi_tensor *output,
-                            struct ndarray_size_params *params)
+int shl_ref_ndarray_size_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_ndarray_size_params *params)
 {
     int8_t *output_data = output->data;
-    output_data[0] = csi_tensor_size(input);
+    output_data[0] = csinn_tensor_size(input);
     return CSINN_TRUE;
 }
 
-int csi_ref_ndarray_size_i32(struct csi_tensor *input, struct csi_tensor *output,
-                             struct ndarray_size_params *params)
+int shl_ref_ndarray_size_i32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_ndarray_size_params *params)
 {
     int32_t *output_data = output->data;
-    output_data[0] = csi_tensor_size(input);
+    output_data[0] = csinn_tensor_size(input);
     return CSINN_TRUE;
 }

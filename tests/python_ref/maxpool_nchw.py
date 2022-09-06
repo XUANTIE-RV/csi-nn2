@@ -12,8 +12,8 @@ def maxpool2d_f32(test_type):
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=4, size=1))
     channel    = int(np.random.randint(2, high=6, size=1))
-    in_height = int(np.random.randint(32, high=64, size=1))
-    in_width  = int(np.random.randint(32, high=64, size=1))
+    in_height = int(np.random.randint(16, high=32, size=1))
+    in_width  = int(np.random.randint(16, high=32, size=1))
 
     if test_type == "random":
         stride_h   = int(np.random.randint(1, high=4, size=1))
@@ -40,35 +40,40 @@ def maxpool2d_f32(test_type):
         stride_h    =  stride_w    = 2
         kernel_h    =  kernel_w    = 2
         pad_left  = pad_top = 0
-        pad_right  = int(np.random.randint(0, high=1, size=1))
-        pad_down  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = pad_right = 1
+        in_height = 2 * in_height + 1
+        in_width = 2 * in_width + 1
+
     elif test_type == "2x2s2_p1":
         stride_h    =  stride_w   = 2
         kernel_h    =  kernel_w   = 2
         pad_left  = pad_top = 1
-        pad_right  = int(np.random.randint(0, high=1, size=1))
-        pad_down  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = pad_right = 1
+        in_height = 2 * in_height 
+        in_width = 2 * in_width 
 
 
     elif test_type == "3x3s2":
         stride_h    =  stride_w    = 2
         kernel_h    =  kernel_w    = 3
         pad_left  = pad_top = 0
-        pad_right  = int(np.random.randint(0, high=1, size=1))
-        pad_down  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = pad_right = 1
+        in_height = 2 * in_height
+        in_width = 2 * in_width
 
     elif test_type == "3x3s2_p1":
         stride_h    =  stride_w    = 2
         kernel_h    =  kernel_w     = 3
         pad_left  = pad_top = 1
-        pad_right  = int(np.random.randint(0, high=1, size=1))
-        pad_down  = int(np.random.randint(0, high=1, size=1))
+        pad_down  = pad_right = 1
+        in_height = 2 * in_height + 1
+        in_width = 2 * in_width + 1
 
     elif test_type == "3x3s1_p1":
         stride_h    =  stride_w     = 1
         kernel_h    =  kernel_w     = 3
         pad_left = pad_right = pad_top = pad_down = 1
-
+    
 
 
     zero_point = int(np.random.randint(-8, high=8, size=1))

@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_split(struct csi_tensor *input,
-                   struct csi_tensor **output,
-                   struct split_params *params)
+int shl_gref_split(struct csinn_tensor *input, struct csinn_tensor **output,
+                   struct csinn_split_params *params)
 {
-    struct csi_node *layer = csi_node_alloc(CSINN_OP_SPLIT, params->base.name, 1, params->output_num, params);
+    struct shl_node *layer =
+        shl_node_alloc(CSINN_OP_SPLIT, params->base.name, 1, params->output_num, params);
 
-    struct csi_node *in_tensor = (struct csi_node *)(input->data);
-    csi_node_add_in(layer, in_tensor, 0);
+    struct shl_node *in_tensor = (struct shl_node *)(input->data);
+    shl_node_add_in(layer, in_tensor, 0);
 
-    for (int i = 0; i< params->output_num; i++){
-        struct csi_node *out = csi_node_var_alloc(output[i]->name, output[i]);
-        csi_node_add_out(layer, out, i);
+    for (int i = 0; i < params->output_num; i++) {
+        struct shl_node *out = shl_node_var_alloc(output[i]->name, output[i]);
+        shl_node_add_out(layer, out, i);
         output[i]->data = out;
     }
-    struct csi_ref_graph *graph = csi_gref_get_graph(input->sess);
-    csi_gref_graph_insert(layer, graph);
+    struct shl_ref_graph *graph = shl_gref_get_graph(input->sess);
+    shl_gref_graph_insert(layer, graph);
     return CSINN_FALSE;
 }

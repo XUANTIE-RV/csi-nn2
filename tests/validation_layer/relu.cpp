@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,10 +28,12 @@ int main(int argc, char **argv)
 {
     init_testsuite("Testing function of relu(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct relu_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_relu_params *params = csinn_alloc_params(sizeof(struct csinn_relu_params), sess);
     int in_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -57,8 +58,7 @@ int main(int argc, char **argv)
     output->is_const = 0;
     output->quant_channel = 1;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input->data = (float *)(buffer + 4);
     reference->data = (float *)(buffer + 4 + in_size);
@@ -66,18 +66,18 @@ int main(int argc, char **argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if THEAD_RVV
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_relu_init, csi_nn_rvv_relu_fp32,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_relu_init, shl_rvv_relu_fp32,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT16, csi_relu_init, csi_nn_rvv_relu_fp16,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_relu_init, shl_rvv_relu_fp16,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_ASYM, csi_relu_init, csi_nn_rvv_relu_int8,
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_relu_init, shl_rvv_relu_int8,
                   &difference);
 #else
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_relu_init, csi_relu,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_relu_init, csinn_relu,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_UINT8_ASYM, csi_relu_init, csi_relu,
+    test_unary_op(input, output, params, CSINN_QUANT_UINT8_ASYM, csinn_relu_init, csinn_relu,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_SYM, csi_relu_init, csi_relu,
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_relu_init, csinn_relu,
                   &difference);
 #endif
 

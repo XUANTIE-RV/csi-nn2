@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_conv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                       struct csi_tensor *kernel, struct csi_tensor *bias,
-                       struct conv3d_params *params)
+int shl_ref_conv3d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                       struct csinn_conv3d_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -77,11 +77,11 @@ int csi_ref_conv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                                         if ((in_d >= 0) && (in_d < in_depth) && (in_h >= 0) &&
                                             (in_h < in_height) && (in_w >= 0) &&
                                             (in_w < in_width)) {
-                                            int32_t input_idx = csi_ref_get_index_5(
+                                            int32_t input_idx = shl_ref_get_index_5(
                                                 input->dim, out_b, in_ch, in_d, in_h, in_w);
                                             float input_val = input_data[input_idx];
                                             int32_t filter_idx =
-                                                csi_ref_get_index_5(kernel->dim, out_ch, in_ch,
+                                                shl_ref_get_index_5(kernel->dim, out_ch, in_ch,
                                                                     filter_d, filter_h, filter_w);
                                             float filter_val = kernel_data[filter_idx];
                                             acc += input_val * filter_val;
@@ -95,7 +95,7 @@ int csi_ref_conv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                             bias_val = bias_data[out_ch];
                         }
                         int32_t output_idx =
-                            csi_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
+                            shl_ref_get_index_5(output->dim, out_b, out_ch, out_d, out_h, out_w);
                         output_data[output_idx] = acc + bias_val;
                     }
                 }
@@ -105,9 +105,9 @@ int csi_ref_conv3d_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_conv3d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                         struct csi_tensor *kernel, struct csi_tensor *bias,
-                         struct conv3d_params *params)
+int shl_ref_conv3d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv3d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_conv3d_f32);
+    return shl_ref_conv_callback_base(input, output, kernel, bias, params, shl_ref_conv3d_f32);
 }

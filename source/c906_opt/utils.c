@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 // constrains: The destination address and source address copy do not overlap
 // notice: riscv gnu compiler tool-chain c-library memcpy may not use vector inst
 // now gcc version: gcc version 10.2.0 (T-HEAD RISCV Tools V2.0.1 B20210512)
-void csi_c906_memcpy(void *dst, const void *src, size_t n)
+void shl_c906_memcpy(void *dst, const void *src, size_t n)
 {
     asm volatile(
                 "1:\n\t"
@@ -56,7 +56,7 @@ void csi_c906_memcpy(void *dst, const void *src, size_t n)
     pad_top:        origin pad top
     pad_left:       origin pad left
 */
-void csi_c906_pad_input(const float *input, float *input_padded, int inc, int inh, int inw,
+void shl_c906_pad_input(const float *input, float *input_padded, int inc, int inh, int inw,
                         int padded_h, int padded_w, int pad_top, int pad_left)
 {
     int padded_hw = padded_h * padded_w;
@@ -192,8 +192,7 @@ void csi_c906_pad_input(const float *input, float *input_padded, int inc, int in
 #endif  // __riscv_vector
 }
 
-
-void csi_c906_pad_input_fp16(const __fp16 *input, __fp16 *input_padded, int inc, int inh, int inw,
+void shl_c906_pad_input_fp16(const __fp16 *input, __fp16 *input_padded, int inc, int inh, int inw,
                              int padded_h, int padded_w, int pad_top, int pad_left)
 {
     int padded_hw = padded_h * padded_w;
@@ -315,7 +314,7 @@ void csi_c906_pad_input_fp16(const __fp16 *input, __fp16 *input_padded, int inc,
     wino_h:         winograd conv out_h, alignment with 2/4/6
     wino_w：        winograd conv out_w, alignment with 2/4/6
 */
-void csi_c906_crop_output(float *output_trans, float *output, int out_c, int out_h, int out_w,
+void shl_c906_crop_output(float *output_trans, float *output, int out_c, int out_h, int out_w,
                           int wino_h, int wino_w)
 {
     int resi_h = wino_h - out_h;
@@ -333,8 +332,8 @@ void csi_c906_crop_output(float *output_trans, float *output, int out_c, int out
     }
 }
 
-void csi_c906_crop_output_fp16(__fp16 *output_trans, __fp16 *output, int out_c, int out_h, int out_w,
-                               int wino_h, int wino_w)
+void shl_c906_crop_output_fp16(__fp16 *output_trans, __fp16 *output, int out_c, int out_h,
+                               int out_w, int wino_h, int wino_w)
 {
     int resi_h = wino_h - out_h;
     int resi_w = wino_w - out_w;
@@ -370,17 +369,9 @@ void csi_c906_crop_output_fp16(__fp16 *output_trans, __fp16 *output, int out_c, 
     0: NX - 非精确异常
 */
 
-void csi_c906_reset_fcsr()
-{
-    asm volatile(
-        "csrrw x0, fcsr, zero\n\t"
-        :
-        :
-        :"memory"
-    );
-}
+void shl_c906_reset_fcsr() { asm volatile("csrrw x0, fcsr, zero\n\t" : : : "memory"); }
 
-int csi_c906_get_fcsr()
+int shl_c906_get_fcsr()
 {
     int f_flag = 0;
     asm volatile(

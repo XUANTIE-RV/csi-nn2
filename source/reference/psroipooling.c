@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include <math.h>
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_psroipooling_f32(struct csi_tensor *data, struct csi_tensor *rois,
-                             struct csi_tensor *output, struct psroipooling_params *params)
+int shl_ref_psroipooling_f32(struct csinn_tensor *data, struct csinn_tensor *rois,
+                             struct csinn_tensor *output, struct csinn_psroipooling_params *params)
 {
     float *output_data = output->data;
     float *bottom_data = data->data;
@@ -88,17 +87,18 @@ int csi_ref_psroipooling_f32(struct csi_tensor *data, struct csi_tensor *rois,
     return CSINN_TRUE;
 }
 
-int csi_ref_psroipooling_quant(struct csi_tensor *data, struct csi_tensor *rois,
-                               struct csi_tensor *output, struct psroipooling_params *params)
+int shl_ref_psroipooling_quant(struct csinn_tensor *data, struct csinn_tensor *rois,
+                               struct csinn_tensor *output,
+                               struct csinn_psroipooling_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(data);
-    struct csi_tensor *frois = csi_ref_tensor_transform_f32(rois);
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    ret = csi_ref_psroipooling_f32(finput, frois, foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(finput);
-    csi_ref_tensor_transform_free_f32(frois);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(data);
+    struct csinn_tensor *frois = shl_ref_tensor_transform_f32(rois);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    ret = shl_ref_psroipooling_f32(finput, frois, foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(frois);
+    shl_ref_tensor_transform_free_f32(foutput);
     return ret;
 }

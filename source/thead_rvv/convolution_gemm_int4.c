@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#ifdef __riscv_xtheadv
-#include "csi_thead_rvv.h"
-
-void csi_nn_rvv_conv_im2col_sgemm_transform_kernel_int4(struct csi_tensor *kernel,
-                                                        struct conv2d_params *params)
+#include "shl_thead_rvv.h"
+#ifdef XTHEADV
+void shl_rvv_conv_im2col_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
+                                                  struct csinn_conv2d_params *params)
 {
     int8_t *kernel_data = (int8_t *)kernel->data;
     int group = params->group;
@@ -33,19 +32,19 @@ void csi_nn_rvv_conv_im2col_sgemm_transform_kernel_int4(struct csi_tensor *kerne
     int k_2 = (((k - 1) & -2) + 2) >> 1;
     int k4 = ((k_2 - 1) & -4) + 4;  // align of 4 for int8
 
-    params->conv_extra.kernel_tm->data = (int8_t *)csi_mem_alloc(group * n * k4 * sizeof(int8_t));
+    params->conv_extra.kernel_tm->data = (int8_t *)shl_mem_alloc(group * n * k4 * sizeof(int8_t));
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
 
     for (int g = 0; g < group; g++) {
-        csi_nn_rvv_reorder_kernel_n8_int8(kernel_data + g * n * k_2, pa_reorder + g * n * k4, n,
-                                          k_2, k_2);
+        shl_rvv_reorder_kernel_n8_int8(kernel_data + g * n * k_2, pa_reorder + g * n * k4, n, k_2,
+                                       k_2);
     }
     // FIXME: free params->conv_extra.kernel_tm->data
 }
 
-int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor *output,
-                                     struct csi_tensor *kernel, struct csi_tensor *bias,
-                                     struct conv2d_params *params)
+int shl_rvv_conv_im2col_gemm_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                  struct csinn_conv2d_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -76,11 +75,11 @@ int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor
     int32_t n = out_ch / group;
     int32_t k4 = ((k_2 - 1) & -4) + 4;
 
-    int32_t *multiplier = (int32_t *)csi_mem_alloc(n * sizeof(int32_t));
-    int32_t *shift = (int32_t *)csi_mem_alloc(n * sizeof(int32_t));
+    int32_t *multiplier = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
+    int32_t *shift = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
 
-    int8_t *im2col_data = (int8_t *)csi_mem_alloc(m * k_2 * sizeof(int8_t));
-    int8_t *pa_reorder = (int8_t *)csi_mem_alloc(m * k4 * sizeof(int8_t));
+    int8_t *im2col_data = (int8_t *)shl_mem_alloc(m * k_2 * sizeof(int8_t));
+    int8_t *pa_reorder = (int8_t *)shl_mem_alloc(m * k4 * sizeof(int8_t));
 
     int8_t *im2col_shadow = NULL;
     int8_t pad_value = 0;
@@ -91,10 +90,9 @@ int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor
             // im2col
             if (in_ch & 1) {
                 int8_t *buffer_int4_to_int8 =
-                    (int8_t *)csi_mem_alloc(in_height * in_width * in_ch * sizeof(int8_t));
-                csi_nn_rvv_int4_to_int8(input_data, buffer_int4_to_int8,
-                                        in_height * in_width * in_ch);
-                int8_t *buffer_im2col = (int8_t *)csi_mem_alloc(m * channel_col * sizeof(int8_t));
+                    (int8_t *)shl_mem_alloc(in_height * in_width * in_ch * sizeof(int8_t));
+                shl_rvv_int4_to_int8(input_data, buffer_int4_to_int8, in_height * in_width * in_ch);
+                int8_t *buffer_im2col = (int8_t *)shl_mem_alloc(m * channel_col * sizeof(int8_t));
                 im2col_shadow = buffer_im2col;
                 pad_value = input->qinfo->zero_point & 0x0f;
 
@@ -121,11 +119,11 @@ int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor
                     }
                 }
                 for (int k = 0; k < m; k++) {
-                    csi_nn_rvv_int8_to_int4(buffer_im2col + k * channel_col, im2col_data + k * k_2,
-                                            channel_col);
+                    shl_rvv_int8_to_int4(buffer_im2col + k * channel_col, im2col_data + k * k_2,
+                                         channel_col);
                 }
-                csi_mem_free(buffer_int4_to_int8);
-                csi_mem_free(buffer_im2col);
+                shl_mem_free(buffer_int4_to_int8);
+                shl_mem_free(buffer_im2col);
 
             } else {
                 im2col_shadow = im2col_data;
@@ -171,19 +169,19 @@ int csi_nn_rvv_conv_im2col_gemm_int4(struct csi_tensor *input, struct csi_tensor
             }
 
             // pack
-            csi_nn_rvv_reorder_input_n8_int4(im2col_data, pa, m, k_2, k_2);
+            shl_rvv_reorder_input_n8_int4(im2col_data, pa, m, k_2, k_2);
             // GEMM
-            csi_nn_rvv_gemm_8x8_int4(pc, pa, pb, m, k4, n, n / 2, bias_data + g * n,
-                                     output->qinfo->zero_point, multiplier, shift);
+            shl_rvv_gemm_8x8_int4(pc, pa, pb, m, k4, n, n / 2, bias_data + g * n,
+                                  output->qinfo->zero_point, multiplier, shift);
 
             input_data += in_ch / group * in_height * in_width / 2;
             output_data += m * n / 2;
         }
     }
-    csi_mem_free(pa_reorder);
-    csi_mem_free(im2col_data);
-    csi_mem_free(multiplier);
-    csi_mem_free(shift);
+    shl_mem_free(pa_reorder);
+    shl_mem_free(im2col_data);
+    shl_mem_free(multiplier);
+    shl_mem_free(shift);
     return CSINN_TRUE;
 }
 #endif

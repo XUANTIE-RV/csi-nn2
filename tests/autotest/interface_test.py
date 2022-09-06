@@ -69,7 +69,8 @@ def run_base(
         cmd_execute,
         elf_data,
         python_data,
-        test_accuracy
+        test_accuracy,
+        python_cmd,
 ):
     hhb_cmd = (
         f"{cmd_execute} "
@@ -81,49 +82,68 @@ def run_base(
     print(hhb_cmd)
 
     ret = os.system(hhb_cmd)
-    assert ret == 0
+    pytest.assume(ret == 0, f"{hhb_cmd}\n{python_cmd}")
 
 
 @pytest.fixture(scope='module')
 def compile_execute(cmdopt):
     board = cmdopt["board"]
     accuracy = cmdopt["accuracy"]
+    vlen = cmdopt["vlen"]
     if board == "c860":
         qemu = "qemu-cskyv2 -cpu ck860v"
     elif board == "c906":
         qemu = "qemu-riscv64 -cpu c906fdv"
     elif board == "c910":
         qemu = "qemu-riscv64 -cpu c910v"
+    elif board == "c908":
+        qemu = "qemu-riscv64 -cpu c908v"
     mkdir(valid_dir)
-    return qemu, accuracy
+    return qemu, accuracy, vlen
 
 
-@conftest.custom_parametrize('elf_data', numberOffile(elf_path, "c"))
-def test_inference(cmdopt, elf_data, compile_execute):
-    elf_data = elf_data.replace(".c", ".o.elf")
-    if "nchw" or "nhwc" in elf_data:
-        python_data = "_".join(elf_data.split("/")[-1].split("_")[:-1])
-    else:
-        python_data = "_".join(elf_data.split("/")[-1].split("_"))
-    os.chdir(valid_dir)
-    cmd = "python " + python_path + "/" + python_data + ".py"
-    ret = os.system(cmd)
-    assert ret == 0
-    run_base(compile_execute[0], elf_data, valid_dir + "/" + python_data + "_data_f32.bin", compile_execute[1])
+####TODO rm ###########
+# def get_testtype(op_type):
+#     if "averagepool" in op_type or "maxpool" in op_type:
+#         test_type = ["random","2x2s2","2x2s2_p1","3x3s2","3x3s2_p1","3x3s1_p1"]
+#     elif op_type == "convolution":
+#         test_type = ["random","gemm_conv1x1s1","conv3x3s1_im2col_sgemm","conv3x3s1_winograd64","conv3x3s1_winograd64","conv3x3s1_winograd64_pack","gemm_random"]
+#     elif op_type == "depthwise_convolution":
+#         test_type = ["random","3x3s1","3x3s2"]
+#     elif op_type == "group_convolution":
+#         test_type = ["random", "conv3x3s1d1"]
+#     elif op_type == "relu":
+#         test_type = ["random", "16x3_8_4_2_1"]
+#     elif op_type == "add":
+#         test_type = ["", "vector", "size1", "flag0"]
+#     else:
+#         test_type =[]
+#     return test_type
 
-
-def get_testtype(op_type):
-    if "averagepool" in op_type or "maxpool" in op_type:
-        test_type = ["random","2x2s2","2x2s2_p1","3x3s2","3x3s2_p1","3x3s1_p1"]
-    elif op_type == "convolution":
-        test_type = ["random","gemm_conv1x1s1","conv3x3s1_im2col_sgemm","conv3x3s1_winograd64","conv3x3s1_winograd64","gemm_random"]
+import itertools
+def get_testvlen(op_type, vlen):
+    list_dtype = [int(vlen)]
+    list_vlen = [128, 256, 512]
+    if op_type == "convolution":
+        list_type = ["pack1_com", "pack1_gemm", "packnto1", "packnto1_conv1x1s1", "pack1ton", "pack1ton_conv1x1s1", "packn_com", "packn_conv1x1s1", "packn_conv3x3s1", "packn_conv3x3s1_linput"]
+        test_type = list(itertools.product(list_dtype, list_vlen, list_type))
+    elif op_type == "group_convolution":
+        list_type = ["pack1ton_conv1x1s1"]
+        test_type = list(itertools.product(list_dtype, list_vlen, list_type))
     elif op_type == "depthwise_convolution":
-        test_type = ["random","3x3s1","3x3s2"]
+        list_type = ["pack1_common", "pack1_conv3x3s2", "pack1_conv3x3s1", "packnto1", "pack1ton", "packn_com", "packn_conv3x3s2", "packn_conv3x3s1"]
+        test_type = list(itertools.product(list_dtype, list_vlen, list_type))
+    elif op_type == "global_avgpool" or op_type == "global_maxpool":
+        list_type = ["packn", "pack1"]
+        test_type = list(itertools.product(list_dtype, list_vlen, list_type))
+    elif op_type == "averagepool" or op_type == "maxpool":
+        list_type = ["packn_global", "global", "packn_2x2s2", "pack1_2x2s2", "packn_2x2s2p0", "pack1_2x2s2p0", "packn_2x2s2p1", "pack1_2x2s2p1", "packn_3x3s2", "pack1_3x3s2", "packn_3x3s2p0", "pack1_3x3s2p0", "packn_3x3s2p1", "pack1_3x3s2p1", "packn_3x3s1_p1", "pack1_3x3s1_p1"]
+        test_type = list(itertools.product(list_dtype, list_vlen, list_type))
     else:
         test_type =[]
     return test_type
 
-    
+
 
 @pytest.mark.usefixtures("compile_execute")
 class TestCSINN:
@@ -145,18 +165,18 @@ class TestCSINN:
         if "roipool" in data:
             cmd = f'docker run --rm -v {valid_dir}:mnt tvm_caffe:rfcn sh -c "cd mnt && python3 {path}"'
         else:
-            cmd = f"python {path}"
+            cmd = f"python3 {path}"
         ret = os.system(cmd)
         assert ret == 0
         if flag == 1:
-            run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_data_f32.bin", compile_execute[1])
+            run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_data_f32.bin", compile_execute[1], cmd)
         else:
             if "argmax" in data or "argmin" in data:
-                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_stride_data_f32.bin", compile_execute[1])
+                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_stride_data_f32.bin", compile_execute[1], cmd)
             else:
-                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_nchw_data_f32.bin", compile_execute[1])
+                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
 
-    
+
     @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
     def test_rvv_layer(self,elf_data,compile_execute):
         flag = 0
@@ -165,30 +185,69 @@ class TestCSINN:
         path = os.path.join(python_path, data + "_nchw.py")
         if not os.path.exists(path):
             path = os.path.join(python_path, data + ".py")
-            flag = 1 
+            flag = 1
         if test_type != []:
-            for i in test_type:                             
-                cmd = f"python {path} {i}"
+            for i in test_type:
+                cmd = f"python3 {path} {i}"
+                print(cmd)
                 ret = os.system(cmd)
                 assert ret == 0
                 if flag == 1:
-                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1])
+                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
                 else:
-                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1])
-        else:             
-            cmd = f"python {path}"
+                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+        else:
+            cmd = f"python3 {path}"
             ret = os.system(cmd)
             assert ret == 0
             if flag == 1:
-                run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1])
+                run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
             else:
-                run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1])
+                run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+
+
+    @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
+    def test_c908_layer(self,elf_data,compile_execute):
+        flag = 0
+        data = elf_data.split("/")[-1].split(".")[0]
+        test_type = get_testvlen(data, compile_execute[2])
+        compile_option = compile_execute[0]
+        path = os.path.join(python_path, data + "_nchw.py")
+        if not os.path.exists(path):
+            path = os.path.join(python_path, data + ".py")
+            flag = 1
+        elif "convolution" in path or "averagepool" in path or "maxpool" in path:
+            path = os.path.join(python_path, data + "_vlen.py")
+        if test_type != []:
+            for i in test_type:
+                cmd = f"python3 {path} {i[0]} {i[1]} {i[2]}"
+                print(cmd)
+                ret = os.system(cmd)
+                pytest.assume(ret == 0)
+                if str(i[1]) == "256":
+                    compile_option = "qemu-riscv64  -cpu rv64,x-v=true,vext_spec=v1.0,vlen=256,x-thead=true"
+                elif str(i[1]) == "512":
+                    compile_option = "qemu-riscv64  -cpu rv64,x-v=true,vext_spec=v1.0,vlen=512,x-thead=true"
+
+                if flag == 1:
+                    run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
+                else:
+                    run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+        else:
+            cmd = f"python3 {path}"
+            ret = os.system(cmd)
+            pytest.assume(ret == 0)
+            if flag == 1:
+                run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
+            else:
+                run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+
 
 
 
     @pytest.mark.parametrize('unit_test_elf_data', numberOffile(unit_test_elf_path, "elf"))
     def test_opt_interface(self, unit_test_elf_data, compile_execute):
-        run_base(compile_execute[0], unit_test_elf_data, "", compile_execute[1])
+        run_base(compile_execute[0], unit_test_elf_data, "", compile_execute[1], "")
 
 
 class TestHeterogeneous:

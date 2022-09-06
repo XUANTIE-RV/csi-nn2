@@ -16,51 +16,48 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
 *************************************************************/
-static void csi_nn_rvv_reorder_weight_npackn_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+static void shl_rvv_reorder_weight_npackn_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
 {
-    int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
+    const int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
     int vl = vsetvl_e16m1(packn);
-    int i = 0;
-    for (; i + packn - 1 < m; i += packn) {
-        __fp16 *in_ptr = src + i * k;
+
+    while (m > 0) {
+        vl = vsetvl_e16m1(m);
+        __fp16 *in_ptr = src;
         for (int j = 0; j < k; j++) {
             vfloat16m1_t _input = vlse16_v_f16m1(in_ptr, k * sizeof(__fp16), vl);
             in_ptr++;
             vse16_v_f16m1(dst, _input, vl);
-            dst += packn;
+            dst += vl;
         }
-    }
-    src += i * k;
-    for (; i < m; i++) {
-        memcpy(dst, src, sizeof(__fp16) * k);
-        dst += k;
-        src += k;
+        src += vl * k;
+        m -= vl;
     }
 }
 
-void csi_nn_rvv_fc_gemv_transform_weight_fp16(struct csi_tensor *weights)
+void shl_rvv_fc_gemv_transform_weight_fp16(struct csinn_tensor *weights)
 {
     __fp16 *weight_data = (__fp16 *)weights->data;
 
     int n = weights->dim[0];  // out_nodes
     int k = weights->dim[1];  // in_nodes
 
-    __fp16 *pa_reorder = (__fp16 *)csi_mem_alloc(n * k * sizeof(__fp16));
-    csi_nn_rvv_reorder_weight_npackn_fp16(weight_data, pa_reorder, n, k, k);
+    __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
+    shl_rvv_reorder_weight_npackn_fp16(weight_data, pa_reorder, n, k, k);
     memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
-    csi_mem_free(pa_reorder);
+    shl_mem_free(pa_reorder);
 }
 
-int csi_nn_rvv_fullyconnected_packn_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                                         struct csi_tensor *weights, struct csi_tensor *bias,
-                                         struct fc_params *params)
+int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                      struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -80,11 +77,11 @@ int csi_nn_rvv_fullyconnected_packn_fp16(struct csi_tensor *input, struct csi_te
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)csi_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
     }
 
-    int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
-    int vl;
+    const int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
+    int vl = vsetvl_e16m1(packn);
 
     for (int b = 0; b < batches; b++) {
         __fp16 *init_output = output_data + b * output_depth;
@@ -92,34 +89,23 @@ int csi_nn_rvv_fullyconnected_packn_fp16(struct csi_tensor *input, struct csi_te
         __fp16 *init_weight = weights_data;
         __fp16 *init_bias = bias_data;
 
-        vl = vsetvl_e16m1(packn);
-        int n = 0;
-        for (; n + packn - 1 < output_depth; n += packn) {
-            __fp16 *in_ptr = init_input;
+        int n = output_depth;
+        while (n > 0) {
+            vl = vsetvl_e16m1(n);
             vfloat16m1_t _acc = vle16_v_f16m1(init_bias, vl);
             init_bias += vl;
-
             for (int k = 0; k < accum_depth; k++) {
                 vfloat16m1_t _weight = vle16_v_f16m1(init_weight, vl);
-                _acc = vfmacc_vf_f16m1(_acc, in_ptr[k], _weight, vl);
+                _acc = vfmacc_vf_f16m1(_acc, init_input[k], _weight, vl);
                 init_weight += vl;
             }
             vse16_v_f16m1(init_output, _acc, vl);
             init_output += vl;
-        }
-        for (; n < output_depth; n++) {
-            __fp16 *in_ptr = init_input;
-            __fp16 acc = init_bias[0];
-            for (int k = 0; k < accum_depth; k++) {
-                acc += in_ptr[k] * init_weight[k];
-            }
-            *init_output++ = acc;
-            init_bias++;
-            init_weight += accum_depth;
+            n -= vl;
         }
     }
     if (!flag_bias) {
-        csi_mem_free(bias_data);
+        shl_mem_free(bias_data);
         bias_data = NULL;
     }
     return CSINN_TRUE;

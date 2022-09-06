@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of clip i8.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct clip_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_clip_params *params = csinn_alloc_params(sizeof(struct csinn_clip_params), NULL);
     int in_size = 0;
     int out_size = 0;
     int zp, quantized_multiplier, shift;
@@ -38,10 +38,10 @@ int main(int argc, char** argv)
 
     int *buffer = read_input_data_f32(argv[1]);
 
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // channel
-    input->dim[2] = buffer[2];          // height
-    input->dim[3] = buffer[3];          // width
+    input->dim[0] = buffer[0];  // batch
+    input->dim[1] = buffer[1];  // channel
+    input->dim[2] = buffer[2];  // height
+    input->dim[3] = buffer[3];  // width
 
     output->dim[0] = input->dim[0];
     output->dim[1] = input->dim[1];
@@ -62,35 +62,34 @@ int main(int argc, char** argv)
     output->is_const = 0;
     output->quant_channel = 1;
 
-    params.min_value = buffer[4];
-    params.max_value = buffer[5];
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->min_value = buffer[4];
+    params->max_value = buffer[5];
+    params->base.api = CSINN_API;
 
-    float *src_in   = (float *)(buffer + 6);
-    float *ref      = (float *)(buffer + 6 + in_size);
+    float *src_in = (float *)(buffer + 6);
+    float *ref = (float *)(buffer + 6 + in_size);
     int8_t *src_tmp = malloc(in_size * sizeof(char));
 
     input->data = src_in;
     get_quant_info(input);
 
-    for(int i = 0; i < in_size; i++) {
-        src_tmp[i] = csi_ref_quantize_f32_to_i8(src_in[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp[i] = shl_ref_quantize_f32_to_i8(src_in[i], input->qinfo);
     }
 
     /* compute the max quantize error */
-    for(int i = 0; i < in_size; i++) {
+    for (int i = 0; i < in_size; i++) {
         float error1;
-        float output_tmp  = csi_ref_dequantize_i8_to_f32(src_tmp[i], input->qinfo);
-        if(isinf(src_in[i]) || isnan(src_in[i])){
+        float output_tmp = shl_ref_dequantize_i8_to_f32(src_tmp[i], input->qinfo);
+        if (isinf(src_in[i]) || isnan(src_in[i])) {
             continue;
         } else {
-            error1 = fabs(src_in[i] -output_tmp);
-            if(error1 > 1e-6) {
-                error1 = fabs(src_in[i] - output_tmp)/fabs(src_in[i] + 1e-9);
+            error1 = fabs(src_in[i] - output_tmp);
+            if (error1 > 1e-6) {
+                error1 = fabs(src_in[i] - output_tmp) / fabs(src_in[i] + 1e-9);
             }
         }
-        if(error1 > max_error) {
+        if (error1 > max_error) {
             max_error = error1;
         }
     }
@@ -98,15 +97,14 @@ int main(int argc, char** argv)
     output->data = ref;
     get_quant_info(output);
 
-    input->data     = src_tmp;
+    input->data = src_tmp;
     reference->data = ref;
-    output->data    = malloc(out_size * sizeof(char));
-
+    output->data = malloc(out_size * sizeof(char));
 
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_clip_init(input, output, &params) == CSINN_TRUE) {
-        csi_clip(input, output, &params);
+    if (csinn_clip_init(input, output, params) == CSINN_TRUE) {
+        csinn_clip(input, output, params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

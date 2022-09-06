@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
-                                   struct csi_tensor *alpha,
-                                   struct csi_tensor *output,
-                                   struct prelu_params *params)
+static int shl_c906_prelu_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                                   struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -68,8 +66,8 @@ static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
     //     for (int y = 0; y < output->dim[1]; ++y) {
     //         for (int x = 0; x < output->dim[2]; ++x) {
     //             for (int c = 0; c < output->dim[3]; ++c) {
-    //                 int output_index = csi_ref_get_index(output->dim, b, y, x, c);
-    //                 int input_index = csi_ref_get_index(input->dim, b, y, x, c);
+    //                 int output_index = shl_ref_get_index(output->dim, b, y, x, c);
+    //                 int input_index = shl_ref_get_index(input->dim, b, y, x, c);
     //                 float input_value = input_data[input_index];
     //                 if (input_value >= 0) {
     //                     output_data[output_index] = input_data[input_index];
@@ -83,10 +81,8 @@ static int csi_c906_prelu_nhwc_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-static int csi_c906_prelu_nchw_f32(struct csi_tensor *input,
-                                   struct csi_tensor *alpha,
-                                   struct csi_tensor *output,
-                                   struct prelu_params *params)
+static int shl_c906_prelu_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                                   struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -140,15 +136,13 @@ static int csi_c906_prelu_nchw_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_c906_prelu_f32(struct csi_tensor *input,
-                       struct csi_tensor *alpha,
-                       struct csi_tensor *output,
-                       struct prelu_params *params)
+int shl_c906_prelu_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                       struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_c906_prelu_nchw_f32(input, alpha, output, params);
+        shl_c906_prelu_nchw_f32(input, alpha, output, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_c906_prelu_nhwc_f32(input, alpha, output, params);
+        shl_c906_prelu_nhwc_f32(input, alpha, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
@@ -156,10 +150,8 @@ int csi_c906_prelu_f32(struct csi_tensor *input,
 
 
 // nchw layout
-int csi_c906_prelu_fp16(struct csi_tensor *input,
-                        struct csi_tensor *alpha,
-                        struct csi_tensor *output,
-                        struct prelu_params *params)
+int shl_c906_prelu_fp16(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                        struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

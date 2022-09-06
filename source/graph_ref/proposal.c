@@ -16,16 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_proposal(struct csi_tensor *cls_prob,
-                      struct csi_tensor *bbox_pred,
-                      struct csi_tensor *im_info,
-                      struct csi_tensor *output,
-                      struct proposal_params *params)
+int shl_gref_proposal(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_pred,
+                      struct csinn_tensor *im_info, struct csinn_tensor *output,
+                      struct csinn_proposal_params *params)
 {
-    csi_debug_error("csi_gref_proposal unsupport\n");
+    shl_debug_error("shl_gref_proposal unsupport\n");
     return CSINN_FALSE;
 }

@@ -16,37 +16,37 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of stack(layer).\n");
 
     int in_size = 1;
     int out_size = 1;
     int *buffer = read_input_data_f32(argv[1]);
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_stack_params *params = csinn_alloc_params(sizeof(struct csinn_stack_params), sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
 
-    struct stack_params params;
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-
-    params.inputs_count = buffer[0];
-    params.axis = buffer[1];
+    params->inputs_count = buffer[0];
+    params->axis = buffer[1];
     output->dim_count = buffer[2];
-    for(int i = 0; i < output->dim_count; i++) {
-        output->dim[i] = buffer[3+i];
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = buffer[3 + i];
         out_size *= output->dim[i];
     }
-    in_size = out_size / params.inputs_count;
+    in_size = out_size / params->inputs_count;
 
-    struct csi_tensor *input[params.inputs_count];
-    for (int i = 0; i < params.inputs_count; i++) {
-        input[i] = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input[params->inputs_count];
+    for (int i = 0; i < params->inputs_count; i++) {
+        input[i] = csinn_alloc_tensor(sess);
         input[i]->data = (float *)(buffer + 3 + output->dim_count + in_size * i);
         input[i]->dim_count = buffer[2] - 1;
         input[i]->layout = CSINN_LAYOUT_NCHW;
@@ -54,10 +54,10 @@ int main(int argc, char** argv)
         input[i]->quant_channel = 1;
         input[i]->dtype = CSINN_DTYPE_FLOAT32;
         for (int j = 0; j < input[i]->dim_count; j++) {
-            if (j < params.axis) {
-                input[i]->dim[j] = buffer[3+j];     // input[i]->dim[j] = output->dim[j]
+            if (j < params->axis) {
+                input[i]->dim[j] = buffer[3 + j];  // input[i]->dim[j] = output->dim[j]
             } else {
-                input[i]->dim[j] = buffer[3+j+1];   // input[i]->dim[j] = output->dim[j + 1]
+                input[i]->dim[j] = buffer[3 + j + 1];  // input[i]->dim[j] = output->dim[j + 1]
             }
         }
     }
@@ -66,15 +66,14 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
-    reference->data     = (float *)(buffer + 3 + output->dim_count + in_size * params.inputs_count);
-    output->data    = reference->data;
+    params->base.api = CSINN_API;
+    reference->data = (float *)(buffer + 3 + output->dim_count + in_size * params->inputs_count);
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    test_stack_CSINN_QUANT_FLOAT32((struct csi_tensor **)input, output, &params, &difference);
-    test_stack_CSINN_QUANT_UINT8_ASYM((struct csi_tensor **)input, output, &params, &difference);
-    test_stack_CSINN_QUANT_INT8_SYM((struct csi_tensor **)input, output, &params, &difference);
+    test_stack_CSINN_QUANT_FLOAT32((struct csinn_tensor **)input, output, params, &difference);
+    test_stack_CSINN_QUANT_UINT8_ASYM((struct csinn_tensor **)input, output, params, &difference);
+    test_stack_CSINN_QUANT_INT8_SYM((struct csinn_tensor **)input, output, params, &difference);
 
     return done_testing();
 }

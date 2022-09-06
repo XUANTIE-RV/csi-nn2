@@ -16,24 +16,24 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of batch normalization f32.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *mean = csi_alloc_tensor(NULL);
-    struct csi_tensor *variance = csi_alloc_tensor(NULL);
-    struct csi_tensor *beta = csi_alloc_tensor(NULL);
-    struct csi_tensor *gamma = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct bn_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *mean = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *variance = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *beta = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *gamma = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_bn_params *params = csinn_alloc_params(sizeof(struct csinn_bn_params), NULL);
     int size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -49,24 +49,27 @@ int main(int argc, char** argv)
 
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
-    params.base.layout = CSINN_LAYOUT_NHWC;
-    params.epsilon = *((float *)buffer + 1 + input->dim_count);
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.layout = CSINN_LAYOUT_NHWC;
+    params->epsilon = *((float *)buffer + 1 + input->dim_count);
+    params->base.api = CSINN_API;
 
-    input->data     = (float *)(buffer + 2 + input->dim_count);
-    mean->data      = (float *)(buffer + 2 + input->dim_count + size);
-    variance->data  = (float *)(buffer + 2 + input->dim_count + size + input->dim[input->dim_count - 1]);
-    gamma->data     = (float *)(buffer + 2 + input->dim_count + size + 2 * input->dim[input->dim_count - 1]);
-    beta->data      = (float *)(buffer + 2 + input->dim_count + size + 3 * input->dim[input->dim_count - 1]);
-    reference->data = (float *)(buffer + 2 + input->dim_count + size + 4 * input->dim[input->dim_count - 1]);
-    output->data    = malloc(size * sizeof(float));
+    input->data = (float *)(buffer + 2 + input->dim_count);
+    mean->data = (float *)(buffer + 2 + input->dim_count + size);
+    variance->data =
+        (float *)(buffer + 2 + input->dim_count + size + input->dim[input->dim_count - 1]);
+    gamma->data =
+        (float *)(buffer + 2 + input->dim_count + size + 2 * input->dim[input->dim_count - 1]);
+    beta->data =
+        (float *)(buffer + 2 + input->dim_count + size + 3 * input->dim[input->dim_count - 1]);
+    reference->data =
+        (float *)(buffer + 2 + input->dim_count + size + 4 * input->dim[input->dim_count - 1]);
+    output->data = malloc(size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 1e-1;
 
-    if (csi_batch_normalization_init(input, mean, variance, gamma, beta, output, &params) == CSINN_TRUE) {
-        csi_batch_normalization(input, mean, variance, gamma, beta, output, &params);
+    if (csinn_batch_normalization_init(input, mean, variance, gamma, beta, output, params) ==
+        CSINN_TRUE) {
+        csinn_batch_normalization(input, mean, variance, gamma, beta, output, params);
     }
-
 
     result_verify_f32(reference->data, output->data, input->data, difference, size, false);
 

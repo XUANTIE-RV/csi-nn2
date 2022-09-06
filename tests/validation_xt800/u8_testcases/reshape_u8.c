@@ -16,23 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "../valid_data/reshape_u8.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "../valid_data/reshape_u8.dat"
+#include "test_utils.h"
 
-
-static void verify_reshape_u8(float *input_data,
-                              float *ref_data,
-                              int32_t size,
-                              float difference)
+static void verify_reshape_u8(float *input_data, float *ref_data, int32_t size, float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, out_size;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = 1;
     input->dim[1] = 1;
     input->dim[2] = 1;
@@ -46,12 +42,12 @@ static void verify_reshape_u8(float *input_data,
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
 
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        src_tmp[i] = csi_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp[i] = shl_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
     }
     input->data = src_tmp;
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = 1;
     output->dim[2] = 1;
@@ -65,17 +61,17 @@ static void verify_reshape_u8(float *input_data,
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
     output->data = malloc(out_size);
 
-    struct reshape_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
+    struct csinn_reshape_params *params =
+        csinn_alloc_params(sizeof(struct csinn_reshape_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    if (csi_reshape_init(input, output, &params) == CSINN_TRUE) {
-        csi_reshape(input, output, &params);
+    if (csinn_reshape_init(input, output, params) == CSINN_TRUE) {
+        csinn_reshape(input, output, params);
     }
 
-    reference->data  = (float *)ref_data;
+    reference->data = (float *)ref_data;
     result_verify_8(reference->data, output, input->data, difference, out_size, false);
     free(input);
     free(output->data);
@@ -84,8 +80,7 @@ static void verify_reshape_u8(float *input_data,
     free(src_tmp);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of reshape(u8) for i805.\n");
 

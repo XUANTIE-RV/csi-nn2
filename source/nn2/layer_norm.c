@@ -16,37 +16,33 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_layer_norm_init(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct csi_tensor *gamma,
-                        struct csi_tensor *beta,
-                        struct layer_norm_params *params)
+int csinn_layer_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                          struct csinn_layer_norm_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_LAYER_NORM, input->dtype);
-    if (params->base.bc == NULL)
-    {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_LAYER_NORM, input->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, gamma, beta, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_layer_norm(struct csi_tensor *input,
-                   struct csi_tensor *output,
-                   struct csi_tensor *gamma,
-                   struct csi_tensor *beta,
-                   struct layer_norm_params *params)
+int csinn_layer_norm(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                     struct csinn_layer_norm_params *params)
 {
-    CSI_DEBUG_CALL(csi_layer_norm_debug_info(input, output, gamma, beta, params, __func__));
-    if (params->base.bc != NULL)
-    {
-        params->base.bc(input, output, gamma, beta, params);
-    }
-    else
-    {
+    SHL_DEBUG_CALL(shl_layer_norm_debug_info(input, output, gamma, beta, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, gamma, beta, params);
+    } else {
         return CSINN_CALLBACK_UNSET;
     }
     return CSINN_TRUE;

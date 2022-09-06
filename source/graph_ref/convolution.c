@@ -16,77 +16,62 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_conv2d(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct csi_tensor *kernel,
-                    struct csi_tensor *bias,
-                    struct conv2d_params *params)
+int shl_gref_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                    struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_conv2d_relu(struct csi_tensor *input,
-                         struct csi_tensor *output,
-                         struct csi_tensor *kernel,
-                         struct csi_tensor *bias,
-                         struct conv2d_params *params)
+int shl_gref_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D_RELU, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D_RELU, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_conv2d_relu6(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct csi_tensor *kernel,
-                          struct csi_tensor *bias,
-                          struct conv2d_params *params)
+int shl_gref_conv2d_relu6(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                          struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D_RELU6, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_CONV2D_RELU6, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_depthwise_conv2d(struct csi_tensor *input,
-                              struct csi_tensor *output,
-                              struct csi_tensor *kernel,
-                              struct csi_tensor *bias,
-                              struct conv2d_params *params)
+int shl_gref_depthwise_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                              struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_depthwise_conv2d_relu(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *kernel,
-                                   struct csi_tensor *bias,
-                                   struct conv2d_params *params)
+int shl_gref_depthwise_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                   struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D_RELU, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D_RELU, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_depthwise_conv2d_relu6(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct csi_tensor *kernel,
-                                    struct csi_tensor *bias,
-                                    struct conv2d_params *params)
+int shl_gref_depthwise_conv2d_relu6(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                    struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D_RELU6, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_CONV2D_RELU6, params);
     return CSINN_TRUE;
 }
 
-int csi_gref_group_conv2d(struct csi_tensor *input,
-                          struct csi_tensor *output,
-                          struct csi_tensor *kernel,
-                          struct csi_tensor *bias,
-                          struct conv2d_params *params)
+int shl_gref_group_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                          struct csinn_conv2d_params *params)
 {
-    csi_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_GROUP_CONV2D, params);
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_GROUP_CONV2D, params);
     return CSINN_TRUE;
 }
-

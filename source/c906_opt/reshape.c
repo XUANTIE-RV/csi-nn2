@@ -16,18 +16,18 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_reshape_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                          struct reshape_params *params)
+int shl_c906_reshape_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_reshape_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    int size = csi_tensor_byte_size(input);
+    int size = csinn_tensor_byte_size(input);
     if (input_data != output_data) {
-        csi_c906_memcpy(output_data, input_data, size);
+        shl_c906_memcpy(output_data, input_data, size);
     }
     return CSINN_TRUE;
 }

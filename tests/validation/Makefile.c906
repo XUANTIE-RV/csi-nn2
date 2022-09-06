@@ -4,7 +4,7 @@ CFLAGS = -O0 -g3 -static
 CFLAGS += -march=rv64gcvxthead -mabi=lp64dv
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
 CFLAGS += -DCSINN_API=3
-LIB_NAME = csi_nn2_c906
+LIB_NAME = shl_c906
 CC = riscv64-unknown-linux-gnu-gcc
 
 test_objs =

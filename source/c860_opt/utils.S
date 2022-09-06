@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 /**
  *
- * void csi_dequantize_f32_c860(
+ * void shl_c860_dequantize_f32(
  * uint8_t  *input,
  * float    *output,
  * int32_t  offset,
@@ -31,11 +31,11 @@
 **/
 
     .file           "utils.S"
-    .section        .text.csi_dequantize_f32_c860,"ax",@progbits
+    .section        .text.shl_c860_dequantize_f32,"ax",@progbits
     .align          2
-    .global         csi_dequantize_f32_c860
+    .global         shl_c860_dequantize_f32
 
-csi_dequantize_f32_c860:
+shl_c860_dequantize_f32:
     ld.w            t0, (sp, 0x4)           // length
     ld.w            t3, (sp, 0x0)           // shift
     vdupg.32        vr0, a3
@@ -98,5 +98,5 @@ csi_dequantize_f32_c860:
 
 .L4:
     rts
-    .size           csi_dequantize_f32_c860, .-csi_dequantize_f32_c860
+    .size           shl_c860_dequantize_f32, .-shl_c860_dequantize_f32
 

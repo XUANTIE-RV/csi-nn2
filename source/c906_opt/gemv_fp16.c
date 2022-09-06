@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
     change memory layout for matrix [k * n] by Z shape
     Z length: 8
 */
-void csi_c906_reorder_matrix_z8_fp16(__fp16 *src, __fp16 *dst, int k, int n, int ldx)
+void shl_c906_reorder_matrix_z8_fp16(__fp16* src, __fp16* dst, int k, int n, int ldx)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
@@ -106,7 +106,7 @@ void csi_c906_reorder_matrix_z8_fp16(__fp16 *src, __fp16 *dst, int k, int n, int
     );
 }
 
-void csi_c906_reorder_matrix_z16_fp16(__fp16 *src, __fp16 *dst, int k, int n, int ldx)
+void shl_c906_reorder_matrix_z16_fp16(__fp16* src, __fp16* dst, int k, int n, int ldx)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m2\n\t"    // set vl = 8
@@ -191,24 +191,22 @@ void csi_c906_reorder_matrix_z16_fp16(__fp16 *src, __fp16 *dst, int k, int n, in
     vector: 1 x k
     matrix: n x k
 */
-void csi_c906_gemv_pack8_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n, int ldc, __fp16* bias)
+void shl_c906_gemv_pack8_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n,
+                              int ldc, __fp16* bias)
 {
-
-
 }
 
-void csi_c906_gemv_pack16_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n, int ldc, __fp16* bias)
+void shl_c906_gemv_pack16_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n,
+                               int ldc, __fp16* bias)
 {
-
-
 }
-
 
 /*
     vector: 1 x k
     matrix: k x n
 */
-void csi_c906_gemv_trans_pack8_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n, int ldc, __fp16* bias)
+void shl_c906_gemv_trans_pack8_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n,
+                                    int ldc, __fp16* bias)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m1\n\t"    // set vl = 8
@@ -311,8 +309,8 @@ void csi_c906_gemv_trans_pack8_fp16(__fp16* dst, const __fp16* sa, const __fp16*
 
 }
 
-
-void csi_c906_gemv_trans_pack16_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n, int ldc, __fp16* bias)
+void shl_c906_gemv_trans_pack16_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb, int k, int n,
+                                     int ldc, __fp16* bias)
 {
     asm volatile(
         "vsetvli        zero, zero, e16, m2\n\t"    // set vl = 8

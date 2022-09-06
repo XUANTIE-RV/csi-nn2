@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_unstack(struct csi_tensor *input,
-                     struct csi_tensor **output,
-                     struct unstack_params *params)
+int shl_gref_unstack(struct csinn_tensor *input, struct csinn_tensor **output,
+                     struct csinn_unstack_params *params)
 {
-    csi_debug_error("csi_gref_unstack unsupport\n");
+    shl_debug_error("shl_gref_unstack unsupport\n");
     return CSINN_FALSE;
 }

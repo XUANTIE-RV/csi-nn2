@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256 ...
 *************************************************************/
-int csi_nn_rvv_leaky_relu_fp32(struct csi_tensor *input, struct csi_tensor *output,
-                               struct relu_params *params)
+int shl_rvv_leaky_relu_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_relu_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     float alpha = params->n;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
     while (size > 0) {
         int vl = vsetvl_e32m2(size);
         vfloat32m2_t _input = vle32_v_f32m2(input_data, vl);
@@ -43,13 +43,13 @@ int csi_nn_rvv_leaky_relu_fp32(struct csi_tensor *input, struct csi_tensor *outp
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_leaky_relu_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                               struct relu_params *params)
+int shl_rvv_leaky_relu_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_relu_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 alpha = (__fp16)params->n;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
     while (size > 0) {
         int vl = vsetvl_e16m2(size);
         vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
@@ -69,17 +69,17 @@ int csi_nn_rvv_leaky_relu_fp16(struct csi_tensor *input, struct csi_tensor *outp
  * else q2 = s1/s2 * alpha * (q1 -z1) + z2
  * constrains: params->n < 0.5
  * ******************************************************************/
-int csi_nn_rvv_leaky_relu_int8(struct csi_tensor *input, struct csi_tensor *output,
-                               struct relu_params *params)
+int shl_rvv_leaky_relu_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_relu_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
     // TODO: move to init api
     float real_scale0 = input->qinfo->scale / output->qinfo->scale;
-    csi_quantize_multiplier(real_scale0, &output->qinfo->multiplier, &output->qinfo->shift);
+    shl_quantize_multiplier(real_scale0, &output->qinfo->multiplier, &output->qinfo->shift);
 
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
     while (size > 0) {
         int vl = vsetvl_e8m1(size);
         vint8m1_t _input = vle8_v_i8m1(input_data, vl);

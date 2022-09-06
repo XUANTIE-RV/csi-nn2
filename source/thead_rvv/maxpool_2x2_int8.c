@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /****************************************************************************
  * note: VLEN = 128/256 ...
  * constrains: Input and outputs must all have same scale/zero_point
  ****************************************************************************/
-int csi_nn_rvv_maxpool2x2s2_int8(struct csi_tensor *input, struct csi_tensor *output,
-                                 struct pool_params *params)
+int shl_rvv_maxpool2x2s2_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -120,8 +120,8 @@ int csi_nn_rvv_maxpool2x2s2_int8(struct csi_tensor *input, struct csi_tensor *ou
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_maxpool2x2s2_p1_int8(struct csi_tensor *input, struct csi_tensor *output,
-                                    struct pool_params *params)
+int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_pool_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;

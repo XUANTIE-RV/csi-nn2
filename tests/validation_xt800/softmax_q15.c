@@ -16,56 +16,51 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "./valid_data/softmax_data.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "./valid_data/softmax_data.dat"
+#include "test_utils.h"
 
-
-static void verify_softmax_q15(void *input_data,
-                               void *ref_data,
-                               int32_t size,
-                               float difference)
+static void verify_softmax_q15(void *input_data, void *ref_data, int32_t size, float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, out_size;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = size;
     input->dim_count = 1;
     input->dtype = CSINN_DTYPE_INT16;
     input->name = "input";
     in_size = input->dim[0];
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = input->dim[0];
     output->dim_count = 1;
     output->dtype = CSINN_DTYPE_INT16;
     output->name = "output";
     out_size = output->dim[0];
 
-    struct softmax_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
+    struct csinn_softmax_params *params =
+        csinn_alloc_params(sizeof(struct csinn_softmax_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    input->data      = (uint16_t *)input_data;
-    reference->data  = (uint16_t *)ref_data;
+    input->data = (uint16_t *)input_data;
+    reference->data = (uint16_t *)ref_data;
 
-    if (csi_softmax_init(input, output, &params) == CSINN_TRUE) {
-        csi_softmax(input, output, &params);
+    if (csinn_softmax_init(input, output, params) == CSINN_TRUE) {
+        csinn_softmax(input, output, params);
     }
     result_verify_q15(reference->data, output->data, input->data, difference, out_size, false);
     free(input);
     free(output);
     free(reference);
-}      
+}
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of softmax q15 for xt800.\n");
 

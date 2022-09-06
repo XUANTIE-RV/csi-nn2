@@ -16,30 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_topk_init(struct csi_tensor *input,
-                  struct csi_tensor *output1,
-                  struct csi_tensor *output2,
-                  struct topk_params *params)
+int csinn_topk_init(struct csinn_tensor *input, struct csinn_tensor *output1,
+                    struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_TOPK, input->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_TOPK, input->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, output1, output2, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_topk(struct csi_tensor *input,
-             struct csi_tensor *output1,
-             struct csi_tensor *output2,
-             struct topk_params *params)
+int csinn_topk(struct csinn_tensor *input, struct csinn_tensor *output1,
+               struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
-    CSI_DEBUG_CALL(csi_topk_debug_info(input, output1, output2, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, output1, output2, params);
+    SHL_DEBUG_CALL(shl_topk_debug_info(input, output1, output2, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, output1, output2, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

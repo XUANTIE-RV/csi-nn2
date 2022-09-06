@@ -16,43 +16,44 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-void op_test_run(struct csi_tensor *input, struct csi_tensor *output,
-                 struct siso_params *params, float *output_data, float diff)
+void op_test_run(struct csinn_tensor *input, struct csinn_tensor *output,
+                 struct csinn_siso_params *params, float *output_data, float diff)
 {
-
-    if (csi_not_init(input, output, params) == CSINN_TRUE) {
-        csi_not(input, output, params);
+    if (csinn_not_init(input, output, params) == CSINN_TRUE) {
+        csinn_not(input, output, params);
     }
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    result_verify_f32(output_data, foutput->data, input->data, diff, csi_tensor_size(output),
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    result_verify_f32(output_data, foutput->data, input->data, diff, csinn_tensor_size(output),
                       false);
 
-    csi_ref_tensor_transform_free_f32(foutput);
+    shl_ref_tensor_transform_free_f32(foutput);
 }
 
-void test_not(struct csi_tensor *input, struct csi_tensor *output,
-              struct siso_params *params, float &difference);
+void test_not(struct csinn_tensor *input, struct csinn_tensor *output,
+              struct csinn_siso_params *params, float &difference);
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of not(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct siso_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_siso_params *params = csinn_alloc_params(sizeof(struct csinn_siso_params), sess);
     int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
     input->dim_count = buffer[0];
     output->dim_count = input->dim_count;
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         input->dim[i] = buffer[i + 1];
         output->dim[i] = input->dim[i];
         in_size *= input->dim[i];
@@ -67,15 +68,14 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    input->data    = (float *)(buffer + 1 + input->dim_count);
+    input->data = (float *)(buffer + 1 + input->dim_count);
     reference->data = (float *)(buffer + 1 + input->dim_count + in_size);
-    output->data    = reference->data;
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    test_not(input, output, &params, &difference);
+    test_not(input, output, params, &difference);
 
     return done_testing();
 }

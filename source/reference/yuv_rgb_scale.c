@@ -16,16 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 /* https://github.com/tensorflow/tensorflow/blob/v2.3.0/tensorflow/python/ops/image_ops_impl.py#L3279-L3325
  * line 3279*/
 
-int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input, struct csi_tensor *output,
-                              struct siso_params *params)
+int shl_ref_yuv_rgb_scale_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -53,8 +52,8 @@ int csi_ref_yuv_rgb_scale_f32(struct csi_tensor *input, struct csi_tensor *outpu
     return CSINN_TRUE;
 }
 
-int csi_ref_yuv_rgb_scale_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                struct siso_params *params)
+int shl_ref_yuv_rgb_scale_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_siso_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_yuv_rgb_scale_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_yuv_rgb_scale_f32);
 }

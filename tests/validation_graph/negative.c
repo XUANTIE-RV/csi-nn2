@@ -16,33 +16,32 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of negative(graph).\n");
 
     int *buffer = read_input_data_f32(argv[1]);
 
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size = 1, out_size = 1;
     enum csinn_dtype_enum test_dtype = CSINN_TEST_DTYPE;
     /* session configuration */
-    struct csi_session *sess = csi_alloc_session();
+    struct csinn_session *sess = csinn_alloc_session();
     sess->base_api = CSINN_API;
-    csi_session_init(sess);
-    csi_set_input_number(1, sess);
-    csi_set_output_number(1, sess);
-
+    csinn_session_init(sess);
+    csinn_set_input_number(1, sess);
+    csinn_set_output_number(1, sess);
 
     /* input tensor configuration */
-    struct csi_tensor *input  = csi_alloc_tensor(sess);
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
     input->dim_count = buffer[0];
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         input->dim[i] = buffer[1 + i];
         in_size *= input->dim[i];
     }
@@ -53,9 +52,9 @@ int main(int argc, char** argv)
     input->dtype = CSINN_DTYPE_FLOAT32;
 
     /* output tensor configuration */
-    struct csi_tensor *output = csi_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
     output->dim_count = input->dim_count;
-    for(int i = 0; i < output->dim_count; i++) {
+    for (int i = 0; i < output->dim_count; i++) {
         output->dim[i] = input->dim[i];
         out_size *= output->dim[i];
     }
@@ -64,48 +63,47 @@ int main(int argc, char** argv)
     output->name = "output";
     get_quant_info(output);
 
-
     /* operator parameter configuration */
-    struct siso_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_NPU_GRAPH;
+    struct csinn_siso_params *params = csinn_alloc_params(sizeof(struct csinn_siso_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
 
-    struct csi_tensor *input_tensor = convert_input(input, test_dtype);
+    struct csinn_tensor *input_tensor = convert_input(input, test_dtype);
     input->dtype = sess->base_dtype;
     /* light: unsupport negative now*/
-    if (csi_negative_init(input, output, &params) != CSINN_TRUE) {
+    if (csinn_negative_init(input, output, params) != CSINN_TRUE) {
         printf("negative init fail.\n\t");
         return -1;
     }
 
-    csi_set_tensor_entry(input, sess);
-    csi_set_input(0, input, sess);
+    csinn_set_tensor_entry(input, sess);
+    csinn_set_input(0, input, sess);
 
-    csi_negative(input, output, &params);
+    csinn_negative(input, output, params);
 
-    csi_set_output(0, output, sess);
-    csi_session_setup(sess);
+    csinn_set_output(0, output, sess);
+    csinn_session_setup(sess);
 
-    csi_update_input(0, input_tensor, sess);
-    csi_session_run(sess);
+    csinn_update_input(0, input_tensor, sess);
+    csinn_session_run(sess);
 
-    struct csi_tensor *output_tensor = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output_tensor = csinn_alloc_tensor(NULL);
     output_tensor->data = NULL;
     output_tensor->dtype = sess->base_dtype;
     output_tensor->is_const = 0;
-    int output_num = csi_get_output_number(sess);
+    int output_num = csinn_get_output_number(sess);
     printf("output_num = %d\n", output_num);
-    csi_get_output(0, output_tensor, sess);
-    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csi_quant_info));
+    csinn_get_output(0, output_tensor, sess);
+    memcpy(output_tensor->qinfo, output->qinfo, sizeof(struct csinn_quant_info));
 
     /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
     if (sess->base_dtype == CSINN_DTYPE_UINT8 || sess->base_dtype == CSINN_DTYPE_INT8) {
         result_verify_8(reference->data, output_tensor, input->data, difference, out_size, false);
-    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32 && output_tensor->dtype == CSINN_DTYPE_INT8) {
-        struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output_tensor);
+    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT32 &&
+               output_tensor->dtype == CSINN_DTYPE_INT8) {
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output_tensor);
         result_verify_f32(reference->data, foutput->data, input->data, difference, out_size, false);
     }
 
@@ -118,7 +116,7 @@ int main(int argc, char** argv)
     free(reference->qinfo);
     free(reference);
 
-    csi_session_deinit(sess);
-    csi_free_session(sess);
+    csinn_session_deinit(sess);
+    csinn_free_session(sess);
     return done_testing();
 }

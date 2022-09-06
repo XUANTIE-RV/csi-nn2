@@ -16,39 +16,38 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_i805.h"
+#include "i805_function.h"
+#include "shl_i805.h"
 
-
-static int csi_i805_maxpool2d_q7(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct pool_params *params)
+static int shl_i805_maxpool2d_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_pool_params *params)
 {
-    q7_t *input_data  = (q7_t *)input->data;
+    q7_t *input_data = (q7_t *)input->data;
     q7_t *output_data = (q7_t *)output->data;
 
     uint16_t batch = input->dim[0];
-    uint16_t in_hw = input->dim[1]; // e.g. in_hw = input->dim[2];
+    uint16_t in_hw = input->dim[1];  // e.g. in_hw = input->dim[2];
     uint16_t in_c = input->dim[3];
 
-    uint16_t out_hw = output->dim[1]; // e.g. out_hw = output->dim[2]
+    uint16_t out_hw = output->dim[1];  // e.g. out_hw = output->dim[2]
 
     q7_t buffer_tmp[out_hw * out_hw * in_c];  // buffer_size = out_h * out_w * channel
 
     csky_vdsp2_maxpool2d_q7_HWC(input_data, in_hw, in_c, params->filter_height, params->pad_top,
-                              params->stride_height, out_hw, buffer_tmp, output_data);
+                                params->stride_height, out_hw, buffer_tmp, output_data);
 
     return CSINN_TRUE;
 }
 
-int csi_i805_maxpool2d_init_q7(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+int shl_i805_maxpool2d_init_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     uint8_t flag = 0;
-    if ( (params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ||
-         (params->pad_top != params->pad_left) ) {
+    if ((params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ||
+        (params->pad_top != params->pad_left)) {
         flag |= 0x01;
     }
     if (input->dim[1] != input->dim[2]) {
@@ -61,26 +60,26 @@ int csi_i805_maxpool2d_init_q7(struct csi_tensor *input,
         flag |= 0x08;
     }
     if (flag > 0) {
-        csi_debug_warning("maxpool q7 is not optimized to achieve under this condition on i805, call reference func replaced.\n");
-        params->base.bc = csi_ref_maxpool2d_quant;
+        shl_debug_warning(
+            "maxpool q7 is not optimized to achieve under this condition on i805, call reference "
+            "func replaced.\n");
+        cb->exec = shl_ref_maxpool2d_quant;
     } else {
-        params->base.bc = csi_i805_maxpool2d_q7;
+        cb->exec = shl_i805_maxpool2d_q7;
     }
     return CSINN_TRUE;
 }
 
-
-int csi_i805_maxpool2d_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct pool_params *params)
+int shl_i805_maxpool2d_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_pool_params *params)
 {
-    uint8_t *input_data  = (uint8_t *)input->data;
+    uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
 
     uint16_t batch = input->dim[0];
-    uint16_t in_h  = input->dim[1];
-    uint16_t in_w  = input->dim[2];
-    uint16_t in_c  = input->dim[3];
+    uint16_t in_h = input->dim[1];
+    uint16_t in_w = input->dim[2];
+    uint16_t in_c = input->dim[3];
 
     uint16_t out_h = output->dim[1];
     uint16_t out_w = output->dim[2];
@@ -92,8 +91,8 @@ int csi_i805_maxpool2d_u8(struct csi_tensor *input,
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
 
-    csi_i805_maxpool2d_opt_u8(input_data, output_data, in_h, in_w, in_c, ker_h, ker_w,
-                            pad_h, pad_w, stride_h, stride_w, out_h, out_w);
+    shl_i805_maxpool2d_opt_u8(input_data, output_data, in_h, in_w, in_c, ker_h, ker_w, pad_h, pad_w,
+                              stride_h, stride_w, out_h, out_w);
 
     return CSINN_TRUE;
 }

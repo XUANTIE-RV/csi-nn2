@@ -16,19 +16,77 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-int csi_nn_rvv_mul_fp32(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+static void element_mul_fp32(float *input0, float *input1, float *output, int size)
 {
+    while (size > 0) {
+        int vl = vsetvl_e32m2(size);
+        vfloat32m2_t _in0 = vle32_v_f32m2(input0, vl);
+        vfloat32m2_t _in1 = vle32_v_f32m2(input1, vl);
+        vfloat32m2_t _sum = vfmul_vv_f32m2(_in0, _in1, vl);
+        vse32_v_f32m2(output, _sum, vl);
+        input0 += vl;
+        input1 += vl;
+        output += vl;
+        size -= vl;
+    }
+}
+
+int shl_rvv_mul_fp32(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    float *input0_data = (float *)input0->data;
+    float *input1_data = (float *)input1->data;
+    float *output_data = (float *)output->data;
+
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
+
+    if (in_size0 == in_size1) {
+        element_mul_fp32(input0_data, input1_data, output_data, out_size);
+    } else {
+        shl_debug_error("unsupport broadcast mul for fp32\n");
+        return CSINN_FALSE;
+    }
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_mul_fp16(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+static void element_mul_fp16(__fp16 *input0, __fp16 *input1, __fp16 *output, int size)
 {
+    while (size > 0) {
+        int vl = vsetvl_e16m2(size);
+        vfloat16m2_t _in0 = vle16_v_f16m2(input0, vl);
+        vfloat16m2_t _in1 = vle16_v_f16m2(input1, vl);
+        vfloat16m2_t _sum = vfmul_vv_f16m2(_in0, _in1, vl);
+        vse16_v_f16m2(output, _sum, vl);
+        input0 += vl;
+        input1 += vl;
+        output += vl;
+        size -= vl;
+    }
+}
+
+int shl_rvv_mul_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    __fp16 *input0_data = (__fp16 *)input0->data;
+    __fp16 *input1_data = (__fp16 *)input1->data;
+    __fp16 *output_data = (__fp16 *)output->data;
+
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
+
+    if (in_size0 == in_size1) {
+        element_mul_fp16(input0_data, input1_data, output_data, out_size);
+    } else {
+        shl_debug_error("unsupport broadcast mul for fp16\n");
+        return CSINN_FALSE;
+    }
     return CSINN_TRUE;
 }
 
@@ -40,21 +98,21 @@ right shift(>0)
     TODO: broadcast mul
     note: if input1 is const, support per-channel quantization
 ************************************************************************************/
-int csi_nn_rvv_mul_int8(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+int shl_rvv_mul_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     int8_t *input0_data = (int8_t *)input0->data;
     int8_t *input1_data = (int8_t *)input1->data;
     int8_t *output_data = (int8_t *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     // TODO: move to init api
     for (int q = 0; q < input1->quant_channel; q++) {
         float real_scale = input0->qinfo->scale * input1->qinfo[q].scale / output->qinfo->scale;
-        csi_quantize_multiplier(real_scale, &input1->qinfo[q].multiplier, &input1->qinfo[q].shift);
+        shl_quantize_multiplier(real_scale, &input1->qinfo[q].multiplier, &input1->qinfo[q].shift);
     }
 
     if (in_size0 == in_size1) {
@@ -96,7 +154,7 @@ int csi_nn_rvv_mul_int8(struct csi_tensor *input0, struct csi_tensor *input1,
             }
         }
     } else {
-        csi_debug_error("Only support elementwise mul on RVV CPU\n");
+        shl_debug_error("Only support elementwise mul on RVV CPU\n");
     }
     return CSINN_TRUE;
 }

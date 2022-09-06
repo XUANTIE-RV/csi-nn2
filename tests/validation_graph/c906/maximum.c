@@ -16,66 +16,65 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-void op_test_run(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-                 struct diso_params *params, struct csi_session *sess,
-                 struct csi_tensor *real_input0, struct csi_tensor *real_input1, float *output_data,
-                 float diff);
+void op_test_run(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                 struct csinn_tensor *output, struct csinn_diso_params *params,
+                 struct csinn_session *sess, struct csinn_tensor *real_input0,
+                 struct csinn_tensor *real_input1, float *output_data, float diff);
 
-void test_f16(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-              struct diso_params *params, float difference)
+void test_f16(struct csinn_tensor *input0, struct csinn_tensor *input1, struct csinn_tensor *output,
+              struct csinn_diso_params *params, float difference)
 {
     printf("test maximum f16\n");
-    struct csi_session *sess = csi_alloc_session();
+    struct csinn_session *sess = csinn_alloc_session();
     sess->base_api = CSINN_C906;
     sess->base_run_mode = CSINN_RM_CPU_GRAPH;
     sess->base_dtype = CSINN_DTYPE_FLOAT16;
     sess->base_quant_type = CSINN_QUANT_FLOAT16;
-    // sess->debug_level = CSI_DEBUG_LEVEL_INFO;
+    // sess->debug_level = CSINN_DEBUG_LEVEL_INFO;
     params->base.sess = sess;
     enum csinn_dtype_enum test_dtype = CSINN_DTYPE_FLOAT16;
 
-    struct csi_tensor *qinput0 = convert_f32_input(input0, test_dtype, sess);
-    struct csi_tensor *qinput1 = convert_f32_input(input1, test_dtype, sess);
-    struct csi_tensor *qoutput = convert_f32_input(output, test_dtype, sess);
-    struct csi_tensor *real_input0 = convert_f32_input(input0, test_dtype, sess);
-    struct csi_tensor *real_input1 = convert_f32_input(input1, test_dtype, sess);
+    struct csinn_tensor *qinput0 = convert_f32_input(input0, test_dtype, sess);
+    struct csinn_tensor *qinput1 = convert_f32_input(input1, test_dtype, sess);
+    struct csinn_tensor *qoutput = convert_f32_input(output, test_dtype, sess);
+    struct csinn_tensor *real_input0 = convert_f32_input(input0, test_dtype, sess);
+    struct csinn_tensor *real_input1 = convert_f32_input(input1, test_dtype, sess);
     op_test_run(qinput0, qinput1, qoutput, params, sess, real_input0, real_input1, output->data,
                 difference);
 }
 
-void test_f32(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-              struct diso_params *params, float difference)
+void test_f32(struct csinn_tensor *input0, struct csinn_tensor *input1, struct csinn_tensor *output,
+              struct csinn_diso_params *params, float difference)
 {
     printf("test maximum f32\n");
-    struct csi_session *sess = csi_alloc_session();
+    struct csinn_session *sess = csinn_alloc_session();
     sess->base_api = CSINN_C906;
     sess->base_run_mode = CSINN_RM_CPU_GRAPH;
     sess->base_dtype = CSINN_DTYPE_FLOAT32;
     sess->base_quant_type = CSINN_QUANT_FLOAT32;
-    // sess->debug_level = CSI_DEBUG_LEVEL_INFO;
+    // sess->debug_level = CSINN_DEBUG_LEVEL_INFO;
     params->base.sess = sess;
     enum csinn_dtype_enum test_dtype = CSINN_DTYPE_FLOAT32;
 
-    struct csi_tensor *qinput0 = convert_f32_input(input0, test_dtype, sess);
-    struct csi_tensor *qinput1 = convert_f32_input(input1, test_dtype, sess);
-    struct csi_tensor *qoutput = convert_f32_input(output, test_dtype, sess);
-    struct csi_tensor *real_input0 = convert_f32_input(input0, test_dtype, sess);
-    struct csi_tensor *real_input1 = convert_f32_input(input1, test_dtype, sess);
+    struct csinn_tensor *qinput0 = convert_f32_input(input0, test_dtype, sess);
+    struct csinn_tensor *qinput1 = convert_f32_input(input1, test_dtype, sess);
+    struct csinn_tensor *qoutput = convert_f32_input(output, test_dtype, sess);
+    struct csinn_tensor *real_input0 = convert_f32_input(input0, test_dtype, sess);
+    struct csinn_tensor *real_input1 = convert_f32_input(input1, test_dtype, sess);
     op_test_run(qinput0, qinput1, qoutput, params, sess, real_input0, real_input1, output->data,
                 difference);
 }
 
-void test_maximum(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-                  struct diso_params *params, float difference)
+void test_maximum(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                  struct csinn_tensor *output, struct csinn_diso_params *params, float difference)
 {
     params->base.api = CSINN_C906;
-    params->base.run_mode = CSINN_RM_CPU_GRAPH;
 
     test_f16(input0, input1, output, params, difference);
     test_f32(input0, input1, output, params, difference);

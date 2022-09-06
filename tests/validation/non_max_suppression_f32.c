@@ -16,21 +16,22 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of non_max_suppression f32.\n");
 
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct non_max_suppression_params params;
+    struct csinn_tensor *input1 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *input0 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_non_max_suppression_params *params =
+        csinn_alloc_params(sizeof(struct csinn_non_max_suppression_params), NULL);
     int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -40,28 +41,27 @@ int main(int argc, char** argv)
     input0->dim[1] = 4;
     input1->dim[0] = buffer[0];
 
-    params.max_output_size = buffer[1];
-    params.iou_threshold = *((float *)buffer + 3);
+    params->max_output_size = buffer[1];
+    params->iou_threshold = *((float *)buffer + 3);
 
     output->dim_count = 2;
-    output->dim[0] = params.max_output_size;
+    output->dim[0] = params->max_output_size;
     output->dim[1] = 4;
 
-    in_size  = input0->dim[0] * 4;
+    in_size = input0->dim[0] * 4;
     out_size = buffer[2];
 
     input0->dtype = CSINN_DTYPE_FLOAT32;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    input0->data    = (float *)(buffer + 4);
-    input1->data    = (float *)(buffer + 4 + in_size);
+    input0->data = (float *)(buffer + 4);
+    input1->data = (float *)(buffer + 4 + in_size);
     reference->data = (int *)(buffer + 4 + in_size + in_size / 4);
-    output->data    = (int *)malloc(out_size * sizeof(int));
+    output->data = (int *)malloc(out_size * sizeof(int));
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_non_max_suppression_init(input0, input1, output, &params) == CSINN_TRUE) {
-        csi_non_max_suppression(input0, input1, output, &params);
+    if (csinn_non_max_suppression_init(input0, input1, output, params) == CSINN_TRUE) {
+        csinn_non_max_suppression(input0, input1, output, params);
     }
 
     result_verify_int32(reference->data, output->data, input0->data, difference, out_size, false);

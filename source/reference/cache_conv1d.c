@@ -16,31 +16,31 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_internal.h"
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_cache_conv1d_init(struct csi_tensor *input, struct csi_tensor *output,
-                              struct csi_tensor *weight, struct csi_tensor *bias,
-                              struct cache_conv1d_params *params)
+int shl_ref_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *weight, struct csinn_tensor *bias,
+                              struct csinn_cache_conv1d_params *params)
 {
     size_t data_size =
         output->dim[0] * output->dim[1] * output->dim[2] * sizeof(float);  // 512*13*2
     asr_buffer_init(&params->asr_buffer, 2 * data_size, data_size);
 
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        params->base.bc = csi_ref_cache_conv1d_f32;
+        cb->exec = shl_ref_cache_conv1d_f32;
     } else {
-        params->base.bc = csi_ref_cache_conv1d_quant;
+        cb->exec = shl_ref_cache_conv1d_quant;
     }
 
     return CSINN_TRUE;
 }
 
-int csi_ref_cache_conv1d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                             struct csi_tensor *weight, struct csi_tensor *bias,
-                             struct cache_conv1d_params *params)
+int shl_ref_cache_conv1d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *weight, struct csinn_tensor *bias,
+                             struct csinn_cache_conv1d_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -78,23 +78,23 @@ int csi_ref_cache_conv1d_f32(struct csi_tensor *input, struct csi_tensor *output
     }
 }
 
-int csi_ref_cache_conv1d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_conv1d_params *params)
+int shl_ref_cache_conv1d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_conv1d_params *params)
 {
-    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
-    struct csi_tensor *float_weight = csi_ref_tensor_transform_f32(weight);
-    struct csi_tensor *float_bias = csi_ref_tensor_transform_f32(bias);
+    struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
+    struct csinn_tensor *float_weight = shl_ref_tensor_transform_f32(weight);
+    struct csinn_tensor *float_bias = shl_ref_tensor_transform_f32(bias);
 
-    int ret = csi_ref_cache_conv1d_f32(float_input, float_output, float_weight, float_bias, params);
+    int ret = shl_ref_cache_conv1d_f32(float_input, float_output, float_weight, float_bias, params);
 
-    csi_tensor_data_convert(output, float_output);
+    csinn_tensor_data_convert(output, float_output);
 
-    csi_ref_tensor_transform_free_f32(float_input);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_weight);
-    csi_ref_tensor_transform_free_f32(float_bias);
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_weight);
+    shl_ref_tensor_transform_free_f32(float_bias);
 
     return CSINN_TRUE;
 }

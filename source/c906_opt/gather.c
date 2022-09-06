@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_gather_fp16(struct csi_tensor *input, 
-                         struct csi_tensor *indices,
-                         struct csi_tensor *output,
-                         struct gather_params *params)
+int shl_c906_gather_fp16(struct csinn_tensor *input, struct csinn_tensor *indices,
+                         struct csinn_tensor *output, struct csinn_gather_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -45,8 +43,8 @@ int csi_c906_gather_fp16(struct csi_tensor *input,
     for (int i = 0; i < outer_size; i++) {
         for (int j = 0; j < indices_size; j++) {
             if (indices_data[j] < input->dim[params->axis]) {
-                csi_c906_memcpy(output_data, input_data + indices_data[j] * inner_size,
-                       inner_size * sizeof(__fp16));
+                shl_c906_memcpy(output_data, input_data + indices_data[j] * inner_size,
+                                inner_size * sizeof(__fp16));
             } else {
                 memset(output_data, 0, inner_size * sizeof(__fp16));
             }
@@ -56,4 +54,3 @@ int csi_c906_gather_fp16(struct csi_tensor *input,
     }
     return CSINN_TRUE;
 }
-

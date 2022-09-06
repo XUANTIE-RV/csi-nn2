@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 static int Multiplication(int32_t *input, int s, int e)
 {
@@ -29,8 +29,8 @@ static int Multiplication(int32_t *input, int s, int e)
     return res;
 }
 
-int csi_ref_gather_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
-                          struct csi_tensor *output, struct gather_nd_params *params)
+int shl_ref_gather_nd_f32(struct csinn_tensor *input, struct csinn_tensor *indices,
+                          struct csinn_tensor *output, struct csinn_gather_nd_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -88,15 +88,15 @@ int csi_ref_gather_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
     return CSINN_TRUE;
 }
 
-int csi_ref_gather_nd_quant(struct csi_tensor *input, struct csi_tensor *indices,
-                            struct csi_tensor *output, struct gather_nd_params *params)
+int shl_ref_gather_nd_quant(struct csinn_tensor *input, struct csinn_tensor *indices,
+                            struct csinn_tensor *output, struct csinn_gather_nd_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    ret = csi_ref_gather_nd_f32(finput, indices, foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(finput);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    ret = shl_ref_gather_nd_f32(finput, indices, foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput);
     return ret;
 }

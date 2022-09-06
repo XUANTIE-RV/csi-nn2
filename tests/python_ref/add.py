@@ -37,6 +37,20 @@ def add_f32():
             size2   = in_channel
             src_out = np.add(src_in1, src_in2)
 
+        elif(sys.argv[1] == "size1"):
+            vector = 2
+            src_in2 = np.random.normal(zero_point2, std2, 1)
+            src_in2 = src_in2.astype(np.float32)
+            size2   = 1
+            src_out = np.add(src_in1, src_in2)
+
+        elif(sys.argv[1] == "flag0"):
+            vector = 3
+            src_in2 = np.random.normal(zero_point2, std2, (in_size_y, in_size_x, 1))
+            src_in2 = src_in2.astype(np.float32)
+            size2   = in_size_y * in_size_x
+            src_out = np.add(src_in1, src_in2)
+
     src_in_1  = src_in1.reshape(size_all)
     src_in_2  = src_in2.reshape(size2)
 

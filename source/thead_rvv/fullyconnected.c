@@ -16,133 +16,53 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-/*************************************************************
-    note: VLEN = 128/256
-*************************************************************/
-static void csi_nn_rvv_reorder_weight_npackn_fp32(float *src, float *dst, int m, int k, int ldx)
+int shl_rvv_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                struct csinn_fc_params *params)
 {
-    int packn = csrr_vlenb() / sizeof(float);  // VLEN128=4  VLEN256=8
-    int vl = vsetvl_e32m1(packn);
-    int i = 0;
-    for (; i + packn - 1 < m; i += packn) {
-        float *in_ptr = src + i * k;
-        for (int j = 0; j < k; j++) {
-            vfloat32m1_t _input = vlse32_v_f32m1(in_ptr, k * sizeof(float), vl);
-            in_ptr++;
-            vse32_v_f32m1(dst, _input, vl);
-            dst += packn;
-        }
-    }
-    src += i * k;
-    for (; i < m; i++) {
-        memcpy(dst, src, sizeof(float) * k);
-        dst += k;
-        src += k;
-    }
-}
-
-void csi_nn_rvv_fc_gemv_transform_weight_fp32(struct csi_tensor *weights)
-{
-    float *weight_data = (float *)weights->data;
-
-    int n = weights->dim[0];  // out_nodes
-    int k = weights->dim[1];  // in_nodes
-
-    float *pa_reorder = (float *)csi_mem_alloc(n * k * sizeof(float));
-    csi_nn_rvv_reorder_weight_npackn_fp32(weight_data, pa_reorder, n, k, k);
-    memcpy(weight_data, pa_reorder, n * k * sizeof(float));
-    csi_mem_free(pa_reorder);
-}
-
-int csi_nn_rvv_fullyconnected_packn_fp32(struct csi_tensor *input, struct csi_tensor *output,
-                                         struct csi_tensor *weights, struct csi_tensor *bias,
-                                         struct fc_params *params)
-{
-    float *input_data = (float *)input->data;
-    float *output_data = (float *)output->data;
-    float *weights_data = (float *)weights->data;
-    float *bias_data = (float *)bias->data;
-    const int output_dims_count = output->dim_count;
     const int weights_dims_count = weights->dim_count;
-    const int bias_dims_count = bias->dim_count;
-    int batches = 1;
-    /* compute the outer size */
-    for (int i = 0; i < output_dims_count - 1; i++) {
-        batches *= output->dim[i];
-    }
-    int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
-    int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
-
-    bool flag_bias = 1;  // default: fc layer include bias
-    if (bias_data == NULL) {
-        flag_bias = 0;
-        bias_data = (float *)csi_mem_alloc(output_depth * 2);
-    }
-    int packn = csrr_vlenb() / sizeof(float);  // VLEN128=4  VLEN256=8
-    int vl;
-
-    for (int b = 0; b < batches; b++) {
-        float *init_output = output_data + b * output_depth;
-        float *init_input = input_data + b * accum_depth;
-        float *init_weight = weights_data;
-        float *init_bias = bias_data;
-
-        vl = vsetvl_e32m1(packn);
-        int n = 0;
-        for (; n + packn - 1 < output_depth; n += packn) {
-            float *in_ptr = init_input;
-            vfloat32m1_t _acc = vle32_v_f32m1(init_bias, vl);
-            init_bias += vl;
-
-            for (int k = 0; k < accum_depth; k++) {
-                vfloat32m1_t _weight = vle32_v_f32m1(init_weight, vl);
-                _acc = vfmacc_vf_f32m1(_acc, in_ptr[k], _weight, vl);
-                init_weight += vl;
-            }
-            vse32_v_f32m1(init_output, _acc, vl);
-            init_output += vl;
-        }
-        for (; n < output_depth; n++) {
-            float *in_ptr = init_input;
-            float acc = init_bias[0];
-            for (int k = 0; k < accum_depth; k++) {
-                acc += in_ptr[k] * init_weight[k];
-            }
-            *init_output++ = acc;
-            init_bias++;
-            init_weight += accum_depth;
-        }
-    }
-    if (!flag_bias) {
-        csi_mem_free(bias_data);
-        bias_data = NULL;
-    }
-    return CSINN_TRUE;
-}
-
-int csi_nn_rvv_fullyconnected_init(struct csi_tensor *input, struct csi_tensor *output,
-                                   struct csi_tensor *weights, struct csi_tensor *bias,
-                                   struct fc_params *params)
-{
+    const int out_nodes = weights->dim[weights_dims_count - 2];
+    const int in_nodes = weights->dim[weights_dims_count - 1];
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        csi_nn_rvv_fc_gemv_transform_weight_fp32(weights);
-        params->base.bc = csi_nn_rvv_fullyconnected_packn_fp32;
+        shl_rvv_fc_gemv_transform_weight_fp32(weights);
+        cb->exec = shl_rvv_fullyconnected_packn_fp32;
     } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-        csi_nn_rvv_fc_gemv_transform_weight_fp16(weights);
-        params->base.bc = csi_nn_rvv_fullyconnected_packn_fp16;
+        shl_rvv_fc_gemv_transform_weight_fp16(weights);
+        cb->exec = shl_rvv_fullyconnected_packn_fp16;
     } else if (input->dtype == CSINN_DTYPE_INT8) {
-        csi_nn_rvv_fc_gemv_transform_weight_int8(weights);
+        // enable fuse zeropoint to bias
+        if (!params->fc_extra.fuse_zp2bias) {
+            int32_t *bias_data = (int32_t *)bias->data;
+            int8_t *weights_data = (int8_t *)weights->data;
+            int32_t input_zp = input->qinfo->zero_point;
+
+            if (bias_data == NULL) {
+                // XXX: memory leak
+                bias_data = (int32_t *)shl_mem_alloc(out_nodes * sizeof(int32_t));
+                bias->data = bias_data;
+            }
+            for (int oc = 0; oc < out_nodes; oc++) {
+                int32_t tmp = 0;
+                for (int j = 0; j < in_nodes; j++) {
+                    tmp += weights_data[oc * in_nodes + j] * input_zp;
+                }
+                bias_data[oc] -= tmp;
+            }
+        }
+
+        shl_rvv_fc_gemv_transform_weight_int8(weights);
         // support channel quantization
         for (int i = 0; i < weights->quant_channel; i++) {
             float real_scale = input->qinfo->scale * weights->qinfo[i].scale / output->qinfo->scale;
-            csi_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
+            shl_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
                                     &(weights->qinfo[i].shift));
         }
-        params->base.bc = csi_nn_rvv_fullyconnected_packn_int8;
+        cb->exec = shl_rvv_fullyconnected_packn_int8;
     }
     return CSINN_TRUE;
 }

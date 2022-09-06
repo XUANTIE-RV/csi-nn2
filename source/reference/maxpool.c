@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-static int csi_ref_maxpool2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                      struct pool_params *params)
+static int shl_ref_maxpool2d_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -41,19 +40,19 @@ static int csi_ref_maxpool2d_nhwc_f32(struct csi_tensor *input, struct csi_tenso
                     const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
                     // Compute the boundaries of the filter region clamped so as to
                     // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_ref_max_internal_s32(0, -in_x_origin);
+                    const int filter_x_start = shl_ref_max_internal_s32(0, -in_x_origin);
                     const int filter_x_end =
-                        csi_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_ref_max_internal_s32(0, -in_y_origin);
+                        shl_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
+                    const int filter_y_start = shl_ref_max_internal_s32(0, -in_y_origin);
                     const int filter_y_end =
-                        csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
+                        shl_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = -FLT_MAX;
                     int filter_cnt = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            max = fmax(max, input_data[csi_ref_get_index(input->dim, batch, in_y,
+                            max = fmax(max, input_data[shl_ref_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)]);
                             filter_cnt++;
                         }
@@ -62,7 +61,7 @@ static int csi_ref_maxpool2d_nhwc_f32(struct csi_tensor *input, struct csi_tenso
                     if (filter_cnt != params->filter_height * params->filter_width) {
                         max = fmax(max, 0);
                     }
-                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x, channel)] = max;
+                    output_data[shl_ref_get_index(output->dim, batch, out_y, out_x, channel)] = max;
                 }
             }
         }
@@ -70,8 +69,8 @@ static int csi_ref_maxpool2d_nhwc_f32(struct csi_tensor *input, struct csi_tenso
     return CSINN_TRUE;
 }
 
-static int csi_ref_maxpool2d_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                      struct pool_params *params)
+static int shl_ref_maxpool2d_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_pool_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -90,19 +89,19 @@ static int csi_ref_maxpool2d_nchw_f32(struct csi_tensor *input, struct csi_tenso
                     const int in_y_origin = (out_y * params->stride_height) - params->pad_top;
                     // Compute the boundaries of the filter region clamped so as to
                     // ensure that the filter window fits in the input array.
-                    const int filter_x_start = csi_ref_max_internal_s32(0, -in_x_origin);
+                    const int filter_x_start = shl_ref_max_internal_s32(0, -in_x_origin);
                     const int filter_x_end =
-                        csi_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
-                    const int filter_y_start = csi_ref_max_internal_s32(0, -in_y_origin);
+                        shl_ref_min_internal_s32(params->filter_width, input_width - in_x_origin);
+                    const int filter_y_start = shl_ref_max_internal_s32(0, -in_y_origin);
                     const int filter_y_end =
-                        csi_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
+                        shl_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = -FLT_MAX;
                     int filter_cnt = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
-                            max = fmax(max, input_data[csi_ref_get_index(input->dim, batch, channel,
+                            max = fmax(max, input_data[shl_ref_get_index(input->dim, batch, channel,
                                                                          in_y, in_x)]);
                             filter_cnt++;
                         }
@@ -111,7 +110,7 @@ static int csi_ref_maxpool2d_nchw_f32(struct csi_tensor *input, struct csi_tenso
                     if (filter_cnt != params->filter_height * params->filter_width) {
                         max = fmax(max, 0);
                     }
-                    output_data[csi_ref_get_index(output->dim, batch, channel, out_y, out_x)] = max;
+                    output_data[shl_ref_get_index(output->dim, batch, channel, out_y, out_x)] = max;
                 }
             }
         }
@@ -119,20 +118,20 @@ static int csi_ref_maxpool2d_nchw_f32(struct csi_tensor *input, struct csi_tenso
     return CSINN_TRUE;
 }
 
-int csi_ref_maxpool2d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                          struct pool_params *params)
+int shl_ref_maxpool2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_pool_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_maxpool2d_nchw_f32(input, output, params);
+        shl_ref_maxpool2d_nchw_f32(input, output, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_maxpool2d_nhwc_f32(input, output, params);
+        shl_ref_maxpool2d_nhwc_f32(input, output, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_ref_maxpool2d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                            struct pool_params *params)
+int shl_ref_maxpool2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_pool_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_maxpool2d_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_maxpool2d_f32);
 }

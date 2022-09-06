@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
     change memory layout for weight matrix [out_nodes * in_nodes] by N(8) shape
 */
-void csi_c906_reorder_weight_n8_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+void shl_c906_reorder_weight_n8_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
 {
     int i = 0;
     for (; i + 7 < m; i += 8) {
@@ -41,13 +41,13 @@ void csi_c906_reorder_weight_n8_fp16(__fp16 *src, __fp16 *dst, int m, int k, int
     dst += i * k;
     src += i * k;
     for (; i < m; i++) {
-        csi_c906_memcpy(dst, src, sizeof(__fp16) * ldx);
+        shl_c906_memcpy(dst, src, sizeof(__fp16) * ldx);
         dst += k;
         src += k;
     }
 }
 
-void csi_c906_reorder_weight_n16_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+void shl_c906_reorder_weight_n16_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
 {
     int i = 0;
     for (; i + 15 < m; i += 16) {
@@ -74,32 +74,28 @@ void csi_c906_reorder_weight_n16_fp16(__fp16 *src, __fp16 *dst, int m, int k, in
     dst += i * k;
     src += i * k;
     for (; i < m; i++) {
-        csi_c906_memcpy(dst, src, sizeof(__fp16) * ldx);
+        shl_c906_memcpy(dst, src, sizeof(__fp16) * ldx);
         dst += k;
         src += k;
     }
 }
 
-
-void csi_c906_fc_gemv_transform_weight_fp16(struct csi_tensor *weights)
+void shl_c906_fc_gemv_transform_weight_fp16(struct csinn_tensor *weights)
 {
     __fp16 *weight_data = (__fp16 *)weights->data;
 
     int n = weights->dim[0];        // out_nodes
     int k = weights->dim[1];        // in_nodes
 
-    __fp16* pa_reorder = (__fp16 *)csi_mem_alloc(n * k * sizeof(__fp16));
-    csi_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
+    __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
+    shl_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
     memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
-    csi_mem_free(pa_reorder);
+    shl_mem_free(pa_reorder);
 }
 
-
-int csi_c906_fullyconnected_f32(struct csi_tensor *input,
-                                struct csi_tensor *output,
-                                struct csi_tensor *weights,
-                                struct csi_tensor *bias,
-                                struct fc_params *params)
+int shl_c906_fullyconnected_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                struct csinn_fc_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -178,11 +174,9 @@ int csi_c906_fullyconnected_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_c906_fullyconnected_fp16(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *weights,
-                                 struct csi_tensor *bias,
-                                 struct fc_params *params)
+int shl_c906_fullyconnected_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                 struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -436,11 +430,9 @@ int csi_c906_fullyconnected_fp16(struct csi_tensor *input,
     best implementation from the software perspective
     loop unroll: k = 8
 */
-int csi_c906_fullyconnected_pack8_fp16(struct csi_tensor *input,
-                                       struct csi_tensor *output,
-                                       struct csi_tensor *weights,
-                                       struct csi_tensor *bias,
-                                       struct fc_params *params)
+int shl_c906_fullyconnected_pack8_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                       struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -460,7 +452,7 @@ int csi_c906_fullyconnected_pack8_fp16(struct csi_tensor *input,
     bool flag_bias = 1;     // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)csi_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
     }
 
     for (int b = 0; b < batches; b++) {
@@ -686,7 +678,7 @@ int csi_c906_fullyconnected_pack8_fp16(struct csi_tensor *input,
     }
 
     if (!flag_bias) {
-        csi_mem_free(bias_data);
+        shl_mem_free(bias_data);
         bias_data = NULL;
     }
 
@@ -696,11 +688,9 @@ int csi_c906_fullyconnected_pack8_fp16(struct csi_tensor *input,
 /*
     loop unroll: k = 1
 */
-int csi_c906_fullyconnected_pack8_fp16_1(struct csi_tensor *input,
-                                         struct csi_tensor *output,
-                                         struct csi_tensor *weights,
-                                         struct csi_tensor *bias,
-                                         struct fc_params *params)
+int shl_c906_fullyconnected_pack8_fp16_1(struct csinn_tensor *input, struct csinn_tensor *output,
+                                         struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                         struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -720,7 +710,7 @@ int csi_c906_fullyconnected_pack8_fp16_1(struct csi_tensor *input,
     bool flag_bias = 1;     // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)csi_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
     }
 
     for (int b = 0; b < batches; b++) {
@@ -834,7 +824,7 @@ int csi_c906_fullyconnected_pack8_fp16_1(struct csi_tensor *input,
 
     }
     if (!flag_bias) {
-        csi_mem_free(bias_data);
+        shl_mem_free(bias_data);
         bias_data = NULL;
     }
 
@@ -846,11 +836,9 @@ int csi_c906_fullyconnected_pack8_fp16_1(struct csi_tensor *input,
     best performance measured on D1
     loop unroll: k = 1 && pack16
 */
-int csi_c906_fullyconnected_pack16_fp16(struct csi_tensor *input,
-                                        struct csi_tensor *output,
-                                        struct csi_tensor *weights,
-                                        struct csi_tensor *bias,
-                                        struct fc_params *params)
+int shl_c906_fullyconnected_pack16_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                        struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                        struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -870,7 +858,7 @@ int csi_c906_fullyconnected_pack16_fp16(struct csi_tensor *input,
     bool flag_bias = 1;     // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)csi_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
     }
 
     for (int b = 0; b < batches; b++) {
@@ -983,16 +971,17 @@ int csi_c906_fullyconnected_pack16_fp16(struct csi_tensor *input,
 
     }
     if (!flag_bias) {
-        csi_mem_free(bias_data);
+        shl_mem_free(bias_data);
         bias_data = NULL;
     }
     return CSINN_TRUE;
 }
 
-int csi_c906_fullyconnected_pack16_output16_fp16(struct csi_tensor *input,
-                                                 struct csi_tensor *output,
-                                                 struct csi_tensor *weights,
-                                                 struct csi_tensor *bias, struct fc_params *params)
+int shl_c906_fullyconnected_pack16_output16_fp16(struct csinn_tensor *input,
+                                                 struct csinn_tensor *output,
+                                                 struct csinn_tensor *weights,
+                                                 struct csinn_tensor *bias,
+                                                 struct csinn_fc_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -1121,33 +1110,32 @@ int csi_c906_fullyconnected_pack16_output16_fp16(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-int csi_c906_fullyconnected_init(struct csi_tensor *input,
-                                 struct csi_tensor *output,
-                                 struct csi_tensor *weights,
-                                 struct csi_tensor *bias,
-                                 struct fc_params *params)
+int shl_c906_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                 struct csinn_fc_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        csi_nn_rvv_fc_gemv_transform_weight_fp32(weights);
-        params->base.bc = csi_nn_rvv_fullyconnected_packn_fp32;
+        shl_rvv_fc_gemv_transform_weight_fp32(weights);
+        cb->exec = shl_rvv_fullyconnected_packn_fp32;
     } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-        csi_c906_fc_gemv_transform_weight_fp16(weights);
+        shl_c906_fc_gemv_transform_weight_fp16(weights);
         int output_depth = weights->dim[weights->dim_count - 2];
         if (bias != NULL && output_depth % 16 == 0) {
-            params->base.bc = csi_c906_fullyconnected_pack16_output16_fp16;
+            cb->exec = shl_c906_fullyconnected_pack16_output16_fp16;
         } else {
-            params->base.bc = csi_c906_fullyconnected_pack16_fp16;
+            cb->exec = shl_c906_fullyconnected_pack16_fp16;
         }
-        // params->base.bc = csi_c906_fullyconnected_fp16;
+        // cb->exec = shl_c906_fullyconnected_fp16;
     } else if (input->dtype == CSINN_DTYPE_INT8) {
-        csi_nn_rvv_fc_gemv_transform_weight_int8(weights);
+        shl_rvv_fc_gemv_transform_weight_int8(weights);
         // support channel quantization
         for (int i = 0; i < weights->quant_channel; i++) {
             float real_scale = input->qinfo->scale * weights->qinfo[i].scale / output->qinfo->scale;
-            csi_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
+            shl_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
                                     &(weights->qinfo[i].shift));
         }
-        params->base.bc = csi_nn_rvv_fullyconnected_packn_int8;
+        cb->exec = shl_rvv_fullyconnected_packn_int8;
     }
     return CSINN_TRUE;
 }

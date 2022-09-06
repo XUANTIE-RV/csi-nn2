@@ -16,32 +16,34 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_argmin_init(struct csi_tensor *input,
-                    struct csi_tensor *output,
-                    struct reduce_params *params)
+int csinn_argmin_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_reduce_params *params)
 {
+    void *cbf = NULL;
     if (params->n == 0 && params->m == 0) {
         return CSINN_FALSE;
     } else {
-        params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_ARGMIN, input->dtype);
-        if (params->base.bc == NULL) {
-            return CSINN_UNSUPPORT_DTYPE;
+        shl_op_callback_map(&params->base, CSINN_OP_ARGMIN, input->dtype);
+        struct csinn_callback *cb = params->base.cb;
+        if (cb->init) {
+            cb->init(input, output, params);
         }
     }
     return CSINN_TRUE;
 }
 
-int csi_argmin(struct csi_tensor *input,
-               struct csi_tensor *output,
-               struct reduce_params *params)
+int csinn_argmin(struct csinn_tensor *input, struct csinn_tensor *output,
+                 struct csinn_reduce_params *params)
 {
-    CSI_DEBUG_CALL(csi_reduce_debug_info(input, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(input, output, params);
+    SHL_DEBUG_CALL(shl_reduce_debug_info(input, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

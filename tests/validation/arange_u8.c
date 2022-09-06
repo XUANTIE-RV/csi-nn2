@@ -16,20 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of arange u8.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct arange_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_arange_params *params =
+        csinn_alloc_params(sizeof(struct csinn_arange_params), NULL);
     int out_size = 1;
     int zero_point, multiplier, shift;
     float scale, min_value, max_value;
@@ -38,32 +39,30 @@ int main(int argc, char** argv)
     int *buffer = read_input_data_f32(argv[1]);
 
     out_size = buffer[3];
-    params.start = buffer[0];
-    params.stop = buffer[1];
-    params.step = buffer[2];
+    params->start = buffer[0];
+    params->stop = buffer[1];
+    params->step = buffer[2];
     output->dim_count = 1;
     output->dim[0] = out_size;
     output->dtype = CSINN_DTYPE_UINT8;
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
-
+    params->base.api = CSINN_API;
 
     float *ref_data = (float *)(buffer + 4);
 
-    csi_quantize_multiplier(params.start, &multiplier, &shift);
-    params.start_multiplier = multiplier;
-    params.start_shift = shift;
+    shl_quantize_multiplier(params->start, &multiplier, &shift);
+    params->start_multiplier = multiplier;
+    params->start_shift = shift;
 
-    csi_quantize_multiplier(params.stop, &multiplier, &shift);
-    params.stop_multiplier = multiplier;
-    params.stop_shift = shift;
+    shl_quantize_multiplier(params->stop, &multiplier, &shift);
+    params->stop_multiplier = multiplier;
+    params->stop_shift = shift;
 
-    csi_quantize_multiplier(params.step, &multiplier, &shift);
-    params.step_multiplier = multiplier;
-    params.step_shift = shift;
+    shl_quantize_multiplier(params->step, &multiplier, &shift);
+    params->step_multiplier = multiplier;
+    params->step_shift = shift;
 
     output->data = ref_data;
     get_quant_info(output);
@@ -71,11 +70,10 @@ int main(int argc, char** argv)
     reference->data = ref_data;
     output->data = (uint8_t *)malloc(out_size * sizeof(uint8_t));
 
-
     float difference = argc > 2 ? atof(argv[2]) : 1e-3;
 
-    if (csi_arange_init(output, &params) == CSINN_TRUE) {
-        csi_arange(output, &params);
+    if (csinn_arange_init(output, params) == CSINN_TRUE) {
+        csinn_arange(output, params);
     }
 
     result_verify_8(reference->data, output, input->data, difference, out_size, false);

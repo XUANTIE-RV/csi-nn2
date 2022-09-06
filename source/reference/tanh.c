@@ -16,17 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_tanh_f32(struct csi_tensor *input, struct csi_tensor *output,
-                     struct siso_params *params)
+int shl_ref_tanh_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = tanh(input_data[i]);
@@ -34,12 +33,12 @@ int csi_ref_tanh_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_tanh_f64(struct csi_tensor *input, struct csi_tensor *output,
-                     struct siso_params *params)
+int shl_ref_tanh_f64(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_siso_params *params)
 {
     double *input_data = input->data;
     double *output_data = output->data;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = tanh(input_data[i]);
@@ -47,8 +46,8 @@ int csi_ref_tanh_f64(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_tanh_quant(struct csi_tensor *input, struct csi_tensor *output,
-                       struct siso_params *params)
+int shl_ref_tanh_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_siso_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_tanh_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_tanh_f32);
 }

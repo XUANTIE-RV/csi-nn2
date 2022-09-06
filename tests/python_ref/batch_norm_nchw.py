@@ -17,7 +17,7 @@ def batch_norm_f32():
         in_size = int(np.random.randint(16, high=32, size=1))
         dim.append(in_size)
 
-    dim[0] = 1
+    dim[0] = 1  # batch = 1 for anole
 
     zero_point1 = int(np.random.randint(-6, high=6, size=1))
     std1        = int(np.random.randint(1, high=20, size=1))

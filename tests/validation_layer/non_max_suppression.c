@@ -16,21 +16,23 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of non_max_suppression(layer).\n");
-
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct non_max_suppression_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input1 = csinn_alloc_tensor(sess);
+    struct csinn_tensor *input0 = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_non_max_suppression_params *params =
+        csinn_alloc_params(sizeof(struct csinn_non_max_suppression_params), sess);
     int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -40,20 +42,20 @@ int main(int argc, char** argv)
     input0->dim[1] = 4;
     input1->dim[0] = buffer[0];
 
-    params.max_output_size = buffer[1];
-    params.iou_threshold = *((float *)buffer + 3);
+    params->max_output_size = buffer[1];
+    params->iou_threshold = *((float *)buffer + 3);
 
     output->dim_count = 2;
-    output->dim[0] = params.max_output_size;
+    output->dim[0] = params->max_output_size;
     output->dim[1] = 4;
 
-    in_size  = input0->dim[0] * 4;
+    in_size = input0->dim[0] * 4;
     out_size = buffer[2];
 
     input0->dtype = CSINN_DTYPE_FLOAT32;
     input0->layout = CSINN_LAYOUT_NCHW;
     input0->is_const = 0;
-    input0->quant_channel = 1;    
+    input0->quant_channel = 1;
     input1->dtype = CSINN_DTYPE_FLOAT32;
     input1->layout = CSINN_LAYOUT_NCHW;
     input1->is_const = 0;
@@ -62,18 +64,17 @@ int main(int argc, char** argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    input0->data    = (float *)(buffer + 4);
-    input1->data    = (float *)(buffer + 4 + in_size);
+    input0->data = (float *)(buffer + 4);
+    input1->data = (float *)(buffer + 4 + in_size);
     reference->data = (int *)(buffer + 4 + in_size + in_size / 4);
-    output->data    = reference->data;
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    test_non_max_suppression_CSINN_QUANT_FLOAT32(input0, input1, output, &params, &difference);
-    test_non_max_suppression_CSINN_QUANT_UINT8_ASYM(input0, input1, output, &params, &difference);
-    test_non_max_suppression_CSINN_QUANT_INT8_SYM(input0, input1, output, &params, &difference);
+    test_non_max_suppression_CSINN_QUANT_FLOAT32(input0, input1, output, params, &difference);
+    test_non_max_suppression_CSINN_QUANT_UINT8_ASYM(input0, input1, output, params, &difference);
+    test_non_max_suppression_CSINN_QUANT_INT8_SYM(input0, input1, output, params, &difference);
 
     return done_testing();
 }

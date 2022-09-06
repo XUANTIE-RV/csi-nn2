@@ -16,36 +16,35 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_fsmn_init(struct csi_tensor *frame,
-                  struct csi_tensor *l_filter,
-                  struct csi_tensor *r_filter,
-                  struct csi_tensor *frame_sequence,
-                  struct csi_tensor *frame_counter,
-                  struct csi_tensor *output,
-                  struct fsmn_params *params)
+int csinn_fsmn_init(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+                    struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+                    struct csinn_tensor *frame_counter, struct csinn_tensor *output,
+                    struct csinn_fsmn_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_FSMN, frame->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_FSMN, frame->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(frame, l_filter, r_filter, frame_sequence, frame_counter, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_fsmn(struct csi_tensor *frame,
-             struct csi_tensor *l_filter,
-             struct csi_tensor *r_filter,
-             struct csi_tensor *frame_sequence,
-             struct csi_tensor *frame_counter,
-             struct csi_tensor *output,
-             struct fsmn_params *params)
+int csinn_fsmn(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+               struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+               struct csinn_tensor *frame_counter, struct csinn_tensor *output,
+               struct csinn_fsmn_params *params)
 {
-    CSI_DEBUG_CALL(csi_fsmn_debug_info(frame, l_filter, r_filter, frame_sequence, frame_counter, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(frame, l_filter, r_filter, frame_sequence, frame_counter, output, params);
+    SHL_DEBUG_CALL(shl_fsmn_debug_info(frame, l_filter, r_filter, frame_sequence, frame_counter,
+                                       output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(frame, l_filter, r_filter, frame_sequence, frame_counter, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

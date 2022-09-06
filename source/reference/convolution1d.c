@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_conv1d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                       struct csi_tensor *kernel, struct csi_tensor *bias,
-                       struct conv1d_params *params)
+int shl_ref_conv1d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                       struct csinn_conv1d_params *params)
 {
-    struct conv2d_params params_conv2d;
+    struct csinn_conv2d_params params_conv2d;
     params_conv2d.base = params->base;
     params_conv2d.group = params->group;
     params_conv2d.stride_height = 1;
@@ -43,16 +43,16 @@ int csi_ref_conv1d_f32(struct csi_tensor *input, struct csi_tensor *output,
     input->dim[3] = 1;
     output->dim_count = 4;
     output->dim[3] = 1;
-    csi_ref_conv2d_f32(input, output, kernel, bias, &params_conv2d);
+    shl_ref_conv2d_f32(input, output, kernel, bias, &params_conv2d);
 
     return CSINN_TRUE;
 }
 
-int csi_ref_conv1d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                         struct csi_tensor *kernel, struct csi_tensor *bias,
-                         struct conv1d_params *params)
+int shl_ref_conv1d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv1d_params *params)
 {
-    struct conv2d_params params_conv2d;
+    struct csinn_conv2d_params params_conv2d;
     params_conv2d.base = params->base;
     params_conv2d.group = params->group;
     params_conv2d.stride_height = 1;
@@ -71,7 +71,7 @@ int csi_ref_conv1d_quant(struct csi_tensor *input, struct csi_tensor *output,
     input->dim[3] = 1;
     output->dim_count = 4;
     output->dim[3] = 1;
-    csi_ref_conv2d_quant(input, output, kernel, bias, &params_conv2d);
+    shl_ref_conv2d_quant(input, output, kernel, bias, &params_conv2d);
 
     return CSINN_TRUE;
 }

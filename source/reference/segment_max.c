@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_unsorted_segment_max_f32(struct csi_tensor *input, struct csi_tensor *segment_ids,
-                                     struct csi_tensor *output, struct segment_params *params)
+int shl_ref_unsorted_segment_max_f32(struct csinn_tensor *input, struct csinn_tensor *segment_ids,
+                                     struct csinn_tensor *output,
+                                     struct csinn_segment_params *params)
 {
     float *input_data = input->data;
     int *segment_data = segment_ids->data;
@@ -36,7 +36,7 @@ int csi_ref_unsorted_segment_max_f32(struct csi_tensor *input, struct csi_tensor
         for (int h = 0; h < input->dim[1]; h++) {
             for (int w = 0; w < input->dim[2]; w++) {
                 for (int c = 0; c < input->dim[3]; c++) {
-                    int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
+                    int32_t output_index = shl_ref_get_index(input->dim, n, h, w, c);
                     output_data[output_index] = -FLT_MAX;
                 }
             }
@@ -50,8 +50,8 @@ int csi_ref_unsorted_segment_max_f32(struct csi_tensor *input, struct csi_tensor
                 for (int h = 0; h < input->dim[1]; h++) {
                     for (int w = 0; w < input->dim[2]; w++) {
                         for (int c = 0; c < input->dim[3]; c++) {
-                            int32_t input_index = csi_ref_get_index(input->dim, i, h, w, c);
-                            int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
+                            int32_t input_index = shl_ref_get_index(input->dim, i, h, w, c);
+                            int32_t output_index = shl_ref_get_index(input->dim, n, h, w, c);
                             output_data[output_index] =
                                 input_data[input_index] > output_data[output_index]
                                     ? input_data[input_index]
@@ -67,8 +67,8 @@ int csi_ref_unsorted_segment_max_f32(struct csi_tensor *input, struct csi_tensor
     return CSINN_TRUE;
 }
 
-int csi_ref_segment_max_f32(struct csi_tensor *input, struct csi_tensor *segment_ids,
-                            struct csi_tensor *output, struct segment_params *params)
+int shl_ref_segment_max_f32(struct csinn_tensor *input, struct csinn_tensor *segment_ids,
+                            struct csinn_tensor *output, struct csinn_segment_params *params)
 {
     float *input_data = input->data;
     int *segment_data = segment_ids->data;
@@ -83,7 +83,7 @@ int csi_ref_segment_max_f32(struct csi_tensor *input, struct csi_tensor *segment
         for (int h = 0; h < input->dim[1]; h++) {
             for (int w = 0; w < input->dim[2]; w++) {
                 for (int c = 0; c < input->dim[3]; c++) {
-                    int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
+                    int32_t output_index = shl_ref_get_index(input->dim, n, h, w, c);
                     output_data[output_index] = -FLT_MAX;
                 }
             }
@@ -99,8 +99,8 @@ int csi_ref_segment_max_f32(struct csi_tensor *input, struct csi_tensor *segment
                 for (int h = 0; h < input->dim[1]; h++) {
                     for (int w = 0; w < input->dim[2]; w++) {
                         for (int c = 0; c < input->dim[3]; c++) {
-                            int32_t input_index = csi_ref_get_index(input->dim, i, h, w, c);
-                            int32_t output_index = csi_ref_get_index(input->dim, n, h, w, c);
+                            int32_t input_index = shl_ref_get_index(input->dim, i, h, w, c);
+                            int32_t output_index = shl_ref_get_index(input->dim, n, h, w, c);
                             output_data[output_index] =
                                 input_data[input_index] > output_data[output_index]
                                     ? input_data[input_index]
@@ -116,28 +116,29 @@ int csi_ref_segment_max_f32(struct csi_tensor *input, struct csi_tensor *segment
     return CSINN_TRUE;
 }
 
-int csi_ref_unsorted_segment_max_quant(struct csi_tensor *input, struct csi_tensor *segment_ids,
-                                       struct csi_tensor *output, struct segment_params *params)
+int shl_ref_unsorted_segment_max_quant(struct csinn_tensor *input, struct csinn_tensor *segment_ids,
+                                       struct csinn_tensor *output,
+                                       struct csinn_segment_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    ret = csi_ref_unsorted_segment_max_f32(finput, segment_ids, foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(finput);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    ret = shl_ref_unsorted_segment_max_f32(finput, segment_ids, foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput);
     return ret;
 }
 
-int csi_ref_segment_max_quant(struct csi_tensor *input, struct csi_tensor *segment_ids,
-                              struct csi_tensor *output, struct segment_params *params)
+int shl_ref_segment_max_quant(struct csinn_tensor *input, struct csinn_tensor *segment_ids,
+                              struct csinn_tensor *output, struct csinn_segment_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    ret = csi_ref_segment_max_f32(finput, segment_ids, foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(finput);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    ret = shl_ref_segment_max_f32(finput, segment_ids, foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput);
     return ret;
 }

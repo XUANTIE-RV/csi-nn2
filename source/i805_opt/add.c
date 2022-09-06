@@ -16,38 +16,37 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_i805.h"
+#include "i805_function.h"
+#include "shl_i805.h"
 
-
-int csi_i805_add_init_u8(struct csi_tensor *input0,
-                         struct csi_tensor *input1,
-                         struct csi_tensor *output,
-                         struct diso_params *params)
+int shl_i805_add_init_u8(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                         struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-
+    struct csinn_callback *cb = params->base.cb;
     // update multiplier and shift for s1/s3, s2/s3
-    csi_quantize_multiplier(input0->qinfo->scale/output->qinfo->scale, &(input0->qinfo->multiplier), &(input0->qinfo->shift));
-    csi_quantize_multiplier(input1->qinfo->scale/output->qinfo->scale, &(input1->qinfo->multiplier), &(input1->qinfo->shift));
-    params->base.bc = csi_i805_add_u8;
+    shl_quantize_multiplier(input0->qinfo->scale / output->qinfo->scale,
+                            &(input0->qinfo->multiplier), &(input0->qinfo->shift));
+    shl_quantize_multiplier(input1->qinfo->scale / output->qinfo->scale,
+                            &(input1->qinfo->multiplier), &(input1->qinfo->shift));
+    cb->exec = shl_i805_add_u8;
     return CSINN_TRUE;
 }
 
-int csi_i805_add_u8(struct csi_tensor *input0,
-                    struct csi_tensor *input1,
-                    struct csi_tensor *output,
-                    struct diso_params *params)
+int shl_i805_add_u8(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                    struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     uint8_t *input0_data = (uint8_t *)input0->data;
     uint8_t *input1_data = (uint8_t *)input1->data;
     uint8_t *output_data = (uint8_t *)output->data;
 
-    int32_t size = csi_tensor_size(input0);
+    int32_t size = csinn_tensor_size(input0);
 
-    csi_i805_elementwise_add_opt_u8(input0_data, input1_data, output_data, size,
-                                    input0->qinfo->zero_point, input0->qinfo->multiplier, -input0->qinfo->shift,
-                                    input1->qinfo->zero_point, input1->qinfo->multiplier, -input1->qinfo->shift,
-                                    output->qinfo->zero_point, output->qinfo->multiplier, -output->qinfo->shift);
+    shl_i805_elementwise_add_opt_u8(
+        input0_data, input1_data, output_data, size, input0->qinfo->zero_point,
+        input0->qinfo->multiplier, -input0->qinfo->shift, input1->qinfo->zero_point,
+        input1->qinfo->multiplier, -input1->qinfo->shift, output->qinfo->zero_point,
+        output->qinfo->multiplier, -output->qinfo->shift);
     return CSINN_TRUE;
 }

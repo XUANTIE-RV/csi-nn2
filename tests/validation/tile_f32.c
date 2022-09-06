@@ -16,20 +16,20 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of tile f32.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct tile_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_tile_params *params = csinn_alloc_params(sizeof(struct csinn_tile_params), NULL);
     int in_size = 1;
     int out_size = 1;
 
@@ -37,30 +37,29 @@ int main(int argc, char** argv)
 
     input->dim_count = buffer[0];
     output->dim_count = input->dim_count;
-    params.reps_num = buffer[0];
+    params->reps_num = buffer[0];
 
-    for(int i = 0; i < input->dim_count; i++) {
-        input->dim[i] = buffer[i+1];
+    for (int i = 0; i < input->dim_count; i++) {
+        input->dim[i] = buffer[i + 1];
         in_size *= input->dim[i];
     }
-    params.reps = (int *)malloc(params.reps_num * sizeof(int));
-    for(int i = 0; i < params.reps_num; i++) {
-        params.reps[i] = buffer[i+1+input->dim_count];
-        output->dim[i] = input->dim[i] * params.reps[i];
-        out_size *= params.reps[i];
+    params->reps = (int *)malloc(params->reps_num * sizeof(int));
+    for (int i = 0; i < params->reps_num; i++) {
+        params->reps[i] = buffer[i + 1 + input->dim_count];
+        output->dim[i] = input->dim[i] * params->reps[i];
+        out_size *= params->reps[i];
     }
     out_size = out_size * in_size;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input->data = (float *)(buffer + 1 + input->dim_count + input->dim_count);
     reference->data = (float *)(buffer + 1 + input->dim_count + input->dim_count + in_size);
     input->dtype = CSINN_DTYPE_FLOAT32;
-    output->data  = (float *)malloc(out_size * sizeof(float));
+    output->data = (float *)malloc(out_size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_tile_init(input, output, &params) == CSINN_TRUE) {
-        csi_tile(input, output, &params);
+    if (csinn_tile_init(input, output, params) == CSINN_TRUE) {
+        csinn_tile(input, output, params);
     }
 
     result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);

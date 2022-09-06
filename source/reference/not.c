@@ -16,16 +16,17 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_not_u32(struct csi_tensor *input, struct csi_tensor *output, struct siso_params *params)
+int shl_ref_not_u32(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_siso_params *params)
 
 {
     uint32_t *input_data = input->data;
     uint32_t *output_data = output->data;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = ~(input_data[i]);
@@ -33,11 +34,12 @@ int csi_ref_not_u32(struct csi_tensor *input, struct csi_tensor *output, struct 
     return CSINN_TRUE;
 }
 
-int csi_ref_not_u8(struct csi_tensor *input, struct csi_tensor *output, struct siso_params *params)
+int shl_ref_not_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                   struct csinn_siso_params *params)
 {
     uint8_t *input_data = input->data;
     uint8_t *output_data = output->data;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = ~(input_data[i]);
@@ -45,11 +47,12 @@ int csi_ref_not_u8(struct csi_tensor *input, struct csi_tensor *output, struct s
     return CSINN_TRUE;
 }
 
-int csi_ref_not_i8(struct csi_tensor *input, struct csi_tensor *output, struct siso_params *params)
+int shl_ref_not_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                   struct csinn_siso_params *params)
 {
     int8_t *input_data = input->data;
     int8_t *output_data = output->data;
-    int size = csi_tensor_size(input);
+    int size = csinn_tensor_size(input);
 
     for (int i = 0; i < size; i++) {
         output_data[i] = ~(input_data[i]);

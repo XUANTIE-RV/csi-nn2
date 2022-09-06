@@ -16,20 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_i805.h"
+#include "i805_function.h"
+#include "shl_i805.h"
 
-
-int csi_i805_reshape_u8(struct csi_tensor *input,
-                        struct csi_tensor *output,
-                        struct reshape_params *params)
+int shl_i805_reshape_u8(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_reshape_params *params)
 {
     uint8_t *input_data = (uint8_t *)input->data;
     uint8_t *output_data = (uint8_t *)output->data;
-    int32_t size = csi_tensor_size(input);
+    int32_t size = csinn_tensor_size(input);
     if (output_data != input_data) {
-        csi_i805_reshape_opt_u8(input_data, output_data, size);
+        shl_i805_reshape_opt_u8(input_data, output_data, size);
     }
     return CSINN_TRUE;
 }

@@ -16,42 +16,43 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_cache_conv1d_init(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_conv1d_params *params)
+int shl_c906_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_conv1d_params *params)
 {
     size_t data_size =
         output->dim[0] * output->dim[1] * output->dim[2] * sizeof(__fp16);  // 512*13*2
     asr_buffer_init_c906(&params->asr_buffer, 2 * data_size, data_size);
 
+    struct csinn_callback *cb = params->base.cb;
     if (input->dtype == CSINN_DTYPE_FLOAT16) {
         __fp16 *weight_data = (__fp16 *)weight->data;
 
         int n = weight->dim[0];  // out_nodes
         int k = weight->dim[1];  // in_nodes
         if (k % 16 != 0) {
-            csi_debug_error("out_nodes num should be multiple of 16\n");
+            shl_debug_error("out_nodes num should be multiple of 16\n");
         }
-        __fp16 *pa_reorder = (__fp16 *)csi_mem_alloc(n * k * sizeof(__fp16));
-        csi_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
+        __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
+        shl_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
 
-        csi_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
+        shl_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
         params->data = weight_data;
-        csi_mem_free(pa_reorder);
+        shl_mem_free(pa_reorder);
 
-        params->base.bc = csi_c906_cache_conv1d_fp16;
+        cb->exec = shl_c906_cache_conv1d_fp16;
     }
 
     return CSINN_TRUE;
 }
 
-int csi_c906_cache_conv1d_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                               struct csi_tensor *weight, struct csi_tensor *bias,
-                               struct cache_conv1d_params *params)
+int shl_c906_cache_conv1d_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *weight, struct csinn_tensor *bias,
+                               struct csinn_cache_conv1d_params *params)
 {
     __fp16 *input_data = input->data;
     __fp16 *output_data = output->data;

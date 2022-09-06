@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_arange_f32(struct csi_tensor *output, struct arange_params *params)
+int shl_ref_arange_f32(struct csinn_tensor *output, struct csinn_arange_params *params)
 {
     float *data = output->data;
     int j = 0;
@@ -41,26 +41,26 @@ int csi_ref_arange_f32(struct csi_tensor *output, struct arange_params *params)
     return CSINN_TRUE;
 }
 
-int csi_ref_arange_quant(struct csi_tensor *output, struct arange_params *params)
+int shl_ref_arange_quant(struct csinn_tensor *output, struct csinn_arange_params *params)
 {
-    struct csi_quant_info qinfo;
+    struct csinn_quant_info qinfo;
     qinfo.zero_point = 0;
     qinfo.multiplier = params->start_multiplier;
     qinfo.shift = params->start_shift;
-    float start = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
+    float start = shl_ref_dequantize_u8_to_f32(1.0, &qinfo);
     qinfo.zero_point = 0;
     qinfo.multiplier = params->stop_multiplier;
     qinfo.shift = params->stop_shift;
-    float stop = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
+    float stop = shl_ref_dequantize_u8_to_f32(1.0, &qinfo);
     qinfo.zero_point = 0;
     qinfo.multiplier = params->step_multiplier;
     qinfo.shift = params->step_shift;
-    float step = csi_ref_dequantize_u8_to_f32(1.0, &qinfo);
+    float step = shl_ref_dequantize_u8_to_f32(1.0, &qinfo);
 
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    csi_ref_arange_f32(foutput, params);
-    csi_tensor_data_convert(output, foutput);
-    csi_ref_tensor_transform_free_f32(foutput);
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    shl_ref_arange_f32(foutput, params);
+    csinn_tensor_data_convert(output, foutput);
+    shl_ref_tensor_transform_free_f32(foutput);
 
     return CSINN_TRUE;
 }

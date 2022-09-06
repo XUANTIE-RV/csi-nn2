@@ -16,32 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-void csi_c906_conv1x1s1_sgemm_transform_kernel_fp16(struct csi_tensor *kernel,
-                                                    struct conv2d_params *params)
+void shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(struct csinn_tensor *kernel,
+                                                    struct csinn_conv2d_params *params)
 {
     __fp16 *kernel_data = (__fp16 *)kernel->data;
     int group = params->group;
 
-    int m = kernel->dim[0] / group; // out_ch
-    int k = kernel->dim[1];         // in_ch ( kernel->dim[2] = kernel->dim[3] = 1)
+    int m = kernel->dim[0] / group;  // out_ch
+    int k = kernel->dim[1];          // in_ch ( kernel->dim[2] = kernel->dim[3] = 1)
 
-    __fp16* pa_reorder = (__fp16 *)csi_mem_alloc(group * m * k * sizeof(__fp16));
+    __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(group * m * k * sizeof(__fp16));
     for (int g = 0; g < group; g++) {
-        csi_c906_reorder_kernel_fp16(kernel_data + g * m * k, pa_reorder + g * m * k, m, k, k);
+        shl_c906_reorder_kernel_fp16(kernel_data + g * m * k, pa_reorder + g * m * k, m, k, k);
     }
     memcpy(kernel_data, pa_reorder, group * m * k * sizeof(__fp16));
-    csi_mem_free(pa_reorder);
+    shl_mem_free(pa_reorder);
 }
 
-int csi_c906_conv1x1s1_sgemm_fp16(struct csi_tensor *input,
-                                  struct csi_tensor *output,
-                                  struct csi_tensor *kernel,
-                                  struct csi_tensor *bias,
-                                  struct conv2d_params *params)
+int shl_c906_conv1x1s1_sgemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                  struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -49,7 +47,7 @@ int csi_c906_conv1x1s1_sgemm_fp16(struct csi_tensor *input,
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t group = params->group;
-    int32_t batch = input->dim[0];      // assert(batch == 1);
+    int32_t batch = input->dim[0];  // assert(batch == 1);
     int32_t in_ch = input->dim[1];
     int32_t out_ch = kernel->dim[0];
     int32_t out_h = output->dim[2];
@@ -59,7 +57,7 @@ int csi_c906_conv1x1s1_sgemm_fp16(struct csi_tensor *input,
     int32_t k = in_ch / group;
     int32_t n = out_h * out_w;
 
-    __fp16* pb_reorder = (__fp16 *)csi_mem_alloc(k * n * sizeof(__fp16));
+    __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
 
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
@@ -67,17 +65,17 @@ int csi_c906_conv1x1s1_sgemm_fp16(struct csi_tensor *input,
             __fp16 *pb = pb_reorder;
             __fp16 *pc = output_data;
             // pack
-            csi_nn_rvv_reorder_input_z16_fp16(input_data, pb, k, n, n);
-            // csi_c906_reorder_input_fp16_1(input_data, pb, k, n, n);
+            shl_rvv_reorder_input_z16_fp16(input_data, pb, k, n, n);
+            // shl_c906_reorder_input_fp16_1(input_data, pb, k, n, n);
             // GEMM
-            csi_nn_rvv_gemm_8x16_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
-            // csi_c906_sgemm_kernel_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
+            shl_rvv_gemm_8x16_fp16(pc, pa, pb, bias_data + g * m, m, k, n, n);
+            // shl_c906_sgemm_kernel_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
 
             input_data += k * n;
             output_data += m * n;
         }
     }
-    csi_mem_free(pb_reorder);
+    shl_mem_free(pb_reorder);
     return CSINN_TRUE;
 }
 
@@ -85,11 +83,9 @@ int csi_c906_conv1x1s1_sgemm_fp16(struct csi_tensor *input,
     matrix: input data matrix
     vector: kernel data row
 */
-int csi_c906_conv1x1s1_batch_gemv_fp16(struct csi_tensor *input,
-                                       struct csi_tensor *output,
-                                       struct csi_tensor *kernel,
-                                       struct csi_tensor *bias,
-                                       struct conv2d_params *params)
+int shl_c906_conv1x1s1_batch_gemv_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                       struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -97,7 +93,7 @@ int csi_c906_conv1x1s1_batch_gemv_fp16(struct csi_tensor *input,
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t group = params->group;
-    int32_t batch = input->dim[0];      // assert(batch == 1);
+    int32_t batch = input->dim[0];  // assert(batch == 1);
     int32_t in_ch = input->dim[1];
     int32_t out_ch = kernel->dim[0];
     int32_t out_h = output->dim[2];
@@ -107,13 +103,13 @@ int csi_c906_conv1x1s1_batch_gemv_fp16(struct csi_tensor *input,
     int32_t k = in_ch / group;
     int32_t n = out_h * out_w;
 
-    bool flag_bias = 1;     // default: conv2d layer include bias
+    bool flag_bias = 1;  // default: conv2d layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)csi_mem_alloc(out_ch * sizeof(__fp16));
+        bias_data = (__fp16 *)shl_mem_alloc(out_ch * sizeof(__fp16));
     }
 
-    __fp16* pb_reorder = (__fp16 *)csi_mem_alloc(k * n * sizeof(__fp16));
+    __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
 
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
@@ -123,20 +119,20 @@ int csi_c906_conv1x1s1_batch_gemv_fp16(struct csi_tensor *input,
             __fp16 *bias_tmp = bias_data + g * m;
 
             // pack/reorder
-            csi_c906_reorder_matrix_z16_fp16(input_data, pb, k, n, n);
+            shl_c906_reorder_matrix_z16_fp16(input_data, pb, k, n, n);
             // batch GEMV
             for (int j = 0; j < m; j++) {
-                csi_c906_gemv_trans_pack16_fp16(pc + j * n, pa + j * k, pb, k, n, n, bias_tmp + j);
+                shl_c906_gemv_trans_pack16_fp16(pc + j * n, pa + j * k, pb, k, n, n, bias_tmp + j);
             }
 
             input_data += k * n;
             output_data += m * n;
         }
     }
-    csi_mem_free(pb_reorder);
+    shl_mem_free(pb_reorder);
 
     if (!flag_bias) {
-        csi_mem_free(bias_data);
+        shl_mem_free(bias_data);
         bias_data = NULL;
     }
     return CSINN_TRUE;

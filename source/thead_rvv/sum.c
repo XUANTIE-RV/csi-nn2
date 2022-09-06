@@ -16,19 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
-int csi_nn_rvv_sum_stride_int8(struct csi_tensor *input, struct csi_tensor *output,
-                               struct reduce_params *params)
+int shl_rvv_sum_stride_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_reduce_params *params)
 {
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
     // TODO: move to init api
     float real_scale = input->qinfo->scale / output->qinfo->scale;
-    csi_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
+    shl_quantize_multiplier(real_scale, &output->qinfo->multiplier, &output->qinfo->shift);
 
     if (*(params->axis) == -1) {
         int size = 1;

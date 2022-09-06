@@ -16,29 +16,27 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref_i805.h"
+#include "i805_ref_function.h"
+#include "shl_ref_i805.h"
 
-
-int csi_ref_i805_softmax_q7(struct csi_tensor *input,
-                            struct csi_tensor *output,
-                            struct softmax_params *params)
+int shl_i805_ref_softmax_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_softmax_params *params)
 {
     q7_t *input_data = (q7_t *)input->data;
     q7_t *output_data = (q7_t *)output->data;
-    int size = csi_tensor_size(input);
-    csi_softmax_q7(input_data, size, output_data);
+    int size = csinn_tensor_size(input);
+    shl_softmax_q7(input_data, size, output_data);
     return CSINN_TRUE;
 }
 
-int csi_ref_i805_softmax_q15(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct softmax_params *params)
+int shl_i805_ref_softmax_q15(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_softmax_params *params)
 {
     q15_t *input_data = (q15_t *)input->data;
     q15_t *output_data = (q15_t *)output->data;
-    int size = csi_tensor_size(input);
-    csi_softmax_q15(input_data, size, output_data);
+    int size = csinn_tensor_size(input);
+    shl_softmax_q15(input_data, size, output_data);
     return CSINN_TRUE;
 }

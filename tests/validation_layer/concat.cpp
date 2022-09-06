@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -31,35 +30,35 @@ int main(int argc, char **argv)
     int in_size = 1;
     int out_size = 1;
     int *buffer = read_input_data_f32(argv[1]);
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_concat_params *params = csinn_alloc_params(sizeof(struct csinn_concat_params), sess);
 
-    struct concat_params params;
+    params->inputs_count = buffer[4];
 
-    params.inputs_count = buffer[4];
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_tensor *input[params->inputs_count];
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct csi_tensor *input[params.inputs_count];
-
-    for (int i = 0; i < params.inputs_count; i++) {
-        input[i] = csi_alloc_tensor(NULL);
+    for (int i = 0; i < params->inputs_count; i++) {
+        input[i] = csinn_alloc_tensor(sess);
     }
 
-    params.axis = buffer[5];
+    params->axis = buffer[5];
     output->dim_count = 4;
 
     for (int i = 0; i < output->dim_count; i++) {
-        if (i == params.axis) {
-            output->dim[i] = params.inputs_count * buffer[i];
+        if (i == params->axis) {
+            output->dim[i] = params->inputs_count * buffer[i];
         } else {
             output->dim[i] = buffer[i];
         }
         out_size *= output->dim[i];
     }
-    in_size = out_size / params.inputs_count;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    in_size = out_size / params->inputs_count;
+    params->base.api = CSINN_API;
 
-    for (int i = 0; i < params.inputs_count; i++) {
+    for (int i = 0; i < params->inputs_count; i++) {
         input[i]->data = (float *)(buffer + 6 + in_size * i);
         input[i]->dim[0] = buffer[0];  // batch
         input[i]->dim[1] = buffer[1];  // height
@@ -76,24 +75,24 @@ int main(int argc, char **argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    reference->data = (float *)(buffer + 6 + in_size * params.inputs_count);
+    reference->data = (float *)(buffer + 6 + in_size * params->inputs_count);
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if THEAD_RVV
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_FLOAT32,
-                   csi_concat_init, csi_nn_rvv_concat_fp32, &difference);
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_FLOAT16,
-                   csi_concat_init, csi_nn_rvv_concat_fp16, &difference);
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_INT8_SYM,
-                   csi_concat_init, csi_nn_rvv_concat_int8, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT32,
+                   csinn_concat_init, shl_rvv_concat_fp32, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT16,
+                   csinn_concat_init, shl_rvv_concat_fp16, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_INT8_SYM,
+                   csinn_concat_init, shl_rvv_concat_int8, &difference);
 #else
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_FLOAT32,
-                   csi_concat_init, csi_concat, &difference);
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_UINT8_ASYM,
-                   csi_concat_init, csi_concat, &difference);
-    test_concat_op((struct csi_tensor **)input, output, &params, CSINN_QUANT_INT8_SYM,
-                   csi_concat_init, csi_concat, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT32,
+                   csinn_concat_init, csinn_concat, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_UINT8_ASYM,
+                   csinn_concat_init, csinn_concat, &difference);
+    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_INT8_SYM,
+                   csinn_concat_init, csinn_concat, &difference);
 #endif
 
     return done_testing();

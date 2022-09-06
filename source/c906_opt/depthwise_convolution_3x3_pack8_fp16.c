@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
-
+#include "shl_c906.h"
 
 /************************************************************************************************************
     c906 vlen = 128, 128/16 = 8 --> pack8, if vlen = 256  256/16 = 16 --> pack16
@@ -55,11 +54,9 @@
 
 */
 
-int csi_c906_dwconv3x3s1_pack8_fp16(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct csi_tensor *kernel,
-                                    struct csi_tensor *bias,
-                                    struct conv2d_params *params)
+int shl_c906_dwconv3x3s1_pack8_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                    struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -953,11 +950,9 @@ int csi_c906_dwconv3x3s1_pack8_fp16(struct csi_tensor *input,
     TODO: how to pack for input / kernel / bias / output
           padding
 */
-int csi_c906_dwconv3x3s2_pack8_fp16(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct csi_tensor *kernel,
-                                    struct csi_tensor *bias,
-                                    struct conv2d_params *params)
+int shl_c906_dwconv3x3s2_pack8_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                    struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

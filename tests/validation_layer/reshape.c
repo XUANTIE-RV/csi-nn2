@@ -16,38 +16,41 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of reshape(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct reshape_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_reshape_params *params =
+        csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
     int in_size, out_size;
 
     int *buffer = read_input_data_f32(argv[1]);
     int reshape_count = buffer[4];
     int *reshape = (int *)malloc(reshape_count * sizeof(int));
-    for(int i = 0; i < reshape_count; i++) {
+    for (int i = 0; i < reshape_count; i++) {
         reshape[i] = buffer[5 + i];
     }
 
-    input->dim[0] = buffer[0];          // batch
-    input->dim[1] = buffer[1];          // channel
-    input->dim[2] = buffer[2];          // height
-    input->dim[3] = buffer[3];          // width   
+    input->dim[0] = buffer[0];  // batch
+    input->dim[1] = buffer[1];  // channel
+    input->dim[2] = buffer[2];  // height
+    input->dim[3] = buffer[3];  // width
     input->dim_count = 4;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     input->name = "input";
     float *input_data = (float *)(buffer + 5 + reshape_count);
-    input->data = input_data; 
+    input->data = input_data;
     input->dtype = CSINN_DTYPE_FLOAT32;
     input->layout = CSINN_LAYOUT_NCHW;
     input->is_const = 0;
@@ -58,7 +61,7 @@ int main(int argc, char** argv)
     output->is_const = 0;
     output->quant_channel = 1;
     out_size = in_size;
-    for(int i = 0; i < output->dim_count; i++) {
+    for (int i = 0; i < output->dim_count; i++) {
         output->dim[i] = reshape[i];
         // out_size *= output->dim[i];
     }
@@ -68,17 +71,16 @@ int main(int argc, char** argv)
     output->name = "output";
     output->dtype = CSINN_DTYPE_FLOAT32;
 
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.shape = reshape;
-    params.shape_num = output->dim_count;
-    
+    params->base.api = CSINN_API;
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->shape = reshape;
+    params->shape_num = output->dim_count;
+
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    test_reshape_CSINN_QUANT_FLOAT32(input, output, &params, &difference);
-    test_reshape_CSINN_QUANT_UINT8_ASYM(input, output, &params, &difference);
-    test_reshape_CSINN_QUANT_INT8_SYM(input, output, &params, &difference);
+    test_reshape_CSINN_QUANT_FLOAT32(input, output, params, &difference);
+    test_reshape_CSINN_QUANT_UINT8_ASYM(input, output, params, &difference);
+    test_reshape_CSINN_QUANT_INT8_SYM(input, output, params, &difference);
 
     return done_testing();
 }

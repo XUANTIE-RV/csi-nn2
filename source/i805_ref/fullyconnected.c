@@ -16,39 +16,35 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref_i805.h"
+#include "i805_ref_function.h"
+#include "shl_ref_i805.h"
 
-
-int csi_ref_i805_fullyconnected_q7(struct csi_tensor *input,
-                                   struct csi_tensor *output,
-                                   struct csi_tensor *weights,
-                                   struct csi_tensor *bias,
-                                   struct fc_params *params)
+int shl_i805_ref_fullyconnected_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                   struct csinn_fc_params *params)
 {
     q7_t *input_data = (q7_t *)input->data;
     q7_t *weight_data = (q7_t *)weights->data;
     q7_t *bias_data = (q7_t *)bias->data;
     q7_t *output_data = (q7_t *)output->data;
 
-    csi_fully_connected_q7(input_data, weight_data, input->dim[1], weights->dim[0],
+    shl_fully_connected_q7(input_data, weight_data, input->dim[1], weights->dim[0],
                            bias->qinfo->shift, output->qinfo->shift, bias_data, output_data);
     return CSINN_TRUE;
 }
 
-int csi_ref_i805_fullyconnected_q15(struct csi_tensor *input,
-                                    struct csi_tensor *output,
-                                    struct csi_tensor *weights,
-                                    struct csi_tensor *bias,
-                                    struct fc_params *params)
+int shl_i805_ref_fullyconnected_q15(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                    struct csinn_fc_params *params)
 {
     q15_t *input_data = (q15_t *)input->data;
     q15_t *weight_data = (q15_t *)weights->data;
     q15_t *bias_data = (q15_t *)bias->data;
     q15_t *output_data = (q15_t *)output->data;
 
-    csi_fully_connected_q15(input_data, weight_data, input->dim[1], weights->dim[0],
+    shl_fully_connected_q15(input_data, weight_data, input->dim[1], weights->dim[0],
                             bias->qinfo->shift, output->qinfo->shift, bias_data, output_data);
     return CSINN_TRUE;
 }

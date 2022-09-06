@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_maxpool3d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                          struct pool_params *params)
+int shl_ref_maxpool3d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_pool_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -46,15 +45,15 @@ int csi_ref_maxpool3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                         const int in_w_origin = (out_w * params->stride_width) - params->pad_left;
                         // Compute the boundaries of the filter region clamped so as to
                         // ensure that the filter window fits in the input array.
-                        const int filter_d_begin = csi_ref_max_internal_s32(0, -in_d_origin);
+                        const int filter_d_begin = shl_ref_max_internal_s32(0, -in_d_origin);
                         const int filter_d_end =
-                            csi_ref_min_internal_s32(params->filter_depth, in_depth - in_d_origin);
-                        const int filter_h_begin = csi_ref_max_internal_s32(0, -in_h_origin);
-                        const int filter_h_end = csi_ref_min_internal_s32(params->filter_height,
+                            shl_ref_min_internal_s32(params->filter_depth, in_depth - in_d_origin);
+                        const int filter_h_begin = shl_ref_max_internal_s32(0, -in_h_origin);
+                        const int filter_h_end = shl_ref_min_internal_s32(params->filter_height,
                                                                           in_height - in_h_origin);
-                        const int filter_w_begin = csi_ref_max_internal_s32(0, -in_w_origin);
+                        const int filter_w_begin = shl_ref_max_internal_s32(0, -in_w_origin);
                         const int filter_w_end =
-                            csi_ref_min_internal_s32(params->filter_width, in_width - in_w_origin);
+                            shl_ref_min_internal_s32(params->filter_width, in_width - in_w_origin);
 
                         float max = -FLT_MAX;
                         int filter_cnt = 0;
@@ -67,7 +66,7 @@ int csi_ref_maxpool3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                                     int in_h = in_h_origin + filter_h;
                                     int in_w = in_w_origin + filter_w;
                                     max = fmax(max,
-                                               input_data[csi_ref_get_index_5(
+                                               input_data[shl_ref_get_index_5(
                                                    input->dim, in_ch, out_ch, in_d, in_h, in_w)]);
                                     filter_cnt++;
                                 }
@@ -77,7 +76,7 @@ int csi_ref_maxpool3d_f32(struct csi_tensor *input, struct csi_tensor *output,
                             params->filter_depth * params->filter_height * params->filter_width) {
                             max = fmax(max, 0);
                         }
-                        output_data[csi_ref_get_index_5(output->dim, in_ch, out_ch, out_d, out_h,
+                        output_data[shl_ref_get_index_5(output->dim, in_ch, out_ch, out_d, out_h,
                                                         out_w)] = max;
                     }
                 }
@@ -87,8 +86,8 @@ int csi_ref_maxpool3d_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_maxpool3d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                            struct pool_params *params)
+int shl_ref_maxpool3d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_pool_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_maxpool3d_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_maxpool3d_f32);
 }

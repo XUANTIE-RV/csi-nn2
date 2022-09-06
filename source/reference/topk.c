@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_topk_f32(struct csi_tensor *input, struct csi_tensor *output1,
-                     struct csi_tensor *output2, struct topk_params *params)
+int shl_ref_topk_f32(struct csinn_tensor *input, struct csinn_tensor *output1,
+                     struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
     float *input_data = (float *)input->data;
     float *values_data = (float *)output1->data;
@@ -36,7 +35,7 @@ int csi_ref_topk_f32(struct csi_tensor *input, struct csi_tensor *output1,
     }
     float *input_sort_addr = input_data;
     for (int n = 0; n < inner_size; n++) {
-        int *flag = (int *)csi_mem_alloc(last_dim * sizeof(int));
+        int *flag = (int *)shl_mem_alloc(last_dim * sizeof(int));
         for (int i = 0; i < k; i++) {
             values_data[i] = -FLT_MAX;
             for (int j = 0; j < last_dim; j++) {
@@ -47,7 +46,7 @@ int csi_ref_topk_f32(struct csi_tensor *input, struct csi_tensor *output1,
             }
             flag[indices_data[i]] = 1;
         }
-        csi_mem_free(flag);
+        shl_mem_free(flag);
         flag = NULL;
         input_sort_addr += last_dim;
         values_data += k;
@@ -56,15 +55,15 @@ int csi_ref_topk_f32(struct csi_tensor *input, struct csi_tensor *output1,
     return CSINN_TRUE;
 }
 
-int csi_ref_topk_quant(struct csi_tensor *input, struct csi_tensor *output0,
-                       struct csi_tensor *output1, struct topk_params *params)
+int shl_ref_topk_quant(struct csinn_tensor *input, struct csinn_tensor *output0,
+                       struct csinn_tensor *output1, struct csinn_topk_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *foutput0 = csi_ref_tensor_transform_f32(output0);
-    ret = csi_ref_topk_f32(finput, foutput0, output1, params);
-    csi_tensor_data_convert(output0, foutput0);
-    csi_ref_tensor_transform_free_f32(finput);
-    csi_ref_tensor_transform_free_f32(foutput0);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *foutput0 = shl_ref_tensor_transform_f32(output0);
+    ret = shl_ref_topk_f32(finput, foutput0, output1, params);
+    csinn_tensor_data_convert(output0, foutput0);
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput0);
     return ret;
 }

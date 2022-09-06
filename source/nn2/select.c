@@ -16,32 +16,32 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_select_init(struct csi_tensor *condition,
-                    struct csi_tensor *input0,
-                    struct csi_tensor *input1,
-                    struct csi_tensor *output,
-                    struct select_params *params)
+int csinn_select_init(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                      struct csinn_tensor *input1, struct csinn_tensor *output,
+                      struct csinn_select_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_SELECT, input0->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_SELECT, input0->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(condition, input0, input1, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_select(struct csi_tensor *condition,
-               struct csi_tensor *input0,
-               struct csi_tensor *input1,
-               struct csi_tensor *output,
-               struct select_params *params)
+int csinn_select(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                 struct csinn_tensor *input1, struct csinn_tensor *output,
+                 struct csinn_select_params *params)
 {
-    CSI_DEBUG_CALL(csi_select_debug_info(condition, input0, input1, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(condition, input0, input1, output, params);
+    SHL_DEBUG_CALL(shl_select_debug_info(condition, input0, input1, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(condition, input0, input1, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

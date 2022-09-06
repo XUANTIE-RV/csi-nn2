@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_arange(struct csi_tensor *output,
-                    struct arange_params *params)
+int shl_gref_arange(struct csinn_tensor *output, struct csinn_arange_params *params)
 {
-    csi_debug_error("csi_gref_arange unsupport\n");
+    shl_debug_error("shl_gref_arange unsupport\n");
     return CSINN_FALSE;
 }
-

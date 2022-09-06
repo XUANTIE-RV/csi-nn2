@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
 *************************************************************/
-int csi_nn_rvv_dwconv3x3s1_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                                struct csi_tensor *kernel, struct csi_tensor *bias,
-                                struct conv2d_params *params)
+int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -42,10 +42,10 @@ int csi_nn_rvv_dwconv3x3s1_fp16(struct csi_tensor *input, struct csi_tensor *out
     int32_t out_w = output->dim[3];
 
     __fp16 *input_padd_buf =
-        (__fp16 *)csi_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
+        (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
                                 (in_w + params->pad_left + params->pad_right) * sizeof(float));
 
-    csi_nn_rvv_pad_input_fp16(
+    shl_rvv_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
         in_w + params->pad_left + params->pad_right, params->pad_top, params->pad_left);
 
@@ -338,13 +338,13 @@ int csi_nn_rvv_dwconv3x3s1_fp16(struct csi_tensor *input, struct csi_tensor *out
             }
         }
     }
-    csi_mem_free(input_padd_buf);
+    shl_mem_free(input_padd_buf);
     return CSINN_TRUE;
 }
 
-int csi_nn_rvv_dwconv3x3s2_fp16(struct csi_tensor *input, struct csi_tensor *output,
-                                struct csi_tensor *kernel, struct csi_tensor *bias,
-                                struct conv2d_params *params)
+int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
@@ -361,10 +361,10 @@ int csi_nn_rvv_dwconv3x3s2_fp16(struct csi_tensor *input, struct csi_tensor *out
     int32_t out_w = output->dim[3];
 
     __fp16 *input_padd_buf =
-        (__fp16 *)csi_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
+        (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
                                 (in_w + params->pad_left + params->pad_right) * sizeof(float));
 
-    csi_nn_rvv_pad_input_fp16(
+    shl_rvv_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
         in_w + params->pad_left + params->pad_right, params->pad_top, params->pad_left);
 
@@ -508,6 +508,6 @@ int csi_nn_rvv_dwconv3x3s2_fp16(struct csi_tensor *input, struct csi_tensor *out
         }
     }
 
-    csi_mem_free(input_padd_buf);
+    shl_mem_free(input_padd_buf);
     return CSINN_TRUE;
 }

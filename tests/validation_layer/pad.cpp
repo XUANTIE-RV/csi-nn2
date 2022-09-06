@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,10 +28,12 @@ int main(int argc, char **argv)
 {
     init_testsuite("Testing function of pad(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct pad_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_pad_params *params = csinn_alloc_params(sizeof(struct csinn_pad_params), sess);
     int in_size = 0, out_size = 0;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -59,12 +60,11 @@ int main(int argc, char **argv)
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    params.base.api = CSINN_API;
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.pad_mode = CSINN_PAD_CONSTANT;
-    params.pad_value = 0.0f;
-    params.pad_num = input->dim_count;
+    params->base.api = CSINN_API;
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->pad_mode = CSINN_PAD_CONSTANT;
+    params->pad_value = 0.0f;
+    params->pad_num = input->dim_count;
 
     int32_t pad_left = buffer[4];
     int32_t pad_right = buffer[5];
@@ -74,8 +74,8 @@ int main(int argc, char **argv)
     int32_t pad_before[4] = {0, 0, pad_top, pad_left};
     int32_t pad_after[4] = {0, 0, pad_down, pad_right};
 
-    params.pad_before = pad_before;
-    params.pad_after = pad_after;
+    params->pad_before = pad_before;
+    params->pad_after = pad_after;
 
     input->data = (float *)(buffer + 8);
     reference->data = (float *)(buffer + 8 + in_size);
@@ -85,10 +85,10 @@ int main(int argc, char **argv)
 #if THEAD_RVV
     return 0
 #else
-    test_unary_op(input, output, &params, CSINN_QUANT_FLOAT32, csi_pad_init, csi_pad, &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_UINT8_ASYM, csi_pad_init, csi_pad,
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_pad_init, csinn_pad, &difference);
+    test_unary_op(input, output, params, CSINN_QUANT_UINT8_ASYM, csinn_pad_init, csinn_pad,
                   &difference);
-    test_unary_op(input, output, &params, CSINN_QUANT_INT8_SYM, csi_pad_init, csi_pad, &difference);
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_pad_init, csinn_pad, &difference);
 #endif
 
         return done_testing();

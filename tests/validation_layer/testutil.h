@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 // #include "common.h"
 
@@ -28,109 +28,173 @@
 #include "test_utils.h"
 
 template <typename T>
-void test_unary_op(struct csi_tensor *input, struct csi_tensor *output, T *params,
+void test_unary_op(struct csinn_tensor *input, struct csinn_tensor *output, T *params,
                    enum csinn_quant_enum quant_dtype,
-                   int (*init_op)(struct csi_tensor *, struct csi_tensor *, T *),
-                   int (*unary_op)(struct csi_tensor *, struct csi_tensor *, T *),
+                   int (*init_op)(struct csinn_tensor *, struct csinn_tensor *, T *),
+                   int (*unary_op)(struct csinn_tensor *, struct csinn_tensor *, T *),
                    float *difference)
 {
     enum csinn_quant_enum test_dtype = quant_dtype;
     int test_api = params->base.api;
-    struct csi_tensor *qinput = convert_f32_layer(input, test_dtype, (enum csinn_api_enum)test_api);
-    struct csi_tensor *qoutput =
+    struct csinn_tensor *qinput =
+        convert_f32_layer(input, test_dtype, (enum csinn_api_enum)test_api);
+    struct csinn_tensor *qoutput =
         convert_f32_layer(output, test_dtype, (enum csinn_api_enum)test_api);
     if (init_op(qinput, qoutput, params) == CSINN_TRUE) {
         unary_op(qinput, qoutput, params);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(qoutput);
+        result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input->data,
+                          *difference, csinn_tensor_size(output), false);
+        shl_ref_tensor_transform_free_f32(foutput);
+    } else {
+        printf("Function init failed\n");
+        exit(-1);
     }
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(qoutput);
-    result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input->data,
-                      *difference, csi_tensor_size(output), false);
-    csi_ref_tensor_transform_free_f32(foutput);
 }
 
 template <typename T>
-void test_binary_op(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-                    T *params, enum csinn_quant_enum quant_dtype,
-                    int (*init_op)(struct csi_tensor *, struct csi_tensor *, struct csi_tensor *,
-                                   T *),
-                    int (*binary_op)(struct csi_tensor *, struct csi_tensor *, struct csi_tensor *,
-                                     T *),
+void test_binary_op(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                    struct csinn_tensor *output, T *params, enum csinn_quant_enum quant_dtype,
+                    int (*init_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                   struct csinn_tensor *, T *),
+                    int (*binary_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                     struct csinn_tensor *, T *),
                     float *difference)
 {
     enum csinn_quant_enum test_dtype = quant_dtype;
     int test_api = params->base.api;
-    struct csi_tensor *qinput0 =
+    struct csinn_tensor *qinput0 =
         convert_f32_layer(input0, test_dtype, (enum csinn_api_enum)test_api);
-    struct csi_tensor *qinput1 =
+    struct csinn_tensor *qinput1 =
         convert_f32_layer(input1, test_dtype, (enum csinn_api_enum)test_api);
-    struct csi_tensor *qoutput =
+    struct csinn_tensor *qoutput =
         convert_f32_layer(output, test_dtype, (enum csinn_api_enum)test_api);
     if (init_op(qinput0, qinput1, qoutput, params) == CSINN_TRUE) {
         binary_op(qinput0, qinput1, qoutput, params);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(qoutput);
+        result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input0->data,
+                          *difference, csinn_tensor_size(output), false);
+        shl_ref_tensor_transform_free_f32(foutput);
+    } else {
+        printf("Function init failed\n");
+        exit(-1);
     }
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(qoutput);
-    result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input0->data,
-                      *difference, csi_tensor_size(output), false);
-    csi_ref_tensor_transform_free_f32(foutput);
 }
 
 template <typename T>
-void test_concat_op(struct csi_tensor **input, struct csi_tensor *output, T *params,
+void test_concat_op(struct csinn_tensor **input, struct csinn_tensor *output, T *params,
                     enum csinn_quant_enum quant_dtype,
-                    int (*init_op)(struct csi_tensor **, struct csi_tensor *, T *),
-                    int (*unary_op)(struct csi_tensor **, struct csi_tensor *, T *),
+                    int (*init_op)(struct csinn_tensor **, struct csinn_tensor *, T *),
+                    int (*unary_op)(struct csinn_tensor **, struct csinn_tensor *, T *),
                     float *difference)
 {
     enum csinn_quant_enum test_dtype = quant_dtype;
     int test_api = params->base.api;
-    struct csi_tensor *qinput[params->inputs_count];
+    struct csinn_tensor *qinput[params->inputs_count];
     for (int i = 0; i < params->inputs_count; i++) {
         qinput[i] = convert_f32_layer(input[i], test_dtype, (enum csinn_api_enum)test_api);
     }
-    struct csi_tensor *qoutput =
+    struct csinn_tensor *qoutput =
         convert_f32_layer(output, test_dtype, (enum csinn_api_enum)test_api);
-    if (init_op((struct csi_tensor **)qinput, qoutput, params) == CSINN_TRUE) {
-        unary_op((struct csi_tensor **)qinput, qoutput, params);
+    if (init_op((struct csinn_tensor **)qinput, qoutput, params) == CSINN_TRUE) {
+        unary_op((struct csinn_tensor **)qinput, qoutput, params);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(qoutput);
+        result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input[0]->data,
+                          *difference, csinn_tensor_size(output), false);
+        shl_ref_tensor_transform_free_f32(foutput);
+    } else {
+        printf("Function init failed\n");
+        exit(-1);
     }
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(qoutput);
-    result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input[0]->data,
-                      *difference, csi_tensor_size(output), false);
-    csi_ref_tensor_transform_free_f32(foutput);
 }
 
 template <typename T>
-void test_conv2d_op(struct csi_tensor *input, struct csi_tensor *output, struct csi_tensor *kernel,
-                    struct csi_tensor *bias, T *params, enum csinn_quant_enum quant_dtype,
-                    int (*init_op)(struct csi_tensor *, struct csi_tensor *, struct csi_tensor *,
-                                   struct csi_tensor *, T *),
-                    int (*conv2d_op)(struct csi_tensor *, struct csi_tensor *, struct csi_tensor *,
-                                     struct csi_tensor *, T *),
+void test_conv2d_op(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_tensor *kernel, struct csinn_tensor *bias, T *params,
+                    enum csinn_quant_enum quant_dtype,
+                    int (*init_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                   struct csinn_tensor *, struct csinn_tensor *, T *),
+                    int (*conv2d_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                     struct csinn_tensor *, struct csinn_tensor *, T *),
                     float *difference)
 {
     enum csinn_quant_enum test_dtype = quant_dtype;
     int test_api = params->base.api;
-    struct csi_tensor *qbias;
-    struct csi_tensor *qinput;
+    struct csinn_tensor *qbias;
+    struct csinn_tensor *qinput;
+
+    struct csinn_tensor *qkernel =
+        convert_f32_layer(kernel, test_dtype, (enum csinn_api_enum)test_api);
 
     if (test_dtype == CSINN_QUANT_INT8_SYM) {
-        qbias = fuse_zp_to_bias(input, kernel, bias, (enum csinn_api_enum)test_api);
-        qinput = convert_f32_layer(input, CSINN_QUANT_INT8_ASYM, (enum csinn_api_enum)test_api);
-        qinput->qinfo->zero_point = 0;
+        if (!params->conv_extra.fuse_zp2bias) {
+            qinput = convert_f32_layer(input, CSINN_QUANT_INT8_ASYM, (enum csinn_api_enum)test_api);
+            qbias = convert_f32_bias(input, kernel, bias, (enum csinn_api_enum)test_api);
+        } else {
+            qbias = fuse_zp_to_bias(input, kernel, bias, (enum csinn_api_enum)test_api);
+            qinput = convert_f32_layer(input, CSINN_QUANT_INT8_ASYM, (enum csinn_api_enum)test_api);
+            qinput->qinfo->zero_point = 0;
+        }
+
     } else {
         qbias = convert_f32_layer(bias, test_dtype, (enum csinn_api_enum)test_api);
         qinput = convert_f32_layer(input, test_dtype, (enum csinn_api_enum)test_api);
     }
 
-    struct csi_tensor *qoutput =
+    struct csinn_tensor *qoutput =
         convert_f32_layer(output, test_dtype, (enum csinn_api_enum)test_api);
-    struct csi_tensor *qkernel =
-        convert_f32_layer(kernel, test_dtype, (enum csinn_api_enum)test_api);
 
     if (init_op(qinput, qoutput, qkernel, qbias, params) == CSINN_TRUE) {
         conv2d_op(qinput, qoutput, qkernel, qbias, params);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(qoutput);
+        result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input->data,
+                          *difference, csinn_tensor_size(output), false);
+        shl_ref_tensor_transform_free_f32(foutput);
+    } else {
+        printf("Function init failed\n");
+        exit(-1);
     }
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(qoutput);
-    result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input->data,
-                      *difference, csi_tensor_size(output), false);
-    csi_ref_tensor_transform_free_f32(foutput);
+}
+
+template <typename T>
+void test_fully_op(struct csinn_tensor *input, struct csinn_tensor *output,
+                   struct csinn_tensor *kernel, struct csinn_tensor *bias, T *params,
+                   enum csinn_quant_enum quant_dtype,
+                   int (*init_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                  struct csinn_tensor *, struct csinn_tensor *, T *),
+                   int (*conv2d_op)(struct csinn_tensor *, struct csinn_tensor *,
+                                    struct csinn_tensor *, struct csinn_tensor *, T *),
+                   float *difference)
+{
+    enum csinn_quant_enum test_dtype = quant_dtype;
+    int test_api = params->base.api;
+    struct csinn_tensor *qbias;
+    struct csinn_tensor *qinput;
+
+    struct csinn_tensor *qkernel =
+        convert_f32_layer(kernel, test_dtype, (enum csinn_api_enum)test_api);
+
+    if (test_dtype == CSINN_QUANT_INT8_SYM) {
+        qbias = fuse_zp_to_bias(input, kernel, bias, (enum csinn_api_enum)test_api);
+        qinput = convert_f32_layer(input, CSINN_QUANT_INT8_ASYM, (enum csinn_api_enum)test_api);
+        qinput->qinfo->zero_point = 0;
+
+    } else {
+        qbias = convert_f32_layer(bias, test_dtype, (enum csinn_api_enum)test_api);
+        qinput = convert_f32_layer(input, test_dtype, (enum csinn_api_enum)test_api);
+    }
+
+    struct csinn_tensor *qoutput =
+        convert_f32_layer(output, test_dtype, (enum csinn_api_enum)test_api);
+
+    if (init_op(qinput, qoutput, qkernel, qbias, params) == CSINN_TRUE) {
+        conv2d_op(qinput, qoutput, qkernel, qbias, params);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(qoutput);
+        result_verify_f32((float *)output->data, (float *)foutput->data, (float *)input->data,
+                          *difference, csinn_tensor_size(output), false);
+        shl_ref_tensor_transform_free_f32(foutput);
+    } else {
+        printf("Function init failed\n");
+        exit(-1);
+    }
 }

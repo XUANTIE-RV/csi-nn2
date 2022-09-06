@@ -16,27 +16,27 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of maximum f32.\n");
 
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct diso_params params;
+    struct csinn_tensor *input0 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *input1 = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_diso_params *params = csinn_alloc_params(sizeof(struct csinn_diso_params), NULL);
     int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
     input0->dim_count = buffer[0];
     output->dim_count = input0->dim_count;
-    for(int i = 0; i < input0->dim_count; i++) {
+    for (int i = 0; i < input0->dim_count; i++) {
         input0->dim[i] = buffer[i + 1];
         output->dim[i] = input0->dim[i];
         in_size *= input0->dim[i];
@@ -47,17 +47,16 @@ int main(int argc, char** argv)
     input0->dtype = CSINN_DTYPE_FLOAT32;
     input1->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
-    input0->data    = (float *)(buffer + 1 + input0->dim_count);
-    input1->data    = (float *)(buffer + 1 + input0->dim_count + in_size);
-    reference->data = (float *)(buffer + 1 + input0->dim_count + 2*in_size);
-    output->data    = malloc(out_size * sizeof(float));
+    input0->data = (float *)(buffer + 1 + input0->dim_count);
+    input1->data = (float *)(buffer + 1 + input0->dim_count + in_size);
+    reference->data = (float *)(buffer + 1 + input0->dim_count + 2 * in_size);
+    output->data = malloc(out_size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_maximum_init(input0, input1, output, &params) == CSINN_TRUE) {
-        csi_maximum(input0, input1, output, &params);
+    if (csinn_maximum_init(input0, input1, output, params) == CSINN_TRUE) {
+        csinn_maximum(input0, input1, output, params);
     }
 
     result_verify_f32(reference->data, output->data, input0->data, difference, in_size, false);

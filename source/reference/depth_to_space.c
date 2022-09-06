@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 // the input->data is a 4-D Tensor with shape [batch, depth, height, width].
-int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                    struct depth_to_space_params *params)
+int shl_ref_depth_to_space_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_depth_to_space_params *params)
 {
     if (params->mode == CSINN_DEPTHTOSPACE_CRD) return CSINN_FALSE;
     float *input_data = (float *)input->data;
@@ -45,13 +45,13 @@ int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input, struct csi_tensor 
         for (int in_h = 0; in_h < in_height; ++in_h) {
             for (int in_w = 0; in_w < in_width; ++in_w) {
                 for (int out_c = 0; out_c < out_channel; ++out_c) {
-                    float *temp = (float *)csi_mem_alloc(block_size2 * sizeof(float));
-                    int in_start_addr = csi_ref_get_index(input->dim, out_b, out_c, in_h, in_w);
+                    float *temp = (float *)shl_mem_alloc(block_size2 * sizeof(float));
+                    int in_start_addr = shl_ref_get_index(input->dim, out_b, out_c, in_h, in_w);
                     for (int i = 0; i < block_size2; i++) {
                         temp[i] =
                             input_data[in_start_addr + i * out_channel * in_height * in_width];
                     }
-                    int out_start_addr = csi_ref_get_index(output->dim, out_b, out_c,
+                    int out_start_addr = shl_ref_get_index(output->dim, out_b, out_c,
                                                            in_h * block_size, in_w * block_size);
                     for (int h = 0; h < block_size; h++) {
                         for (int w = 0; w < block_size; w++) {
@@ -59,7 +59,7 @@ int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input, struct csi_tensor 
                                 temp[h * block_size + w];
                         }
                     }
-                    csi_mem_free(temp);
+                    shl_mem_free(temp);
                 }
             }
         }
@@ -67,64 +67,63 @@ int csi_ref_depth_to_space_nchw_f32(struct csi_tensor *input, struct csi_tensor 
     return CSINN_TRUE;
 }
 
-int csi_ref_depth_to_space_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                    struct depth_to_space_params *params)
+int shl_ref_depth_to_space_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_depth_to_space_params *params)
 {
-    struct csi_tensor *t_input = csi_alloc_tensor(NULL);
-    csi_tensor_copy(t_input, input);
+    struct csinn_tensor *t_input = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(t_input, input);
     t_input->layout = CSINN_LAYOUT_NCHW;
-    t_input->data = malloc(csi_tensor_size(input) * sizeof(float));
+    t_input->data = malloc(csinn_tensor_size(input) * sizeof(float));
     t_input->dim[1] = input->dim[3];
     t_input->dim[2] = input->dim[1];
     t_input->dim[3] = input->dim[2];
-    struct transpose_params pparams;
+    struct csinn_transpose_params pparams;
     pparams.permute_num = 4;
     pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
-    pparams.base.run_mode = CSINN_RM_LAYER;
     pparams.base.name = params->base.name;
     pparams.permute = malloc(pparams.permute_num * sizeof(int32_t));
     pparams.permute[0] = 0;
     pparams.permute[1] = 3;
     pparams.permute[2] = 1;
     pparams.permute[3] = 2;
-    csi_ref_transpose(input, t_input, &pparams);
+    shl_ref_transpose(input, t_input, &pparams);
 
-    struct csi_tensor *t_output = csi_alloc_tensor(NULL);
-    csi_tensor_copy(t_output, output);
+    struct csinn_tensor *t_output = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(t_output, output);
     t_output->layout = CSINN_LAYOUT_NCHW;
-    t_output->data = malloc(csi_tensor_size(output) * sizeof(float));
+    t_output->data = malloc(csinn_tensor_size(output) * sizeof(float));
     t_output->dim[1] = output->dim[3];
     t_output->dim[2] = output->dim[1];
     t_output->dim[3] = output->dim[2];
 
-    csi_ref_depth_to_space_nchw_f32(t_input, t_output, params);
+    shl_ref_depth_to_space_nchw_f32(t_input, t_output, params);
     pparams.permute[0] = 0;
     pparams.permute[1] = 2;
     pparams.permute[2] = 3;
     pparams.permute[3] = 1;
 
-    csi_ref_transpose(t_output, output, &pparams);
+    shl_ref_transpose(t_output, output, &pparams);
 
-    csi_free_tensor(t_input);
-    csi_free_tensor(t_output);
+    csinn_free_tensor(t_input);
+    csinn_free_tensor(t_output);
     free(pparams.permute);
     return CSINN_TRUE;
 }
 
-int csi_ref_depth_to_space_f32(struct csi_tensor *input, struct csi_tensor *output,
-                               struct depth_to_space_params *params)
+int shl_ref_depth_to_space_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_depth_to_space_params *params)
 {
     if (input->layout == CSINN_LAYOUT_NCHW) {
-        return csi_ref_depth_to_space_nchw_f32(input, output, params);
+        return shl_ref_depth_to_space_nchw_f32(input, output, params);
     } else if (input->layout == CSINN_LAYOUT_NHWC) {
-        return csi_ref_depth_to_space_nhwc_f32(input, output, params);
+        return shl_ref_depth_to_space_nhwc_f32(input, output, params);
     }
     return CSINN_FALSE;
 }
 
-int csi_ref_depth_to_space_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                 struct depth_to_space_params *params)
+int shl_ref_depth_to_space_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_depth_to_space_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_depth_to_space_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_depth_to_space_f32);
 }

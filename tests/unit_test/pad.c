@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.13.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "./valid_data/pad.dat"
+
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
 #include "math_snr.h"
+#include "shl_thead_rvv.h"
 #include "test_utils.h"
 
 void verify_pad(void *input_data, void *ref_data, void (*func)(), int in_c, int in_h, int in_w,
@@ -31,7 +32,7 @@ void verify_pad(void *input_data, void *ref_data, void (*func)(), int in_c, int 
     int padded_w = in_w + pad_left + pad_right;
     int out_size = in_c * padded_h * padded_w;
 
-    float *out = csi_mem_alloc(out_size * sizeof(float));
+    float *out = shl_mem_alloc(out_size * sizeof(float));
 
     if (dtype == CSINN_DTYPE_INT8) {
         func(input_data, out, in_c, in_h, in_w, padded_h, padded_w, pad_top, pad_left, (int8_t)0);
@@ -41,17 +42,17 @@ void verify_pad(void *input_data, void *ref_data, void (*func)(), int in_c, int 
 
     evaluate_error(out, ref_data, out_size, dtype);
 
-    csi_mem_free(out);
+    shl_mem_free(out);
 }
 
 int main(int argc, char **argv)
 {
     init_testsuite("Test function of pad for RVV.\n");
-    verify_pad(pad_fp32_in, pad_fp32_out, csi_nn_rvv_pad_input_fp32, 3, 4, 19, 1, 1, 1, 1,
+    verify_pad(pad_fp32_in, pad_fp32_out, shl_rvv_pad_input_fp32, 3, 4, 19, 1, 1, 1, 1,
                CSINN_DTYPE_FLOAT32);
-    verify_pad(pad_fp16_in, pad_fp16_out, csi_nn_rvv_pad_input_fp16, 3, 4, 19, 1, 1, 1, 1,
+    verify_pad(pad_fp16_in, pad_fp16_out, shl_rvv_pad_input_fp16, 3, 4, 19, 1, 1, 1, 1,
                CSINN_DTYPE_FLOAT16);
-    verify_pad(pad_int8_in, pad_int8_out, csi_nn_rvv_pad_input_int8, 3, 4, 19, 1, 1, 1, 1,
+    verify_pad(pad_int8_in, pad_int8_out, shl_rvv_pad_input_int8, 3, 4, 19, 1, 1, 1, 1,
                CSINN_DTYPE_INT8);
 
     return done_testing();

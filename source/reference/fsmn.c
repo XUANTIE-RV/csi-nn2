@@ -16,17 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 static float fsmn(float x) { return x > 0 ? x : 0; }
 
-int csi_ref_fsmn_f32(struct csi_tensor *frame, struct csi_tensor *l_filter,
-                     struct csi_tensor *r_filter, struct csi_tensor *frame_sequence,
-                     struct csi_tensor *frame_counter, struct csi_tensor *output,
-                     struct fsmn_params *params)
+int shl_ref_fsmn_f32(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+                     struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+                     struct csinn_tensor *frame_counter, struct csinn_tensor *output,
+                     struct csinn_fsmn_params *params)
 {
     float *last_frame = frame->data;
     float *past_filter = l_filter->data;
@@ -85,25 +84,25 @@ int csi_ref_fsmn_f32(struct csi_tensor *frame, struct csi_tensor *l_filter,
     return CSINN_TRUE;
 }
 
-int csi_ref_fsmn_quant(struct csi_tensor *frame, struct csi_tensor *l_filter,
-                       struct csi_tensor *r_filter, struct csi_tensor *frame_sequence,
-                       struct csi_tensor *frame_count, struct csi_tensor *output,
-                       struct fsmn_params *params)
+int shl_ref_fsmn_quant(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+                       struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+                       struct csinn_tensor *frame_count, struct csinn_tensor *output,
+                       struct csinn_fsmn_params *params)
 {
-    struct csi_tensor *float_frame = csi_ref_tensor_transform_f32(frame);
-    struct csi_tensor *float_l_filter = csi_ref_tensor_transform_f32(l_filter);
-    struct csi_tensor *float_r_filter = csi_ref_tensor_transform_f32(r_filter);
-    struct csi_tensor *float_frame_sequence = csi_ref_tensor_transform_f32(frame_sequence);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
+    struct csinn_tensor *float_frame = shl_ref_tensor_transform_f32(frame);
+    struct csinn_tensor *float_l_filter = shl_ref_tensor_transform_f32(l_filter);
+    struct csinn_tensor *float_r_filter = shl_ref_tensor_transform_f32(r_filter);
+    struct csinn_tensor *float_frame_sequence = shl_ref_tensor_transform_f32(frame_sequence);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
 
-    int ret = csi_ref_fsmn_f32(float_frame, float_l_filter, float_r_filter, float_frame_sequence,
+    int ret = shl_ref_fsmn_f32(float_frame, float_l_filter, float_r_filter, float_frame_sequence,
                                frame_count, float_output, params);
-    csi_tensor_data_convert(output, float_output);
-    csi_tensor_data_convert(frame_sequence, float_frame_sequence);
-    csi_ref_tensor_transform_free_f32(float_frame);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_l_filter);
-    csi_ref_tensor_transform_free_f32(float_r_filter);
-    csi_ref_tensor_transform_free_f32(float_frame_sequence);
+    csinn_tensor_data_convert(output, float_output);
+    csinn_tensor_data_convert(frame_sequence, float_frame_sequence);
+    shl_ref_tensor_transform_free_f32(float_frame);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_l_filter);
+    shl_ref_tensor_transform_free_f32(float_r_filter);
+    shl_ref_tensor_transform_free_f32(float_frame_sequence);
     return ret;
 }

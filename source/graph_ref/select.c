@@ -16,16 +16,14 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_select(struct csi_tensor *condition,
-                    struct csi_tensor *input0,
-                    struct csi_tensor *input1,
-                    struct csi_tensor *output,
-                    struct select_params *params)
+int shl_gref_select(struct csinn_tensor *condition, struct csinn_tensor *input0,
+                    struct csinn_tensor *input1, struct csinn_tensor *output,
+                    struct csinn_select_params *params)
 {
-    csi_debug_error("csi_gref_select unsupport\n");
+    shl_debug_error("shl_gref_select unsupport\n");
     return CSINN_FALSE;
 }

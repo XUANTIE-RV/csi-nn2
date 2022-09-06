@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
-int csi_c906_clip_f32(struct csi_tensor *input,
-                      struct csi_tensor *output,
-                      struct clip_params *params)
+int shl_c906_clip_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_clip_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -58,10 +57,8 @@ int csi_c906_clip_f32(struct csi_tensor *input,
     return CSINN_TRUE;
 }
 
-
-int csi_c906_clip_fp16(struct csi_tensor *input,
-                       struct csi_tensor *output,
-                       struct clip_params *params)
+int shl_c906_clip_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_clip_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

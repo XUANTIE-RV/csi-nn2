@@ -2,8 +2,8 @@ LIB_DIR = ../../lib
 INCLUDE = -I../../include -I../utils
 CFLAGS = -O0 -g3 -fopenmp
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
-CFLAGS += -DCSINN_API=0	# params.api = CSINN_API = CSINN_REF = 0
-LIB_NAME = csi_nn2_ref_x86
+CFLAGS += -DCSINN_API=0	# params->api = CSINN_API = CSINN_REF = 0
+LIB_NAME = shl_ref_x86
 CC = gcc
 
 test_objs =

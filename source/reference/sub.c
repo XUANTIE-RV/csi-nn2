@@ -16,28 +16,27 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
 static void element_sub_f32(float *src0, float *src1, float *dest, int input_idx, int output_idx)
 {
     dest[output_idx] = src0[output_idx] - src1[input_idx];
 }
 
-int csi_ref_sub_f32(struct csi_tensor *input0, struct csi_tensor *input1, struct csi_tensor *output,
-                    struct diso_params *params)
+int shl_ref_sub_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                    struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    struct csi_ref_diso_callback cb;
+    struct shl_ref_diso_callback cb;
 
     cb.bc = element_sub_f32;
-    csi_ref_diso_broadcast_base(input0, input1, output, params, &cb);
+    shl_ref_diso_broadcast_base(input0, input1, output, params, &cb);
     return CSINN_TRUE;
 }
 
-int csi_ref_sub_quant(struct csi_tensor *input0, struct csi_tensor *input1,
-                      struct csi_tensor *output, struct diso_params *params)
+int shl_ref_sub_quant(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                      struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    return csi_ref_diso_callback_base(input0, input1, output, params, csi_ref_sub_f32);
+    return shl_ref_diso_callback_base(input0, input1, output, params, shl_ref_sub_f32);
 }

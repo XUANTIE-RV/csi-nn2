@@ -3,8 +3,8 @@ INCLUDE = -I../../include -I../utils
 CFLAGS = -O0 -g3 -static
 CFLAGS += -mcpu=ck805ef -mhard-float
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
-CFLAGS += -DCSINN_API=9 -DCSI_BUILD_I805 -DCSI_BUILD_RTOS
-LIB_NAME = csi_nn2_i805
+CFLAGS += -DCSINN_API=9 -DSHL_BUILD_I805 -DSHL_BUILD_RTOS
+LIB_NAME = shl_i805
 CC = csky-abiv2-elf-gcc
 #BOARD = ./board/smartl/crt0.o -T./board/smartl/ckcpu.ld ./board/smartl/uart.o
 BOARD = ./board/smartl/crt0.o -T./board/smartl/qemu.ld ./board/smartl/uart.o

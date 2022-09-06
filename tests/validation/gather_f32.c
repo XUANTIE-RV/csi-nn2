@@ -16,33 +16,34 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of gather f32.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *indices = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct gather_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *indices = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_gather_params *params =
+        csinn_alloc_params(sizeof(struct csinn_gather_params), NULL);
     int in_size = 1, indices_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
     int axis = buffer[0];
     input->dim_count = buffer[1];
-    for(int i = 0; i < input->dim_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         input->dim[i] = buffer[i + 2];
         in_size *= input->dim[i];
     }
 
     indices->dim_count = buffer[2 + input->dim_count];
-    for(int i = 0; i < indices->dim_count; i++) {
+    for (int i = 0; i < indices->dim_count; i++) {
         indices->dim[i] = buffer[3 + input->dim_count + i];
         indices_size *= indices->dim[i];
     }
@@ -68,18 +69,18 @@ int main(int argc, char** argv)
     input->dtype = CSINN_DTYPE_FLOAT32;
     indices->dtype = CSINN_DTYPE_INT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.axis = axis;
+    params->base.api = CSINN_API;
+    params->axis = axis;
 
-    input->data     = (float *)(buffer + 3 + input->dim_count + indices->dim_count);
-    indices->data   = (int32_t *)(buffer + 3 + input->dim_count + indices->dim_count + in_size);
-    reference->data = (float *)(buffer + 3 + input->dim_count + indices->dim_count + in_size + indices_size);
-    output->data    = (float *)malloc(out_size * sizeof(float));
+    input->data = (float *)(buffer + 3 + input->dim_count + indices->dim_count);
+    indices->data = (int32_t *)(buffer + 3 + input->dim_count + indices->dim_count + in_size);
+    reference->data =
+        (float *)(buffer + 3 + input->dim_count + indices->dim_count + in_size + indices_size);
+    output->data = (float *)malloc(out_size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_gather_init(input, indices, output, &params) == CSINN_TRUE) {
-        csi_gather(input, indices, output, &params);
+    if (csinn_gather_init(input, indices, output, params) == CSINN_TRUE) {
+        csinn_gather(input, indices, output, params);
     }
 
     result_verify_f32(reference->data, output->data, input->data, difference, out_size, false);

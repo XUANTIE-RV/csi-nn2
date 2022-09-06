@@ -1,0 +1,74 @@
+CC = riscv64-unknown-linux-gnu-gcc
+INCLUDE = -I../../include -I../utils
+CFLAGS = -O0 -g3
+CFLAGS += -DCSINN_API=7	# params->api = CSINN_API = CSINN_LIGHT = 7
+CFLAGS += -DCSINN_TEST_DTYPE=2	# tensor.dtype = CSINN_TEST_DTYPE = CSINN_DTYPE_INT8 = 2
+
+test_objs =
+
+test_objs += add.o
+test_objs += avgpool.o
+test_objs += batch_normalization.o
+test_objs += concat.o
+test_objs += crop.o
+test_objs += depth_to_space.o
+test_objs += flatten.o
+test_objs += global_avgpool.o
+test_objs += global_maxpool.o
+test_objs += leaky_relu.o
+test_objs += lrn.o
+test_objs += maximum.o
+test_objs += maxpool.o
+test_objs += mean.o
+test_objs += minimum.o
+test_objs += negative.o
+test_objs += pad.o
+test_objs += prelu.o
+test_objs += relu.o
+test_objs += relu1.o
+test_objs += relu6.o
+test_objs += reshape.o
+test_objs += resize.o
+test_objs += sigmoid.o
+test_objs += space_to_depth.o
+test_objs += split.o
+test_objs += squeeze.o
+test_objs += strided_slice.o
+test_objs += sub.o
+test_objs += tanh.o
+test_objs += transpose.o
+
+test_objs += ./light/argmax.o
+test_objs += ./light/batch_to_space_nd.o
+test_objs += ./light/convolution.o
+test_objs += ./light/deconvolution.o
+test_objs += ./light/depthwise_convolution.o
+test_objs += ./light/div.o
+test_objs += ./light/fullyconnected.o
+test_objs += ./light/group_convolution.o
+test_objs += ./light/l2_normalization.o
+test_objs += ./light/softmax.o
+test_objs += ./light/space_to_batch_nd.o
+
+
+
+utils_objs =
+
+utils_objs += ../utils/math_snr.o
+utils_objs += ../utils/test_utils.o
+
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+	$(CC) $@ $(CFLAGS) $(BOARD) $(utils_objs) -L../../lib -L../../module/nna_ddk_install/light/ \
+	../../lib/libshl_pnna.a -limgdnn -lnnasession -lpthread -lssl -lcrypto -latomic -lz -lm -lstdc++ -o $@.elf
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm imgdnn_session_*/ *.o

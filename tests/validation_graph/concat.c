@@ -16,51 +16,51 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-void op_test_run(struct csi_tensor **input, struct csi_tensor *output, struct concat_params *params,
-                 struct csi_session *sess, struct csi_tensor **real_input, float *output_data,
-                 float diff)
+void op_test_run(struct csinn_tensor **input, struct csinn_tensor *output,
+                 struct csinn_concat_params *params, struct csinn_session *sess,
+                 struct csinn_tensor **real_input, float *output_data, float diff)
 {
-    csi_session_init(sess);
-    csi_set_input_number(params->inputs_count, sess);
-    csi_set_output_number(1, sess);
-    csi_concat_init(input, output, params);
+    csinn_session_init(sess);
+    csinn_set_input_number(params->inputs_count, sess);
+    csinn_set_output_number(1, sess);
+    csinn_concat_init(input, output, params);
 
-    for(int i = 0; i < params->inputs_count; i++) {
-        csi_set_tensor_entry(input[i], sess);
-        csi_set_input(i, input[i], sess);
+    for (int i = 0; i < params->inputs_count; i++) {
+        csinn_set_tensor_entry(input[i], sess);
+        csinn_set_input(i, input[i], sess);
     }
 
-    csi_concat(input, output, params);
+    csinn_concat(input, output, params);
 
-    csi_set_output(0, output, sess);
-    csi_session_setup(sess);
+    csinn_set_output(0, output, sess);
+    csinn_session_setup(sess);
 
-    for(int i = 0; i < params->inputs_count; i++) {
-        csi_update_input(i, real_input[i], sess);
+    for (int i = 0; i < params->inputs_count; i++) {
+        csinn_update_input(i, real_input[i], sess);
     }
-    csi_session_run(sess);
-    csi_get_output(0, output, sess);
+    csinn_session_run(sess);
+    csinn_get_output(0, output, sess);
 
-    struct csi_tensor *foutput = csi_ref_tensor_transform_f32(output);
-    result_verify_f32(output_data, foutput->data, input[0]->data, diff, csi_tensor_size(output),
+    struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
+    result_verify_f32(output_data, foutput->data, input[0]->data, diff, csinn_tensor_size(output),
                       false);
 
     // free_input(real_input);
-    csi_ref_tensor_transform_free_f32(foutput);
-    csi_session_deinit(sess);
-    csi_free_session(sess);
+    shl_ref_tensor_transform_free_f32(foutput);
+    csinn_session_deinit(sess);
+    csinn_free_session(sess);
 }
 
-void test_concat(struct csi_tensor **input, struct csi_tensor *output, struct concat_params *params,
-                 float difference);
+void test_concat(struct csinn_tensor **input, struct csinn_tensor *output,
+                 struct csinn_concat_params *params, float difference);
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of concat(graph).\n");
 
@@ -68,20 +68,20 @@ int main(int argc, char** argv)
     int input_cnt = buffer[4];
     int axis = buffer[5];
 
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size = 0, out_size = 1;
 
     /* input tensor configuration */
-    struct csi_tensor *input[input_cnt];
+    struct csinn_tensor *input[input_cnt];
     float *input_data[input_cnt];
     void **src_tmp = malloc(input_cnt * sizeof(void *));
     char input_name[input_cnt][10];
-    for(int i = 0; i < input_cnt; i++) {
-        input[i]  = csi_alloc_tensor(NULL);
-        input[i]->dim[0] = buffer[0];          // batch
-        input[i]->dim[1] = buffer[1];          // in_channel
-        input[i]->dim[2] = buffer[2];          // height
-        input[i]->dim[3] = buffer[3];          // width
+    for (int i = 0; i < input_cnt; i++) {
+        input[i] = csinn_alloc_tensor(NULL);
+        input[i]->dim[0] = buffer[0];  // batch
+        input[i]->dim[1] = buffer[1];  // in_channel
+        input[i]->dim[2] = buffer[2];  // height
+        input[i]->dim[3] = buffer[3];  // width
         input[i]->dim_count = 4;
         in_size = input[i]->dim[0] * input[i]->dim[1] * input[i]->dim[2] * input[i]->dim[3];
 
@@ -92,9 +92,9 @@ int main(int argc, char** argv)
     }
 
     /* output tensor configuration */
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    for(int i = 0; i < 4; i++) {
-        if(i == axis) {
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    for (int i = 0; i < 4; i++) {
+        if (i == axis) {
             output->dim[i] = input_cnt * buffer[i];
         } else {
             output->dim[i] = buffer[i];
@@ -110,16 +110,16 @@ int main(int argc, char** argv)
     output->dtype = CSINN_DTYPE_FLOAT32;
 
     /* operator parameter configuration */
-    struct concat_params params;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_NPU_GRAPH;
-    params.axis = axis;
-    params.inputs_count = input_cnt;
+    struct csinn_concat_params *params =
+        csinn_alloc_params(sizeof(struct csinn_concat_params), NULL);
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->axis = axis;
+    params->inputs_count = input_cnt;
 
     /* verify result */
     float difference = argc > 2 ? atof(argv[2]) : 1e-4;
-    test_concat(input, output, &params, difference);
+    test_concat(input, output, params, difference);
 
     return done_testing();
 }

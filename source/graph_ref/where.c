@@ -16,16 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_where(struct csi_tensor *condition,
-                   struct csi_tensor *x,
-                   struct csi_tensor *y,
-                   struct csi_tensor *output,
-                   struct where_params *params)
+int shl_gref_where(struct csinn_tensor *condition, struct csinn_tensor *x, struct csinn_tensor *y,
+                   struct csinn_tensor *output, struct csinn_where_params *params)
 {
-    csi_debug_error("csi_gref_where unsupport\n");
+    shl_debug_error("shl_gref_where unsupport\n");
     return CSINN_FALSE;
 }

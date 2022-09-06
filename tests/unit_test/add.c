@@ -16,69 +16,69 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.13.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "./valid_data/basic_math.dat"
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
 #include "math_snr.h"
+#include "shl_thead_rvv.h"
 #include "test_utils.h"
 
 void verify_add(void *input0_data, void *input1_data, void *ref_data, int (*func)(), int in_c,
                 int in_h, int in_w, enum csinn_dtype_enum dtype)
 {
-    struct csi_tensor *input0 = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input0 = csinn_alloc_tensor(NULL);
     input0->dim[0] = 1;
     input0->dim[1] = in_c;
     input0->dim[2] = in_h;
     input0->dim[3] = in_w;
     input0->dim_count = 4;
     input0->name = "input0";
-    int in0_size = csi_tensor_size(input0);
+    int in0_size = csinn_tensor_size(input0);
 
-    struct csi_tensor *input1 = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input1 = csinn_alloc_tensor(NULL);
     input1->dim[0] = 1;
     input1->dim[1] = in_c;
     input1->dim[2] = in_h;
     input1->dim[3] = in_w;
     input1->dim_count = 4;
     input1->name = "input1";
-    int in1_size = csi_tensor_size(input1);
+    int in1_size = csinn_tensor_size(input1);
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = in_c;
     output->dim[2] = in_h;
     output->dim[3] = in_w;
     output->dim_count = 4;
     output->name = "output";
-    int out_size = csi_tensor_size(output);
+    int out_size = csinn_tensor_size(output);
 
-    struct diso_params params;
-    params.base.name = "params";
+    struct csinn_diso_params *params = csinn_alloc_params(sizeof(struct csinn_diso_params), NULL);
+    params->base.name = "params";
 
     input0->data = input0_data;
     input1->data = input1_data;
-    output->data = csi_mem_alloc(out_size * sizeof(float));
+    output->data = shl_mem_alloc(out_size * sizeof(float));
 
-    func(input0, input1, output, &params);
+    func(input0, input1, output, params);
 
     evaluate_error(output->data, ref_data, out_size, dtype);
 
-    csi_free_tensor(input0);
-    csi_free_tensor(input1);
-    csi_mem_free(output->data);
-    csi_free_tensor(output);
+    csinn_free_tensor(input0);
+    csinn_free_tensor(input1);
+    shl_mem_free(output->data);
+    csinn_free_tensor(output);
 }
 
 int main(int argc, char **argv)
 {
     init_testsuite("Test function of add for RVV.\n");
-    verify_add(add_fp32_in0, add_fp32_in1, add_fp32_out, csi_nn_rvv_add_fp32, 2, 5, 11,
+    verify_add(add_fp32_in0, add_fp32_in1, add_fp32_out, shl_rvv_add_fp32, 2, 5, 11,
                CSINN_DTYPE_FLOAT32);
-    verify_add(add_fp16_in0, add_fp16_in1, add_fp16_out, csi_nn_rvv_add_fp16, 2, 5, 11,
+    verify_add(add_fp16_in0, add_fp16_in1, add_fp16_out, shl_rvv_add_fp16, 2, 5, 11,
                CSINN_DTYPE_FLOAT16);
-    // verify_add(add_int8_in0, add_int8_in1, add_int8_out, csi_nn_rvv_add_int8, 2, 5, 11,
+    // verify_add(add_int8_in0, add_int8_in1, add_int8_out, shl_rvv_add_int8, 2, 5, 11,
     //            CSINN_DTYPE_INT8);
     return done_testing();
 }

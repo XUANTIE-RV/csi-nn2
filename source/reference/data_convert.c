@@ -18,21 +18,21 @@
 
 /* CSI-NN2 version 1.11.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_data_convert_f32(struct csi_tensor *input, struct csi_tensor *output,
-                             struct siso_params *params)
+int shl_ref_data_convert_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_siso_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    int size_byte = csi_tensor_byte_size(input);
+    int size_byte = csinn_tensor_byte_size(input);
 
     memcpy(output_data, input_data, size_byte);
     return CSINN_TRUE;
 }
 
-int csi_ref_data_convert_quant(struct csi_tensor *input, struct csi_tensor *output,
-                               struct siso_params *params)
+int shl_ref_data_convert_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_siso_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_data_convert_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_data_convert_f32);
 }

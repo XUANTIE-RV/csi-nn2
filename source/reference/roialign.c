@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 // https://github.com/AceCoooool/RoIAlign-RoIPool-pytorch/blob/master/roialign/roi_align_cpu.cpp
 
@@ -74,8 +74,8 @@ static void pre_calc_for_bilinear(const int h, const int w, const int pool_h, co
     }
 }
 
-int csi_ref_roi_align_f32(struct csi_tensor *data, struct csi_tensor *rois,
-                          struct csi_tensor *output, struct roi_align_params *params)
+int shl_ref_roi_align_f32(struct csinn_tensor *data, struct csinn_tensor *rois,
+                          struct csinn_tensor *output, struct csinn_roi_align_params *params)
 {
     float *bottom_rois = (float *)rois->data;
     float *input_data = (float *)data->data;

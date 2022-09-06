@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_layer_norm_f32(struct csi_tensor *input, struct csi_tensor *output,
-                           struct csi_tensor *gamma, struct csi_tensor *beta,
-                           struct layer_norm_params *params)
+int shl_ref_layer_norm_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                           struct csinn_layer_norm_params *params)
 {
     int flatten_size = 0;
     flatten_size *= input->dim[0] * input->dim[1] * input->dim[2];
@@ -68,23 +67,23 @@ int csi_ref_layer_norm_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_layer_norm_quant(struct csi_tensor *input, struct csi_tensor *output,
-                             struct csi_tensor *gamma, struct csi_tensor *beta,
-                             struct layer_norm_params *params)
+int shl_ref_layer_norm_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                             struct csinn_layer_norm_params *params)
 {
-    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
-    struct csi_tensor *float_gamma = csi_ref_tensor_transform_f32(gamma);
-    struct csi_tensor *float_beta = csi_ref_tensor_transform_f32(beta);
+    struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
+    struct csinn_tensor *float_gamma = shl_ref_tensor_transform_f32(gamma);
+    struct csinn_tensor *float_beta = shl_ref_tensor_transform_f32(beta);
 
-    int ret = csi_ref_layer_norm_f32(float_input, float_output, float_gamma, float_beta, params);
+    int ret = shl_ref_layer_norm_f32(float_input, float_output, float_gamma, float_beta, params);
 
-    csi_tensor_data_convert(output, float_output);
+    csinn_tensor_data_convert(output, float_output);
 
-    csi_ref_tensor_transform_free_f32(float_input);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_gamma);
-    csi_ref_tensor_transform_free_f32(float_beta);
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_gamma);
+    shl_ref_tensor_transform_free_f32(float_beta);
 
     return CSINN_TRUE;
 }

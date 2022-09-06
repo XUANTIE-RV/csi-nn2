@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 /*
     hpm: hardware performance monitor
     note: Refer to the hpm sample program in the c906 user manual, Enable related status first.
 */
-struct csi_c906_hpm csi_c906_get_hw_perf()
+struct shl_c906_hpm shl_c906_get_hw_perf()
 {
-    struct csi_c906_hpm tmp;
+    struct shl_c906_hpm tmp;
     asm volatile(
                 "csrr %0, instret\n\t"
                 "csrr %1, cycle\n\t"
@@ -52,8 +52,7 @@ struct csi_c906_hpm csi_c906_get_hw_perf()
     return tmp;
 }
 
-
-uint64_t csi_c906_get_inst()
+uint64_t shl_c906_get_inst()
 {
     uint64_t inst = 0;
     asm volatile("csrr %0, instret"
@@ -67,7 +66,7 @@ uint64_t csi_c906_get_inst()
     return inst;
 }
 
-uint64_t csi_c906_get_cycle()
+uint64_t shl_c906_get_cycle()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, cycle"
@@ -96,7 +95,7 @@ uint64_t csi_c906_get_cycle()
     >=0x10      Reserve                                     mhpmcounter18-31
 */
 
-uint64_t csi_c906_get_l1_icache_access()
+uint64_t shl_c906_get_l1_icache_access()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter3"
@@ -106,7 +105,7 @@ uint64_t csi_c906_get_l1_icache_access()
     return a;
 }
 
-uint64_t csi_c906_get_l1_icache_miss()
+uint64_t shl_c906_get_l1_icache_miss()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter4"
@@ -116,7 +115,7 @@ uint64_t csi_c906_get_l1_icache_miss()
     return a;
 }
 
-uint64_t csi_c906_get_cb_miss()
+uint64_t shl_c906_get_cb_miss()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter8"
@@ -126,7 +125,7 @@ uint64_t csi_c906_get_cb_miss()
     return a;
 }
 
-uint64_t csi_c906_get_cb_inst()
+uint64_t shl_c906_get_cb_inst()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter9"
@@ -136,7 +135,7 @@ uint64_t csi_c906_get_cb_inst()
     return a;
 }
 
-uint64_t csi_c906_get_store_inst()
+uint64_t shl_c906_get_store_inst()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter13"
@@ -146,7 +145,7 @@ uint64_t csi_c906_get_store_inst()
     return a;
 }
 
-uint64_t csi_c906_get_l1_dcache_raccess()
+uint64_t shl_c906_get_l1_dcache_raccess()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter14"
@@ -156,7 +155,7 @@ uint64_t csi_c906_get_l1_dcache_raccess()
     return a;
 }
 
-uint64_t csi_c906_get_l1_dcache_rmiss()
+uint64_t shl_c906_get_l1_dcache_rmiss()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter15"
@@ -166,7 +165,7 @@ uint64_t csi_c906_get_l1_dcache_rmiss()
     return a;
 }
 
-uint64_t csi_c906_get_l1_dcache_waccess()
+uint64_t shl_c906_get_l1_dcache_waccess()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter16"
@@ -176,7 +175,7 @@ uint64_t csi_c906_get_l1_dcache_waccess()
     return a;
 }
 
-uint64_t csi_c906_get_l1_dcache_wmiss()
+uint64_t shl_c906_get_l1_dcache_wmiss()
 {
     uint64_t a = 0;
     asm volatile("csrr %0, hpmcounter17"

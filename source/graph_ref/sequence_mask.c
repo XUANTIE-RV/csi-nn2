@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_sequence_mask(struct csi_tensor *input0,
-                           struct csi_tensor *input1,
-                           struct csi_tensor *output,
-                           struct sequence_mask_params *params)
+int shl_gref_sequence_mask(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                           struct csinn_tensor *output, struct csinn_sequence_mask_params *params)
 {
-    csi_gref_diso_op(input0, input1, output, CSINN_OP_SEQUENCE_MASK, params);
+    shl_gref_diso_op(input0, input1, output, CSINN_OP_SEQUENCE_MASK, params);
     return CSINN_TRUE;
 }

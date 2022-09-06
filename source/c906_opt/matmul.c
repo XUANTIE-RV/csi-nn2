@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
+#include "shl_c906.h"
 
 static void reorder_matrixa_n8_fp16(__fp16 *src, __fp16 *dst, int row, int col)
 {
@@ -166,14 +166,14 @@ static void reorder_matrixb_z8_fp16(__fp16 *src, __fp16 *dst, int row, int col)
     }
 }
 
-int csi_c906_matmul_fp32(struct csi_tensor *mat0, struct csi_tensor *mat1,
-                         struct csi_tensor *output, struct matmul_params *params)
+int shl_c906_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     return CSINN_TRUE;
 }
 
-int csi_c906_matmul_fp16(struct csi_tensor *mat0, struct csi_tensor *mat1,
-                         struct csi_tensor *output, struct matmul_params *params)
+int shl_c906_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     __fp16 *mat0_data = (__fp16 *)mat0->data;
     __fp16 *mat1_data = (__fp16 *)mat1->data;
@@ -192,23 +192,23 @@ int csi_c906_matmul_fp16(struct csi_tensor *mat0, struct csi_tensor *mat1,
     const int dim_n = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
 
     if (!params->trans_a && !params->trans_b) {
-        __fp16 *in0 = (__fp16 *)csi_mem_alloc(dim_m * dim_k * sizeof(__fp16));
-        __fp16 *in1 = (__fp16 *)csi_mem_alloc(dim_k * dim_n * sizeof(__fp16));
+        __fp16 *in0 = (__fp16 *)shl_mem_alloc(dim_m * dim_k * sizeof(__fp16));
+        __fp16 *in1 = (__fp16 *)shl_mem_alloc(dim_k * dim_n * sizeof(__fp16));
 
         for (int b = 0; b < batches; b++) {
             reorder_matrixa_n8_fp16(mat0_data, in0, dim_m, dim_k);
             reorder_matrixb_z8_fp16(mat1_data, in1, dim_k, dim_n);
 
-            csi_c906_sgemm_kernel_fp16(output_data, in0, in1, dim_m, dim_k, dim_n, dim_n, NULL);
+            shl_c906_sgemm_kernel_fp16(output_data, in0, in1, dim_m, dim_k, dim_n, dim_n, NULL);
 
             mat0_data += dim_m * dim_k;
             mat1_data += dim_n * dim_k;
             output_data += dim_m * dim_n;
         }
-        csi_mem_free(in0);
-        csi_mem_free(in1);
+        shl_mem_free(in0);
+        shl_mem_free(in1);
     } else {
-        csi_debug_error("Unsupport matrix transpose on C906\n");
+        shl_debug_error("Unsupport matrix transpose on C906\n");
         return CSINN_FALSE;
     }
     return CSINN_TRUE;

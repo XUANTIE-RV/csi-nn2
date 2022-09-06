@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #ifndef TEST_UTILS_H
 #define TEST_UTILS_H
@@ -27,7 +27,7 @@
 #include <stdlib.h>
 
 #include "csi_nn.h"
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,26 +42,28 @@ void result_verify_f32(float *reference, float *output, float *input, float gap,
                        bool save);
 void result_verify_bool(bool *reference, bool *output, float *input, float gap, int size,
                         bool save);
-void result_verify_8(float *reference, struct csi_tensor *output, int8_t *input, float gap,
+void result_verify_8(float *reference, struct csinn_tensor *output, int8_t *input, float gap,
                      int size, bool save);
 void result_verify_q7(int8_t *reference, int8_t *output, int8_t *input, float gap, int size,
                       bool save);
 void result_verify_q15(int16_t *reference, int16_t *output, int16_t *input, float gap, int size,
                        bool save);
-void get_scale_and_zp(float max_value, float min_value, float *scale, int *zp);
-void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int *zp);
+void get_scale_and_zp(float max_value, float min_value, float *scale, int32_t *zp);
+void get_scale_and_zp_i8(float max_value, float min_value, float *scale, int32_t *zp);
 void find_min_max(float *input, float *max_value, float *min_value, int size);
-void get_quant_info(struct csi_tensor *tensor);
-void set_quant_info(struct csi_tensor *tensor, enum csinn_quant_enum qtype,
+void get_quant_info(struct csinn_tensor *tensor);
+void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
                     enum csinn_api_enum api);
-struct csi_tensor *convert_input(struct csi_tensor *tensor, int dtype);
-struct csi_tensor *convert_f32_input(struct csi_tensor *tensor, int dtype,
-                                     struct csi_session *sess);
-struct csi_tensor *convert_f32_layer(struct csi_tensor *tensor, enum csinn_quant_enum qtype,
-                                     enum csinn_api_enum api);
-struct csi_tensor *fuse_zp_to_bias(struct csi_tensor *input, struct csi_tensor *weight,
-                                   struct csi_tensor *bias, enum csinn_api_enum api);
-void free_input(struct csi_tensor *tensor);
+struct csinn_tensor *convert_input(struct csinn_tensor *tensor, int dtype);
+struct csinn_tensor *convert_f32_input(struct csinn_tensor *tensor, int dtype,
+                                       struct csinn_session *sess);
+struct csinn_tensor *convert_f32_layer(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
+                                       enum csinn_api_enum api);
+struct csinn_tensor *fuse_zp_to_bias(struct csinn_tensor *input, struct csinn_tensor *weight,
+                                     struct csinn_tensor *bias, enum csinn_api_enum api);
+struct csinn_tensor *convert_f32_bias(struct csinn_tensor *input, struct csinn_tensor *weight,
+                                      struct csinn_tensor *bias, enum csinn_api_enum api);
+void free_input(struct csinn_tensor *tensor);
 extern void init_testsuite(const char *testname);
 extern int done_testing(void);
 #ifdef RISCV_TEST

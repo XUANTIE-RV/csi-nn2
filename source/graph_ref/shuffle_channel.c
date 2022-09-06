@@ -1,4 +1,4 @@
-                                       /*
+/*
  * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_shuffle_channel(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct shuffle_channel_params *params)
+int shl_gref_shuffle_channel(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_shuffle_channel_params *params)
 {
-    csi_gref_siso_op(input, output, CSINN_OP_SHUFFLE_CHANNEL, params);
+    shl_gref_siso_op(input, output, CSINN_OP_SHUFFLE_CHANNEL, params);
     return CSINN_TRUE;
 }
-

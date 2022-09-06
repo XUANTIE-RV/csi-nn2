@@ -16,20 +16,18 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-int csi_ref_broadcast_to_f32(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct broadcast_to_params *params)
+int shl_ref_broadcast_to_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_broadcast_to_params *params)
 {
-    return csi_ref_broadcast_to_shape_f32(input, output, params->shape, params->shape_count);
+    return shl_ref_broadcast_to_shape_f32(input, output, params->shape, params->shape_count);
 }
 
-int csi_ref_broadcast_to_quant(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct broadcast_to_params *params)
+int shl_ref_broadcast_to_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_broadcast_to_params *params)
 {
-    return csi_ref_broadcast_to_shape_quant(input, output, params->shape, params->shape_count);
+    return shl_ref_broadcast_to_shape_quant(input, output, params->shape, params->shape_count);
 }

@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_matmul_f32(struct csi_tensor *mat0, struct csi_tensor *mat1, struct csi_tensor *output,
-                       struct matmul_params *params)
+int shl_ref_matmul_f32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                       struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     float *mat0_data = mat0->data;
     float *mat1_data = mat1->data;
@@ -103,8 +102,8 @@ int csi_ref_matmul_f32(struct csi_tensor *mat0, struct csi_tensor *mat1, struct 
     return CSINN_TRUE;
 }
 
-int csi_ref_matmul_quant(struct csi_tensor *mat0, struct csi_tensor *mat1,
-                         struct csi_tensor *output, struct matmul_params *params)
+int shl_ref_matmul_quant(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
-    return csi_ref_diso_callback_base(mat0, mat1, output, params, csi_ref_matmul_f32);
+    return shl_ref_diso_callback_base(mat0, mat1, output, params, shl_ref_matmul_f32);
 }

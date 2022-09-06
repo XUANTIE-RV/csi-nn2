@@ -16,30 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of l2 normalization f32.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct l2n_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_l2n_params *params = csinn_alloc_params(sizeof(struct csinn_l2n_params), NULL);
     int size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
     /* get the dim para */
     output->dim_count = input->dim_count = buffer[0];
-    params.epsilon = *(float *)&buffer[1];
+    params->epsilon = *(float *)&buffer[1];
     int32_t axis[] = {1};
-    params.axis = axis;
-    params.n = 1;
-    
+    params->axis = axis;
+    params->n = 1;
+
     for (int i = 0; i < input->dim_count; ++i) {
         output->dim[i] = input->dim[i] = buffer[2 + i];
     }
@@ -50,17 +50,16 @@ int main(int argc, char** argv)
 
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
-    //params.epsilon = *(float *)&buffer[1 + input->dim_count];
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    // params->epsilon = *(float *)&buffer[1 + input->dim_count];
+    params->base.api = CSINN_API;
 
-    input->data     = (float *)(buffer + 2 + input->dim_count);
+    input->data = (float *)(buffer + 2 + input->dim_count);
     reference->data = (float *)(buffer + 2 + input->dim_count + size);
-    output->data    = malloc(size * sizeof(float));
+    output->data = malloc(size * sizeof(float));
     float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-    if (csi_l2_normalization_init(input, output, &params) == CSINN_TRUE) {
-        csi_l2_normalization(input, output, &params);
+    if (csinn_l2_normalization_init(input, output, params) == CSINN_TRUE) {
+        csinn_l2_normalization(input, output, params);
     }
 
     result_verify_f32(reference->data, output->data, input->data, difference, size, false);

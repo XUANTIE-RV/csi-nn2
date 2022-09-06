@@ -26,39 +26,39 @@ use or performance of this software.
 #include <string.h>
 #include <unistd.h>
 
-#ifdef CSI_BUILD_RTOS
+#ifdef SHL_BUILD_RTOS
 #define SBGULP 0x800000
 #else
 #define SBGULP 0x8000000
 #endif
 
-typedef struct csi_atat_mem {
-    struct csi_atat_mem *next;
+typedef struct shl_atat_mem {
+    struct shl_atat_mem *next;
     size_t len;
-} csi_atat_mem;
+} shl_atat_mem;
 
-#define MINBLK (2 * sizeof(struct csi_atat_mem) + 16)
+#define MINBLK (2 * sizeof(struct shl_atat_mem) + 16)
 
-csi_atat_mem *F;
+shl_atat_mem *F;
 
 static char *sbrk_wrapper(int size)
 {
-#ifdef CSI_BUILD_RTOS
+#ifdef SHL_BUILD_RTOS
     return (char *)0x60000000;
 #else
     return sbrk(size);
 #endif
 }
 
-void *csi_atat_malloc(register size_t size)
+void *shl_atat_malloc(register size_t size)
 {
-    register csi_atat_mem *p, *q, *r, *s;
+    register shl_atat_mem *p, *q, *r, *s;
     unsigned register k, m;
     //  extern void *sbrk(Int);
     char *top, *top1;
 
     size = (size + 7) & ~7;
-    r = (csi_atat_mem *)&F;
+    r = (shl_atat_mem *)&F;
     for (p = F, q = 0; p; r = p, p = p->next) {
         if ((k = p->len) >= size && (!q || m > k)) {
             m = k;
@@ -68,9 +68,9 @@ void *csi_atat_malloc(register size_t size)
     }
     if (q) {
         if (q->len - size >= MINBLK) { /* split block */
-            p = (csi_atat_mem *)(((char *)(q + 1)) + size);
+            p = (shl_atat_mem *)(((char *)(q + 1)) + size);
             p->next = q->next;
-            p->len = q->len - size - sizeof(csi_atat_mem);
+            p->len = q->len - size - sizeof(shl_atat_mem);
             s->next = p;
             q->len = size;
         } else {
@@ -82,14 +82,14 @@ void *csi_atat_malloc(register size_t size)
             q = F;
             F = F->next;
         } else {
-            q = (csi_atat_mem *)top;
+            q = (shl_atat_mem *)top;
         }
         top1 = (char *)(q + 1) + size;
         if (sbrk_wrapper((int)(top1 - top + SBGULP)) == (void *)-1) {
             return 0;
         }
-        r = (csi_atat_mem *)top1;
-        r->len = SBGULP - sizeof(csi_atat_mem);
+        r = (shl_atat_mem *)top1;
+        r->len = SBGULP - sizeof(shl_atat_mem);
         r->next = F;
         F = r;
         q->len = size;
@@ -97,22 +97,22 @@ void *csi_atat_malloc(register size_t size)
     return (void *)(q + 1);
 }
 
-void csi_atat_free(void *f)
+void shl_atat_free(void *f)
 {
-    csi_atat_mem *p, *q, *r;
+    shl_atat_mem *p, *q, *r;
     char *pn, *qn;
 
     if (!f) return;
-    q = (csi_atat_mem *)((char *)f - sizeof(csi_atat_mem));
+    q = (shl_atat_mem *)((char *)f - sizeof(shl_atat_mem));
     qn = (char *)f + q->len;
-    for (p = F, r = (csi_atat_mem *)&F;; r = p, p = p->next) {
+    for (p = F, r = (shl_atat_mem *)&F;; r = p, p = p->next) {
         if (qn == (void *)p) {
-            q->len += p->len + sizeof(csi_atat_mem);
+            q->len += p->len + sizeof(shl_atat_mem);
             p = p->next;
         }
         pn = p ? ((char *)(p + 1)) + p->len : 0;
         if (pn == (void *)q) {
-            p->len += sizeof(csi_atat_mem) + q->len;
+            p->len += sizeof(shl_atat_mem) + q->len;
             q->len = 0;
             q->next = p;
             r->next = p;
@@ -126,10 +126,10 @@ void csi_atat_free(void *f)
     }
 }
 
-void *csi_atat_calloc(size_t n, size_t m)
+void *shl_atat_calloc(size_t n, size_t m)
 {
     void *rv;
-    rv = csi_atat_malloc(n *= m);
+    rv = shl_atat_malloc(n *= m);
     if (n && rv) {
         memset(rv, 0, n);
     }

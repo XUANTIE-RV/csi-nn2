@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
-static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                     struct csi_tensor *kernel, struct csi_tensor *bias,
-                                     struct conv2d_params *params)
+static int shl_ref_deconv2d_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                     struct csinn_conv2d_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -39,7 +39,7 @@ static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor
     const int output_width = output->dim[2];
     const int output_batch = output->dim[0];
 
-    int num_elements = csi_tensor_size(output);
+    int num_elements = csinn_tensor_size(output);
     memset(output_data, 0, num_elements * sizeof(float));
 
     // Loop through input elements one at a time.
@@ -59,11 +59,11 @@ static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor
                                 // We cannot accumulate out of bounds.
                                 if ((out_x >= 0) && (out_x < output_width) && (out_y >= 0) &&
                                     (out_y < output_height)) {
-                                    float input_value = input_data[csi_ref_get_index(
+                                    float input_value = input_data[shl_ref_get_index(
                                         input->dim, batch, in_y, in_x, in_channel)];
-                                    float filter_value = filter_data[csi_ref_get_index(
+                                    float filter_value = filter_data[shl_ref_get_index(
                                         kernel->dim, out_channel, filter_y, filter_x, in_channel)];
-                                    output_data[csi_ref_get_index(output->dim, batch, out_y, out_x,
+                                    output_data[shl_ref_get_index(output->dim, batch, out_y, out_x,
                                                                   out_channel)] +=
                                         input_value * filter_value;
                                 }
@@ -80,7 +80,7 @@ static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor
             for (int o_y = 0; o_y < output_height; o_y++) {
                 for (int o_x = 0; o_x < output_width; o_x++) {
                     for (int o_channel = 0; o_channel < output_depth; ++o_channel) {
-                        output_data[csi_ref_get_index(output->dim, batch, o_y, o_x, o_channel)] +=
+                        output_data[shl_ref_get_index(output->dim, batch, o_y, o_x, o_channel)] +=
                             bias_data[o_channel];
                     }
                 }
@@ -91,26 +91,26 @@ static int csi_ref_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor
     return CSINN_TRUE;
 }
 
-static int csi_ref_deconv2d_nchw_f32(struct csi_tensor *o_input, struct csi_tensor *o_output,
-                                     struct csi_tensor *o_kernel, struct csi_tensor *o_bias,
-                                     struct conv2d_params *params)
+static int shl_ref_deconv2d_nchw_f32(struct csinn_tensor *o_input, struct csinn_tensor *o_output,
+                                     struct csinn_tensor *o_kernel, struct csinn_tensor *o_bias,
+                                     struct csinn_conv2d_params *params)
 {
-    struct csi_tensor *input = csi_ref_nchw_to_nhwc_f32(o_input);
-    struct csi_tensor *output = csi_ref_nchw_to_nhwc_f32(o_output);
+    struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(o_input);
+    struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(o_output);
     int32_t permute[4] = {1, 2, 3, 0};
-    struct csi_tensor *kernel = csi_ref_deconv_kernel_nchw_to_nhwc_f32(o_kernel, permute);
-    struct csi_tensor *bias = o_bias;
+    struct csinn_tensor *kernel = shl_ref_deconv_kernel_nchw_to_nhwc_f32(o_kernel, permute);
+    struct csinn_tensor *bias = o_bias;
 
-    csi_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+    shl_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
 
-    csi_ref_nhwc_to_nchw_f32(o_output, output);
-    csi_ref_free_float_tensor(input);
+    shl_ref_nhwc_to_nchw_f32(o_output, output);
+    shl_ref_free_float_tensor(input);
     return CSINN_TRUE;
 }
 
-int csi_ref_depthwise_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                        struct csi_tensor *kernel, struct csi_tensor *bias,
-                                        struct conv2d_params *params)
+int shl_ref_depthwise_deconv2d_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                        struct csinn_conv2d_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -127,7 +127,7 @@ int csi_ref_depthwise_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_ten
     const int output_width = output->dim[2];
     const int output_batch = output->dim[0];
 
-    int num_elements = csi_tensor_size(output);
+    int num_elements = csinn_tensor_size(output);
     memset(output_data, 0, num_elements * sizeof(float));
 
     // Loop through input elements one at a time.
@@ -146,11 +146,11 @@ int csi_ref_depthwise_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_ten
                             // We cannot accumulate out of bounds.
                             if ((out_x >= 0) && (out_x < output_width) && (out_y >= 0) &&
                                 (out_y < output_height)) {
-                                float input_value = input_data[csi_ref_get_index(
+                                float input_value = input_data[shl_ref_get_index(
                                     input->dim, batch, in_y, in_x, in_channel)];
-                                float filter_value = filter_data[csi_ref_get_index(
+                                float filter_value = filter_data[shl_ref_get_index(
                                     kernel->dim, 0, filter_y, filter_x, in_channel)];
-                                output_data[csi_ref_get_index(output->dim, batch, out_y, out_x,
+                                output_data[shl_ref_get_index(output->dim, batch, out_y, out_x,
                                                               in_channel)] +=
                                     input_value * filter_value;
                             }
@@ -165,7 +165,7 @@ int csi_ref_depthwise_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_ten
             for (int o_y = 0; o_y < output_height; o_y++) {
                 for (int o_x = 0; o_x < output_width; o_x++) {
                     for (int o_channel = 0; o_channel < output_depth; ++o_channel) {
-                        output_data[csi_ref_get_index(output->dim, batch, o_y, o_x, o_channel)] +=
+                        output_data[shl_ref_get_index(output->dim, batch, o_y, o_x, o_channel)] +=
                             bias_data[o_channel];
                     }
                 }
@@ -176,59 +176,59 @@ int csi_ref_depthwise_deconv2d_nhwc_f32(struct csi_tensor *input, struct csi_ten
     return CSINN_TRUE;
 }
 
-int csi_ref_depthwise_deconv2d_nchw_f32(struct csi_tensor *o_input, struct csi_tensor *o_output,
-                                        struct csi_tensor *o_kernel, struct csi_tensor *o_bias,
-                                        struct conv2d_params *params)
+int shl_ref_depthwise_deconv2d_nchw_f32(struct csinn_tensor *o_input, struct csinn_tensor *o_output,
+                                        struct csinn_tensor *o_kernel, struct csinn_tensor *o_bias,
+                                        struct csinn_conv2d_params *params)
 {
-    struct csi_tensor *input = csi_ref_nchw_to_nhwc_f32(o_input);
-    struct csi_tensor *output = csi_ref_nchw_to_nhwc_f32(o_output);
+    struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(o_input);
+    struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(o_output);
     int32_t permute[4] = {1, 2, 3, 0};
-    struct csi_tensor *kernel = csi_ref_deconv_kernel_nchw_to_nhwc_f32(o_kernel, permute);
-    struct csi_tensor *bias = o_bias;
-    csi_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+    struct csinn_tensor *kernel = shl_ref_deconv_kernel_nchw_to_nhwc_f32(o_kernel, permute);
+    struct csinn_tensor *bias = o_bias;
+    shl_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
 
-    csi_ref_nhwc_to_nchw_f32(o_output, output);
-    csi_ref_free_float_tensor(input);
+    shl_ref_nhwc_to_nchw_f32(o_output, output);
+    shl_ref_free_float_tensor(input);
     return CSINN_TRUE;
 }
 
-int csi_ref_depthwise_deconv2d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                   struct csi_tensor *kernel, struct csi_tensor *bias,
-                                   struct conv2d_params *params)
+int shl_ref_depthwise_deconv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                   struct csinn_conv2d_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_depthwise_deconv2d_nchw_f32(input, output, kernel, bias, params);
+        shl_ref_depthwise_deconv2d_nchw_f32(input, output, kernel, bias, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+        shl_ref_depthwise_deconv2d_nhwc_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_ref_depthwise_deconv2d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                     struct csi_tensor *kernel, struct csi_tensor *bias,
-                                     struct conv2d_params *params)
+int shl_ref_depthwise_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                     struct csinn_conv2d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params,
-                                      csi_ref_depthwise_deconv2d_f32);
+    return shl_ref_conv_callback_base(input, output, kernel, bias, params,
+                                      shl_ref_depthwise_deconv2d_f32);
 }
 
-int csi_ref_deconv2d_f32(struct csi_tensor *input, struct csi_tensor *output,
-                         struct csi_tensor *kernel, struct csi_tensor *bias,
-                         struct conv2d_params *params)
+int shl_ref_deconv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv2d_params *params)
 {
     if (params->base.layout == CSINN_LAYOUT_NCHW) {
-        csi_ref_deconv2d_nchw_f32(input, output, kernel, bias, params);
+        shl_ref_deconv2d_nchw_f32(input, output, kernel, bias, params);
     } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
-        csi_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+        shl_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
 }
 
-int csi_ref_deconv2d_quant(struct csi_tensor *input, struct csi_tensor *output,
-                           struct csi_tensor *kernel, struct csi_tensor *bias,
-                           struct conv2d_params *params)
+int shl_ref_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                           struct csinn_conv2d_params *params)
 {
-    return csi_ref_conv_callback_base(input, output, kernel, bias, params, csi_ref_deconv2d_f32);
+    return shl_ref_conv_callback_base(input, output, kernel, bias, params, shl_ref_deconv2d_f32);
 }

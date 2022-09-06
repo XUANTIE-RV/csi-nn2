@@ -16,23 +16,19 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
+#include "../valid_data/relu6_u8.dat"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "../valid_data/relu6_u8.dat"
+#include "test_utils.h"
 
-
-static void verify_relu6_u8(float *input_data,
-                            float *ref_data,
-                            int32_t size,
-                            float difference)
+static void verify_relu6_u8(float *input_data, float *ref_data, int32_t size, float difference)
 {
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
     int in_size, out_size;
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = 1;
     input->dim[1] = 1;
     input->dim[2] = 1;
@@ -46,13 +42,13 @@ static void verify_relu6_u8(float *input_data,
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
 
     uint8_t *src_tmp = malloc(in_size * sizeof(char));
-    for(int i = 0; i < in_size; i++) {
-        src_tmp[i] = csi_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
+    for (int i = 0; i < in_size; i++) {
+        src_tmp[i] = shl_ref_quantize_f32_to_u8(input_data[i], input->qinfo);
         // printf("%d, ", src_tmp[i]);
     }
     input->data = src_tmp;
 
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
     output->dim[1] = 1;
     output->dim[2] = 1;
@@ -65,18 +61,17 @@ static void verify_relu6_u8(float *input_data,
     get_quant_info(output);
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
 
-    struct relu_params params;
-    params.base.api = CSINN_API;
-    params.base.name = "params";
-    params.base.layout = CSINN_LAYOUT_NCHW;
-    params.base.run_mode = CSINN_RM_LAYER;
-    params.n = 6.0f;
+    struct csinn_relu_params *params = csinn_alloc_params(sizeof(struct csinn_relu_params), NULL);
+    params->base.api = CSINN_API;
+    params->base.name = "params";
+    params->base.layout = CSINN_LAYOUT_NCHW;
+    params->n = 6.0f;
 
-    if (csi_relu6_init(input, output, &params) == CSINN_TRUE) {
-        csi_relu6(input, output, &params);
+    if (csinn_relu6_init(input, output, params) == CSINN_TRUE) {
+        csinn_relu6(input, output, params);
     }
 
-    reference->data  = (float *)ref_data;
+    reference->data = (float *)ref_data;
     result_verify_8(reference->data, output, input->data, difference, out_size, false);
     free(input);
     free(output);
@@ -84,8 +79,7 @@ static void verify_relu6_u8(float *input_data,
     free(src_tmp);
 }
 
-
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of relu6(u8) for i805.\n");
 

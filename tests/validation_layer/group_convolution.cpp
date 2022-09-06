@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_thead_rvv.h"
-#include "csi_utils.h"
+#include "shl_thead_rvv.h"
 #include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -29,12 +28,14 @@ int main(int argc, char** argv)
 {
     init_testsuite("Testing function of group convolution(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct csi_tensor *kernel = csi_alloc_tensor(NULL);
-    struct csi_tensor *bias = csi_alloc_tensor(NULL);
-    struct conv2d_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_tensor *kernel = csinn_alloc_tensor(sess);
+    struct csinn_tensor *bias = csinn_alloc_tensor(sess);
+    struct csinn_conv2d_params *params = csinn_alloc_params(sizeof(struct csinn_conv2d_params), sess);
     int in_size, out_size, weight_size;
 
 
@@ -61,17 +62,17 @@ int main(int argc, char** argv)
     output->dim[1]  = buffer[12];        // out_channel
     output->dim[2]  = buffer[16];        // height
     output->dim[3]  = buffer[15];        // width
-    
-    params.stride_height = buffer[4];
-    params.stride_width  = buffer[5];
-    params.pad_left   = buffer[8];
-    params.pad_right  = buffer[9];
-    params.pad_top    = buffer[10];
-    params.pad_down   = buffer[11];
-    params.dilation_width  = buffer[13];
-    params.dilation_height = buffer[14];
-    params.base.layout     = CSINN_LAYOUT_NCHW;
-    params.group      = group;
+
+    params->stride_height = buffer[4];
+    params->stride_width  = buffer[5];
+    params->pad_left   = buffer[8];
+    params->pad_right  = buffer[9];
+    params->pad_top    = buffer[10];
+    params->pad_down   = buffer[11];
+    params->dilation_width  = buffer[13];
+    params->dilation_height = buffer[14];
+    params->base.layout     = CSINN_LAYOUT_NCHW;
+    params->group      = group;
 
     input->dim_count = 4;
     kernel->dim_count = 4;
@@ -100,8 +101,7 @@ int main(int argc, char** argv)
     in_size  = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
     weight_size = kernel->dim[0] * kernel->dim[1] * kernel->dim[2] * kernel->dim[3];
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input->data   = (float *)(buffer + 18);
     kernel->data  = (float *)(buffer + 18 + in_size);
@@ -109,13 +109,13 @@ int main(int argc, char** argv)
     reference->data      = (float *)(buffer + 18 + in_size + weight_size + output->dim[1]);
     output->data    = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
-   
-    test_conv2d_op(input, output, kernel, bias, &params, CSINN_QUANT_FLOAT32,
-                   csi_conv2d_init, csi_conv2d, &difference);
-    test_conv2d_op(input, output, kernel, bias, &params, CSINN_QUANT_FLOAT16,
-                   csi_conv2d_init, csi_conv2d, &difference);
-    test_conv2d_op(input, output, kernel, bias, &params, CSINN_QUANT_INT8_SYM,
-                   csi_conv2d_init, csi_conv2d, &difference);
+
+    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT32,
+                   csinn_conv2d_init, csinn_conv2d, &difference);
+    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16,
+                   csinn_conv2d_init, csinn_conv2d, &difference);
+    // test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_INT8_ASYM,
+    //                csinn_conv2d_init, csinn_conv2d, &difference);
 
     return done_testing();
 }

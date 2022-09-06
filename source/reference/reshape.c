@@ -16,40 +16,40 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_reshape_init(struct csi_tensor *input, struct csi_tensor *output,
-                         struct reshape_params *params)
+int shl_ref_reshape_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_reshape_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     if (input->quant_channel == output->quant_channel) {
-        int quant_size = input->quant_channel * sizeof(struct csi_quant_info);
+        int quant_size = input->quant_channel * sizeof(struct csinn_quant_info);
         int t = memcmp(input->qinfo, output->qinfo, quant_size);
         if (t == 0) {
-            params->base.bc = csi_ref_reshape;
+            cb->exec = shl_ref_reshape;
             return CSINN_TRUE;
         }
     }
-    params->base.bc = csi_ref_reshape_quant;
+    cb->exec = shl_ref_reshape_quant;
     return CSINN_TRUE;
 }
 
-int csi_ref_reshape(struct csi_tensor *input, struct csi_tensor *output,
-                    struct reshape_params *params)
+int shl_ref_reshape(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_reshape_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    int size = csi_tensor_byte_size(input);
+    int size = csinn_tensor_byte_size(input);
     if (input_data != output_data) {
         memcpy(output_data, input_data, size);
     }
     return CSINN_TRUE;
 }
 
-int csi_ref_reshape_quant(struct csi_tensor *input, struct csi_tensor *output,
-                          struct reshape_params *params)
+int shl_ref_reshape_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_reshape_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_reshape);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_reshape);
 }

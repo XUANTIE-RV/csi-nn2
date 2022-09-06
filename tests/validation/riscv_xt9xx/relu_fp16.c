@@ -16,21 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
-#include "csi_c906.h"
+#include "shl_c906.h"
+#include "test_utils.h"
 
 int main(int argc, char** argv)
 {
     init_testsuite("Testing function of relu fp16.\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct relu_params params;
+    struct csinn_tensor *input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *reference = csinn_alloc_tensor(NULL);
+    struct csinn_relu_params *params = csinn_alloc_params(sizeof(struct csinn_relu_params), NULL);
     int in_size;
 
     char *buffer = read_input_data_fp16(argv[1], 4);
@@ -51,14 +51,14 @@ int main(int argc, char** argv)
     input->dim_count = 4;
     output->dim_count = 4;
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
-    params.base.api = CSINN_API;
+    params->base.api = CSINN_API;
 
     input->data      = (__fp16 *)(fp16_buffer);
     reference->data  = (__fp16 *)(fp16_buffer + in_size);
     output->data     = malloc(in_size * sizeof(__fp16));
     float difference = argc > 2 ? atof(argv[2]) : 0.1;
 
-    csi_c906_relu_fp16(input, output, &params);    // TODO: use nn2_api
+    shl_c906_relu_fp16(input, output, params);  // TODO: use nn2_api
 
     result_verify_fp16(output->data, reference->data, input->data, difference, in_size, false);
 

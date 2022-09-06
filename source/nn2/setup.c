@@ -16,189 +16,165 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
-#include "csi_utils.h"
+#include "shl_utils.h"
 
-struct csi_session *csi_alloc_session() { return csi_mem_alloc(sizeof(struct csi_session)); }
+void shl_target_init_ref();
+void shl_target_init_gref();
+void shl_target_init_ovx();
+void shl_target_init_c906();
+void shl_target_init_pnna();
+void shl_target_init_i805();
+void shl_target_init_e804();
+void shl_target_init_ref_i805();
+void shl_target_init_c908();
+void shl_target_init_asp();
+void shl_target_init_rvv();
 
-void csi_free_session(struct csi_session *sess) { csi_mem_free(sess); }
+static int __shl_has_init;
 
-void *csi_bc_map_ref(int op, int dtype);
-void *csi_bc_map_gref(int op, int dtype);
-void *csi_bc_map_c906(int op, int dtype);
-void *csi_bc_map_i805(int op, int dtype);
-void *csi_bc_map_e804(int op, int dtype);
-void *csi_bc_map_ref_i805(int op, int dtype);
-void *csi_bc_map_rvv(int op, int dtype);
-void *csi_bc_func_table[CSINN_API_SIZE] = {
-#ifdef CSI_BUILD_REF
-    csi_bc_map_ref,
-#else
-    NULL, /* c code */
-#endif
-#ifdef CSI_BUILD_GREF
-    csi_bc_map_gref,
-#else
-    NULL, /* gref */
-#endif
-    NULL, /* c860 */
-#ifdef CSI_BUILD_C906
-    csi_bc_map_c906,
-#else
-    NULL, /* c906 */
-#endif
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-#ifdef CSI_BUILD_I805
-    csi_bc_map_i805,
-#else
-    NULL, /* xt800v : i805/ck805 */
-#endif
-#ifdef CSI_BUILD_E804
-    csi_bc_map_e804,
-#else
-    NULL, /* xt800p : e804d/ck804 */
-#endif
-#ifdef CSI_BUILD_REF_I805
-    csi_bc_map_ref_i805,
-#else
-    NULL,
-#endif
-    NULL,
-    NULL,
-    NULL,
-#ifdef CSI_BUILD_RVV
-    csi_bc_map_rvv,
-#else
-    NULL, /* rvv */
-#endif
-};
-
-void *csi_bc_map(int api, int rmode, int op, int dtype)
+void shl_init()
 {
-    void *(*func)();
-    if (rmode == CSINN_RM_CPU_GRAPH) {
-        func = csi_bc_func_table[CSINN_GREF];
-    } else {
-        func = csi_bc_func_table[api];
-    }
-    return func(op, dtype);
+#ifdef SHL_BUILD_REF
+    shl_target_init_ref();
+#endif
+#ifdef SHL_BUILD_GREF
+    shl_target_init_gref();
+#endif
+#ifdef SHL_BUILD_C906
+    shl_target_init_c906();
+#endif
+#ifdef SHL_BUILD_OPENVX
+    shl_target_init_ovx();
+#endif
+#ifdef SHL_BUILD_PNNA
+    shl_target_init_pnna();
+#endif
+#ifdef SHL_BUILD_I805
+    shl_target_init_i805();
+#endif
+#ifdef SHL_BUILD_E804
+    shl_target_init_e804();
+#endif
+#ifdef SHL_BUILD_REF_I805
+    shl_target_init_ref_i805();
+#endif
+#ifdef SHL_BUILD_C908
+    shl_target_init_c908();
+#endif
+#ifdef SHL_BUILD_ASP
+    shl_target_init_asp();
+#endif
+#ifdef SHL_BUILD_RVV
+    shl_target_init_rvv();
+#endif
 }
 
-void *csi_init_map_c906(int op, int dtype);
-void *csi_init_map_ref(int op, int dtype);
-void *csi_init_map_i805(int op, int dtype);
-void *csi_init_map_e804(int op, int dtype);
-void *csi_init_map_ref_i805(int op, int dtype);
-void *csi_init_map_c908(int op, int dtype);
-void *csi_init_map_rvv(int op, int dtype);
-void *csi_init_func_table[CSINN_API_SIZE] = {
-#ifdef CSI_BUILD_REF
-    csi_init_map_ref, /* c code */
-#else
-    NULL, /* c code */
-#endif
-    NULL, /* gref */
-    NULL, /* c860 */
-#ifdef CSI_BUILD_C906
-    csi_init_map_c906,
-#else
-    NULL, /* c906 */
-#endif
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-#ifdef CSI_BUILD_I805
-    csi_init_map_i805,
-#else
-    NULL,
-#endif
-#ifdef CSI_BUILD_E804
-    csi_init_map_e804,
-#else
-    NULL,
-#endif
-#ifdef CSI_BUILD_REF_I805
-    csi_init_map_ref_i805,
-#else
-    NULL,
-#endif
-    NULL,
-    NULL,
-    NULL,
-#ifdef CSI_BUILD_RVV
-    csi_init_map_rvv,
-#else
-    NULL, /* rvv */
-#endif
-};
-
-void *csi_init_map(int api, int op, int dtype)
+struct csinn_session *csinn_alloc_session()
 {
-    void *(*func)() = csi_init_func_table[api];
-    if (func != NULL) {
-        return func(op, dtype);
+    if (__shl_has_init == 0) {
+        shl_init();
+        __shl_has_init = 1;
+    }
+    return shl_mem_alloc(sizeof(struct csinn_session));
+}
+
+void csinn_free_session(struct csinn_session *sess) { shl_mem_free(sess); }
+
+static void *shl_cb_func_table[CSINN_API_SIZE];
+void shl_register_op_callback(int api, void *cb) { shl_cb_func_table[api] = cb; }
+
+int shl_op_callback_map(struct csinn_params_base *base, int op, int dtype)
+{
+    void *(*op_map)();
+    if (base->sess && base->sess->base_run_mode == CSINN_RM_CPU_GRAPH &&
+        base->sess->base_api == CSINN_REF) {
+        /* Heterogeneous use GREF */
+        op_map = shl_cb_func_table[CSINN_GREF];
     } else {
+        op_map = shl_cb_func_table[base->api];
+    }
+
+    if (op_map == NULL) {
+        return CSINN_FALSE;
+    }
+
+    struct csinn_callback *cb = op_map(op, dtype);
+    if (cb == NULL) {
+        shl_debug_info("%s: Cannot find OP map\n", __func__);
+    }
+    memcpy(base->cb, cb, sizeof(struct csinn_callback));
+
+    return CSINN_TRUE;
+}
+
+static void *shl_runtime_callback_table[CSINN_API_SIZE];
+
+void shl_register_runtime_callback(int api, void *cb) { shl_runtime_callback_table[api] = cb; }
+
+void *shl_get_runtime_callback(struct csinn_session *sess, int op)
+{
+    void *(*runtime_map)();
+    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH && sess->base_api == CSINN_REF) {
+        /* Heterogeneous use GREF */
+        runtime_map = shl_runtime_callback_table[CSINN_GREF];
+    } else {
+        runtime_map = shl_runtime_callback_table[sess->base_api];
+    }
+    if (runtime_map == NULL) {
         return NULL;
+    } else {
+        return runtime_map(op);
     }
 }
 
-void csi_session_init(struct csi_session *sess)
+void csinn_session_init(struct csinn_session *sess)
 {
-    csi_debug_set_level(sess->debug_level);
+    shl_debug_set_level(sess->debug_level);
 
-    void *(*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SESSION_INIT, sess->base_dtype);
+    void *(*func)() = shl_get_runtime_callback(sess, CSINN_SESSION_INIT);
     if (func != NULL) {
         func(sess);
     }
 }
 
-void csi_session_deinit(struct csi_session *sess)
+void csinn_session_deinit(struct csinn_session *sess)
 {
     void *(*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SESSION_DEINIT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SESSION_DEINIT);
     if (func != NULL) {
         func(sess);
     }
 }
 
-void csi_set_output_number(int number, struct csi_session *sess)
+void csinn_set_output_number(int number, struct csinn_session *sess)
 {
     sess->output_num = number;
-    sess->output = csi_mem_alloc(sess->output_num * sizeof(struct csi_tensor *));
+    sess->output = shl_mem_alloc(sess->output_num * sizeof(struct csinn_tensor *));
     void (*func)();
-    func =
-        csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_OUTPUT_NUMBER, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SET_OUTPUT_NUMBER);
     if (func != NULL) {
         func(number, sess);
     }
 }
 
-void csi_set_input_number(int number, struct csi_session *sess)
+void csinn_set_input_number(int number, struct csinn_session *sess)
 {
     sess->input_num = number;
-    sess->input = csi_mem_alloc(sess->input_num * sizeof(struct csi_tensor *));
+    sess->input = shl_mem_alloc(sess->input_num * sizeof(struct csinn_tensor *));
     void (*func)();
-    func =
-        csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_INPUT_NUMBER, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SET_INPUT_NUMBER);
     if (func != NULL) {
         func(number, sess);
     }
 }
 
-int csi_get_output_number(struct csi_session *sess)
+int csinn_get_output_number(struct csinn_session *sess)
 {
     int (*func)();
-    func =
-        csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_GET_OUTPUT_NUMBER, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_GET_OUTPUT_NUMBER);
     if (func != NULL) {
         return func(sess);
     } else {
@@ -206,11 +182,10 @@ int csi_get_output_number(struct csi_session *sess)
     }
 }
 
-int csi_get_input_number(struct csi_session *sess)
+int csinn_get_input_number(struct csinn_session *sess)
 {
     int (*func)();
-    func =
-        csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_GET_INPUT_NUMBER, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_GET_INPUT_NUMBER);
     if (func != NULL) {
         return func(sess);
     } else {
@@ -218,62 +193,62 @@ int csi_get_input_number(struct csi_session *sess)
     }
 }
 
-int csi_set_output(int index, struct csi_tensor *output, struct csi_session *sess)
+int csinn_set_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
     sess->output[index] = output;
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_OUTPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SET_OUTPUT);
     if (func != NULL) {
         return func(index, output, sess);
     }
     return CSINN_TRUE;
 }
 
-int csi_set_input(int index, struct csi_tensor *input, struct csi_session *sess)
+int csinn_set_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
     sess->input[index] = input;
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SET_INPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SET_INPUT);
     if (func != NULL) {
         return func(index, input, sess);
     }
     return CSINN_TRUE;
 }
 
-int csi_get_output(int index, struct csi_tensor *output, struct csi_session *sess)
+int csinn_get_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
-    csi_tensor_copy(output, sess->output[index]);
+    csinn_tensor_copy(output, sess->output[index]);
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_GET_OUTPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_GET_OUTPUT);
     if (func != NULL) {
         return func(index, output, sess);
     }
     return CSINN_TRUE;
 }
 
-int csi_get_input(int index, struct csi_tensor *input, struct csi_session *sess)
+int csinn_get_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
-    csi_tensor_copy(input, sess->input[index]);
+    csinn_tensor_copy(input, sess->input[index]);
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_GET_INPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_GET_INPUT);
     if (func != NULL) {
         return func(index, input, sess);
     }
     return CSINN_TRUE;
 }
 
-int csi_update_input(int index, struct csi_tensor *input, struct csi_session *sess)
+int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
     sess->input[index]->data = input->data;
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_UPDATE_INPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_UPDATE_INPUT);
     if (func != NULL) {
         int ret = CSINN_FALSE;
         if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
-            uint64_t start = csi_get_timespec();
+            uint64_t start = shl_get_timespec();
             ret = func(index, input, sess);
-            uint64_t end = csi_get_timespec();
-            csi_print_time_interval(start, end, __func__);
+            uint64_t end = shl_get_timespec();
+            shl_print_time_interval(start, end, __func__);
         } else {
             ret = func(index, input, sess);
         }
@@ -282,28 +257,28 @@ int csi_update_input(int index, struct csi_tensor *input, struct csi_session *se
     return CSINN_TRUE;
 }
 
-int csi_update_output(int index, struct csi_tensor *output, struct csi_session *sess)
+int csinn_update_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
     sess->output[index]->data = output->data;
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_UPDATE_OUTPUT, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_UPDATE_OUTPUT);
     if (func != NULL) {
         return func(index, output, sess);
     }
     return CSINN_TRUE;
 }
 
-int csi_session_setup(struct csi_session *sess)
+int csinn_session_setup(struct csinn_session *sess)
 {
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SESSION_SETUP, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SESSION_SETUP);
     if (func != NULL) {
         int ret = CSINN_FALSE;
         if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
-            uint64_t start = csi_get_timespec();
+            uint64_t start = shl_get_timespec();
             ret = func(sess);
-            uint64_t end = csi_get_timespec();
-            csi_print_time_interval(start, end, __func__);
+            uint64_t end = shl_get_timespec();
+            shl_print_time_interval(start, end, __func__);
         } else {
             ret = func(sess);
         }
@@ -312,17 +287,17 @@ int csi_session_setup(struct csi_session *sess)
     return CSINN_FALSE;
 }
 
-int csi_session_run(struct csi_session *sess)
+int csinn_session_run(struct csinn_session *sess)
 {
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_SESSION_RUN, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_SESSION_RUN);
     if (func != NULL) {
         int ret = CSINN_FALSE;
         if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
-            uint64_t start = csi_get_timespec();
+            uint64_t start = shl_get_timespec();
             ret = func(sess);
-            uint64_t end = csi_get_timespec();
-            csi_print_time_interval(start, end, __func__);
+            uint64_t end = shl_get_timespec();
+            shl_print_time_interval(start, end, __func__);
         } else {
             ret = func(sess);
         }
@@ -331,53 +306,29 @@ int csi_session_run(struct csi_session *sess)
     return CSINN_FALSE;
 }
 
-int csi_set_tensor_entry(struct csi_tensor *t, struct csi_session *sess)
+int csinn_set_tensor_entry(struct csinn_tensor *t, struct csinn_session *sess)
 {
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_TENSOR_ENTRY, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_TENSOR_ENTRY);
     if (func != NULL) {
         return func(t, sess);
     }
     return CSINN_FALSE;
 }
 
-struct csi_bc_op_list *csi_bc_list_end(struct csi_bc_op_list *list)
-{
-    struct csi_bc_op_list *l = list;
-    while (l->next) {
-        l = l->next;
-    }
-    return l;
-}
-
-void *csi_bc_list_match(struct csi_bc_op_list *list, enum csinn_dtype_enum dtype,
-                        enum csinn_op_enum op_name)
-{
-    void *ret = NULL;
-    struct csi_bc_op_list *l = list;
-    while (l) {
-        if (l->dtype == dtype && l->op_name == op_name) {
-            ret = l->bc;
-            break;
-        }
-        l = l->next;
-    }
-    return ret;
-}
-
-int csi_load_binary_model(char *path, struct csi_session *sess)
+int csinn_load_binary_model(struct csinn_session *sess)
 {
     int (*func)();
-    func = csi_bc_map(sess->base_api, sess->base_run_mode, CSINN_LOAD_BG, sess->base_dtype);
+    func = shl_get_runtime_callback(sess, CSINN_LOAD_BG);
     if (func != NULL) {
         int ret = CSINN_FALSE;
         if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
-            uint64_t start = csi_get_timespec();
-            ret = func(path, sess);
-            uint64_t end = csi_get_timespec();
-            csi_print_time_interval(start, end, __func__);
+            uint64_t start = shl_get_timespec();
+            ret = func(sess);
+            uint64_t end = shl_get_timespec();
+            shl_print_time_interval(start, end, __func__);
         } else {
-            ret = func(path, sess);
+            ret = func(sess);
         }
         return ret;
     }

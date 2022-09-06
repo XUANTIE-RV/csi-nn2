@@ -16,26 +16,27 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_c906.h"
-int csi_c906_div_init(struct csi_tensor *input0, struct csi_tensor *input1,
-                      struct csi_tensor *output, struct diso_params *params)
+#include "shl_c906.h"
+int shl_c906_div_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                      struct csinn_tensor *output, struct csinn_diso_params *params)
 {
+    struct csinn_callback *cb = params->base.cb;
     if (input1->dtype == CSINN_DTYPE_FLOAT32) {
         float *ptr = input1->data;
-        size_t tensor_size = csi_tensor_size(input1);
+        size_t tensor_size = csinn_tensor_size(input1);
         for (size_t i = 0; i < tensor_size; i++) {
             ptr[i] = 1.f / ptr[i];
         }
-        params->base.bc = csi_c906_mul_f32;
+        cb->exec = shl_c906_mul_f32;
     } else if (input1->dtype == CSINN_DTYPE_FLOAT16) {
         __fp16 *ptr = input1->data;
-        size_t tensor_size = csi_tensor_size(input1);
+        size_t tensor_size = csinn_tensor_size(input1);
         for (size_t i = 0; i < tensor_size; i++) {
             ptr[i] = 1.f / ptr[i];
         }
-        params->base.bc = csi_c906_mul_fp16;
+        cb->exec = shl_c906_mul_fp16;
     }
     return CSINN_TRUE;
 }

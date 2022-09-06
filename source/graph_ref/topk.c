@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_topk(struct csi_tensor *input,
-                  struct csi_tensor *output1,
-                  struct csi_tensor *output2,
-                  struct topk_params *params)
+int shl_gref_topk(struct csinn_tensor *input, struct csinn_tensor *output1,
+                  struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
-    csi_debug_error("csi_gref_topk unsupport\n");
+    shl_debug_error("shl_gref_topk unsupport\n");
     return CSINN_FALSE;
 }

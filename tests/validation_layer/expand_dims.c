@@ -16,27 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "test_utils.h"
 #include "csi_nn.h"
 #include "math_snr.h"
+#include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of expand_dims(layer).\n");
 
-    struct csi_tensor *input = csi_alloc_tensor(NULL);
-    struct csi_tensor *output = csi_alloc_tensor(NULL);
-    struct csi_tensor *reference = csi_alloc_tensor(NULL);
-    struct expand_dims_params params;
+    struct csinn_session *sess = csinn_alloc_session();
+    sess->base_run_mode = CSINN_RM_LAYER;
+    struct csinn_tensor *input = csinn_alloc_tensor(sess);
+    struct csinn_tensor *output = csinn_alloc_tensor(sess);
+    struct csinn_tensor *reference = csinn_alloc_tensor(sess);
+    struct csinn_expand_dims_params *params =
+        csinn_alloc_params(sizeof(struct csinn_expand_dims_params), sess);
     int in_size = 1;
     int out_size = 1;
     int *buffer = read_input_data_f32(argv[1]);
 
     int dim_count = buffer[0];
     int axis = buffer[1];
-    for(int i = 0; i < dim_count; i++) {
+    for (int i = 0; i < dim_count; i++) {
         input->dim[i] = buffer[2 + i];
         in_size *= input->dim[i];
     }
@@ -44,15 +47,15 @@ int main(int argc, char** argv)
     input->layout = CSINN_LAYOUT_NCHW;
     input->is_const = 0;
     input->quant_channel = 1;
-    output->dim_count = input->dim_count + 1;   // axis is 0-D scalar
+    output->dim_count = input->dim_count + 1;  // axis is 0-D scalar
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
 
-    for(int i = 0; i < output->dim_count; i++) {
-        if(i < axis) {
+    for (int i = 0; i < output->dim_count; i++) {
+        if (i < axis) {
             output->dim[i] = input->dim[i];
-        } else if(i == axis) {
+        } else if (i == axis) {
             output->dim[i] = 1;
         } else {
             output->dim[i] = input->dim[i - 1];
@@ -62,17 +65,16 @@ int main(int argc, char** argv)
     input->dtype = CSINN_DTYPE_FLOAT32;
     output->dtype = CSINN_DTYPE_FLOAT32;
     out_size = in_size;
-    params.base.api = CSINN_API;
-    params.base.run_mode = CSINN_RM_LAYER;
+    params->base.api = CSINN_API;
 
     input->data = (float *)(buffer + 2 + dim_count);
     reference->data = (float *)(buffer + 2 + dim_count + in_size);
-    output->data    = reference->data;
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-    test_expand_dims_CSINN_QUANT_FLOAT32(input, output, &params, &difference);
-    test_expand_dims_CSINN_QUANT_UINT8_ASYM(input, output, &params, &difference);
-    test_expand_dims_CSINN_QUANT_INT8_SYM(input, output, &params, &difference);
+    test_expand_dims_CSINN_QUANT_FLOAT32(input, output, params, &difference);
+    test_expand_dims_CSINN_QUANT_UINT8_ASYM(input, output, params, &difference);
+    test_expand_dims_CSINN_QUANT_INT8_SYM(input, output, params, &difference);
 
     return done_testing();
 }

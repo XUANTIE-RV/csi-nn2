@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_crop(struct csi_tensor *input,
-                  struct csi_tensor *output,
-                  struct crop_params *params)
+int shl_gref_crop(struct csinn_tensor *input, struct csinn_tensor *output,
+                  struct csinn_crop_params *params)
 {
-    csi_gref_siso_op(input, output, CSINN_OP_CROP, params);
+    shl_gref_siso_op(input, output, CSINN_OP_CROP, params);
     return CSINN_TRUE;
 }

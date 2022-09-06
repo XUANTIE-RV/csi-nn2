@@ -16,30 +16,30 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
 #include "csi_nn.h"
+#include "shl_utils.h"
 
-int csi_psroipooling_init(struct csi_tensor *data,
-                          struct csi_tensor *rois,
-                          struct csi_tensor *output,
-                          struct psroipooling_params *params)
+int csinn_psroipooling_init(struct csinn_tensor *data, struct csinn_tensor *rois,
+                            struct csinn_tensor *output, struct csinn_psroipooling_params *params)
 {
-    params->base.bc = csi_bc_map(params->base.api, params->base.run_mode, CSINN_OP_PSROIPOOLING, data->dtype);
-    if (params->base.bc == NULL) {
-        return CSINN_UNSUPPORT_DTYPE;
+    shl_op_callback_map(&params->base, CSINN_OP_PSROIPOOLING, data->dtype);
+    struct csinn_callback *cb = params->base.cb;
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(data, rois, output, params);
     }
     return CSINN_TRUE;
 }
 
-int csi_psroipooling(struct csi_tensor *data,
-                     struct csi_tensor *rois,
-                     struct csi_tensor *output,
-                     struct psroipooling_params *params)
+int csinn_psroipooling(struct csinn_tensor *data, struct csinn_tensor *rois,
+                       struct csinn_tensor *output, struct csinn_psroipooling_params *params)
 {
-    CSI_DEBUG_CALL(csi_psroipooling_debug_info(data, rois, output, params, __func__));
-    if (params->base.bc != NULL) {
-        params->base.bc(data, rois, output, params);
+    SHL_DEBUG_CALL(shl_psroipooling_debug_info(data, rois, output, params, __func__));
+    int (*func)() = shl_get_p0_cb(&params->base);
+    if (func != NULL) {
+        func(data, rois, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

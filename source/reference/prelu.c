@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_prelu_f32(struct csi_tensor *input, struct csi_tensor *alpha, struct csi_tensor *output,
-                      struct prelu_params *params)
+int shl_ref_prelu_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                      struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
     float *input_data = (float *)input->data;
     float *alpha_data = (float *)alpha->data;
@@ -35,7 +34,7 @@ int csi_ref_prelu_f32(struct csi_tensor *input, struct csi_tensor *alpha, struct
         outer_size *= input->dim[i];
     }
 
-    int64_t inner_size = (axis == 0 && input->dim_count == 1) ? csi_tensor_size(input) : 1;
+    int64_t inner_size = (axis == 0 && input->dim_count == 1) ? csinn_tensor_size(input) : 1;
     for (int i = axis + 1; i < input->dim_count; i++) {
         inner_size *= input->dim[i];
     }
@@ -56,8 +55,8 @@ int csi_ref_prelu_f32(struct csi_tensor *input, struct csi_tensor *alpha, struct
     return CSINN_TRUE;
 }
 
-int csi_ref_prelu_quant(struct csi_tensor *input, struct csi_tensor *alpha,
-                        struct csi_tensor *output, struct prelu_params *params)
+int shl_ref_prelu_quant(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                        struct csinn_tensor *output, struct csinn_prelu_params *params)
 {
-    return csi_ref_diso_callback_base(input, alpha, output, params, csi_ref_prelu_f32);
+    return shl_ref_diso_callback_base(input, alpha, output, params, shl_ref_prelu_f32);
 }

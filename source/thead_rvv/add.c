@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_thead_rvv.h"
+#include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
@@ -38,16 +38,16 @@ static void element_add_fp32(float *input0, float *input1, float *output, int si
     }
 }
 
-int csi_nn_rvv_add_fp32(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+int shl_rvv_add_fp32(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     float *input0_data = (float *)input0->data;
     float *input1_data = (float *)input1->data;
     float *output_data = (float *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     // example: [1, 3, 224, 224] + [1] = [1, 3, 224, 224]
     if (in_size1 == 1) {
@@ -74,28 +74,28 @@ int csi_nn_rvv_add_fp32(struct csi_tensor *input0, struct csi_tensor *input1,
         }
         // example: [1, 3, 224, 224] + [3, 224, 1] or [1, 3, 224, 224] + [3, 1, 224]
         if (!flag) {
-            float *in0_data_b = csi_mem_alloc(out_size * sizeof(float));
-            float *in1_data_b = csi_mem_alloc(out_size * sizeof(float));
+            float *in0_data_b = shl_mem_alloc(out_size * sizeof(float));
+            float *in1_data_b = shl_mem_alloc(out_size * sizeof(float));
 
-            struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
-            struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
-            csi_tensor_copy(b_input0, output);
-            csi_tensor_copy(b_input1, output);
+            struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
+            struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);
+            csinn_tensor_copy(b_input0, output);
+            csinn_tensor_copy(b_input1, output);
             b_input0->data = in0_data_b;
             b_input1->data = in1_data_b;
 
-            csi_ref_broadcast_to_shape_f32(input0, b_input0, output->dim, output->dim_count);
-            csi_ref_broadcast_to_shape_f32(input1, b_input1, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_f32(input0, b_input0, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_f32(input1, b_input1, output->dim, output->dim_count);
 
             input0_data = b_input0->data;
             input1_data = b_input1->data;
 
             element_add_fp32(input0_data, input1_data, output_data, out_size);
 
-            csi_mem_free(in0_data_b);
-            csi_mem_free(in1_data_b);
-            csi_mem_free(b_input0);
-            csi_mem_free(b_input1);
+            shl_mem_free(in0_data_b);
+            shl_mem_free(in1_data_b);
+            shl_mem_free(b_input0);
+            shl_mem_free(b_input1);
         }
         // example: [1, 3, 224, 224] + [224] = [1, 3, 224, 224]  or
         // [1, 3, 224, 224] + [224, 224] = [1, 3, 224, 224]
@@ -127,16 +127,16 @@ static void element_add_fp16(__fp16 *input0, __fp16 *input1, __fp16 *output, int
     }
 }
 
-int csi_nn_rvv_add_fp16(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+int shl_rvv_add_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     __fp16 *input0_data = (__fp16 *)input0->data;
     __fp16 *input1_data = (__fp16 *)input1->data;
     __fp16 *output_data = (__fp16 *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     // example: [1, 3, 224, 224] + [1] = [1, 3, 224, 224]
     if (in_size1 == 1) {
@@ -163,28 +163,28 @@ int csi_nn_rvv_add_fp16(struct csi_tensor *input0, struct csi_tensor *input1,
         }
         // example: [1, 3, 224, 224] + [3, 224, 1] or [1, 3, 224, 224] + [3, 1, 224]
         if (!flag) {
-            __fp16 *in0_data_b = csi_mem_alloc(out_size * sizeof(__fp16));
-            __fp16 *in1_data_b = csi_mem_alloc(out_size * sizeof(__fp16));
+            __fp16 *in0_data_b = shl_mem_alloc(out_size * sizeof(__fp16));
+            __fp16 *in1_data_b = shl_mem_alloc(out_size * sizeof(__fp16));
 
-            struct csi_tensor *b_input0 = csi_alloc_tensor(NULL);
-            struct csi_tensor *b_input1 = csi_alloc_tensor(NULL);
-            csi_tensor_copy(b_input0, output);
-            csi_tensor_copy(b_input1, output);
+            struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
+            struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);
+            csinn_tensor_copy(b_input0, output);
+            csinn_tensor_copy(b_input1, output);
             b_input0->data = in0_data_b;
             b_input1->data = in1_data_b;
 
-            csi_ref_broadcast_to_shape_quant(input0, b_input0, output->dim, output->dim_count);
-            csi_ref_broadcast_to_shape_quant(input1, b_input1, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_quant(input0, b_input0, output->dim, output->dim_count);
+            shl_ref_broadcast_to_shape_quant(input1, b_input1, output->dim, output->dim_count);
 
             input0_data = b_input0->data;
             input1_data = b_input1->data;
 
             element_add_fp16(input0_data, input1_data, output_data, out_size);
 
-            csi_mem_free(in0_data_b);
-            csi_mem_free(in1_data_b);
-            csi_mem_free(b_input0);
-            csi_mem_free(b_input1);
+            shl_mem_free(in0_data_b);
+            shl_mem_free(in1_data_b);
+            shl_mem_free(b_input0);
+            shl_mem_free(b_input1);
         }
         // example: [1, 3, 224, 224] + [224] = [1, 3, 224, 224]  or
         // [1, 3, 224, 224] + [224, 224] = [1, 3, 224, 224]
@@ -253,22 +253,22 @@ static void element_add_int8(int8_t *input0, int8_t *input1, int8_t *output, int
     }
 }
 
-int csi_nn_rvv_add_int8(struct csi_tensor *input0, struct csi_tensor *input1,
-                        struct csi_tensor *output, struct diso_params *params)
+int shl_rvv_add_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
     int8_t *input0_data = (int8_t *)input0->data;
     int8_t *input1_data = (int8_t *)input1->data;
     int8_t *output_data = (int8_t *)output->data;
 
-    int in_size0 = csi_tensor_size(input0);
-    int in_size1 = csi_tensor_size(input1);
-    int out_size = csi_tensor_size(output);
+    int in_size0 = csinn_tensor_size(input0);
+    int in_size1 = csinn_tensor_size(input1);
+    int out_size = csinn_tensor_size(output);
 
     // TODO: move to init api
     float real_scale0 = input0->qinfo->scale / output->qinfo->scale;
     float real_scale1 = input1->qinfo->scale / output->qinfo->scale;
-    csi_quantize_multiplier(real_scale0, &input0->qinfo->multiplier, &input0->qinfo->shift);
-    csi_quantize_multiplier(real_scale1, &input1->qinfo->multiplier, &input1->qinfo->shift);
+    shl_quantize_multiplier(real_scale0, &input0->qinfo->multiplier, &input0->qinfo->shift);
+    shl_quantize_multiplier(real_scale1, &input1->qinfo->multiplier, &input1->qinfo->shift);
 
     if (in_size0 == in_size1) {
         element_add_int8(input0_data, input1_data, output_data, in_size0, input0->qinfo->multiplier,
@@ -276,7 +276,7 @@ int csi_nn_rvv_add_int8(struct csi_tensor *input0, struct csi_tensor *input1,
                          input0->qinfo->zero_point, input1->qinfo->zero_point,
                          output->qinfo->zero_point);
     } else {
-        csi_debug_error("Only support elementwise add on RVV CPU\n");
+        shl_debug_error("Only support elementwise add on RVV CPU\n");
     }
 
     return CSINN_TRUE;

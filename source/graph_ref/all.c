@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_all(struct csi_tensor *input,
-                 struct csi_tensor *output,
-                 struct reduce_params *params)
+int shl_gref_all(struct csinn_tensor *input, struct csinn_tensor *output,
+                 struct csinn_reduce_params *params)
 {
-    csi_debug_error("csi_gref_all unsupport\n");
+    shl_debug_error("shl_gref_all unsupport\n");
     return CSINN_FALSE;
 }

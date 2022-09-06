@@ -16,16 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_gref.h"
+#include "shl_gref.h"
 
-int csi_gref_gather(struct csi_tensor *input,
-                    struct csi_tensor *indices,
-                    struct csi_tensor *output,
-                    struct gather_params *params)
+int shl_gref_gather(struct csinn_tensor *input, struct csinn_tensor *indices,
+                    struct csinn_tensor *output, struct csinn_gather_params *params)
 {
-    csi_gref_diso_op(input, indices, output, CSINN_OP_GATHER, params);
+    shl_gref_diso_op(input, indices, output, CSINN_OP_GATHER, params);
     return CSINN_TRUE;
 }
-

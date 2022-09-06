@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
+#include "shl_ref.h"
 
 struct ArgPos {
     float value;
@@ -33,8 +33,8 @@ static struct ArgPos fargmin_stride(struct ArgPos lhs, struct ArgPos rhs)
     return lhs;
 }
 
-int csi_ref_argmin_stride_i32_f32(struct csi_tensor *input, struct csi_tensor *output,
-                                  struct reduce_params *params)
+int shl_ref_argmin_stride_i32_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_reduce_params *params)
 {
     float *input_data = input->data;
     int32_t *output_data = output->data;
@@ -53,10 +53,10 @@ int csi_ref_argmin_stride_i32_f32(struct csi_tensor *input, struct csi_tensor *o
     for (int32_t out = 0; out < out_size; out++) {
         struct ArgPos result = {FLT_MAX, -1};
         int32_t out_index =
-            csi_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
+            shl_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
         for (int32_t inner = 0; inner < inner_size; inner++) {
             int32_t index =
-                out_index + csi_ref_get_reduction_index(inner, params->inner_strides,
+                out_index + shl_ref_get_reduction_index(inner, params->inner_strides,
                                                         params->inner_extents, params->m);
             float val = input_data[index];
             struct ArgPos pos = {val, inner};
@@ -68,12 +68,12 @@ int csi_ref_argmin_stride_i32_f32(struct csi_tensor *input, struct csi_tensor *o
     return CSINN_TRUE;
 }
 
-int csi_ref_argmin_stride_quant(struct csi_tensor *input, struct csi_tensor *output,
-                                struct reduce_params *params)
+int shl_ref_argmin_stride_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_reduce_params *params)
 {
     int ret;
-    struct csi_tensor *finput = csi_ref_tensor_transform_f32(input);
-    ret = csi_ref_argmin_stride_i32_f32(finput, output, params);
-    csi_ref_tensor_transform_free_f32(finput);
+    struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    ret = shl_ref_argmin_stride_i32_f32(finput, output, params);
+    shl_ref_tensor_transform_free_f32(finput);
     return ret;
 }

@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_sum_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
-                           struct reduce_params *params)
+int shl_ref_sum_stride_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_reduce_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -41,10 +40,10 @@ int csi_ref_sum_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
     for (int32_t out = 0; out < out_size; out++) {
         float result = 0;
         int32_t out_index =
-            csi_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
+            shl_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
         for (int32_t inner = 0; inner < inner_size; inner++) {
             int32_t index =
-                out_index + csi_ref_get_reduction_index(inner, params->inner_strides,
+                out_index + shl_ref_get_reduction_index(inner, params->inner_strides,
                                                         params->inner_extents, params->m);
             float val = input_data[index];
             result += val;
@@ -55,8 +54,8 @@ int csi_ref_sum_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_sum_stride_quant(struct csi_tensor *input, struct csi_tensor *output,
-                             struct reduce_params *params)
+int shl_ref_sum_stride_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_reduce_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_sum_stride_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_sum_stride_f32);
 }

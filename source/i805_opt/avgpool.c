@@ -16,19 +16,18 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_i805.h"
-
+#include "i805_function.h"
+#include "shl_i805.h"
 
 /*
     constraint: 1.input tensor layout: NHWC
                 2. pad_left = pad_right; pad_top = pad_down
     FIXME: count_include_pad
 */
-static int csi_i805_avgpool2d_q7(struct csi_tensor *input,
-                               struct csi_tensor *output,
-                               struct pool_params *params)
+static int shl_i805_avgpool2d_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_pool_params *params)
 {
     q7_t *input_data = (q7_t *)input->data;
     q7_t *output_data = (q7_t *)output->data;
@@ -47,31 +46,33 @@ static int csi_i805_avgpool2d_q7(struct csi_tensor *input,
     uint16_t stride_h = params->stride_height;
     uint16_t stride_w = params->stride_width;
 
-    uint16_t pad_x = params->pad_left;   // i.e. pad_x = params->pad_right
-    uint16_t pad_y = params->pad_top;    // i.e. pad_y = params->pad_down
+    uint16_t pad_x = params->pad_left;  // i.e. pad_x = params->pad_right
+    uint16_t pad_y = params->pad_top;   // i.e. pad_y = params->pad_down
 
     q7_t buffer_tmp[out_h * out_w * in_c];  // buffer_size = out_h * out_w * channel
 
-    if ( (in_h == in_w) && (kernel_h == kernel_w) && (pad_x == pad_y) && (stride_h == stride_w) ) {
+    if ((in_h == in_w) && (kernel_h == kernel_w) && (pad_x == pad_y) && (stride_h == stride_w)) {
         csky_vdsp2_avepool_q7_HWC(input_data, in_h, in_c, kernel_h, pad_y, stride_h, out_h,
                                   buffer_tmp, output_data);
     } else {
-        csky_vdsp2_avepool_q7_HWC_nonsquare(input_data, in_w, in_h, in_c, kernel_w, kernel_h,
-                                            pad_x, pad_y, stride_w, stride_h, out_w, out_h,
-                                            buffer_tmp, output_data, output->qinfo->shift);
+        csky_vdsp2_avepool_q7_HWC_nonsquare(input_data, in_w, in_h, in_c, kernel_w, kernel_h, pad_x,
+                                            pad_y, stride_w, stride_h, out_w, out_h, buffer_tmp,
+                                            output_data, output->qinfo->shift);
     }
     return CSINN_TRUE;
 }
 
-int csi_i805_avgpool2d_init_q7(struct csi_tensor *input,
-                             struct csi_tensor *output,
-                             struct pool_params *params)
+int shl_i805_avgpool2d_init_q7(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params)
 {
-    if ( (params->pad_top != params->pad_down) || (params->pad_left != params->pad_right) ) {
-        csi_debug_warning("avgpool q7 unsupport asymmetric padddings on i805, call reference func replaced.\n");
-        params->base.bc = csi_ref_avgpool2d_quant;    // FIXME: csi_ref_avgpool2d_quant may be not applicable to i805
+    struct csinn_callback *cb = params->base.cb;
+    if ((params->pad_top != params->pad_down) || (params->pad_left != params->pad_right)) {
+        shl_debug_warning(
+            "avgpool q7 unsupport asymmetric padddings on i805, call reference func replaced.\n");
+        cb->exec = shl_ref_avgpool2d_quant;  // FIXME: shl_ref_avgpool2d_quant may be not
+                                             // applicable to i805
     } else {
-        params->base.bc = csi_i805_avgpool2d_q7;
+        cb->exec = shl_i805_avgpool2d_q7;
     }
     return CSINN_TRUE;
 }

@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_mean_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
-                            struct reduce_params *params)
+int shl_ref_mean_stride_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_reduce_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -41,10 +40,10 @@ int csi_ref_mean_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
     for (int32_t out = 0; out < out_size; out++) {
         float result = 0;
         int32_t out_index =
-            csi_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
+            shl_ref_get_reduction_index(out, params->out_strides, params->out_extents, params->n);
         for (int32_t inner = 0; inner < inner_size; inner++) {
             int32_t index =
-                out_index + csi_ref_get_reduction_index(inner, params->inner_strides,
+                out_index + shl_ref_get_reduction_index(inner, params->inner_strides,
                                                         params->inner_extents, params->m);
             float val = input_data[index];
             result += val;
@@ -55,23 +54,23 @@ int csi_ref_mean_stride_f32(struct csi_tensor *input, struct csi_tensor *output,
     return CSINN_TRUE;
 }
 
-int csi_ref_mean_stride_quant(struct csi_tensor *input, struct csi_tensor *output,
-                              struct reduce_params *params)
+int shl_ref_mean_stride_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_reduce_params *params)
 {
-    return csi_ref_siso_callback_base(input, output, params, csi_ref_mean_stride_f32);
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_mean_stride_f32);
 }
 
-int csi_ref_mean_quant(struct csi_tensor *input, struct csi_tensor *output,
-                       struct reduce_params *params)
+int shl_ref_mean_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_reduce_params *params)
 {
     if (params->axis_count != 2 || params->axis[0] != 2 || params->axis[1] != 3 ||
         input->dim_count != 4 || output->dim_count != 4) {
         assert(0);
     }
-    struct pool_params pparams;
+    struct csinn_pool_params pparams;
     pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
-    csi_global_avgpool2d_init(input, output, &pparams);
-    csi_global_avgpool2d(input, output, &pparams);
+    csinn_global_avgpool2d_init(input, output, &pparams);
+    csinn_global_avgpool2d(input, output, &pparams);
     return CSINN_TRUE;
 }

@@ -16,14 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_scatter_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
-                           struct csi_tensor *updates, struct csi_tensor *output,
-                           struct scatter_nd_params *params)
+int shl_ref_scatter_nd_f32(struct csinn_tensor *input, struct csinn_tensor *indices,
+                           struct csinn_tensor *updates, struct csinn_tensor *output,
+                           struct csinn_scatter_nd_params *params)
 {
     if (input->dim_count != 5 && indices->dim[indices->dim_count - 1] != 5) {
         return CSINN_FALSE;
@@ -53,12 +52,12 @@ int csi_ref_scatter_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
                              m) *
                             indices->dim[5];
 
-                        int output_index = csi_ref_get_index_5(
+                        int output_index = shl_ref_get_index_5(
                             input->dim, indices_data[indices_base], indices_data[indices_base + 1],
                             indices_data[indices_base + 2], indices_data[indices_base + 3],
                             indices_data[indices_base + 4]);
 
-                        int updates_index = csi_ref_get_index_5(updates->dim, i, j, k, l, m);
+                        int updates_index = shl_ref_get_index_5(updates->dim, i, j, k, l, m);
                         output_data[output_index] = updates_data[updates_index];
                     }
                 }
@@ -69,17 +68,17 @@ int csi_ref_scatter_nd_f32(struct csi_tensor *input, struct csi_tensor *indices,
     return CSINN_TRUE;
 }
 
-int csi_ref_scatter_nd_quant(struct csi_tensor *input, struct csi_tensor *indices,
-                             struct csi_tensor *updates, struct csi_tensor *output,
-                             struct scatter_nd_params *params)
+int shl_ref_scatter_nd_quant(struct csinn_tensor *input, struct csinn_tensor *indices,
+                             struct csinn_tensor *updates, struct csinn_tensor *output,
+                             struct csinn_scatter_nd_params *params)
 {
-    struct csi_tensor *float_input = csi_ref_tensor_transform_f32(input);
-    struct csi_tensor *float_updates = csi_ref_tensor_transform_f32(updates);
-    struct csi_tensor *float_output = csi_ref_tensor_transform_f32(output);
-    int ret = csi_ref_scatter_nd_f32(float_input, indices, float_updates, float_output, params);
-    csi_tensor_data_convert(output, float_output);
-    csi_ref_tensor_transform_free_f32(float_input);
-    csi_ref_tensor_transform_free_f32(float_output);
-    csi_ref_tensor_transform_free_f32(float_updates);
+    struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *float_updates = shl_ref_tensor_transform_f32(updates);
+    struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
+    int ret = shl_ref_scatter_nd_f32(float_input, indices, float_updates, float_output, params);
+    csinn_tensor_data_convert(output, float_output);
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_updates);
     return ret;
 }

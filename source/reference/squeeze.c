@@ -16,17 +16,16 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.12.x */
+/* CSI-NN2 version 2.0.x */
 
-#include "csi_ref.h"
-#include "csi_utils.h"
+#include "shl_ref.h"
 
-int csi_ref_squeeze(struct csi_tensor *input, struct csi_tensor *output,
-                    struct squeeze_params *params)
+int shl_ref_squeeze(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_squeeze_params *params)
 {
     float *input_data = input->data;
     float *output_data = output->data;
-    int size = csi_tensor_byte_size(input);
+    int size = csinn_tensor_byte_size(input);
     if (input_data != output_data) {
         memcpy(output_data, input_data, size);
     }
