@@ -18,6 +18,7 @@ In principle, SHL only provides the reference implementation of XuanTie CPU plat
 
 # Use SHL
 
+- [SHL](https://csi-nn2.opensource.alibaba.com/)
 - [SHL API](https://www.yuque.com/za4k4z/kkzsw9)
 - [SHL deployment tools](https://www.yuque.com/za4k4z/kvkcoh)
 
