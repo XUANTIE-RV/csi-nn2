@@ -17,6 +17,7 @@ SHL 提供了完成的接口声明和接口的参考实现，各个设备提供�
 
 # 使用 SHL
 
+- [SHL](https://csi-nn2.opensource.alibaba.com/)
 - [SHL 接口和设计文档](https://www.yuque.com/za4k4z/isgz8o)
 - [SHL 配套部署工具](https://www.yuque.com/za4k4z/oxlbxl)
 
