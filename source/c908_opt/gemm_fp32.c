@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -1917,6 +1917,7 @@ void shl_c908_gemm_8x12_fp32(float *dst, const float *sa, const float *sb, float
     }
 }
 
+#ifdef SHL_UNUSED_REGISTER_BLK
 static inline void kernel_m8n8_fp32(float *dst, float *sa, float *sb, int m, int k, int n, int ldc,
                                     float *bias)
 {
@@ -3245,3 +3246,4 @@ void shl_c908_gemm_8x8_fp32(float *dst, const float *sa, const float *sb, float 
         bias = NULL;
     }
 }
+#endif

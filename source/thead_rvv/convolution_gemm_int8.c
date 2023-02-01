@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+
 void shl_rvv_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
                                                   struct csinn_conv2d_params *params)
 {
@@ -28,14 +28,19 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
 
     int m = kernel->dim[0] / group;  // m = out_ch / group
     int k = kernel->dim[1] * kernel->dim[2] * kernel->dim[3];
-    int k4 = (k % 4 != 0) ? ((k / 4 + 1) * 4) : k;
 
+#ifdef SHL_USE_DOT_INT8
+    int k4 = (k % 4 != 0) ? ((k / 4 + 1) * 4) : k;
     params->conv_extra.kernel_tm->data = (int8_t *)shl_mem_alloc(group * m * k4 * sizeof(int8_t));
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
 
     for (int g = 0; g < group; g++) {
-        shl_rvv_reorder_kernel_n8_int8(kernel_data + g * m * k, pa_reorder + g * m * k4, m, k, k);
+        shl_rvv_reorder_kernel_n8_int8_dot(kernel_data + g * m * k, pa_reorder + g * m * k4, m, k,
+                                           k);
     }
+#else
+
+#endif  // SHL_USE_DOT_INT8
     // FIXME: free params->conv_extra.kernel_tm->data
     // memcpy(kernel_data, pa_reorder, group * m * k * sizeof(__fp16));
     // shl_mem_free(pa_reorder);
@@ -123,12 +128,13 @@ int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
                 }
             }
 
-            // pack
-            shl_rvv_reorder_input_z8_int8(im2col_data, pb, k, n, n);
-            // GEMM
-            shl_rvv_gemm_8x8_int8(pc, pa, pb, bias_data + g * m, m, k4, n, n,
-                                  output->qinfo->zero_point, multiplier, shift);
+#ifdef SHL_USE_DOT_INT8
+            shl_rvv_reorder_input_z8_int8_dot(im2col_data, pb, k, n, n);
+            shl_rvv_gemm_8x8_int8_dot(pc, pa, pb, bias_data + g * m, m, k4, n, n,
+                                      output->qinfo->zero_point, multiplier, shift);
+#else
 
+#endif  // SHL_USE_DOT_INT8
             input_data += in_ch / group * in_height * in_width;
             output_data += m * n;
         }
@@ -139,4 +145,3 @@ int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
     shl_mem_free(shift);
     return CSINN_TRUE;
 }
-#endif

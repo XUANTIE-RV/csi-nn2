@@ -16,22 +16,21 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
 #define RVV_OP_PATTERN_MAX 80
-static struct csinn_callback __rvv_cb_table[RVV_OP_PATTERN_MAX];
-static int __rvv_cb_key[RVV_OP_PATTERN_MAX];
+static struct shl_cb_table shl_rvv_cb_table[RVV_OP_PATTERN_MAX];
 
 void shl_rvv_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init, void *exec,
                     void *est)
 {
     static int i = 0;
-    __rvv_cb_key[i] = op_name * CSINN_DTYPE_SIZE + dtype;
-    __rvv_cb_table[i].init = init;
-    __rvv_cb_table[i].exec = exec;
-    __rvv_cb_table[i].est = est;
+    shl_rvv_cb_table[i].shl_cb_key = op_name * CSINN_DTYPE_SIZE + dtype;
+    shl_rvv_cb_table[i].shl_cb_value.init = init;
+    shl_rvv_cb_table[i].shl_cb_value.exec = exec;
+    shl_rvv_cb_table[i].shl_cb_value.est = est;
     i++;
 }
 
@@ -40,8 +39,8 @@ struct csinn_callback *shl_cb_map_rvv(int op, int dtype)
 {
     struct csinn_callback *cb = NULL;
     for (int i = 0; i < RVV_OP_PATTERN_MAX; i++) {
-        if (__rvv_cb_key[i] == (op * CSINN_DTYPE_SIZE + dtype)) {
-            cb = &__rvv_cb_table[i];
+        if (shl_rvv_cb_table[i].shl_cb_key == (op * CSINN_DTYPE_SIZE + dtype)) {
+            cb = &(shl_rvv_cb_table[i].shl_cb_value);
             break;
         }
     }
@@ -51,23 +50,15 @@ struct csinn_callback *shl_cb_map_rvv(int op, int dtype)
     return cb;
 }
 
-void shl_target_init_rvv()
+void __attribute__((weak)) shl_target_init_rvv()
 {
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_rvv_conv2d_init_fp32, NULL,
                    shl_gref_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_rvv_conv2d_init_fp16, NULL,
                    shl_gref_conv2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D, shl_rvv_conv2d_init_int8, NULL,
-                   shl_gref_conv2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D, shl_rvv_conv2d_init_int4, NULL,
-                   shl_gref_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_fp32, NULL,
                    shl_gref_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_fp16, NULL,
-                   shl_gref_conv2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_int8, NULL,
-                   shl_gref_conv2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_int4, NULL,
                    shl_gref_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_DEPTHWISE_CONV2D,
                    shl_rvv_depthwise_conv2d_init_fp32, NULL, shl_gref_depthwise_conv2d);
@@ -75,15 +66,11 @@ void shl_target_init_rvv()
                    shl_rvv_depthwise_conv2d_init_fp16, NULL, shl_gref_depthwise_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_DEPTHWISE_CONV2D, shl_rvv_depthwise_conv2d_init_int8,
                    NULL, shl_gref_depthwise_conv2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_DEPTHWISE_CONV2D, shl_rvv_depthwise_conv2d_init_int4,
-                   NULL, shl_gref_depthwise_conv2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_MAXPOOL2D, shl_rvv_maxpool2d_init_fp32, NULL,
                    shl_gref_maxpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_MAXPOOL2D, shl_rvv_maxpool2d_init_fp16, NULL,
                    shl_gref_maxpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_MAXPOOL2D, shl_rvv_maxpool2d_init_int8, NULL,
-                   shl_gref_maxpool2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_MAXPOOL2D, shl_rvv_maxpool2d_init_int4, NULL,
                    shl_gref_maxpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_AVGPOOL2D, shl_rvv_avgpool2d_init_fp32, NULL,
                    shl_gref_avgpool2d);
@@ -91,25 +78,17 @@ void shl_target_init_rvv()
                    shl_gref_avgpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_AVGPOOL2D, shl_rvv_avgpool2d_init_int8, NULL,
                    shl_gref_avgpool2d);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_AVGPOOL2D, shl_rvv_avgpool2d_init_int4, NULL,
-                   shl_gref_avgpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_FULLYCONNECTED, shl_rvv_fullyconnected_init, NULL,
                    shl_gref_fullyconnected);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_FULLYCONNECTED, shl_rvv_fullyconnected_init, NULL,
                    shl_gref_fullyconnected);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_FULLYCONNECTED, shl_rvv_fullyconnected_init, NULL,
                    shl_gref_fullyconnected);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_FULLYCONNECTED, shl_rvv_fullyconnected_init, NULL,
-                   shl_gref_fullyconnected);
 
-    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D_RELU, shl_rvv_conv2d_init_int8, NULL,
-                   shl_gref_conv2d_relu);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D_RELU, shl_rvv_conv2d_init_int4, NULL,
-                   shl_gref_conv2d_relu);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_DEPTHWISE_CONV2D_RELU,
                    shl_rvv_depthwise_conv2d_init_int8, NULL, shl_gref_depthwise_conv2d_relu);
-    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_DEPTHWISE_CONV2D_RELU,
-                   shl_rvv_depthwise_conv2d_init_int4, NULL, shl_gref_depthwise_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_DEPTHWISE_CONV2D_RELU6,
+                   shl_rvv_depthwise_conv2d_init_int8, NULL, shl_gref_depthwise_conv2d_relu6);
 
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_ADD, NULL, shl_rvv_add_fp32, shl_gref_add);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_ADD, NULL, shl_rvv_add_fp16, shl_gref_add);
@@ -140,11 +119,58 @@ void shl_target_init_rvv()
                    NULL, shl_gref_global_avgpool2d);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_AVGPOOL2D, shl_rvv_global_avgpool2d_init, NULL,
                    shl_gref_global_avgpool2d);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvv_global_maxpool2d_init,
+                   NULL, shl_gref_global_maxpool2d);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvv_global_maxpool2d_init,
+                   NULL, shl_gref_global_maxpool2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvv_global_maxpool2d_init, NULL,
+                   shl_gref_global_maxpool2d);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_RESHAPE, NULL, shl_rvv_reshape_fp32,
+                   shl_gref_reshape);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_RESHAPE, NULL, shl_rvv_reshape_fp16,
+                   shl_gref_reshape);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_RESHAPE, NULL, shl_rvv_reshape_int8,
+                   shl_gref_reshape);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SIGMOID, NULL, shl_rvv_sigmoid_fp16,
                    shl_gref_sigmoid);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_SOFTMAX, NULL, shl_rvv_softmax_fp32,
+                   shl_gref_softmax);
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SOFTMAX, NULL, shl_rvv_softmax_fp16,
                    shl_gref_softmax);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_SOFTMAX, NULL, shl_rvv_softmax_int8,
+                   shl_gref_softmax);
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_SUM, NULL, shl_rvv_sum_stride_int8, shl_gref_sum);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_PRELU, NULL, shl_rvv_prelu_fp32, shl_gref_prelu);
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_PRELU, NULL, shl_rvv_prelu_fp16, shl_gref_prelu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_PRELU, NULL, shl_rvv_prelu_int8, shl_gref_prelu);
+
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D, shl_rvv_conv2d_init_int8, NULL,
+                   shl_gref_conv2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_int8, NULL,
+                   shl_gref_conv2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D_RELU, shl_rvv_conv2d_init_int8, NULL,
+                   shl_gref_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D_RELU, shl_rvv_conv2d_init_int8, NULL,
+                   shl_gref_group_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D_RELU6, shl_rvv_conv2d_init_int8, NULL,
+                   shl_gref_conv2d_relu6);
+
+#ifdef SHL_USE_DOT_INT4
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D, shl_rvv_conv2d_init_int4, NULL,
+                   shl_gref_conv2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_GROUP_CONV2D, shl_rvv_conv2d_init_int4, NULL,
+                   shl_gref_conv2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_DEPTHWISE_CONV2D, shl_rvv_depthwise_conv2d_init_int4,
+                   NULL, shl_gref_depthwise_conv2d);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D_RELU, shl_rvv_conv2d_init_int4, NULL,
+                   shl_gref_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_GROUP_CONV2D_RELU, shl_rvv_conv2d_init_int4, NULL,
+                   shl_gref_group_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_DEPTHWISE_CONV2D_RELU,
+                   shl_rvv_depthwise_conv2d_init_int4, NULL, shl_gref_depthwise_conv2d_relu);
+    shl_rvv_reg_op(CSINN_DTYPE_INT4, CSINN_OP_FULLYCONNECTED, shl_rvv_fullyconnected_init, NULL,
+                   shl_gref_fullyconnected);
+#endif
 
     shl_register_runtime_callback(CSINN_RVV, NULL);
     shl_register_op_callback(CSINN_RVV, shl_cb_map_rvv);

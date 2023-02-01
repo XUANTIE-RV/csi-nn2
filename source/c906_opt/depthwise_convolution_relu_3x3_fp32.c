@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #define DWCONV3X3S1 shl_c906_dwconv3x3s1_fuse_relu
 #define DWCONV3X3S2 shl_c906_dwconv3x3s2_fuse_relu

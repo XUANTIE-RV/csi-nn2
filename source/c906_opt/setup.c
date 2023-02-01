@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c906.h"
 
@@ -47,7 +47,7 @@ int shl_c906_reg_op_est(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name,
     return CSINN_TRUE;
 }
 
-struct csinn_callback *shl_cb_map_rvv(int op, int dtype);
+struct csinn_callback *__attribute__((weak)) shl_cb_map_rvv(int op, int dtype);
 struct csinn_callback *shl_cb_map_c906(int op, int dtype)
 {
     struct csinn_callback *cb = shl_cb_list_match(&shl_c906_cb_op_list, dtype, op);

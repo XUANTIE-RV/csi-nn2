@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -294,51 +294,49 @@ void shl_rvv_pad_input_packn_int8(const int8_t *input, int8_t *input_padded, int
                                   int inw, int padded_h, int padded_w, int pad_top, int pad_left,
                                   int8_t pad_value)
 {
-#ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    const int vl = vsetvl_e8mf2(packn);
+    const int vl = vsetvl_e8m1(packn);
 
     int8_t *pad_ptr = input_padded;
     int8_t *inp_ptr = (int8_t *)input;
     int pad_down = padded_h - pad_top - inh;    // remain to pad on h (pad_down)
     int pad_right = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
 
-    vint8mf2_t _zero = vmv_v_x_i8mf2(pad_value, vl);
+    vint8m1_t _zero = vmv_v_x_i8m1(pad_value, vl);
 
     int c = 0;
     for (; c + packn - 1 < inc; c += packn) {
         // pad h_top
         for (int i = 0; i < pad_top * padded_w; i++) {
-            vse8_v_i8mf2(pad_ptr, _zero, vl);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
             pad_ptr += packn;
         }
         // pad h_mid
         for (int i = 0; i < inh; i++) {
             // pad w_left
             for (int j = 0; j < pad_left; j++) {
-                vse8_v_i8mf2(pad_ptr, _zero, vl);
+                vse8_v_i8m1(pad_ptr, _zero, vl);
                 pad_ptr += packn;
             }
             // pad w_mid
             for (int j = 0; j < inw; j++) {
-                vint8mf2_t _tmp = vle8_v_i8mf2(inp_ptr, vl);
+                vint8m1_t _tmp = vle8_v_i8m1(inp_ptr, vl);
                 inp_ptr += packn;
-                vse8_v_i8mf2(pad_ptr, _tmp, vl);
+                vse8_v_i8m1(pad_ptr, _tmp, vl);
                 pad_ptr += packn;
             }
             // pad w_end
             for (int j = 0; j < pad_right; j++) {
-                vse8_v_i8mf2(pad_ptr, _zero, vl);
+                vse8_v_i8m1(pad_ptr, _zero, vl);
                 pad_ptr += packn;
             }
         }
         // pad h_bottom
         for (int i = 0; i < pad_down * padded_w; i++) {
-            vse8_v_i8mf2(pad_ptr, _zero, vl);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
             pad_ptr += packn;
         }
     }
-#endif
 }
 
 // constrains: inc % packn = 0
@@ -449,53 +447,238 @@ void shl_rvv_pad_input_pack1ton_int8(const int8_t *input, int8_t *input_padded, 
                                      int inw, int padded_h, int padded_w, int pad_top, int pad_left,
                                      int8_t pad_value)
 {
-#ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    int vl = vsetvl_e8mf2(packn);
+    int vl = vsetvl_e8m1(packn);
     const int in_size = inh * inw;  // per-channel size
 
     int8_t *pad_ptr = input_padded;
     int pad_down = padded_h - pad_top - inh;    // remain to pad on h (pad_down)
     int pad_right = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
 
-    vint8mf2_t _zero = vmv_v_x_i8mf2(pad_value, vl);
+    vint8m1_t _zero = vmv_v_x_i8m1(pad_value, vl);
 
     int c = 0;
     while (inc > 0) {
-        vl = vsetvl_e8mf2(inc);
+        vl = vsetvl_e8m1(inc > packn ? packn : inc);
         int8_t *inp_ptr = (int8_t *)input;
         // pad h_top
         for (int i = 0; i < pad_top * padded_w; i++) {
-            vse8_v_i8mf2(pad_ptr, _zero, vl);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
             pad_ptr += vl;
         }
         // pad h_mid
         for (int i = 0; i < inh; i++) {
             // pad w_left
             for (int j = 0; j < pad_left; j++) {
-                vse8_v_i8mf2(pad_ptr, _zero, vl);
+                vse8_v_i8m1(pad_ptr, _zero, vl);
                 pad_ptr += vl;
             }
             // pad w_mid
             for (int j = 0; j < inw; j++) {
-                vint8mf2_t _tmp = vlse8_v_i8mf2(inp_ptr, in_size * sizeof(int8_t), vl);
+                vint8m1_t _tmp = vlse8_v_i8m1(inp_ptr, in_size * sizeof(int8_t), vl);
                 inp_ptr++;
-                vse8_v_i8mf2(pad_ptr, _tmp, vl);
+                vse8_v_i8m1(pad_ptr, _tmp, vl);
                 pad_ptr += vl;
             }
             // pad w_end
             for (int j = 0; j < pad_right; j++) {
-                vse8_v_i8mf2(pad_ptr, _zero, vl);
+                vse8_v_i8m1(pad_ptr, _zero, vl);
                 pad_ptr += vl;
             }
         }
         // pad h_bottom
         for (int i = 0; i < pad_down * padded_w; i++) {
-            vse8_v_i8mf2(pad_ptr, _zero, vl);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
             pad_ptr += vl;
         }
         input += in_size * vl;
         inc -= vl;
     }
-#endif
+}
+
+void shl_rvv_pad_input_nhwc_fp32(const float *input, float *input_padded, int inh, int inw, int inc,
+                                 int padded_h, int padded_w, int pad_top, int pad_left)
+{
+    float *pad_ptr = input_padded;
+    float *inp_ptr = (float *)input;
+    int resi_h = padded_h - pad_top - inh;   // remain to pad on h (pad_down)
+    int resi_w = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
+    int padded_wc = padded_w * inc;
+    int padded_wtop = pad_left * inc;
+    int padded_wbottom = resi_w * inc;
+    int copy_wc = inw * inc;
+    int size;
+    int vl = vsetvl_e32m1(csrr_vlenb() / sizeof(float));
+    vfloat32m1_t _zero = vfmv_v_f_f32m1(0.0f, vl);
+
+    // pad h_top
+    size = padded_wc * pad_top;
+    while (size > 0) {
+        vl = vsetvl_e32m1(size);
+        vse32_v_f32m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
+    // pad h_mid
+    for (int h = 0; h < inh; h++) {
+        // pad w_top
+        size = padded_wtop;
+        while (size > 0) {
+            vl = vsetvl_e32m1(size);
+            vse32_v_f32m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // copy w_mid
+        size = copy_wc;
+        while (size > 0) {
+            vl = vsetvl_e32m1(size);
+            vfloat32m1_t _input = vle32_v_f32m1(inp_ptr, vl);
+            inp_ptr += vl;
+            vse32_v_f32m1(pad_ptr, _input, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // pad w_bottom
+        size = padded_wbottom;
+        while (size > 0) {
+            vl = vsetvl_e32m1(size);
+            vse32_v_f32m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+    }
+    // pad h_bottom
+    size = padded_wc * resi_h;
+    while (size > 0) {
+        vl = vsetvl_e32m1(size);
+        vse32_v_f32m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
+}
+
+void shl_rvv_pad_input_nhwc_fp16(const __fp16 *input, __fp16 *input_padded, int inh, int inw,
+                                 int inc, int padded_h, int padded_w, int pad_top, int pad_left)
+{
+    __fp16 *pad_ptr = input_padded;
+    __fp16 *inp_ptr = (__fp16 *)input;
+    int resi_h = padded_h - pad_top - inh;   // remain to pad on h (pad_down)
+    int resi_w = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
+    int padded_wc = padded_w * inc;
+    int padded_wtop = pad_left * inc;
+    int padded_wbottom = resi_w * inc;
+    int copy_wc = inw * inc;
+    int size;
+    int vl = vsetvl_e16m1(csrr_vlenb() / sizeof(__fp16));
+    vfloat16m1_t _zero = vfmv_v_f_f16m1(0.0f, vl);
+
+    // pad h_top
+    size = padded_wc * pad_top;
+    while (size > 0) {
+        vl = vsetvl_e16m1(size);
+        vse16_v_f16m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
+    // pad h_mid
+    for (int h = 0; h < inh; h++) {
+        // pad w_top
+        size = padded_wtop;
+        while (size > 0) {
+            vl = vsetvl_e16m1(size);
+            vse16_v_f16m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // copy w_mid
+        size = copy_wc;
+        while (size > 0) {
+            vl = vsetvl_e16m1(size);
+            vfloat16m1_t _input = vle16_v_f16m1(inp_ptr, vl);
+            inp_ptr += vl;
+            vse16_v_f16m1(pad_ptr, _input, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // pad w_bottom
+        size = padded_wbottom;
+        while (size > 0) {
+            vl = vsetvl_e16m1(size);
+            vse16_v_f16m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+    }
+    // pad h_bottom
+    size = padded_wc * resi_h;
+    while (size > 0) {
+        vl = vsetvl_e16m1(size);
+        vse16_v_f16m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
+}
+
+void shl_rvv_pad_input_nhwc_int8(const int8_t *input, int8_t *input_padded, int inh, int inw,
+                                 int inc, int padded_h, int padded_w, int pad_top, int pad_left,
+                                 int8_t pad_value)
+{
+    int8_t *pad_ptr = input_padded;
+    int8_t *inp_ptr = (int8_t *)input;
+    int resi_h = padded_h - pad_top - inh;   // remain to pad on h (pad_down)
+    int resi_w = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
+    int padded_wc = padded_w * inc;
+    int padded_wtop = pad_left * inc;
+    int padded_wbottom = resi_w * inc;
+    int copy_wc = inw * inc;
+    int size;
+    int vl = vsetvl_e8m1(csrr_vlenb() / sizeof(int8_t));
+    vint8m1_t _zero = vmv_v_x_i8m1(pad_value, vl);
+
+    // pad h_top
+    size = padded_wc * pad_top;
+    while (size > 0) {
+        vl = vsetvl_e8m1(size);
+        vse8_v_i8m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
+    // pad h_mid
+    for (int h = 0; h < inh; h++) {
+        // pad w_top
+        size = padded_wtop;
+        while (size > 0) {
+            vl = vsetvl_e8m1(size);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // copy w_mid
+        size = copy_wc;
+        while (size > 0) {
+            vl = vsetvl_e8m1(size);
+            vint8m1_t _input = vle8_v_i8m1(inp_ptr, vl);
+            inp_ptr += vl;
+            vse8_v_i8m1(pad_ptr, _input, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+        // pad w_bottom
+        size = padded_wbottom;
+        while (size > 0) {
+            vl = vsetvl_e8m1(size);
+            vse8_v_i8m1(pad_ptr, _zero, vl);
+            pad_ptr += vl;
+            size -= vl;
+        }
+    }
+    // pad h_bottom
+    size = padded_wc * resi_h;
+    while (size > 0) {
+        vl = vsetvl_e8m1(size);
+        vse8_v_i8m1(pad_ptr, _zero, vl);
+        pad_ptr += vl;
+        size -= vl;
+    }
 }

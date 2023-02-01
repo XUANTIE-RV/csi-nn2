@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -47,8 +47,6 @@ int shl_rvv_dwconv3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_tens
     float *input_padd_buf =
         (float *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
-
-    float *output_ncxhwx = (float *)shl_mem_alloc(out_c * out_h * out_w * sizeof(float));
 
     shl_rvv_pad_input_packn_fp32(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
@@ -558,8 +556,6 @@ int shl_rvv_dwconv3x3s2_packn_fp32(struct csinn_tensor *input, struct csinn_tens
     float *input_padd_buf =
         (float *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
-
-    float *output_ncxhwx = (float *)shl_mem_alloc(out_c * out_h * out_w * sizeof(float));
 
     shl_rvv_pad_input_packn_fp32(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,

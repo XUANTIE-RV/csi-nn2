@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -27,7 +27,6 @@ int csinn_fsmn_init(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
                     struct csinn_fsmn_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_FSMN, frame->dtype);
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(frame, l_filter, r_filter, frame_sequence, frame_counter, output, params);

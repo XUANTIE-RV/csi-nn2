@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -1428,7 +1428,7 @@ int shl_c908_wg_b4f3s1_pack8_fp32(struct csinn_tensor *input, struct csinn_tenso
         if (vlen == 128) {
             wg_bxf3s1_batch_gemm_m8n8_fp32(input_tm2_buf, kernel_data, output_dot_buf, in_c, out_c,
                                            tiles, 36);
-        } else if (vlen == 256) {
+        } else if (vlen >= 256) {
             wg_bxf3s1_batch_gemm_m16n8_fp32_v256(input_tm2_buf, kernel_data, output_dot_buf, in_c,
                                                  out_c, tiles, 36);
         }
@@ -1651,7 +1651,7 @@ int shl_c908_wg_b6f3s1_pack8_fp32(struct csinn_tensor *input, struct csinn_tenso
         if (vlen == 128) {
             wg_bxf3s1_batch_gemm_m8n8_fp32(input_tm2_buf, kernel_data, output_dot_buf, in_c, out_c,
                                            tiles, 64);
-        } else if (vlen == 256) {
+        } else if (vlen >= 256) {
             wg_bxf3s1_batch_gemm_m16n8_fp32_v256(input_tm2_buf, kernel_data, output_dot_buf, in_c,
                                                  out_c, tiles, 64);
         }

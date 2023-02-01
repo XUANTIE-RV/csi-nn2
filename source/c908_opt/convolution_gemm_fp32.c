@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -112,7 +112,7 @@ int shl_c908_conv_im2col_gemm_fp32(struct csinn_tensor *input, struct csinn_tens
                 shl_c908_reorder_input_z12_fp32(im2col_data, pb, k, n, n);
                 // GEMM
                 shl_c908_gemm_8x12_fp32(pc, pa, pb, bias_data + g * m, m, k, n, n);
-            } else if (vlen == 256) {
+            } else if (vlen >= 256) {
                 // pack
                 shl_c908_reorder_input_z16_fp32_v256(im2col_data, pb, k, n, n);
                 // GEMM

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -25,7 +25,7 @@
  * VS kernel 12 x 16
  * input matrix and kernel matrix have been reordered
  *************************************************************/
-
+#ifdef SHL_UNUSED_REGISTER_BLK
 static inline void kernel_m8n48_fp16_v256(__fp16 *dst, __fp16 *sa, __fp16 *sb, int m, int k, int n,
                                           int ldc, __fp16 *bias)
 {
@@ -1916,6 +1916,7 @@ void shl_c908_gemm_8x48_fp16_v256(__fp16 *dst, const __fp16 *sa, const __fp16 *s
         bias = NULL;
     }
 }
+#endif
 
 static inline void kernel_m8n32_fp16_v256(__fp16 *dst, __fp16 *sa, __fp16 *sb, int m, int k, int n,
                                           int ldc, __fp16 *bias)

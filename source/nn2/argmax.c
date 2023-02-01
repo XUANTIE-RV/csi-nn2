@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -24,14 +24,13 @@
 int csinn_argmax_init(struct csinn_tensor *input, struct csinn_tensor *output,
                       struct csinn_reduce_params *params)
 {
-    void *cbf = NULL;
     if (params->n == 0 && params->m == 0) {
         return CSINN_FALSE;
     } else {
         shl_op_callback_map(&params->base, CSINN_OP_ARGMAX, input->dtype);
-        struct csinn_callback *cb = params->base.cb;
-        if (cb->init) {
-            cb->init(input, output, params);
+        int (*func)() = shl_get_init_cb(&params->base);
+        if (func != NULL) {
+            func(input, output, params);
         }
     }
 

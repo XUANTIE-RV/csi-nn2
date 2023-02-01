@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -34,7 +34,8 @@ void shl_c908_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
 
     for (int g = 0; g < group; g++) {
-        shl_c908_reorder_kernel_n8_int8(kernel_data + g * m * k, pa_reorder + g * m * k4, m, k, k);
+        shl_c908_reorder_kernel_n8_int8_dot(kernel_data + g * m * k, pa_reorder + g * m * k4, m, k,
+                                            k);
     }
     // FIXME: free params->conv_extra.kernel_tm->data
     // memcpy(kernel_data, pa_reorder, group * m * k * sizeof(__fp16));
@@ -128,16 +129,16 @@ int shl_c908_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tens
 
             if (vlen == 128) {
                 // pack
-                shl_c908_reorder_input_z8_int8(im2col_data, pb, k, n, n);
+                shl_c908_reorder_input_z8_int8_dot(im2col_data, pb, k, n, n);
                 // GEMM
-                shl_c908_gemm_8x8_int8(pc, pa, pb, bias_data + g * m, m, k4, n, n,
-                                       output->qinfo->zero_point, multiplier, shift);
-            } else if (vlen == 256) {
+                shl_c908_gemm_8x8_int8_dot(pc, pa, pb, bias_data + g * m, m, k4, n, n,
+                                           output->qinfo->zero_point, multiplier, shift);
+            } else if (vlen >= 256) {
                 // pack
-                shl_c908_reorder_input_z16_int8_v256(im2col_data, pb, k, n, n);
+                shl_c908_reorder_input_z16_int8_v256_dot(im2col_data, pb, k, n, n);
                 // GEMM
-                shl_c908_gemm_8x16_int8_v256(pc, pa, pb, bias_data + g * m, m, k4, n, n,
-                                             output->qinfo->zero_point, multiplier, shift);
+                shl_c908_gemm_8x16_int8_v256_dot(pc, pa, pb, bias_data + g * m, m, k4, n, n,
+                                                 output->qinfo->zero_point, multiplier, shift);
             }
             input_data += in_ch / group * in_height * in_width;
             output_data += m * n;

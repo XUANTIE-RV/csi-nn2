@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.11.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -25,7 +25,6 @@ int csinn_data_convert_init(struct csinn_tensor *input, struct csinn_tensor *out
                             struct csinn_siso_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_DATA_CONVERT, input->dtype);
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input, output, params);

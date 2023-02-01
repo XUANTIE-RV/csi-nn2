@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -28,7 +28,6 @@ int csinn_deconv3d_init(struct csinn_tensor *input, struct csinn_tensor *output,
     if (input->layout == CSINN_LAYOUT_NCDHW) {
         shl_op_callback_map(&params->base, CSINN_OP_DECONV3D, input->dtype);
     }
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input, output, kernel, bias, params);

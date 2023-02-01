@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #ifndef INCLUDE_CSI_INTERNAL_H_
 #define INCLUDE_CSI_INTERNAL_H_
 
@@ -83,6 +83,8 @@ enum csinn_api_enum {
     CSINN_TVMGEN,
     CSINN_ASP,
     CSINN_RVV,
+    CSINN_RVM,
+    CSINN_E907,
     CSINN_API_SIZE,
 };
 
@@ -208,7 +210,7 @@ enum csinn_op_enum {
     CSINN_OP_MOD,
     CSINN_OP_MUL,
     CSINN_OP_NDARRAY_SIZE,
-    CSINN_OP_NEGATIIVE,
+    CSINN_OP_NEGATIVE,
     CSINN_OP_NON_MAX_SUPPRESSION,
     CSINN_OP_NOT_EQUAL,
     CSINN_OP_NOT,

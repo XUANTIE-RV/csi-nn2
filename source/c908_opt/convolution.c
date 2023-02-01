@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -40,6 +40,7 @@ int shl_c908_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *o
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -73,6 +74,7 @@ int shl_c908_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *o
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
@@ -132,6 +134,7 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -165,6 +168,7 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
@@ -224,27 +228,27 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
             params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
             shl_c908_conv1x1s1_gemm_reorder_kernel_packn_int8(kernel, params);
             cb->exec = shl_c908_conv1x1s1_gemm_packn_int8;
-        } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
-                   dalition_h == 1 && dalition_w == 1) {
-            if (params->group > 1) {
-                params->conv_extra.conv_mode = CSINN_GEMM;
-                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-                shl_c908_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
-                cb->exec = shl_c908_conv_im2col_gemm_packn_int8;
-                return CSINN_TRUE;
-            } else {
-                params->conv_extra.conv_mode = CSINN_WINOGRAD;
-                struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
-                shl_c908_ncxhwx_wg_b4f3s1_trans_kernel_packn_int8(kernel, t_kernel);
-                cb->exec = shl_c908_ncxhwx_wg_b4f3s1_packn_int8;
-                params->conv_extra.kernel_tm = t_kernel;
-            }
+            // } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
+            //            dalition_h == 1 && dalition_w == 1) {
+            //     if (params->group > 1) {
+            //         params->conv_extra.conv_mode = CSINN_GEMM;
+            //         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+            //         shl_c908_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
+            //         cb->exec = shl_c908_conv_im2col_gemm_packn_int8;
+            //     } else {
+            //         params->conv_extra.conv_mode = CSINN_WINOGRAD;
+            //         struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+            //         shl_c908_ncxhwx_wg_b4f3s1_trans_kernel_packn_int8(kernel, t_kernel);
+            //         cb->exec = shl_c908_ncxhwx_wg_b4f3s1_packn_int8;
+            //         params->conv_extra.kernel_tm = t_kernel;
+            //     }
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
             params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
@@ -255,6 +259,7 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
@@ -309,6 +314,7 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     // enable fuse zeropoint to bias for gemm
     if (params->conv_extra.conv_mode == CSINN_GEMM) {
         if (!params->conv_extra.fuse_zp2bias) {
+            params->conv_extra.fuse_zp2bias = true;
             int32_t *bias_data = (int32_t *)bias->data;
             int8_t *kernel_data = (int8_t *)kernel->data;
             int32_t input_zp = input->qinfo->zero_point;
@@ -349,6 +355,7 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     return CSINN_TRUE;
 }
 
+#ifdef SHL_USE_DOT_INT4
 int shl_c908_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
                               struct csinn_conv2d_params *params)
@@ -406,3 +413,4 @@ int shl_c908_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *o
     }
     return CSINN_FALSE;
 }
+#endif

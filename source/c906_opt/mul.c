@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c906.h"
 
@@ -117,13 +117,24 @@ int shl_c906_mul_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
                     "3"(out_size)
                     : "v8", "v9", "v16", "v17", "t0", "ft0"
         );
-    }
-    // example: [1, 3, 224, 224] + [1, 3, 224, 224] = [1, 3, 224, 224]
-    else if (in_size0 == in_size1) {
-        element_mul_f32(input0_data, input1_data, output_data, out_size);
+        return CSINN_TRUE;
     }
 
-    else {
+    // example: [1, 3, 224, 224] + [1, 3, 224, 224] = [1, 3, 224, 224]
+    bool same_shape = true;
+    if (input0->dim_count != input1->dim_count || input0->dim_count != output->dim_count) {
+        same_shape = false;
+    } else {
+        for (int i = 0; i < output->dim_count; i++) {
+            if (input0->dim[i] != input1->dim[i]) {
+                same_shape = false;
+                break;
+            }
+        }
+    }
+    if (same_shape) {
+        element_mul_f32(input0_data, input1_data, output_data, out_size);
+    } else {
         int flag = 1;
         for (int i = input1->dim_count - 1, j = input0->dim_count - 1; i >= 0; i--, j--) {
             if (input0->dim[j] != input1->dim[i]) {
@@ -155,7 +166,8 @@ int shl_c906_mul_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
             shl_mem_free(b_input0);
             shl_mem_free(b_input1);
         }
-        // example: [1, 3, 224, 224] + [224] = [1, 3, 224, 224]  or  [1, 3, 224, 224] + [224, 224] = [1, 3, 224, 224]
+        // example: [1, 3, 224, 224] + [224] = [1, 3, 224, 224]  or  [1, 3, 224, 224] + [224, 224] =
+        // [1, 3, 224, 224]
         else {
             int inner_size = in_size1;
             int outer_size = out_size / in_size1;
@@ -259,7 +271,22 @@ int shl_c906_mul_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
                     "3"(out_size)
                     : "v8", "v9", "v16", "v17", "t0", "ft0"
         );
-    } else if (in_size0 == in_size1) {
+        return CSINN_TRUE;
+    }
+
+    // example: [1, 3, 224, 224] + [1, 3, 224, 224] = [1, 3, 224, 224]
+    bool same_shape = true;
+    if (input0->dim_count != input1->dim_count || input0->dim_count != output->dim_count) {
+        same_shape = false;
+    } else {
+        for (int i = 0; i < output->dim_count; i++) {
+            if (input0->dim[i] != input1->dim[i]) {
+                same_shape = false;
+                break;
+            }
+        }
+    }
+    if (same_shape) {
         element_mul_fp16(input0_data, input1_data, output_data, out_size);
     } else {
         int flag = 1;

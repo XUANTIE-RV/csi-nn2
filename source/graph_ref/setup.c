@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -135,8 +135,9 @@ static int call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_MEAN_STRIDE:
         case CSINN_OP_MIN:
         case CSINN_OP_NDARRAY_SIZE:
-        case CSINN_OP_NEGATIIVE:
+        case CSINN_OP_NEGATIVE:
         case CSINN_OP_NOT:
+        case CSINN_OP_ONE_HOT:
         case CSINN_OP_PAD:
         case CSINN_OP_PROD:
         case CSINN_OP_REDUCE_LOGSUMEXP:
@@ -277,6 +278,10 @@ static int call_layer_func(void *fn, struct shl_node *node)
             ret = func(node->in[0]->data, outputs, params);
             shl_mem_free(outputs);
             break;
+        case CSINN_OP_WHERE:
+            ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->out[0]->data,
+                       params);
+            break;
         case CSINN_OP_ALL:
             shl_debug_error("unsupported CSINN_OP_ALL\n");
             break;
@@ -288,9 +293,6 @@ static int call_layer_func(void *fn, struct shl_node *node)
             break;
         case CSINN_OP_MIN_STRIDE:
             shl_debug_error("unsupported CSINN_OP_MIN_STRIDE\n");
-            break;
-        case CSINN_OP_ONE_HOT:
-            shl_debug_error("unsupported CSINN_OP_ONE_HOT\n");
             break;
         case CSINN_OP_PROPOSAL:
             shl_debug_error("unsupported CSINN_OP_PROPOSAL\n");
@@ -313,52 +315,11 @@ static int call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_TOPK:
             shl_debug_error("unsupported CSINN_OP_TOPK\n");
             break;
-        case CSINN_OP_WHERE:
-            shl_debug_error("unsupported CSINN_OP_WHERE\n");
-            break;
         default:
             shl_debug_error("unknown op\n");
             return CSINN_FALSE;
     }
     return ret;
-}
-
-void shl_gref_reset_graph_visit(struct shl_ref_graph *graph)
-{
-    for (int i = 0; i < graph->layer_index; i++) {
-        if (graph->layer[i]->type == CSINN_SUBGRAPH) {
-            graph->layer[i]->visited = 0;
-            struct shl_ref_graph *s_subgraph = graph->layer[i]->data;
-            for (int j = 0; j < s_subgraph->layer_index; j++) {
-                s_subgraph->layer[j]->visited = 0;
-            }
-        } else {
-            graph->layer[i]->visited = 0;
-        }
-    }
-}
-
-/*
- * transform graph as gloal graph and sub graph
- */
-static struct shl_ref_graph *transform_graph(struct shl_ref_graph *ograph)
-{
-    struct shl_ref_graph *ggraph = shl_mem_alloc(sizeof(struct shl_ref_graph));
-    ggraph->input = ograph->input;
-    ggraph->output = ograph->output;
-    ggraph->input_num = ograph->input_num;
-    ggraph->output_num = ograph->output_num;
-    for (int i = 0; i < ograph->layer_index; i++) {
-        struct shl_node *n = ograph->layer[i];
-        struct csinn_params_base *params = n->data;
-
-        if (params->sess->base_api != params->api) {
-            shl_subgraph_alloc(n, ograph, ggraph);
-        } else {
-            shl_gref_graph_insert(n, ggraph);
-        }
-    }
-    return ggraph;
 }
 
 static int init_op(struct shl_node *node)
@@ -382,105 +343,44 @@ static int init_op(struct shl_node *node)
     return CSINN_TRUE;
 }
 
-void shl_subgraph_fvisit_create(struct shl_ref_graph *graph, struct shl_node *node)
-{
-    shl_gref_graph_insert(node, graph);
-}
-
-/*
- * transform graph as gloal graph and sub graph
- */
-static struct shl_ref_graph *convert_graph(struct shl_ref_graph *ograph)
-{
-    if (shl_debug_get_level() <= SHL_DEBUG_LEVEL_INFO) {
-        shl_debug_info("\nOriginal graph:\n");
-        shl_gref_post_dfs(ograph, shl_subgraph_fvisit_print);
-        shl_gref_reset_graph_visit(ograph);
-    }
-
-    struct shl_ref_graph *subgraph = shl_subgraph_generate(ograph);
-    shl_gref_reset_graph_visit(subgraph);
-
-    shl_debug_info("\nGenerated subgraph:\n");
-    for (int i = 0; i < subgraph->layer_index; i++) {
-        if (subgraph->layer[i]->type == CSINN_SUBGRAPH) {
-            struct shl_ref_graph *s_subgraph = subgraph->layer[i]->data;
-            if (s_subgraph->layer_size == 0) continue;
-            shl_gref_update_input_output(subgraph, i);
-            if (shl_debug_get_level() <= SHL_DEBUG_LEVEL_INFO) {
-                shl_debug_info("----  subgraph_%d:  ----\n", i);
-                shl_gref_reset_graph_visit(s_subgraph);
-                shl_gref_post_dfs(s_subgraph, shl_subgraph_fvisit_print);
-                shl_gref_reset_graph_visit(s_subgraph);
-                shl_debug_info("----subgraph_%d end.----\n", i);
-            }
-
-            struct shl_ref_graph *new_sgraph = shl_mem_alloc(sizeof(struct shl_ref_graph));
-            new_sgraph->input = s_subgraph->input;
-            new_sgraph->output = s_subgraph->output;
-            new_sgraph->input_num = s_subgraph->input_num;
-            new_sgraph->output_num = s_subgraph->output_num;
-            shl_gref_post_dfs(new_sgraph, shl_subgraph_fvisit_create);
-            subgraph->layer[i]->data = new_sgraph;
-
-            shl_gref_reset_graph_visit(s_subgraph);
-        } else {
-            shl_debug_info("%s\n", subgraph->layer[i]->name);
-        }
-    }
-
-    shl_gref_reset_graph_visit(subgraph);
-    struct shl_ref_graph *ggraph = shl_subgraph_rebuild(subgraph);
-
-    struct shl_ref_graph *sorted_graph = shl_subgraph_topology_sort(ggraph);
-    shl_debug_info("\nsorted subgraph:\n");
-    for (int i = 0; i < sorted_graph->layer_index; i++) {
-        if (sorted_graph->layer[i]->type == CSINN_SUBGRAPH) {
-            struct shl_ref_graph *s_subgraph = sorted_graph->layer[i]->data;
-            if (s_subgraph->layer_size == 0) continue;
-            if (shl_debug_get_level() <= SHL_DEBUG_LEVEL_INFO) {
-                shl_debug_info("----  subgraph_%d:  ----\n", i);
-                shl_gref_reset_graph_visit(s_subgraph);
-                shl_gref_post_dfs(s_subgraph, shl_subgraph_fvisit_print);
-                shl_gref_reset_graph_visit(s_subgraph);
-                shl_debug_info("----subgraph_%d end.----\n", i);
-            }
-            shl_gref_reset_graph_visit(s_subgraph);
-        } else {
-            shl_debug_info("%s\n", sorted_graph->layer[i]->name);
-        }
-    }
-
-    return sorted_graph;
-}
-
 void shl_gref_session_setup(struct csinn_session *sess)
 {
     struct shl_ref_graph *graph = shl_gref_get_graph(sess);
     struct shl_node *n;
 
+    struct shl_gref_target_data *td = sess->td;
     for (int i = 0; i < graph->layer_index; i++) {
-        n = graph->layer[i];
-        for (int j = 0; j < n->in_num; j++) {
-            if (n->in[j]->ref_count_init > 0) {
-                n->in[j]->ref_count_init++;
+        struct csinn_params_base *curr_params = graph->layer[i]->data;
+        if (curr_params->quant_type != CSINN_QUANT_UNSET &&
+            curr_params->quant_type != sess->base_quant_type) {
+            td->is_hybrid_quantization_type = 1;
+            break;
+        }
+    }
+
+    struct shl_ref_graph *ggraph;
+#ifdef GRAPH_REFERENCE_SUBGRAPH
+    ggraph = shl_subgraph_establish(graph);
+#else
+    ggraph = graph;
+    /* update subgraph_idx */
+    for (int i = 0; i < ggraph->layer_index; i++) {
+        ggraph->layer[i]->subgraph_idx = i;
+        if (ggraph->layer[i]->type == CSINN_SUBGRAPH) {
+            struct shl_ref_graph *s_subgraph = ggraph->layer[i]->data;
+            for (int j = 0; j < s_subgraph->layer_index; j++) {
+                s_subgraph->layer[j]->subgraph_idx = i;
             }
         }
-        for (int k = 0; k < n->out_num; k++) {
-            n->out[k]->ref_count_init++;
-        }
     }
-
-    for (int i = 0; i < graph->output_num; i++) {
-        graph->output[i]->ref_count_init++;
-    }
-
-    struct shl_ref_graph *ggraph = convert_graph(graph);
+#endif
 
     for (int i = 0; i < ggraph->layer_index; i++) {
         struct shl_node *n = ggraph->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
+#ifdef GRAPH_REFERENCE_SUBGRAPH
             shl_subgraph_setup(n);
+#endif
         } else if (n->type >= 0 && n->type < CSINN_OP_SIZE) {
             init_op(n);
         } else {
@@ -488,7 +388,31 @@ void shl_gref_session_setup(struct csinn_session *sess)
             return;
         }
     }
-    struct shl_gref_target_data *td = sess->td;
+
+    for (int i = 0; i < ggraph->layer_index; i++) {
+        n = ggraph->layer[i];
+        for (int j = 0; j < n->in_num; j++) {
+            if (n->in[j]->ref_count_init > 0) {
+                n->in[j]->ref_count_init++;
+            }
+        }
+        if (n->type != CSINN_SUBGRAPH) {
+            for (int k = 0; k < n->out_num; k++) {
+                n->out[k]->ref_count_init++;
+            }
+        } else {
+            struct shl_ref_graph *sgraph = n->data;
+            for (int k = 0; k < sgraph->output_num; k++) {
+                sgraph->output[k]->ref_count_init++;
+            }
+        }
+    }
+
+    for (int i = 0; i < ggraph->output_num; i++) {
+        ggraph->output[i]->ref_count_init++;
+    }
+
+    // struct shl_gref_target_data *td = sess->td;
     td->graph = ggraph;
 }
 
@@ -499,9 +423,16 @@ static void node_ref_reset(struct csinn_session *sess)
 
     for (int i = 0; i < graph->layer_index; i++) {
         n = graph->layer[i];
-        for (int k = 0; k < n->out_num; k++) {
-            if (n->out[k] != NULL) {
-                n->out[k]->ref_count = n->out[k]->ref_count_init;
+        if (n->type == CSINN_SUBGRAPH) {
+            struct shl_ref_graph *sgraph = n->data;
+            for (int k = 0; k < sgraph->output_num; k++) {
+                sgraph->output[k]->ref_count = sgraph->output[k]->ref_count_init;
+            }
+        } else {
+            for (int k = 0; k < n->out_num; k++) {
+                if (n->out[k] != NULL) {
+                    n->out[k]->ref_count = n->out[k]->ref_count_init;
+                }
             }
         }
     }
@@ -516,14 +447,19 @@ static int op_run_init(struct shl_node *node)
     return CSINN_TRUE;
 }
 
-static int op_run_deinit(struct shl_node *node)
+static int op_run_deinit(struct shl_node *node, struct shl_ref_graph *graph)
 {
     for (int i = 0; i < node->in_num; i++) {
         if (node->in[i]->ref_count > 0) {
             node->in[i]->ref_count--;
             if (node->in[i]->ref_count == 0) {
-                struct csinn_tensor *t = node->in[i]->data;
-                shl_mem_free(t->data);
+                if (node->in[i]->in &&
+                    graph->layer[node->in[i]->in[0]->subgraph_idx]->type == CSINN_SUBGRAPH) {
+                    /* nothing */
+                } else {
+                    struct csinn_tensor *t = node->in[i]->data;
+                    shl_mem_free(t->data);
+                }
             }
         }
     }
@@ -551,9 +487,11 @@ int shl_gref_session_run(struct csinn_session *sess)
     for (int i = 0; i < g->layer_index; i++) {
         struct shl_node *n = g->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
+#ifdef GRAPH_REFERENCE_SUBGRAPH
             shl_subgraph_run_init(n);
             shl_subgraph_run(n);
-            shl_subgraph_run_deinit(n);
+            shl_subgraph_run_deinit(n, g);
+#endif
         } else if (n->type >= 0 && n->type < CSINN_OP_SIZE) {
             op_run_init(n);
 #ifdef SHL_LAYER_BENCHMARK
@@ -565,7 +503,7 @@ int shl_gref_session_run(struct csinn_session *sess)
 #else
             op_run(n);
 #endif
-            op_run_deinit(n);
+            op_run_deinit(n, g);
         } else {
             return CSINN_FALSE;
         }
@@ -602,6 +540,7 @@ void shl_gref_set_output(int index, struct csinn_tensor *output, struct csinn_se
 
 void shl_gref_session_deinit(struct csinn_session *sess)
 {
+#ifdef GRAPH_REFERENCE_SUBGRAPH
     struct shl_ref_graph *g = shl_gref_get_graph(sess);
 
     for (int i = 0; i < g->layer_index; i++) {
@@ -610,6 +549,7 @@ void shl_gref_session_deinit(struct csinn_session *sess)
             shl_subgraph_deinit(n);
         }
     }
+#endif
     struct shl_ref_graph *graph = shl_gref_get_graph(sess);
     shl_mem_free(graph->input);
     shl_mem_free(graph->output);
@@ -621,342 +561,487 @@ struct shl_ref_graph *shl_gref_get_graph(struct csinn_session *sess)
     return td->graph;
 }
 
-int shl_gref_is_root_node(struct shl_ref_graph *graph, struct shl_node *node)
-{
-    int is_root = 1;
-    for (int i = 0; i < node->in_num; i++) {
-        struct csinn_tensor *in_tensor = node->in[i]->data;
-        if (in_tensor->is_const) continue;
-        int find_res = 0;
-        for (int j = 0; j < graph->input_num; j++) {
-            if (node->in[i] == graph->input[j]) {
-                find_res = 1;
-                break;
-            }
-        }
-        if (find_res == 0) {
-            is_root = 0;
-            break;
-        }
-    }
-    return is_root;
-}
-
-void shl_gref_post_dfs(struct shl_ref_graph *graph,
-                       void (*fvisit)(struct shl_ref_graph *, struct shl_node *))
-{
-    int stack_size = 32;
-    struct shl_node **node_stack = shl_mem_alloc(sizeof(struct shl_node *) * stack_size);
-    int *input_idx_stack = shl_mem_alloc(sizeof(int) * stack_size);
-    int stack_top = -1;
-
-    struct shl_node *curr_node;
-    for (int i = 0; i < graph->output_num; i++) {
-        struct csinn_tensor *ot = graph->output[i]->data;
-        if (ot->is_const) continue;
-        curr_node = graph->output[i]->in[0];
-        if (curr_node->visited == 0) {
-            ++stack_top;
-            if (stack_top >= stack_size) {
-                stack_size += 32;
-                node_stack = shl_mem_realloc(node_stack, sizeof(struct shl_node *) * stack_size);
-                input_idx_stack = shl_mem_realloc(input_idx_stack, sizeof(int) * stack_size);
-            }
-            node_stack[stack_top] = curr_node;
-            input_idx_stack[stack_top] = 0;
-            curr_node->visited = 1;
-        }
-        while (stack_top != -1) {
-            curr_node = node_stack[stack_top];
-            if (input_idx_stack[stack_top] == shl_node_get_non_const_in_number(curr_node)) {
-                fvisit(graph, curr_node);
-                --stack_top;
-            } else {
-                struct shl_node *next_node = NULL;
-                if (shl_node_find(graph->input, graph->input_num,
-                                  curr_node->in[input_idx_stack[stack_top]]) == -1) {
-                    next_node = curr_node->in[input_idx_stack[stack_top]]->in[0];
-                    if (next_node && next_node->type == CSINN_SUBGRAPH_RETURN) {
-                        next_node = graph->layer[next_node->subgraph_idx];
-                    }
-                }
-                input_idx_stack[stack_top] += 1;
-                if (next_node && next_node->visited == 0) {
-                    ++stack_top;
-                    if (stack_top >= stack_size) {
-                        stack_size += 32;
-                        node_stack =
-                            shl_mem_realloc(node_stack, sizeof(struct shl_node *) * stack_size);
-                        input_idx_stack =
-                            shl_mem_realloc(input_idx_stack, sizeof(int) * stack_size);
-                    }
-                    node_stack[stack_top] = next_node;
-                    input_idx_stack[stack_top] = 0;
-                    next_node->visited = 1;
-                }
-            }
-        }
-    }
-
-    shl_mem_free(node_stack);
-    shl_mem_free(input_idx_stack);
-}
-
-void shl_gref_update_input_output(struct shl_ref_graph *ograph, int index)
-{
-    if (ograph->layer[index]->type != CSINN_SUBGRAPH) {
-        return;
-    }
-    struct shl_ref_graph *graph = ograph->layer[index]->data;
-    if (graph->layer_size == 0) return;
-
-    /* update inputs */
-    graph->input = NULL;
-    graph->input_num = 0;
-    struct shl_node **tensor_node_set = NULL;
-    int set_num = 0;
-    for (int i = 0; i < graph->layer_index; i++) {
-        for (int j = 0; j < shl_node_get_non_const_in_number(graph->layer[i]); j++) {
-            struct shl_node *in_tensor_node = graph->layer[i]->in[j];
-            if (shl_node_find(graph->layer, graph->layer_index, in_tensor_node->in[0]) == -1 &&
-                shl_node_find(tensor_node_set, set_num, in_tensor_node) == -1) {
-                graph->input = shl_mem_realloc(graph->input,
-                                               sizeof(struct shl_node *) * (graph->input_num + 1));
-                graph->input[graph->input_num] = in_tensor_node;
-                graph->input_num++;
-
-                // tensor_node_set[set_num] = in_tensor_node;
-                tensor_node_set =
-                    shl_mem_realloc(tensor_node_set, sizeof(struct shl_node *) * (set_num + 1));
-                tensor_node_set[set_num] = in_tensor_node;
-                set_num++;
-            }
-        }
-    }
-    shl_mem_free(tensor_node_set);
-
-    /* update outputs */
-    graph->output = NULL;
-    graph->output_num = 0;
-    for (int i = 0; i < graph->layer_index; i++) {
-        for (int j = 0; j < graph->layer[i]->out_num; j++) {
-            struct shl_node *out_tensor_node = graph->layer[i]->out[j];
-
-            int find_res_inside = 0;
-            for (int k = 0; k < graph->layer_index; k++) {
-                if (k == i) continue;
-                if (shl_node_find(graph->layer[k]->in, graph->layer[k]->in_num, out_tensor_node) >
-                    -1) {
-                    find_res_inside = 1;
-                    break;
-                }
-            }
-
-            int find_res_outside = 0;
-            for (int s_idx = 0; s_idx < ograph->layer_index; s_idx++) {
-                if (s_idx == index) continue;
-                if (ograph->layer[s_idx]->type != CSINN_SUBGRAPH) {
-                    if (shl_node_find(ograph->layer[s_idx]->in, ograph->layer[s_idx]->in_num,
-                                      out_tensor_node) > -1) {
-                        find_res_outside = 1;
-                        break;
-                    }
-                } else {
-                    struct shl_ref_graph *outside_sgraph = ograph->layer[s_idx]->data;
-                    if (outside_sgraph->layer_size == 0) continue;
-
-                    for (int inner_idx = 0; inner_idx < outside_sgraph->layer_index; inner_idx++) {
-                        if (shl_node_find(outside_sgraph->layer[inner_idx]->in,
-                                          outside_sgraph->layer[inner_idx]->in_num,
-                                          out_tensor_node) > -1) {
-                            find_res_outside = 1;
-                            break;
-                        }
-                    }
-                    if (find_res_outside) {
-                        break;
-                    }
-                }
-            }
-
-            if (!find_res_inside || find_res_outside) {
-                graph->output = shl_mem_realloc(
-                    graph->output, sizeof(struct shl_node *) * (graph->output_num + 1));
-                graph->output[graph->output_num] = out_tensor_node;
-                graph->output_num++;
-            }
-        }
-    }
-}
-
 static void *setup_cb_map()
 {
     static struct csinn_callback cb_map[CSINN_OP_AND_UTILS_SIZE];
     memset(cb_map, 0, sizeof(struct csinn_callback) * CSINN_OP_AND_UTILS_SIZE);
 
+#ifndef CONFIG_GRAPH_REFERENCE_ABS_DISABLED
     cb_map[CSINN_OP_ABS].est = shl_gref_abs;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ACOS_DISABLED
     cb_map[CSINN_OP_ACOS].est = shl_gref_acos;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ACOSH_DISABLED
     cb_map[CSINN_OP_ACOSH].est = shl_gref_acosh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ADD_DISABLED
     cb_map[CSINN_OP_ADD].est = shl_gref_add;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ALL_DISABLED
     cb_map[CSINN_OP_ALL].est = shl_gref_all;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_AND_DISABLED
     cb_map[CSINN_OP_AND].est = shl_gref_and;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ANY_DISABLED
     cb_map[CSINN_OP_ANY].est = shl_gref_any;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ARANGE_DISABLED
     cb_map[CSINN_OP_ARANGE].est = shl_gref_arange;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ARGMAX_DISABLED
     cb_map[CSINN_OP_ARGMAX].est = shl_gref_argmax;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ARGMIN_DISABLED
     cb_map[CSINN_OP_ARGMIN].est = shl_gref_argmin;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ASIN_DISABLED
     cb_map[CSINN_OP_ASIN].est = shl_gref_asin;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ASINH_DISABLED
     cb_map[CSINN_OP_ASINH].est = shl_gref_asinh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ATAN_DISABLED
     cb_map[CSINN_OP_ATAN].est = shl_gref_atan;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ATANH_DISABLED
     cb_map[CSINN_OP_ATANH].est = shl_gref_atanh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_AVERAGEPOOL_DISABLED
     cb_map[CSINN_OP_AVGPOOL2D].est = shl_gref_avgpool2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_AVERAGEPOOL3D_DISABLED
     cb_map[CSINN_OP_AVGPOOL3D].est = shl_gref_avgpool3d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_BATCH_NORMALIZATION_DISABLED
     cb_map[CSINN_OP_BN].est = shl_gref_batch_normalization;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_BATCH_TO_SPACE_DISABLED
     cb_map[CSINN_OP_BATCH_TO_SPACE].est = shl_gref_batch_to_space;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_BATCH_TO_SPACE_ND_DISABLED
     cb_map[CSINN_OP_BATCH_TO_SPACE_ND].est = shl_gref_batch_to_space_nd;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_BROADCAST_TO_DISABLED
     cb_map[CSINN_OP_BROADCOST].est = shl_gref_broadcast_to;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CACHE_MATMUL_DISABLED
     cb_map[CSINN_OP_CACHE_MATMUL].est = shl_gref_cache_matmul;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CACHE_CONV1D_DISABLED
     cb_map[CSINN_OP_CACHE_CONV1D].est = shl_gref_cache_conv1d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CEIL_DISABLED
     cb_map[CSINN_OP_CEIL].est = shl_gref_ceil;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CLIP_DISABLED
     cb_map[CSINN_OP_CLIP].est = shl_gref_clip;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_COL2IM_DISABLED
     cb_map[CSINN_OP_COL2IM].est = shl_gref_col2im;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CONCAT_DISABLED
     cb_map[CSINN_OP_CONCAT].est = shl_gref_concat;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION1D_DISABLED
     cb_map[CSINN_OP_CONV1D].est = shl_gref_conv1d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION_DISABLED
     cb_map[CSINN_OP_CONV2D].est = shl_gref_conv2d;
     cb_map[CSINN_OP_CONV2D_RELU].est = shl_gref_conv2d_relu;
     cb_map[CSINN_OP_CONV2D_RELU6].est = shl_gref_conv2d_relu6;
-    cb_map[CSINN_OP_DATA_CONVERT].est = shl_gref_data_convert;
     cb_map[CSINN_OP_DEPTHWISE_CONV2D].est = shl_gref_depthwise_conv2d;
     cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU].est = shl_gref_depthwise_conv2d_relu;
     cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU6].est = shl_gref_depthwise_conv2d_relu6;
     cb_map[CSINN_OP_GROUP_CONV2D].est = shl_gref_group_conv2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_DATA_CONVERT_DISABLED
+    cb_map[CSINN_OP_DATA_CONVERT].est = shl_gref_data_convert;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION3D_DISABLED
     cb_map[CSINN_OP_CONV3D].est = shl_gref_conv3d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION_DISABLED
     cb_map[CSINN_OP_DECONV2D].est = shl_gref_deconv2d;
     cb_map[CSINN_OP_DEPTHWISE_DECONV2D].est = shl_gref_depthwise_deconv2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION3D_DISABLED
     cb_map[CSINN_OP_DECONV3D].est = shl_gref_deconv3d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_COS_DISABLED
     cb_map[CSINN_OP_COS].est = shl_gref_cos;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_COSH_DISABLED
     cb_map[CSINN_OP_COSH].est = shl_gref_cosh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CUMPROD_DISABLED
     cb_map[CSINN_OP_CUMPROD].est = shl_gref_cumprod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_CUMSUM_DISABLED
     cb_map[CSINN_OP_CUMSUM].est = shl_gref_cumsum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_DEPTH_TO_SPACE_DISABLED
     cb_map[CSINN_OP_DEPTH_TO_SPACE].est = shl_gref_depth_to_space;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_DIV_DISABLED
     cb_map[CSINN_OP_DIV].est = shl_gref_div;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ELU_DISABLED
     cb_map[CSINN_OP_ELU].est = shl_gref_elu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_EQUAL_DISABLED
     cb_map[CSINN_OP_EQUANL].est = shl_gref_equal;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ERF_DISABLED
     cb_map[CSINN_OP_ERF].est = shl_gref_erf;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_EXP_DISABLED
     cb_map[CSINN_OP_EXP].est = shl_gref_exp;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_EXPAND_DIMS_DISABLED
     cb_map[CSINN_OP_EXPAND_DIMS].est = shl_gref_expand_dims;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_EXPM1_DISABLED
     cb_map[CSINN_OP_EXPM1].est = shl_gref_expm1;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FLATTEN_DISABLED
     cb_map[CSINN_OP_FLATTEN].est = shl_gref_flatten;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FLOOR_DIVIDE_DISABLED
     cb_map[CSINN_OP_FLOOR_DIVIDE].est = shl_gref_floor_divide;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FLOOR_MOD_DISABLED
     cb_map[CSINN_OP_FLOOR_MOD].est = shl_gref_floor_mod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FLOOR_DISABLED
     cb_map[CSINN_OP_FLOOR].est = shl_gref_floor;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FSMN_DISABLED
     cb_map[CSINN_OP_FSMN].est = shl_gref_fsmn;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_FULLYCONNECTED_DISABLED
     cb_map[CSINN_OP_FULLYCONNECTED].est = shl_gref_fullyconnected;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GATHER_ND_DISABLED
     cb_map[CSINN_OP_GATHER_ND].est = shl_gref_gather_nd;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GATHER_DISABLED
     cb_map[CSINN_OP_GATHER].est = shl_gref_gather;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GLOBAL_AVERAGEPOOL_DISABLED
     cb_map[CSINN_OP_GLOBAL_AVGPOOL2D].est = shl_gref_global_avgpool2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GLOBAL_MAXPOOL_DISABLED
     cb_map[CSINN_OP_GLOBAL_MAXPOOL2D].est = shl_gref_global_maxpool2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GREATER_EQUAL_DISABLED
     cb_map[CSINN_OP_GREATHER_EQUAL].est = shl_gref_greater_equal;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_GREATER_DISABLED
     cb_map[CSINN_OP_GREATHER].est = shl_gref_greater;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_HARD_SIGMOID_DISABLED
     cb_map[CSINN_OP_HARD_SIGMOID].est = shl_gref_hard_sigmoid;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_IM2COL_DISABLED
     cb_map[CSINN_OP_IM2COL].est = shl_gref_im2col;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ISNAN_DISABLED
     cb_map[CSINN_OP_ISNAN].est = shl_gref_isnan_bool;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LAYER_NORMAL_DISABLED
     cb_map[CSINN_OP_LAYER_NORM].est = shl_gref_layer_norm;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_L2_NORMALIZATION_DISABLED
     cb_map[CSINN_OP_L2N].est = shl_gref_l2_normalization;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_L2POOL_DISABLED
     cb_map[CSINN_OP_L2POOL2D].est = shl_gref_l2pool;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LEAKY_RELU_DISABLED
     cb_map[CSINN_OP_LEAKY_RELU].est = shl_gref_leaky_relu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LESS_EQUAL_DISABLED
     cb_map[CSINN_OP_LESS_EQUAL].est = shl_gref_less_equal;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LESS_DISABLED
     cb_map[CSINN_OP_LESS].est = shl_gref_less;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOG_SOFTMAX_DISABLED
     cb_map[CSINN_OP_LOG_SOFTMAX].est = shl_gref_log_softmax;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOG_DISABLED
     cb_map[CSINN_OP_LOG].est = shl_gref_log;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOG1P_DISABLED
     cb_map[CSINN_OP_LOG1P].est = shl_gref_log1p;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOGICAL_AND_DISABLED
     cb_map[CSINN_OP_LOGICAL_AND].est = shl_gref_logical_and;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOGICAL_NOT_DISABLED
     cb_map[CSINN_OP_LOGICAL_NOT].est = shl_gref_logical_not;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOGICAL_OR_DISABLED
     cb_map[CSINN_OP_LOGICAL_OR].est = shl_gref_logical_or;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LOGICAL_XOR_DISABLED
     cb_map[CSINN_OP_LOGICAL_XOR].est = shl_gref_logical_xor;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LRN_DISABLED
     cb_map[CSINN_OP_LRN].est = shl_gref_lrn;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MATMUL_DISABLED
     cb_map[CSINN_OP_MATMUL].est = shl_gref_matmul;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MAX_DISABLED
     cb_map[CSINN_OP_MAX].est = shl_gref_max;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MAXIMUM_DISABLED
     cb_map[CSINN_OP_MAXIMUM].est = shl_gref_maximum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MAXPOOL_DISABLED
     cb_map[CSINN_OP_MAXPOOL2D].est = shl_gref_maxpool2d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MAXPOOL2D_LOCAT_DISABLED
     cb_map[CSINN_OP_MAXPOOL2D_LOCAT].est = shl_gref_maxpool2d_locat;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MAXPOOL3D_DISABLED
     cb_map[CSINN_OP_MAXPOOL3D].est = shl_gref_maxpool3d;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MEAN_DISABLED
     cb_map[CSINN_OP_MEAN].est = shl_gref_mean;
     cb_map[CSINN_OP_MEAN_STRIDE].est = shl_gref_mean;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MIN_DISABLED
     cb_map[CSINN_OP_MIN].est = shl_gref_min;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MINIMUM_DISABLED
     cb_map[CSINN_OP_MINIMUM].est = shl_gref_minimum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MOD_DISABLED
     cb_map[CSINN_OP_MOD].est = shl_gref_mod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_MUL_DISABLED
     cb_map[CSINN_OP_MUL].est = shl_gref_mul;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_NDARRAY_SIZE_DISABLED
     cb_map[CSINN_OP_NDARRAY_SIZE].est = shl_gref_ndarray_size;
-    cb_map[CSINN_OP_NEGATIIVE].est = shl_gref_negative;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_NEGATIVE_DISABLED
+    cb_map[CSINN_OP_NEGATIVE].est = shl_gref_negative;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_NON_MAX_SUPPRESSION_DISABLED
     cb_map[CSINN_OP_NON_MAX_SUPPRESSION].est = shl_gref_non_max_suppression;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_NOT_EQUAL_DISABLED
     cb_map[CSINN_OP_NOT_EQUAL].est = shl_gref_not_equal;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_NOT_DISABLED
     cb_map[CSINN_OP_NOT].est = shl_gref_not;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_OR_DISABLED
     cb_map[CSINN_OP_OR].est = shl_gref_or;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_PAD_DISABLED
     cb_map[CSINN_OP_PAD].est = shl_gref_pad;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_POWER_DISABLED
     cb_map[CSINN_OP_POWER].est = shl_gref_power;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_PRELU_DISABLED
     cb_map[CSINN_OP_PRELU].est = shl_gref_prelu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_PROD_DISABLED
     cb_map[CSINN_OP_PROD].est = shl_gref_prod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_PROPOSAL_DISABLED
     cb_map[CSINN_OP_PROPOSAL].est = shl_gref_proposal;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_PSROIPOOLING_DISABLED
     cb_map[CSINN_OP_PSROIPOOLING].est = shl_gref_psroipooling;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_LOGSUMEXP_DISABLED
     cb_map[CSINN_OP_REDUCE_LOGSUMEXP].est = shl_gref_reduce_logsumexp;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_MAX_DISABLED
     cb_map[CSINN_OP_REDUCE_MAX].est = shl_gref_reduce_max;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_MEAN_DISABLED
     cb_map[CSINN_OP_REDUCE_MEAN].est = shl_gref_reduce_mean;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_MIN_DISABLED
     cb_map[CSINN_OP_REDUCE_MIN].est = shl_gref_reduce_min;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_PROD_DISABLED
     cb_map[CSINN_OP_REDUCE_PROD].est = shl_gref_reduce_prod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REDUCE_SUM_DISABLED
     cb_map[CSINN_OP_REDUCE_SUM].est = shl_gref_reduce_sum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RELU_DISABLED
     cb_map[CSINN_OP_RELU].est = shl_gref_relu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RELU1_DISABLED
     cb_map[CSINN_OP_RELU1].est = shl_gref_relu1;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RELU6_DISABLED
     cb_map[CSINN_OP_RELU6].est = shl_gref_relu6;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RELUN_DISABLED
     cb_map[CSINN_OP_RELUN].est = shl_gref_relun;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RESHAPE_DISABLED
     cb_map[CSINN_OP_RESHAPE].est = shl_gref_reshape;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RESIZE_DISABLED
     cb_map[CSINN_OP_RESIZE].est = shl_gref_resize;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_REVERSE_DISABLED
     cb_map[CSINN_OP_REVERSE].est = shl_gref_reverse;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ROIALIGN_DISABLED
     cb_map[CSINN_OP_ROIALIGN].est = shl_gref_roi_align;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ROIPOOL_DISABLED
     cb_map[CSINN_OP_ROIPOOL].est = shl_gref_roipool;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ROUND_DISABLED
     cb_map[CSINN_OP_ROUND].est = shl_gref_round;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RSQRT_DISABLED
     cb_map[CSINN_OP_RSQRT].est = shl_gref_rsqrt;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SCATTER_DISABLED
     cb_map[CSINN_OP_SCATTER_ND].est = shl_gref_scatter_nd;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEGMENT_MAX_DISABLED
     cb_map[CSINN_OP_SEGMENT_MAX].est = shl_gref_segment_max;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEGMENT_MEAN_DISABLED
     cb_map[CSINN_OP_SEGMENT_MEAN].est = shl_gref_segment_mean;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEGMENT_MIN_DISABLED
     cb_map[CSINN_OP_SEGMENT_MIN].est = shl_gref_segment_min;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEGMENT_PROD_DISABLED
     cb_map[CSINN_OP_SEGMENT_PROD].est = shl_gref_segment_prod;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEGMENT_SUM_DISABLED
     cb_map[CSINN_OP_SEGMENT_SUM].est = shl_gref_segment_sum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SELECT_DISABLED
     cb_map[CSINN_OP_SELECT].est = shl_gref_select;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SEQUENCE_MASK_DISABLED
     cb_map[CSINN_OP_SEQUENCE_MASK].est = shl_gref_sequence_mask;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SHAPE_DISABLED
     cb_map[CSINN_OP_SHAPE].est = shl_gref_shape;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SHUFFLE_CHANNEL_DISABLED
     cb_map[CSINN_OP_SHUFFLE_CHANNEL].est = shl_gref_shuffle_channel;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SIGMOID_DISABLED
     cb_map[CSINN_OP_SIGMOID].est = shl_gref_sigmoid;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SIGN_DISABLED
     cb_map[CSINN_OP_SIGN].est = shl_gref_sign;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SIN_DISABLED
     cb_map[CSINN_OP_SIN].est = shl_gref_sin;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SINH_DISABLED
     cb_map[CSINN_OP_SINH].est = shl_gref_sinh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SLICE_DISABLED
     cb_map[CSINN_OP_SLICE].est = shl_gref_slice;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SOFTMAX_DISABLED
     cb_map[CSINN_OP_SOFTMAX].est = shl_gref_softmax;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SOFTPLUS_DISABLED
     cb_map[CSINN_OP_SOFTPLUS].est = shl_gref_softplus;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SOFTRELU_DISABLED
     cb_map[CSINN_OP_SOFTRELU].est = shl_gref_softrelu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SOFTSIGN_DISABLED
     cb_map[CSINN_OP_SOFTSIGN].est = shl_gref_softsign;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SPACE_TO_BATCH_DISABLED
     cb_map[CSINN_OP_SPACE_TO_BATCH].est = shl_gref_space_to_batch;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SPACE_TO_BATCH_ND_DISABLED
     cb_map[CSINN_OP_SPACE_TO_BATCH_ND].est = shl_gref_space_to_batch_nd;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SPACE_TO_DEPTH_DISABLED
     cb_map[CSINN_OP_SPACE_TO_DEPTH].est = shl_gref_space_to_depth;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SPLIT_DISABLED
     cb_map[CSINN_OP_SPLIT].est = shl_gref_split;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SQRT_DISABLED
     cb_map[CSINN_OP_SQRT].est = shl_gref_sqrt;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SQUARE_DISABLED
     cb_map[CSINN_OP_SQUARE].est = shl_gref_square;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SQUEEZE_DISABLED
     cb_map[CSINN_OP_SQUEEZE].est = shl_gref_squeeze;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_STACK_DISABLED
     cb_map[CSINN_OP_STACK].est = shl_gref_stack;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_STRIDED_SLICE_DISABLED
     cb_map[CSINN_OP_STRIDED_SLICE].est = shl_gref_strided_slice;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SUB_DISABLED
     cb_map[CSINN_OP_SUB].est = shl_gref_sub;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SUM_DISABLED
     cb_map[CSINN_OP_SUM].est = shl_gref_sum;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TAN_DISABLED
     cb_map[CSINN_OP_TAN].est = shl_gref_tan;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TANH_DISABLED
     cb_map[CSINN_OP_TANH].est = shl_gref_tanh;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_THRESHOLD_RELU_DISABLED
     cb_map[CSINN_OP_THRESHOLD_RELU].est = shl_gref_threshold_relu;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TILE_DISABLED
     cb_map[CSINN_OP_TILE].est = shl_gref_tile;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TOPK_DISABLED
     cb_map[CSINN_OP_TOPK].est = shl_gref_topk;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TRUNC_DISABLED
     cb_map[CSINN_OP_TRUNC].est = shl_gref_trunc;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_TRANSPOSE_DISABLED
     cb_map[CSINN_OP_TRANSPOSE].est = shl_gref_transpose;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_UNPOOLING_DISABLED
     cb_map[CSINN_OP_UNPOOLING].est = shl_gref_unpooling;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_UNSTACK_DISABLED
     cb_map[CSINN_OP_UNSTACK].est = shl_gref_unstack;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_WHERE_DISABLED
     cb_map[CSINN_OP_WHERE].est = shl_gref_where;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_XOR_DISABLED
     cb_map[CSINN_OP_XOR].est = shl_gref_xor;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_YUV_RGB_SCALE_DISABLED
     cb_map[CSINN_OP_YUV_RGB_SCALE].est = shl_gref_yuv_rgb_scale;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_ONE_HOT_DISABLED
+    cb_map[CSINN_OP_ONE_HOT].est = shl_gref_one_hot;
+#endif
 
     return cb_map;
 }

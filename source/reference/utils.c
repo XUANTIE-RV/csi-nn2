@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include <time.h>
 
@@ -105,12 +105,12 @@ int shl_ref_diso_broadcast_base(struct csinn_tensor *input0, struct csinn_tensor
 
     if (shl_ref_broadcast_to_shape(input0, b_input0, output->dim, output->dim_count) ==
         CSINN_FALSE) {
-        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input0 failed.", __func__));
+        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input0 failed.\n", __func__));
         return CSINN_FALSE;
     };
     if (shl_ref_broadcast_to_shape(input1, b_input1, output->dim, output->dim_count) ==
         CSINN_FALSE) {
-        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input1 failed.", __func__));
+        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input1 failed.\n", __func__));
         return CSINN_FALSE;
     };
 

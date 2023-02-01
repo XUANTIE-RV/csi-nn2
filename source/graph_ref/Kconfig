@@ -1,0 +1,1130 @@
+
+menu "Graph Reference"
+
+config GRAPH_REFERENCE_SOURCE
+	bool "SHL graph reference code"
+	default y
+	help
+		Select SHL build graph reference
+
+config GRAPH_REFERENCE_SUBGRAPH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Subgraph for hybrid model"
+	default n
+	help
+		Select to support subgraph for hybrid model
+
+config GRAPH_REFERENCE_ABS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer abs"
+	default y
+	help
+		Select SHL build graph reference abs
+
+config GRAPH_REFERENCE_ACOS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer acos"
+	default y
+	help
+		Select SHL build graph reference acos
+
+config GRAPH_REFERENCE_ACOSH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer acosh"
+	default y
+	help
+		Select SHL build graph reference acosh
+
+config GRAPH_REFERENCE_ADD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer add"
+	default y
+	help
+		Select SHL build graph reference add
+
+config GRAPH_REFERENCE_ALL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer all"
+	default y
+	help
+		Select SHL build graph reference all
+
+config GRAPH_REFERENCE_AND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer and"
+	default y
+	help
+		Select SHL build graph reference and
+
+config GRAPH_REFERENCE_ANY
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer any"
+	default y
+	help
+		Select SHL build graph reference any
+
+config GRAPH_REFERENCE_ARANGE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer arange"
+	default y
+	help
+		Select SHL build graph reference arange
+
+config GRAPH_REFERENCE_ARGMAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer argmax"
+	default y
+	help
+		Select SHL build graph reference argmax
+
+config GRAPH_REFERENCE_ARGMIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer argmin"
+	default y
+	help
+		Select SHL build graph reference argmin
+
+config GRAPH_REFERENCE_ASIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer asin"
+	default y
+	help
+		Select SHL build graph reference asin
+
+config GRAPH_REFERENCE_ASINH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer asinh"
+	default y
+	help
+		Select SHL build graph reference asinh
+
+config GRAPH_REFERENCE_ATAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer atan"
+	default y
+	help
+		Select SHL build graph reference atan
+
+config GRAPH_REFERENCE_ATANH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer atanh"
+	default y
+	help
+		Select SHL build graph reference atanh
+
+config GRAPH_REFERENCE_AVERAGEPOOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer averagepool"
+	default y
+	help
+		Select SHL build graph reference averagepool
+
+config GRAPH_REFERENCE_AVERAGEPOOL3D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer averagepool3d"
+	default y
+	help
+		Select SHL build graph reference averagepool3d
+
+config GRAPH_REFERENCE_BATCH_NORMALIZATION
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer batch_normalization"
+	default y
+	help
+		Select SHL build graph reference batch_normalization
+
+config GRAPH_REFERENCE_BATCH_TO_SPACE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer batch_to_space"
+	default y
+	help
+		Select SHL build graph reference batch_to_space
+
+config GRAPH_REFERENCE_BATCH_TO_SPACE_ND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer batch_to_space_nd"
+	default y
+	help
+		Select SHL build graph reference batch_to_space_nd
+
+config GRAPH_REFERENCE_BROADCAST_TO
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer broadcast_to"
+	default y
+	help
+		Select SHL build graph reference broadcast_to
+
+config GRAPH_REFERENCE_CACHE_CONV1D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cache_conv1d"
+	default y
+	help
+		Select SHL build graph reference cache_conv1d
+
+config GRAPH_REFERENCE_CACHE_MATMUL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cache matmul"
+	default y
+	help
+		Select SHL build graph reference cache_matmul
+
+config GRAPH_REFERENCE_CEIL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer ceil"
+	default y
+	help
+		Select SHL build graph reference ceil
+
+config GRAPH_REFERENCE_CLIP
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer clip"
+	default y
+	help
+		Select SHL build graph reference clip
+
+config GRAPH_REFERENCE_COL2IM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer col2im"
+	default y
+	help
+		Select SHL build graph reference col2im
+
+config GRAPH_REFERENCE_CONCAT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer concat"
+	default y
+	help
+		Select SHL build graph reference concat
+
+config GRAPH_REFERENCE_CONVOLUTION_CHANNEL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution_channel"
+	default y
+	help
+		Select SHL build graph reference convolution_channel
+
+config GRAPH_REFERENCE_CONVOLUTION_RELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution_relu"
+	default y
+	help
+		Select SHL build graph reference convolution_relu
+
+config GRAPH_REFERENCE_CONVOLUTION_RELU6
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution_relu6"
+	default y
+	help
+		Select SHL build graph reference convolution_relu6
+
+config GRAPH_REFERENCE_CONVOLUTION
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution"
+	default y
+	help
+		Select SHL build graph reference convolution
+
+config GRAPH_REFERENCE_CONVOLUTION1D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution1d"
+	default y
+	help
+		Select SHL build graph reference convolution1d
+
+config GRAPH_REFERENCE_CONVOLUTION3D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer convolution3d"
+	default y
+	help
+		Select SHL build graph reference convolution3d
+
+config GRAPH_REFERENCE_COS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cos"
+	default y
+	help
+		Select SHL build graph reference cos
+
+config GRAPH_REFERENCE_COSH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cosh"
+	default y
+	help
+		Select SHL build graph reference cosh
+
+config GRAPH_REFERENCE_CUMPROD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cumprod"
+	default y
+	help
+		Select SHL build graph reference abs
+
+config GRAPH_REFERENCE_CUMSUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer cumsum"
+	default y
+	help
+		Select SHL build graph reference cumsum
+
+config GRAPH_REFERENCE_DATA_CONVERT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer data_convert"
+	default y
+	help
+		Select SHL build graph reference data_convert
+
+config GRAPH_REFERENCE_DECONVOLUTION
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer deconvolution"
+	default y
+	help
+		Select SHL build graph reference deconvolution
+
+config GRAPH_REFERENCE_DECONVOLUTION3D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer deconvolution3d"
+	default y
+	help
+		Select SHL build graph reference deconvolution3d
+
+config GRAPH_REFERENCE_DEPTH_TO_SPACE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer depth_to_space"
+	default y
+	help
+		Select SHL build graph reference depth_to_space
+
+config GRAPH_REFERENCE_DIV
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer div"
+	default y
+	help
+		Select SHL build graph reference div
+
+config GRAPH_REFERENCE_ELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer elu"
+	default y
+	help
+		Select SHL build graph reference elu
+
+config GRAPH_REFERENCE_EQUAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer equal"
+	default y
+	help
+		Select SHL build graph reference equal
+
+config GRAPH_REFERENCE_ERF
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer erf"
+	default y
+	help
+		Select SHL build graph reference erf
+
+config GRAPH_REFERENCE_EXP
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer exp"
+	default y
+	help
+		Select SHL build graph reference exp
+
+config GRAPH_REFERENCE_EXPAND_DIMS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer expand_dims"
+	default y
+	help
+		Select SHL build graph reference expand_dims
+
+config GRAPH_REFERENCE_EXPM1
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer expm1"
+	default y
+	help
+		Select SHL build graph reference expm1
+
+config GRAPH_REFERENCE_FLATTEN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer flatten"
+	default y
+	help
+		Select SHL build graph reference flatten
+
+config GRAPH_REFERENCE_FLOOR_DIVIDE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer floor_divide"
+	default y
+	help
+		Select SHL build graph reference floor_divide
+
+config GRAPH_REFERENCE_FLOOR_MOD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer floor_mod"
+	default y
+	help
+		Select SHL build graph reference floor_mod
+
+config GRAPH_REFERENCE_FLOOR
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer floor"
+	default y
+	help
+		Select SHL build graph reference floor
+
+config GRAPH_REFERENCE_FSMN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer fsmn"
+	default y
+	help
+		Select SHL build graph reference fsmn
+
+config GRAPH_REFERENCE_FULLYCONNECTED
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer fullyconnected"
+	default y
+	help
+		Select SHL build graph reference fullyconnected
+
+config GRAPH_REFERENCE_GATHER_ND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer gather_nd"
+	default y
+	help
+		Select SHL build graph reference gather_nd
+
+config GRAPH_REFERENCE_GATHER
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer gather"
+	default y
+	help
+		Select SHL build graph reference gather
+
+config GRAPH_REFERENCE_GLOBAL_AVERAGEPOOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer global_averagepool"
+	default y
+	help
+		Select SHL build graph reference global_averagepool
+
+config GRAPH_REFERENCE_GLOBAL_MAXPOOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer global_maxpool"
+	default y
+	help
+		Select SHL build graph reference global_maxpool
+
+config GRAPH_REFERENCE_GREATER_EQUAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer greater_equal"
+	default y
+	help
+		Select SHL build graph reference greater_equal
+
+config GRAPH_REFERENCE_GREATER
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer greater"
+	default y
+	help
+		Select SHL build graph reference greater
+
+config GRAPH_REFERENCE_HARD_SIGMOID
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer hard_sigmoid"
+	default y
+	help
+		Select SHL build graph reference hard_sigmoid
+
+config GRAPH_REFERENCE_IM2COL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer im2col"
+	default y
+	help
+		Select SHL build graph reference im2col
+
+config GRAPH_REFERENCE_ISNAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer isnan"
+	default y
+	help
+		Select SHL build graph reference isnan
+
+config GRAPH_REFERENCE_L2_NORMALIZATION
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer l2_normalization"
+	default y
+	help
+		Select SHL build graph reference l2_normalization
+
+config GRAPH_REFERENCE_L2POOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer l2pool"
+	default y
+	help
+		Select SHL build graph reference l2pool
+
+config GRAPH_REFERENCE_LAYER_NORMAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer layer_normal"
+	default y
+	help
+		Select SHL build graph reference layer_normal
+
+config GRAPH_REFERENCE_LEAKY_RELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer leaky_relu"
+	default y
+	help
+		Select SHL build graph reference leaky_relu
+
+config GRAPH_REFERENCE_LESS_EQUAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer less_equal"
+	default y
+	help
+		Select SHL build graph reference less_equal
+
+config GRAPH_REFERENCE_LESS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer less"
+	default y
+	help
+		Select SHL build graph reference less
+
+config GRAPH_REFERENCE_LOG_SOFTMAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer log_softmax"
+	default y
+	help
+		Select SHL build graph reference log_softmax
+
+config GRAPH_REFERENCE_LOG
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer log"
+	default y
+	help
+		Select SHL build graph reference log
+
+config GRAPH_REFERENCE_LOG1P
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer log1p"
+	default y
+	help
+		Select SHL build graph reference log1p
+
+config GRAPH_REFERENCE_LOGICAL_AND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer and"
+	default y
+	help
+		Select SHL build graph reference and
+
+config GRAPH_REFERENCE_LOGICAL_NOT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer not"
+	default y
+	help
+		Select SHL build graph reference not
+
+config GRAPH_REFERENCE_LOGICAL_OR
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer or"
+	default y
+	help
+		Select SHL build graph reference or
+
+config GRAPH_REFERENCE_LOGICAL_XOR
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer xor"
+	default y
+	help
+		Select SHL build graph reference xor
+
+config GRAPH_REFERENCE_LRN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer lrn"
+	default y
+	help
+		Select SHL build graph reference lrn
+
+config GRAPH_REFERENCE_MATMUL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer matmul"
+	default y
+	help
+		Select SHL build graph reference matmul
+
+config GRAPH_REFERENCE_MAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer max"
+	default y
+	help
+		Select SHL build graph reference max
+
+config GRAPH_REFERENCE_MAXIMUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer maximum"
+	default y
+	help
+		Select SHL build graph reference maximum
+
+config GRAPH_REFERENCE_MAXPOOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer maxpool"
+	default y
+	help
+		Select SHL build graph reference maxpool
+
+config GRAPH_REFERENCE_MAXPOOL2D_LOCAT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer maxpool2d_local"
+	default y
+	help
+		Select SHL build graph reference maxpool2d_local
+
+config GRAPH_REFERENCE_MAXPOOL3D
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer maxpool3d"
+	default y
+	help
+		Select SHL build graph reference maxpool3d
+
+config GRAPH_REFERENCE_MEAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer mean"
+	default y
+	help
+		Select SHL build graph reference mean
+
+config GRAPH_REFERENCE_MIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer min"
+	default y
+	help
+		Select SHL build graph reference min
+
+config GRAPH_REFERENCE_MINIMUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer minimum"
+	default y
+	help
+		Select SHL build graph reference minimum
+
+config GRAPH_REFERENCE_MOD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer mod"
+	default y
+	help
+		Select SHL build graph reference mod
+
+config GRAPH_REFERENCE_MUL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer mul"
+	default y
+	help
+		Select SHL build graph reference mul
+
+config GRAPH_REFERENCE_NDARRAY_SIZE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer ndarray_size"
+	default y
+	help
+		Select SHL build graph reference ndarray_size
+
+config GRAPH_REFERENCE_NEGATIVE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer negative"
+	default y
+	help
+		Select SHL build graph reference negative
+
+config GRAPH_REFERENCE_NON_MAX_SUPPRESSION
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer non_max_suppression"
+	default y
+	help
+		Select SHL build graph reference non_max_suppression
+
+config GRAPH_REFERENCE_NOT_EQUAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer not_equal"
+	default y
+	help
+		Select SHL build graph reference not_equal
+
+config GRAPH_REFERENCE_NOT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer not"
+	default y
+	help
+		Select SHL build graph reference not
+
+config GRAPH_REFERENCE_OR
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer or"
+	default y
+	help
+		Select SHL build graph reference or
+
+config GRAPH_REFERENCE_PAD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer pad"
+	default y
+	help
+		Select SHL build graph reference pad
+
+config GRAPH_REFERENCE_POWER
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer power"
+	default y
+	help
+		Select SHL build graph reference power
+
+config GRAPH_REFERENCE_PRELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer prelu"
+	default y
+	help
+		Select SHL build graph reference prelu
+
+config GRAPH_REFERENCE_PROD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer prod"
+	default y
+	help
+		Select SHL build graph reference prod
+
+config GRAPH_REFERENCE_PROPOSAL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer proposal"
+	default y
+	help
+		Select SHL build graph reference proposal
+
+config GRAPH_REFERENCE_PSROIPOOLING
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer psroipooling"
+	default y
+	help
+		Select SHL build graph reference psroipooling
+
+config GRAPH_REFERENCE_REDUCE_LOGSUMEXP
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_logsumexp"
+	default y
+	help
+		Select SHL build graph reference reduce_logsumexp
+
+config GRAPH_REFERENCE_REDUCE_MAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_max"
+	default y
+	help
+		Select SHL build graph reference reduce_max
+
+config GRAPH_REFERENCE_REDUCE_MEAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_mean"
+	default y
+	help
+		Select SHL build graph reference reduce_mean
+
+config GRAPH_REFERENCE_REDUCE_MIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_min"
+	default y
+	help
+		Select SHL build graph reference reduce_min
+
+config GRAPH_REFERENCE_REDUCE_PROD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_prod"
+	default y
+	help
+		Select SHL build graph reference reduce_prod
+
+config GRAPH_REFERENCE_REDUCE_SUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reduce_sum"
+	default y
+	help
+		Select SHL build graph reference reduce_sum
+
+config GRAPH_REFERENCE_RELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer relu"
+	default y
+	help
+		Select SHL build graph reference relu
+
+config GRAPH_REFERENCE_RELU1
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer relu1"
+	default y
+	help
+		Select SHL build graph reference relu1
+
+config GRAPH_REFERENCE_RELU6
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer relu6"
+	default y
+	help
+		Select SHL build graph reference relu6
+
+config GRAPH_REFERENCE_RELUN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer relun"
+	default y
+	help
+		Select SHL build graph reference relun
+
+config GRAPH_REFERENCE_RESHAPE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reshape"
+	default y
+	help
+		Select SHL build graph reference reshape
+
+config GRAPH_REFERENCE_RESIZE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer resize"
+	default y
+	help
+		Select SHL build graph reference resize
+
+config GRAPH_REFERENCE_REVERSE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer reverse"
+	default y
+	help
+		Select SHL build graph reference reverse
+
+config GRAPH_REFERENCE_ROIALIGN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer roialign"
+	default y
+	help
+		Select SHL build graph reference roialign
+
+config GRAPH_REFERENCE_ROIPOOL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer roipool"
+	default y
+	help
+		Select SHL build graph reference roipool
+
+config GRAPH_REFERENCE_ROUND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer round"
+	default y
+	help
+		Select SHL build graph reference round
+
+config GRAPH_REFERENCE_RSQRT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer rsqrt"
+	default y
+	help
+		Select SHL build graph reference rsqrt
+
+config GRAPH_REFERENCE_SCATTER
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer scatter"
+	default y
+	help
+		Select SHL build graph reference scatter
+
+config GRAPH_REFERENCE_SEGMENT_MAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer segmnet_max"
+	default y
+	help
+		Select SHL build graph reference segmnet_max
+
+config GRAPH_REFERENCE_SEGMENT_MEAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer segmnet_mean"
+	default y
+	help
+		Select SHL build graph reference segmnet_mean
+
+config GRAPH_REFERENCE_SEGMENT_MIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer segmnet_min"
+	default y
+	help
+		Select SHL build graph reference segmnet_min
+
+config GRAPH_REFERENCE_SEGMENT_PROD
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer segmnet_prod"
+	default y
+	help
+		Select SHL build graph reference segmnet_prod
+
+config GRAPH_REFERENCE_SEGMENT_SUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer segmnet_sum"
+	default y
+	help
+		Select SHL build graph reference segmnet_sum
+
+config GRAPH_REFERENCE_SELECT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer select"
+	default y
+	help
+		Select SHL build graph reference select
+
+config GRAPH_REFERENCE_SEQUENCE_MASK
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sequence_mask"
+	default y
+	help
+		Select SHL build graph reference sequence_mask
+
+config GRAPH_REFERENCE_SHAPE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer shape"
+	default y
+	help
+		Select SHL build graph reference shape
+
+config GRAPH_REFERENCE_SHUFFLE_CHANNEL
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer shuffle_channel"
+	default y
+	help
+		Select SHL build graph reference shuffle_channel
+
+config GRAPH_REFERENCE_SIGMOID
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sigmoid"
+	default y
+	help
+		Select SHL build graph reference sigmoid
+
+config GRAPH_REFERENCE_SIGN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sign"
+	default y
+	help
+		Select SHL build graph reference sign
+
+config GRAPH_REFERENCE_SIN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sin"
+	default y
+	help
+		Select SHL build graph reference sin
+
+config GRAPH_REFERENCE_SINH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sinh"
+	default y
+	help
+		Select SHL build graph reference sinh
+
+config GRAPH_REFERENCE_SLICE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer slice"
+	default y
+	help
+		Select SHL build graph reference slice
+
+config GRAPH_REFERENCE_SOFTMAX
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer softmax"
+	default y
+	help
+		Select SHL build graph reference softmax
+
+config GRAPH_REFERENCE_SOFTPLUS
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer softplus"
+	default y
+	help
+		Select SHL build graph reference softplus
+
+config GRAPH_REFERENCE_SOFTRELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer softrelu"
+	default y
+	help
+		Select SHL build graph reference softrelu
+
+config GRAPH_REFERENCE_SOFTSIGN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer softsign"
+	default y
+	help
+		Select SHL build graph reference softsign
+
+config GRAPH_REFERENCE_SPACE_TO_BATCH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer space_to_batch"
+	default y
+	help
+		Select SHL build graph reference space_to_batch
+
+config GRAPH_REFERENCE_SPACE_TO_BATCH_ND
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer space_to_batch_nd"
+	default y
+	help
+		Select SHL build graph reference space_to_batch_nd
+
+config GRAPH_REFERENCE_SPACE_TO_DEPTH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer space_to_depth"
+	default y
+	help
+		Select SHL build graph reference space_to_depth
+
+config GRAPH_REFERENCE_SPLIT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer split"
+	default y
+	help
+		Select SHL build graph reference split
+
+config GRAPH_REFERENCE_SQRT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sqrt"
+	default y
+	help
+		Select SHL build graph reference sqrt
+
+config GRAPH_REFERENCE_SQUARE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer square"
+	default y
+	help
+		Select SHL build graph reference squeeze
+
+config GRAPH_REFERENCE_SQUEEZE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer squeeze"
+	default y
+	help
+		Select SHL build graph reference squeeze
+
+config GRAPH_REFERENCE_STACK
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer stack"
+	default y
+	help
+		Select SHL build graph reference stack
+
+config GRAPH_REFERENCE_STRIDED_SLICE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer conv2d"
+	default y
+	help
+		Select SHL build graph reference conv2d
+
+config GRAPH_REFERENCE_SUB
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sub"
+	default y
+	help
+		Select SHL build graph reference sub
+
+config GRAPH_REFERENCE_SUM
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer sum"
+	default y
+	help
+		Select SHL build graph reference sum
+
+config GRAPH_REFERENCE_TAN
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer tan"
+	default y
+	help
+		Select SHL build graph reference tan
+
+config GRAPH_REFERENCE_TANH
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer tanh"
+	default y
+	help
+		Select SHL build graph reference tanh
+
+config GRAPH_REFERENCE_THRESHOLD_RELU
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer threshold_relu"
+	default y
+	help
+		Select SHL build graph reference threshold_relu
+
+config GRAPH_REFERENCE_TILE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer tile"
+	default y
+	help
+		Select SHL build graph reference tile
+
+config GRAPH_REFERENCE_TOPK
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer topk"
+	default y
+	help
+		Select SHL build graph reference topk
+
+config GRAPH_REFERENCE_TRANSPOSE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer transpose"
+	default y
+	help
+		Select SHL build graph reference transpose
+
+config GRAPH_REFERENCE_TRUNC
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer trunc"
+	default y
+	help
+		Select SHL build graph reference trunc
+
+config GRAPH_REFERENCE_UNPOOLING
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer unpooling"
+	default y
+	help
+		Select SHL build graph reference unpooling
+
+config GRAPH_REFERENCE_UNSTACK
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer unstack"
+	default y
+	help
+		Select SHL build graph reference unstack
+
+config GRAPH_REFERENCE_WHERE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer where"
+	default y
+	help
+		Select SHL build graph reference where
+
+config GRAPH_REFERENCE_XOR
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer xor"
+	default y
+	help
+		Select SHL build graph reference xor
+
+config GRAPH_REFERENCE_YUV_RGB_SCALE
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer yuv_rgb_scale"
+	default y
+	help
+		Select SHL build graph reference yuv_rgb_scale
+
+config GRAPH_REFERENCE_ONE_HOT
+	depends on GRAPH_REFERENCE_SOURCE
+	bool "Layer one_hot"
+	default y
+	help
+		Select SHL build graph reference one_hot
+
+endmenu

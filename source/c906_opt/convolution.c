@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c906.h"
 
@@ -48,6 +48,17 @@ int shl_c906_conv2d_init(struct csinn_tensor *input, struct csinn_tensor *output
     if(out_height != output->dim[2] || out_width != output->dim[3]) {
         printf("output dim don't match.\n");
         return CSINN_FALSE;
+    }
+
+    /* if recommend GEMM, all conv2d use GEMM */
+    if (params->conv_extra.conv_mode == CSINN_GEMM && input->dtype == CSINN_DTYPE_FLOAT16) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
+            dalition_w == 1) {
+            cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
+        } else {
+            cb->exec = shl_c906_conv_im2col_sgemm_fp16;
+        }
+        return CSINN_TRUE;
     }
 
     if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 && dalition_w == 1) {

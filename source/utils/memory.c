@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #include <unistd.h>
 
 #include "csi_nn.h"
@@ -117,8 +117,13 @@ void *shl_mem_alloc_aligned(int64_t size, int aligned_bytes)
 #ifdef SHL_BUILD_RTOS
     size_t real_size = size + aligned_bytes;
     void *tptr = shl_mem_alloc(real_size);
+#ifdef SHL_BUILD_C906
+    long mask = ~(aligned_bytes - 1);
+    long addr = ((long)tptr + aligned_bytes) & mask;
+#else
     int mask = ~(aligned_bytes - 1);
     int addr = ((int)tptr + aligned_bytes) & mask;
+#endif
     ptr = (void *)addr;
 #else
     if (aligned_bytes == 0) {

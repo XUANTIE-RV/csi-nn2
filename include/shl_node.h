@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_NODE_H_
 #define INCLUDE_SHL_NODE_H_

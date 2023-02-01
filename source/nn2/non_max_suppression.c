@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -26,7 +26,6 @@ int csinn_non_max_suppression_init(struct csinn_tensor *input0, struct csinn_ten
                                    struct csinn_non_max_suppression_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_NON_MAX_SUPPRESSION, input0->dtype);
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input0, input1, output, params);

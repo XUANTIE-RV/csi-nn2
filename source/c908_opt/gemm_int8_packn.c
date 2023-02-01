@@ -16,32 +16,39 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
-void gemm_int8_ncxhwx_12xpackn(int8_t *output, const int8_t *kernel, const int8_t *input,
+void gemm_int8_ncxhwx_4xpack2n(int8_t *output, const int8_t *kernel, const int8_t *input,
                                const int32_t *bias, int m, int k, int n, int32_t out_zp,
                                int32_t *mult, int32_t *shift);
-void gemm_int8_ncxhwx_8xpackn(int8_t *output, const int8_t *kernel, const int8_t *input,
+void gemm_int8_ncxhwx_4xpackn(int8_t *output, const int8_t *kernel, const int8_t *input,
                               const int32_t *bias, int m, int k, int n, int32_t out_zp,
                               int32_t *mult, int32_t *shift);
 
-void shl_c908_ncxhwx_gemm_12xpackn_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
+void shl_c908_ncxhwx_gemm_4xpack2n_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
                                         const int32_t *bias, int m, int k, int n, int32_t out_zp,
                                         int32_t *mult, int32_t *shift)
 {
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    const int pack2n = packn * 2;
 
     int oc = 0;
+    for (; oc + pack2n - 1 < m; oc += pack2n) {
+        gemm_int8_ncxhwx_4xpack2n(dst, sa, sb, bias, pack2n, k, n, out_zp, mult + oc, shift + oc);
+        sa += pack2n * k;
+        dst += pack2n * n;
+        // please use fuse_zp2bias option in hhb, thus bias_data wont be NULL
+        bias += pack2n;
+    }
     for (; oc + packn - 1 < m; oc += packn) {
-        gemm_int8_ncxhwx_12xpackn(dst, sa, sb, bias, packn, k, n, out_zp, mult + oc, shift + oc);
+        gemm_int8_ncxhwx_4xpackn(dst, sa, sb, bias, packn, k, n, out_zp, mult + oc, shift + oc);
         sa += packn * k;
         dst += packn * n;
-        // please use fuse_zp2bias option in hhb, thus bias_data wont be NULL
         bias += packn;
     }
     if (oc < m) {
-        gemm_int8_ncxhwx_12xpackn(dst, sa, sb, bias, m - oc, k, n, out_zp, mult + oc, shift + oc);
+        gemm_int8_ncxhwx_4xpackn(dst, sa, sb, bias, m - oc, k, n, out_zp, mult + oc, shift + oc);
     }
 }

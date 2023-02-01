@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_memory.h"
 #include "shl_node.h"
@@ -63,6 +63,15 @@ int shl_node_free(struct shl_node *node)
 int shl_node_add_in(struct shl_node *node, struct shl_node *in, int index)
 {
     node->in[index] = in;
+    if (in->type == CSINN_TENSOR) {
+        if (in->out_num == 1 && !in->out[0]) {
+            in->out[0] = node;
+        } else {
+            in->out = shl_mem_realloc(in->out, (in->out_num + 1) * sizeof(struct shl_node *));
+            in->out[in->out_num] = node;
+            in->out_num++;
+        }
+    }
     return CSINN_TRUE;
 }
 

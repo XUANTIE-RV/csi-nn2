@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_C906_H_
 #define INCLUDE_SHL_C906_H_
@@ -510,6 +510,8 @@ int shl_c906_sum_stride_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_reduce_params *params);
 
 void shl_c906_u8_to_f32(const uint8_t *input, float *output, int32_t offset, float *scale,
+                        uint32_t length);
+void shl_c906_i8_to_f32(const int8_t *input, float *output, int32_t offset, float *scale,
                         uint32_t length);
 
 struct csinn_callback *shl_cb_map_c906(int op, int dtype);

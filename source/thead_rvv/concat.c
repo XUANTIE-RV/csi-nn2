@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #include "shl_thead_rvv.h"
 
 int shl_rvv_concat_fp32(struct csinn_tensor **input, struct csinn_tensor *output,

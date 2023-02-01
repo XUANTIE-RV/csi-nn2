@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -26,7 +26,6 @@
 int shl_rvv_maxpool2x2s2_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params)
 {
-#ifdef RVV_1_0_0
     // 1. 统一padding之后再计算，不考虑padiing
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
@@ -46,7 +45,7 @@ int shl_rvv_maxpool2x2s2_packn_int8(struct csinn_tensor *input, struct csinn_ten
     int padded_in_hw = padded_in_w * padded_in_h;
 
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    const int vl = vsetvl_e8mf2(packn);
+    const int vl = vsetvl_e8m1(packn);
 
     int8_t *input_ncxhwx = (int8_t *)shl_mem_alloc(in_c * padded_in_hw * sizeof(int8_t));
     int tailstep = (padded_in_w - 2 * out_w + padded_in_w) * packn;
@@ -63,11 +62,11 @@ int shl_rvv_maxpool2x2s2_packn_int8(struct csinn_tensor *input, struct csinn_ten
 
             for (int h = 0; h < out_h; h++) {
                 for (int w = 0; w < out_w; w++) {
-                    vint8mf2_t _max = vle8_v_i8mf2(line0, vl);
-                    _max = vmax_vv_i8mf2(_max, vle8_v_i8mf2(line0 + packn, vl), vl);
-                    _max = vmax_vv_i8mf2(_max, vle8_v_i8mf2(line1, vl), vl);
-                    _max = vmax_vv_i8mf2(_max, vle8_v_i8mf2(line1 + packn, vl), vl);
-                    vse8_v_i8mf2(out0, _max, vl);
+                    vint8m1_t _max = vle8_v_i8m1(line0, vl);
+                    _max = vmax_vv_i8m1(_max, vle8_v_i8m1(line0 + packn, vl), vl);
+                    _max = vmax_vv_i8m1(_max, vle8_v_i8m1(line1, vl), vl);
+                    _max = vmax_vv_i8m1(_max, vle8_v_i8m1(line1 + packn, vl), vl);
+                    vse8_v_i8m1(out0, _max, vl);
 
                     line0 += packn * 2;
                     line1 += packn * 2;
@@ -82,8 +81,4 @@ int shl_rvv_maxpool2x2s2_packn_int8(struct csinn_tensor *input, struct csinn_ten
     }
     shl_mem_free(input_ncxhwx);
     return CSINN_TRUE;
-#elif define RVV_0_7_1
-    shl_debug_error("unsupport maxpool2x2s2 packn for int8 on rvv_spec 0.7.1\n");
-    return CSINN_FALSE;
-#endif
 }

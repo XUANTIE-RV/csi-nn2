@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_CSINN_RUNTIME_H_
 #define INCLUDE_CSINN_RUNTIME_H_
@@ -39,7 +39,7 @@ extern "C" {
 
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 0
-#define VERSION_PATCH 5
+#define VERSION_PATCH 0
 #define VERSION_SHIFT 8
 int csinn_version(char *vstr);
 

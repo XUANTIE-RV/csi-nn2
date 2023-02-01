@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c906.h"
 
@@ -208,8 +208,7 @@ int shl_c906_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
         shl_mem_free(in0);
         shl_mem_free(in1);
     } else {
-        shl_debug_error("Unsupport matrix transpose on C906\n");
-        return CSINN_FALSE;
+        shl_ref_matmul_quant(mat0, mat1, output, params);
     }
     return CSINN_TRUE;
 }

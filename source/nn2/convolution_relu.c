@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -45,7 +45,6 @@ int csinn_conv2d_relu_init(struct csinn_tensor *input, struct csinn_tensor *outp
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input, output, kernel, bias, params);

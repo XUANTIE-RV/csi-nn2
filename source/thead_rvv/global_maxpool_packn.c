@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -86,7 +86,6 @@ int shl_rvv_global_maxpool2d_packn_fp16(struct csinn_tensor *input, struct csinn
 int shl_rvv_global_maxpool2d_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_pool_params *params)
 {
-#ifdef RVV_1_0_0
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
@@ -97,23 +96,19 @@ int shl_rvv_global_maxpool2d_packn_int8(struct csinn_tensor *input, struct csinn
     int in_hw = in_h * in_w;
 
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    const int vl = vsetvl_e8mf2(packn);
+    const int vl = vsetvl_e8m1(packn);
 
     for (int b = 0; b < batch; b++) {
         for (int c = 0; c + packn - 1 < in_c; c += packn) {
-            vint8mf2_t _max = vle8_v_i8mf2(input_data, vl);
+            vint8m1_t _max = vle8_v_i8m1(input_data, vl);
             input_data += packn;
             for (int i = 1; i < in_hw; i++) {
-                _max = vmax_vv_i8mf2(_max, vle8_v_i8mf2(input_data, vl), vl);
+                _max = vmax_vv_i8m1(_max, vle8_v_i8m1(input_data, vl), vl);
                 input_data += packn;
             }
-            vse8_v_i8mf2(output_data, _max, vl);
+            vse8_v_i8m1(output_data, _max, vl);
             output_data += packn;
         }
     }
     return CSINN_TRUE;
-#elif define RVV_0_7_1
-    shl_debug_error("unsupport global_maxpool2d packn for int8 on rvv_spec 0.7.1\n");
-    return CSINN_FALSE;
-#endif
 }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -71,11 +71,16 @@ int shl_c908_conv1x1s1_gemm_packnto1_int8(struct csinn_tensor *input, struct csi
                 }
             }
 
-            shl_rvv_reorder_input_z12_packn_int8(input_data, pb_reorder, k, n, n);
-
-            shl_c908_ncxhwx_gemm_12xpackn_int8(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m, k, n,
+#ifdef SHL_USE_DOT_INT8
+            shl_rvv_reorder_input_z12_packn_int8_dot(input_data, pb_reorder, k, n, n);
+            shl_c908_ncxhwx_gemm_12xpackn_int8_dot(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m,
+                                                   k, n, output->qinfo->zero_point, multiplier,
+                                                   shift);
+#else
+            shl_rvv_reorder_input_z4_packn_int8(input_data, pb_reorder, k, n, n);
+            shl_c908_ncxhwx_gemm_4xpack2n_int8(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m, k, n,
                                                output->qinfo->zero_point, multiplier, shift);
-
+#endif  // SHL_USE_DOT_INT8
             shl_rvv_reorder_input_packnto1_int8(output_ncxhwx, output_data, m, out_h, out_w);
 
             input_data += k * n;

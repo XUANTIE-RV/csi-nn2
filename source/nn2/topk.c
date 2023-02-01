@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -25,7 +25,6 @@ int csinn_topk_init(struct csinn_tensor *input, struct csinn_tensor *output1,
                     struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_TOPK, input->dtype);
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input, output1, output2, params);

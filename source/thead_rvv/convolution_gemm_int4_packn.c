@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+#ifdef SHL_USE_DOT_INT4
 /*************************************************************
  * packn = vlenb / sizeof(int8_t) / 2
 

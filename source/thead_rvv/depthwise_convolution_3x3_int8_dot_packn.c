@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+#ifdef SHL_USE_DOT_INT8
 static vint8mf2_t requantize_m2_s(vint32m2_t _src, vint32m2_t _multiplier, vint32m2_t _shift,
                                   int32_t out_zp, int vl)
 {

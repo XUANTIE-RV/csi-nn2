@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 /**************************************************************************************************
 
@@ -39,13 +39,17 @@
     note: vector extension 0.7.1 [support flexible vlen]
 
  *************************************************************************************************/
-    .file           "shl_c906_u8_to_f32.S"
-    .section        .text.shl_c906_u8_to_f32, "ax", @progbits
-    .align          5
-    .global         shl_c906_u8_to_f32
-    .type           shl_c906_u8_to_f32, @function
+#ifndef SHL_C906_8_TO_F32
+#define SHL_C906_8_TO_F32 shl_c906_u8_to_f32
+#endif
 
-shl_c906_u8_to_f32:
+    .file           "shl_c906_u8_to_f32.S"
+    .section        .text.SHL_C906_8_TO_F32, "ax", @progbits
+    .align          5
+    .global         SHL_C906_8_TO_F32
+    .type           SHL_C906_8_TO_F32, @function
+
+SHL_C906_8_TO_F32:
     csrr            t0, vlenb   // t0 = vlen/8
     slli            t1, t0, 1
     flw             fa0, (a3)
@@ -65,19 +69,22 @@ shl_c906_u8_to_f32:
     bgt             t1, a4, .L2End
 
 .L2Loop:
-    vsetvli         zero, zero, e16, m2
+#ifndef SHL_C906_8_TO_F32_SIGNED
     vwaddu.vx       v2, v0, zero
     vwaddu.vx       v4, v1, zero
-
-    vsetvli         zero, zero, e8, m1
+#else
+    vwadd.vx        v2, v0, zero
+    vwadd.vx        v4, v1, zero
+#endif
     vle.v           v0, (a0)
     add             a0, a0, t0
     vle.v           v1, (a0)
     add             a0, a0, t0
 
-    vsetvli         zero, zero, e32, m4
+    vsetvli         zero, zero, e16, m2
     vwsub.vx        v8, v2, a2
     vwsub.vx        v12, v4, a2
+    vsetvli         zero, zero, e32, m4
     vfcvt.f.x.v     v16, v8
     vfcvt.f.x.v     v20, v12
     vfmul.vv        v8, v16, v28
@@ -87,17 +94,22 @@ shl_c906_u8_to_f32:
     vse.v           v12, (a1)
     add             a1, a1, t2
 
+    vsetvli         zero, zero, e8, m1
     sub             a4, a4, t1
     bgt             a4, t1, .L2Loop // xxx: >=
 
 .L2End:
-    vsetvli         zero, zero, e16, m2
+#ifndef SHL_C906_8_TO_F32_SIGNED
     vwaddu.vx       v2, v0, zero
     vwaddu.vx       v4, v1, zero
-    vsetvli         zero, zero, e32, m4
+#else
+    vwadd.vx        v2, v0, zero
+    vwadd.vx        v4, v1, zero
+#endif
+    vsetvli         zero, zero, e16, m2
     vwsub.vx        v8, v2, a2
     vwsub.vx        v12, v4, a2
-
+    vsetvli         zero, zero, e32, m4
     vfcvt.f.x.v     v16, v8
     vfcvt.f.x.v     v20, v12
 
@@ -117,10 +129,14 @@ shl_c906_u8_to_f32:
     slli            t1, t0, 2
     vle.v           v0, (a0)
     add             a0, a0, t0
-    vsetvli         t0, a4, e16, m2
+#ifndef SHL_C906_8_TO_F32_SIGNED
     vwaddu.vx       v2, v0, zero
-    vsetvli         t0, a4, e32, m4
+#else
+    vwadd.vx        v2, v0, zero
+#endif
+    vsetvli         t0, a4, e16, m2
     vwsub.vx        v4, v2, a2
+    vsetvli         t0, a4, e32, m4
     vfcvt.f.x.v     v8, v4
     vfmul.vv        v4, v8, v28
     vse.v           v4, (a1)

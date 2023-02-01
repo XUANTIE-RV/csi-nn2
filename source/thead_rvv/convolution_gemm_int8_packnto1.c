@@ -16,24 +16,26 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+
 /*************************************************************
  * packn = vlenb / sizeof(int8_t) / 2
  * maxk = ksize_h * ksize_w
  * constrain: out_c % packn != 0 and in_ch % packn = 0
  * layout: [out_c/packna, in_c/packnb, maxk, packnb/4, packna, 4]
- *         [out_c/tail, in_c/packnb, maxk, packnb/4, tail, 4]
- * 默认支持 dot 版本，不支持 dot 数据排布不同
+ *         [out_c/tail, in_c/packnb, maxk, packnb/4, tail, 4]   -- dot
+ * layout: [out_c/pack2n, in_c/packn, maxk, packn, pack2n]
+ *         [out_c/packna, in_c/packnb, maxk, packnb, packna]
+ *         [out_c/tail, in_c/packnb, maxk, packnb, tail]  -- without dot
  ************************************************************/
 static void im2col_gemm_reorder_kernel_packnto1_per_group_int8(int8_t *src, int8_t *dst, int out_c,
                                                                int in_c, int maxk)
 {
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+#ifdef SHL_USE_DOT_INT8
     int vl = vsetvl_e8mf2(packn);
-
     // [out_c/packna, in_c/packnb, maxk, packnb/4, packna, 4b]
     int oc = 0;
     for (; oc + packn - 1 < out_c; oc += packn) {
@@ -78,6 +80,61 @@ static void im2col_gemm_reorder_kernel_packnto1_per_group_int8(int8_t *src, int8
             }
         }
     }
+#else
+    const int pack2n = packn * 2;
+    int vl = vsetvl_e8m1(pack2n);
+    int oc = 0;
+    // [out_c/pack2n, in_c/packn, maxk, packn, pack2n]
+    for (; oc + pack2n - 1 < out_c; oc += pack2n) {
+        int8_t *k0 = src + oc * in_c * maxk;
+        int8_t *g0 = dst + oc * in_c / packn * maxk * packn;
+
+        for (int ic = 0; ic + packn - 1 < in_c; ic += packn) {
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < packn; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+    }
+    vl = vsetvl_e8m1(packn);
+    // [out_c/packn, in_c/packn, maxk, packn, packn]
+    for (; oc + packn - 1 < out_c; oc += packn) {
+        int8_t *k0 = src + oc * in_c * maxk;
+        int8_t *g0 = dst + oc * in_c / packn * maxk * packn;
+
+        for (int ic = 0; ic + packn - 1 < in_c; ic += packn) {
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < packn; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+    }
+    // [out_c/tail, in_c/packnb, maxk, packnb, tail]
+    if (oc < out_c) {
+        vl = vsetvl_e8m1(out_c - oc);
+        int8_t *k0 = src + oc * in_c * maxk;
+        int8_t *g0 = dst + oc * in_c / packn * maxk * packn;
+
+        for (int ic = 0; ic + packn - 1 < in_c; ic += packn) {
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < packn; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+    }
+#endif  // SHL_USE_DOT_INT8
 }
 
 void shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_int8(struct csinn_tensor *kernel,
@@ -151,7 +208,7 @@ int shl_rvv_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct cs
 
             // im2col
             const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-            const int vl = vsetvl_e8mf2(packn);
+            const int vl = vsetvl_e8m1(packn);
 
             // [in_c/packn, maxk, out_h, out_w, packn]
             int8_t *im2col_buf = (int8_t *)shl_mem_alloc(in_cp / packn * maxk * out_h * out_w *
@@ -172,9 +229,9 @@ int shl_rvv_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct cs
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {
-                                vint8mf2_t _tmp = vle8_v_i8mf2(img1, vl);
+                                vint8m1_t _tmp = vle8_v_i8m1(img1, vl);
                                 img1 += stride_w * packn;
-                                vse8_v_i8mf2(dst_ptr, _tmp, vl);
+                                vse8_v_i8m1(dst_ptr, _tmp, vl);
                                 dst_ptr += packn;
                             }
                             img1 += tailstep;
@@ -196,18 +253,24 @@ int shl_rvv_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct cs
                 }
             }
 
-            // reorder(pack)
-            int8_t *reorder_buf = (int8_t *)shl_mem_alloc(in_cp * maxk * n * sizeof(int8_t));
-            shl_rvv_reorder_input_z12_packn_int8(im2col_buf, reorder_buf, in_cp * maxk, n, n);
-            shl_mem_free(im2col_buf);
-
-            // gemm
             int8_t *ker_ptr = kernel_data + g * m * maxk * in_cp;
             int32_t *bias_ptr = bias_data + g * m;  // bias_data != NULL with fusing zp to bias
-            shl_rvv_ncxhwx_gemm_12xpackn_int8(output_ncxhwx, ker_ptr, reorder_buf, bias_ptr, m,
+
+            int8_t *reorder_buf = (int8_t *)shl_mem_alloc(in_cp * maxk * n * sizeof(int8_t));
+
+#ifdef SHL_USE_DOT_INT8
+            shl_rvv_reorder_input_z12_packn_int8_dot(im2col_buf, reorder_buf, in_cp * maxk, n, n);
+            shl_mem_free(im2col_buf);
+            shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(output_ncxhwx, ker_ptr, reorder_buf, bias_ptr, m,
+                                                  in_cp * maxk, n, n, output->qinfo->zero_point,
+                                                  multiplier, shift);
+#else
+            shl_rvv_reorder_input_z4_packn_int8(im2col_buf, reorder_buf, in_cp * maxk, n, n);
+            shl_mem_free(im2col_buf);
+            shl_rvv_ncxhwx_gemm_4xpack2n_int8(output_ncxhwx, ker_ptr, reorder_buf, bias_ptr, m,
                                               in_cp * maxk, n, n, output->qinfo->zero_point,
                                               multiplier, shift);
-
+#endif  // SHL_USE_DOT_INT8
             shl_rvv_reorder_input_packnto1_int8(output_ncxhwx, output_data, m, out_h, out_w);
             shl_mem_free(reorder_buf);
 
@@ -220,4 +283,3 @@ int shl_rvv_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct cs
     shl_mem_free(output_ncxhwx);
     return CSINN_TRUE;
 }
-#endif

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -24,7 +24,12 @@
 int csinn_one_hot_init(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_one_hot_params *params)
 {
-    return CSINN_FALSE;
+    shl_op_callback_map(&params->base, CSINN_OP_ONE_HOT, input->dtype);
+    int (*func)() = shl_get_init_cb(&params->base);
+    if (func != NULL) {
+        func(input, output, params);
+    }
+    return CSINN_TRUE;
 }
 
 int csinn_one_hot(struct csinn_tensor *input, struct csinn_tensor *output,

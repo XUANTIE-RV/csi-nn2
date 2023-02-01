@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_REF_H_
 #define INCLUDE_SHL_REF_H_
@@ -1110,6 +1110,20 @@ int shl_ref_yuv_rgb_scale_f32(struct csinn_tensor *input, struct csinn_tensor *o
 
 int shl_ref_yuv_rgb_scale_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_siso_params *params);
+
+int shl_ref_one_hot_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_one_hot_params *params);
+
+int shl_ref_one_hot_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_one_hot_params *params);
+
+int shl_ref_where_f32(struct csinn_tensor *condition, struct csinn_tensor *x,
+                      struct csinn_tensor *y, struct csinn_tensor *output,
+                      struct csinn_where_params *params);
+
+int shl_ref_where_quant(struct csinn_tensor *condition, struct csinn_tensor *x,
+                        struct csinn_tensor *y, struct csinn_tensor *output,
+                        struct csinn_where_params *params);
 
 int32_t shl_ref_max_internal_s32(int32_t a, int32_t b);
 int32_t shl_ref_min_internal_s32(int32_t a, int32_t b);

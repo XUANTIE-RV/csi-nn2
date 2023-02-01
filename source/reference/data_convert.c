@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 1.11.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 

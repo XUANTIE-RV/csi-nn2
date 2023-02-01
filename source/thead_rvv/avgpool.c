@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -60,9 +60,11 @@ int shl_rvv_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor 
                 // end consider ceil_mode 2x2s2p0
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp32
                                                : shl_rvv_avgpool2x2s2_fp32;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             } else if (pad_left == 1 && pad_top == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp32
                                                : shl_rvv_avgpool2x2s2_p1_fp32;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         } else if (kernel_h == 3 && kernel_w == 3) {
             if (pad_left == 0 && pad_top == 0) {
@@ -77,9 +79,11 @@ int shl_rvv_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor 
                 // end consider ceil_mode 3x3s2p0
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp32
                                                : shl_rvv_avgpool3x3s2_fp32;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             } else if (pad_left == 1 && pad_top == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp32
                                                : shl_rvv_avgpool3x3s2_p1_fp32;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         }
     } else if (stride_h == 1 && stride_w == 1) {
@@ -87,15 +91,21 @@ int shl_rvv_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor 
             if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s1_packn_fp32
                                                : shl_rvv_avgpool3x3s1_p1_fp32;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         }
     }
 
     if (cb->exec == NULL) {
-        shl_debug_warning(
-            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
-            "replaced.\n");
-        cb->exec = shl_ref_avgpool2d_f32;  // fixme: consider ncxhwx
+        if (in_c % packn == 0) {
+            output->layout = CSINN_LAYOUT_NC1HWC0;
+            cb->exec = shl_rvv_avgpool_packn_fp32;
+        } else {
+            shl_debug_warning(
+                "avgpool is not optimized to achieve under this condition on rvv, call reference "
+                "func replaced.\n");
+            cb->exec = shl_ref_avgpool2d_f32;
+        }
     }
     return CSINN_TRUE;
 }
@@ -140,9 +150,11 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 // end consider ceil_mode 2x2s2p0
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp16
                                                : shl_rvv_avgpool2x2s2_fp16;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             } else if (pad_left == 1 && pad_top == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp16
                                                : shl_rvv_avgpool2x2s2_p1_fp16;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         } else if (kernel_h == 3 && kernel_w == 3) {
             if (pad_left == 0 && pad_top == 0) {
@@ -157,9 +169,11 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 // end consider ceil_mode 3x3s2p0
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp16
                                                : shl_rvv_avgpool3x3s2_fp16;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             } else if (pad_left == 1 && pad_top == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s2_packn_fp16
                                                : shl_rvv_avgpool3x3s2_p1_fp16;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         }
     } else if (stride_h == 1 && stride_w == 1) {
@@ -167,15 +181,21 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
             if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
                 cb->exec = (in_c % packn == 0) ? shl_rvv_avgpool3x3s1_packn_fp16
                                                : shl_rvv_avgpool3x3s1_p1_fp16;
+                if (in_c % packn == 0) output->layout = CSINN_LAYOUT_NC1HWC0;
             }
         }
     }
 
     if (cb->exec == NULL) {
-        shl_debug_warning(
-            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
-            "replaced.\n");
-        cb->exec = shl_ref_avgpool2d_quant;  // fixme: consider ncxhwx
+        if (in_c % packn == 0) {
+            output->layout = CSINN_LAYOUT_NC1HWC0;
+            cb->exec = shl_rvv_avgpool_packn_fp16;
+        } else {
+            shl_debug_warning(
+                "avgpool is not optimized to achieve under this condition on rvv, call reference "
+                "func replaced.\n");
+            cb->exec = shl_ref_avgpool2d_quant;
+        }
     }
     return CSINN_TRUE;
 }
@@ -206,18 +226,58 @@ int shl_rvv_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor 
                                        : shl_ref_global_avgpool2d_quant;
         return CSINN_TRUE;
     }
-    if (cb->exec == NULL) {
-        shl_debug_warning(
-            "avgpool is not optimized to achieve under this condition on rvv, call reference func "
-            "replaced.\n");
-        cb->exec = shl_ref_avgpool2d_quant;  // fixme: consider ncxhwx
+    if (in_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+        if (stride_h == 2 && stride_w == 2) {
+            if (kernel_h == 2 && kernel_w == 2) {
+                if (pad_left == 0 && pad_top == 0) {
+                    // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                    if (in_h % 2 == 1 && params->ceil_mode == 1) {
+                        if (params->pad_down) params->pad_down++;
+                    }
+                    if (in_w % 2 == 1 && params->ceil_mode == 1) {
+                        if (params->pad_right) params->pad_right++;
+                    }
+                    // end consider ceil_mode 2x2s2p0
+                    cb->exec = shl_rvv_avgpool2x2s2_packn_int8;
+                } else if (pad_left == 1 && pad_top == 1) {
+                    cb->exec = shl_rvv_avgpool2x2s2_packn_int8;
+                }
+            } else if (kernel_h == 3 && kernel_w == 3) {
+                if (pad_left == 0 && pad_top == 0) {
+                    // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                    if (in_h % 2 == 0 && params->ceil_mode == 1) {
+                        if (params->pad_down == 0)
+                            params->pad_down++;  // origin pad_down mast be equal to zero ?
+                    }
+                    if (in_w % 2 == 0 && params->ceil_mode == 1) {
+                        if (params->pad_right == 0) params->pad_right++;
+                    }
+                    // end consider ceil_mode 3x3s2p0
+                    cb->exec = shl_rvv_avgpool3x3s2_packn_int8;
+                } else if (pad_left == 1 && pad_top == 1) {
+                    cb->exec = shl_rvv_avgpool3x3s2_packn_int8;
+                }
+            }
+        } else if (stride_h == 1 && stride_w == 1) {
+            if (kernel_h == 3 && kernel_w == 3) {
+                if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
+                    cb->exec = shl_rvv_avgpool3x3s1_packn_int8;
+                }
+            }
+        }
     }
-}
-
-int shl_rvv_avgpool2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params)
-{
-    return CSINN_FALSE;
+    if (cb->exec == NULL) {
+        if (in_c % packn == 0) {
+            output->layout = CSINN_LAYOUT_NC1HWC0;
+            cb->exec = shl_rvv_avgpool_packn_int8;
+        } else {
+            shl_debug_warning(
+                "avgpool is not optimized to achieve under this condition on rvv, call reference "
+                "func replaced.\n");
+            cb->exec = shl_ref_avgpool2d_quant;
+        }
+    }
 }
 
 int shl_rvv_global_avgpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -71,6 +71,14 @@ int shl_gref_depthwise_conv2d_relu6(struct csinn_tensor *input, struct csinn_ten
 int shl_gref_group_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                           struct csinn_conv2d_params *params)
+{
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_GROUP_CONV2D, params);
+    return CSINN_TRUE;
+}
+
+int shl_gref_group_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                               struct csinn_conv2d_params *params)
 {
     shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_GROUP_CONV2D, params);
     return CSINN_TRUE;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -59,20 +59,20 @@ int shl_rvv_sum_stride_int8(struct csinn_tensor *input, struct csinn_tensor *out
         int cnt = input->dim[axis];
 
         for (int i = 0; i < outer_size; i++) {
-            int packn = csrr_vlenb() / sizeof(int8_t);
-            int vl = vsetvl_e8m1(packn);
-            int k = 0;
-            for (; k + packn - 1 < inner_size; k += packn) {
-                int8_t *in_ptr_start = input_data + k;
+            int8_t *in_shadow_ptr = input_data;
+            int k = inner_size;
+            while (k > 0) {
+                int vl = vsetvl_e8m1(k);
+                int8_t *in_ptr = in_shadow_ptr;
                 vint32m4_t _acc = vmv_v_x_i32m4(0, vl);
                 for (int j = 0; j < cnt; j++) {
-                    vint8m1_t _input = vle8_v_i8m1(in_ptr_start, vl);
+                    vint8m1_t _input = vle8_v_i8m1(in_ptr, vl);
                     vint16m2_t _input1 = vwadd_vx_i16m2(_input, 0, vl);   // widden 8->16
                     vint32m4_t _input2 = vwadd_vx_i32m4(_input1, 0, vl);  // widden 16->32
 
                     vint32m4_t _tmp = vsub_vx_i32m4(_input2, input->qinfo->zero_point, vl);
                     _acc = vadd_vv_i32m4(_acc, _tmp, vl);
-                    in_ptr_start += inner_size;
+                    in_ptr += inner_size;
                 }
                 vint32m4_t _mulh = vmulh_vx_i32m4(_acc, output->qinfo->multiplier, vl);
                 vint32m4_t _res;
@@ -89,38 +89,10 @@ int shl_rvv_sum_stride_int8(struct csinn_tensor *input, struct csinn_tensor *out
                 vint8m1_t _res2 = vnclip_wx_i8m1(_res1, 0, vl);          // narrow 16->8
                 vse8_v_i8m1(output_data, _res2, vl);
                 output_data += vl;
+                in_shadow_ptr += vl;
+                k -= vl;
             }
-            if (k < inner_size) {
-                vl = vsetvl_e8m1(inner_size & (packn - 1));
-                int8_t *in_ptr_start = input_data + k;
-                vint32m4_t _acc = vmv_v_x_i32m4(0, vl);
-                for (int j = 0; j < cnt; j++) {
-                    vint8m1_t _input = vle8_v_i8m1(in_ptr_start, vl);
-                    vint16m2_t _input1 = vwadd_vx_i16m2(_input, 0, vl);   // widden 8->16
-                    vint32m4_t _input2 = vwadd_vx_i32m4(_input1, 0, vl);  // widden 16->32
-
-                    vint32m4_t _tmp = vsub_vx_i32m4(_input2, input->qinfo->zero_point, vl);
-                    _acc = vadd_vv_i32m4(_acc, _tmp, vl);
-                    in_ptr_start += inner_size;
-                }
-                vint32m4_t _mulh = vmulh_vx_i32m4(_acc, output->qinfo->multiplier, vl);
-                vint32m4_t _res;
-
-                if (output->qinfo->shift < 0) {
-                    _res = vssra_vx_i32m4(_mulh, -output->qinfo->shift - 1, vl);
-                } else {
-                    _res = vsll_vx_i32m4(_mulh, output->qinfo->shift + 1, vl);
-                }
-
-                vint32m4_t _res0 =
-                    vadd_vx_i32m4(_res, output->qinfo->zero_point, vl);  // +z2 (z2 = -128)
-                vint16m2_t _res1 = vnclip_wx_i16m2(_res0, 0, vl);        // narrow 32->16
-                vint8m1_t _res2 = vnclip_wx_i8m1(_res1, 0, vl);          // narrow 16->8
-                vse8_v_i8m1(output_data, _res2, vl);
-            }
-
             input_data += inner_size * cnt;
-            output_data += inner_size;
         }
     }
     return CSINN_TRUE;

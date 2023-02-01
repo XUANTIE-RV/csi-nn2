@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -24,6 +24,7 @@
  * note: VLEN = 256
  * input matrix and kernel matrix have been reordered
  *************************************************************/
+#ifdef SHL_UNUSED_REGISTER_BLK
 static inline void kernel_m8n24_fp32_v256(float *dst, float *sa, float *sb, int m, int k, int n,
                                           int ldc, float *bias)
 {
@@ -1915,6 +1916,7 @@ void shl_c908_gemm_8x24_fp32_v256(float *dst, const float *sa, const float *sb, 
         bias = NULL;
     }
 }
+#endif
 
 static inline void kernel_m8n16_fp32_v256(float *dst, float *sa, float *sb, int m, int k, int n,
                                           int ldc, float *bias)

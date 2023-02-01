@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -32,6 +32,9 @@ void shl_target_init_ref_i805();
 void shl_target_init_c908();
 void shl_target_init_asp();
 void shl_target_init_rvv();
+void shl_target_init_rvm();
+void shl_target_init_e907();
+void shl_target_init_c910();
 
 static int __shl_has_init;
 
@@ -69,6 +72,15 @@ void shl_init()
 #endif
 #ifdef SHL_BUILD_RVV
     shl_target_init_rvv();
+#endif
+#ifdef SHL_BUILD_RVM
+    shl_target_init_rvm();
+#endif
+#ifdef SHL_BUILD_E907
+    shl_target_init_e907();
+#endif
+#ifdef SHL_BUILD_C910
+    shl_target_init_c910();
 #endif
 }
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_UTILS_H_
 #define INCLUDE_SHL_UTILS_H_
@@ -32,6 +32,9 @@
 #include <omp.h>
 #endif
 #include "csinn_data_structure.h"
+#ifdef SHL_MCONF_CONFIG
+#include "mconf_config.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +56,11 @@ void *shl_get_p0_cb(struct csinn_params_base *base);
 void *shl_get_init_cb(struct csinn_params_base *base);
 
 enum csinn_rmode_enum shl_get_run_mode(struct csinn_params_base *base);
+
+struct shl_cb_table {
+    int shl_cb_key;
+    struct csinn_callback shl_cb_value;
+};
 
 struct shl_cb_op_list {
     struct shl_cb_op_list *next;

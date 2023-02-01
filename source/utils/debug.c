@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -933,19 +933,19 @@ char *op_strings[] = {
     [CSINN_OP_RELU] = "relu",
     [CSINN_OP_RELU6] = "relu6",
     [CSINN_OP_RESHAPE] = "reshape",
+    [CSINN_OP_RESIZE] = "resize",
     [CSINN_OP_TRANSPOSE] = "transpose",
     [CSINN_OP_SOFTMAX] = "softmax",
     [CSINN_OP_YUV_RGB_SCALE] = "yuv_rgb_scale",
 };
 
-#define FREQ 50  // FPGA: 30MHz
-// TODO: support NHWC layout too
+// #define FREQ 50  // FPGA: 50MHz
 int shl_benchmark_layer(struct shl_node *node, uint64_t start_time, uint64_t end_time,
                         int layer_idx)
 {
     char *op_name = op_strings[node->type];
-    shl_debug_info("[%3d]: %-18s %6.2lfms  ^*^ feature_map:", layer_idx, op_name,
-                   (end_time - start_time) * FREQ / 1000.0f / 1000000.0f);
+    float time_ms = (end_time - start_time) / 1000000.0f;
+    shl_debug_info("[%3d]: %-16s %7.2fms  ^*^:", layer_idx, op_name, time_ms);
 
     struct csinn_tensor *in0 = (struct csinn_tensor *)node->in[0]->data;
     struct csinn_tensor *out0 = (struct csinn_tensor *)node->out[0]->data;
@@ -953,18 +953,55 @@ int shl_benchmark_layer(struct shl_node *node, uint64_t start_time, uint64_t end
     shl_debug_print_list_int(in0->dim, in0->dim_count, "");
     shl_debug_info(" ==> ");
     shl_debug_print_list_int(out0->dim, out0->dim_count, "");
-    // print kernel dim
-    if (node->type >= CSINN_OP_CONV1D && node->type <= CSINN_OP_CONV3D) {
+
+    // conv/dwconv/deconv/fc/pool ...
+    if ((node->type >= CSINN_OP_CONV2D && node->type <= CSINN_OP_CONV2D_CHANNEL_RELU6) ||
+        (node->type >= CSINN_OP_GROUP_CONV2D && node->type <= CSINN_OP_GROUP_CONV2D_CHANNEL_RELU)) {
         struct csinn_tensor *in1 = (struct csinn_tensor *)node->in[1]->data;
-        int64_t cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * in0->dim[1] * in1->dim[2] *
-                        in1->dim[3] * 2;
-        if (node->type >= CSINN_OP_DEPTHWISE_CONV2D &&
-            node->type <= CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6) {
-            cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * in1->dim[2] * in1->dim[3] * 2;
+        struct csinn_conv2d_params *params = node->data;
+        int32_t k_h, k_w, in_c = 0;
+        if (in0->layout == CSINN_LAYOUT_NCHW) {
+            k_h = in1->dim[2];
+            k_w = in1->dim[3];
+            in_c = in1->dim[1];
+        } else if (in0->layout == CSINN_LAYOUT_NHWC) {
+            k_h = in1->dim[1];
+            k_w = in1->dim[2];
+            in_c = in1->dim[3];
         }
-        shl_debug_info("  (%2.4lfGOPS)", cacls / ((end_time - start_time) * (FREQ) / 1000.0f));
-        shl_debug_info("   kernel:");
-        shl_debug_print_list_int(in1->dim, in1->dim_count, "");
+        float cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * 0.000001f * in_c * k_h * k_w * 2;
+        shl_debug_info(" | k: %dx%d |", k_h, k_w);
+        shl_debug_info(" s: %dx%d |", params->stride_height, params->stride_width);
+        shl_debug_info(" p: %d %d %d %d | ", params->pad_top, params->pad_left, params->pad_down,
+                       params->pad_right);
+        shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
+    } else if (node->type >= CSINN_OP_DEPTHWISE_CONV2D &&
+               node->type <= CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6) {
+        struct csinn_tensor *in1 = (struct csinn_tensor *)node->in[1]->data;
+        struct csinn_conv2d_params *params = node->data;
+        int32_t k_h, k_w = 0;
+        if (in0->layout == CSINN_LAYOUT_NCHW) {
+            k_h = in1->dim[2];
+            k_w = in1->dim[3];
+        } else if (in0->layout == CSINN_LAYOUT_NHWC) {
+            k_h = in1->dim[1];
+            k_w = in1->dim[2];
+        }
+        float cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * 0.000001f * k_h * k_w * 2;
+        shl_debug_info(" | k: %dx%d |", k_h, k_w);
+        shl_debug_info(" s: %dx%d |", params->stride_height, params->stride_width);
+        shl_debug_info(" p: %d %d %d %d | ", params->pad_top, params->pad_left, params->pad_down,
+                       params->pad_right);
+        shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
+    } else if (node->type == CSINN_OP_AVGPOOL2D || node->type == CSINN_OP_MAXPOOL2D) {
+        struct csinn_pool_params *params = node->data;
+        shl_debug_info(" | k: %dx%d |", params->filter_height, params->filter_width);
+        shl_debug_info(" s: %dx%d |", params->stride_height, params->stride_width);
+        shl_debug_info(" p: %d %d %d %d | ", params->pad_top, params->pad_left, params->pad_down,
+                       params->pad_right);
+    } else if (node->type == CSINN_OP_FULLYCONNECTED) {
+        float cacls = in0->dim[0] * in0->dim[1] * out0->dim[1] * 0.000001f * 2;
+        shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
     }
     shl_debug_info("\n");
     return CSINN_TRUE;

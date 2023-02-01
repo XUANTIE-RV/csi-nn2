@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include <time.h>
 
@@ -1061,7 +1061,8 @@ int tensor_data_convert_activation(struct csinn_tensor *dest, struct csinn_tenso
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT8) {
         for (int n = 0; n < src->dim[0]; n++) {
-            if (src->layout >= CSINN_LAYOUT_N && src->layout <= CSINN_LAYOUT_NCDHW) {
+            if (src->layout >= CSINN_LAYOUT_N && src->layout <= CSINN_LAYOUT_NCDHW ||
+                src->layout == CSINN_LAYOUT_NC1HWC0) {
                 nchw_int8_to_float(dest, src, n, inner_size);
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_int8_to_float(dest, src, n, inner_size);
@@ -1130,6 +1131,7 @@ int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *sr
         case CSINN_LAYOUT_NWC:
         case CSINN_LAYOUT_NCDHW:
         case CSINN_LAYOUT_NDHWC:
+        case CSINN_LAYOUT_NC1HWC0:
             return tensor_data_convert_activation(dest, src);
         case CSINN_LAYOUT_O:
         case CSINN_LAYOUT_OI:

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 /******************************************************************************
  * @file     shl_i805_mat_mult_nt_t_8.S

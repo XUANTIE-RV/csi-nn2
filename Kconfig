@@ -1,0 +1,204 @@
+mainmenu "SHL Configuration"
+
+choice
+	prompt "Build target"
+	default BUILD_X86
+
+config BUILD_X86
+	bool "x86"
+	help
+	  Build x86 reference library
+
+config BUILD_RISCV
+	bool "riscv"
+	help
+	  Build RISC-V library
+
+config BUILD_RISCV_ELF
+	bool "riscv elf"
+	help
+	  Build RISC-V Elf library
+
+config BUILD_CSKY
+	bool "csky"
+	help
+	  Build C-SKY library
+
+config BUILD_CSKY_ELF
+	bool "csky elf"
+	help
+	  Build C-SKY elf library
+
+endchoice
+
+
+choice
+	prompt "x86 platform"
+    depends on BUILD_X86
+	default BUILD_X86_REF
+
+config BUILD_X86_REF
+	bool "x86_ref"
+	help
+	  Build x86 c reference library
+
+endchoice
+
+choice
+	prompt "RISC-V platform"
+    depends on BUILD_RISCV
+	default BUILD_RISCV_RVV
+
+config BUILD_RISCV_RVV
+	bool "RISC-V V"
+	help
+	    Build RISC-V V common library
+
+config BUILD_RISCV_C906_STATIC
+	bool "C906 static"
+	help
+	    Build C906 V static library
+
+config BUILD_RISCV_C906_SHARE
+    bool "C906 share"
+    help
+        Build C906 V share library
+
+config BUILD_RISCV_RVM
+    bool "RVM"
+    help
+        Build RISC-V vector and matrix static library
+
+config BUILD_RISCV_C908
+    bool "C908"
+    help
+        Build C908 V static library
+
+config BUILD_RISCV_C910
+    bool "C910"
+    help
+        Build C910 V static library
+
+config BUILD_RISCV_PNNA
+    bool "pnna"
+    help
+        Build pnna so
+
+config BUILD_RISCV_HLIGHT
+    bool "hlight"
+    help
+        Build heterogeneous pnna so
+
+endchoice
+
+choice
+	prompt "RISC-V elf platform"
+    depends on BUILD_RISCV_ELF
+	default BUILD_RISCV_ELF_C906
+
+config BUILD_RISCV_ELF_C906
+	bool "C906 elf"
+	help
+	    Build C906 V static library
+
+config BUILD_RISCV_ELF_E907
+	bool "e907 elf"
+	help
+		Build E907 P extend static library
+
+config BUILD_RISCV_ELF_ASP
+    bool "ASP elf"
+    help
+        Build ASP static library
+
+endchoice
+
+choice
+	prompt "C-SKY platform"
+    depends on BUILD_CSKY
+	default BUILD_CSKY_OPENVX
+
+config BUILD_CSKY_OPENVX
+	bool "openvx"
+	help
+	    Build openvx library
+
+config BUILD_CSKY_C860
+    bool "C860"
+    help
+        Build C860 SIMD static library
+
+endchoice
+
+choice
+	prompt "C-SKY elf platform"
+    depends on BUILD_CSKY_ELF
+	default BUILD_CSKY_ELF_I805
+
+config BUILD_CSKY_ELF_I805_REF
+	bool "i805 ref"
+	help
+	    Build i805 reference library
+
+config BUILD_CSKY_ELF_I805
+	bool "i805 elf"
+	help
+	    Build i805 library
+
+config BUILD_CSKY_ELF_E804
+    bool "E804 share"
+    help
+        Build e804 library
+
+endchoice
+
+config CUSTOM_SOURCE_SELECT
+	bool
+	default y
+
+source "source/reference/Kconfig"
+source "source/graph_ref/Kconfig"
+source "source/e907_opt/Kconfig"
+
+menu "Debug and profile Options"
+
+config USE_SHL_DEBUG
+    bool "SHL debug and log module"
+    help
+        Select SHL debug and log module
+
+config SHL_LAYER_BENCHMARK
+    bool "Layer information and performance"
+    help
+        Print the execution time of each layer
+
+config USE_COMPILER_PATH
+	bool "Custom compiler path"
+	help
+		Set this option if you have a custom compiler which needed to
+		be define in CMAKE_C_COMPILER.
+
+config CMAKE_C_COMPILER
+	string "Path to c compiler"
+	default "riscv64-unknown-linux-gnu-gcc"
+	depends on USE_COMPILER_PATH
+	help
+		Path to the c compiler to be used instead of the one define by the
+		board.
+
+config CMAKE_CXX_COMPILER
+		string "Path to cxx compiler"
+		default "riscv64-unknown-linux-gnu-g++"
+		depends on USE_COMPILER_PATH
+		help
+		Path to the cxx compiler to be used instead of the one define by the
+		board.
+
+config CMAKE_ASM_COMPILER
+		string "Path to asm compiler"
+		default "riscv64-unknown-linux-gnu-gcc"
+		depends on USE_COMPILER_PATH
+		help
+		Path to the asm compiler to be used instead of the one define by the
+		board.
+endmenu

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -40,6 +40,7 @@ int shl_rvv_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -73,6 +74,7 @@ int shl_rvv_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
@@ -132,6 +134,7 @@ int shl_rvv_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -165,6 +168,7 @@ int shl_rvv_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
@@ -208,7 +212,6 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
-#ifdef XTHEADV
     int32_t out_c = kernel->dim[0];
     int32_t in_c = kernel->dim[1];
     int32_t in_h = input->dim[2];
@@ -225,6 +228,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // packn
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -238,7 +242,6 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
                 params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
                 shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
                 cb->exec = shl_rvv_conv_im2col_gemm_packn_int8;
-                return CSINN_TRUE;
             } else {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
                 struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
@@ -256,6 +259,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
 
     // pack1ton
     if (in_c % packn != 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
@@ -310,6 +314,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     // enable fuse zeropoint to bias for gemm
     if (params->conv_extra.conv_mode == CSINN_GEMM) {
         if (!params->conv_extra.fuse_zp2bias) {
+            params->conv_extra.fuse_zp2bias = true;
             int32_t *bias_data = (int32_t *)bias->data;
             int8_t *kernel_data = (int8_t *)kernel->data;
             int32_t input_zp = input->qinfo->zero_point;
@@ -348,17 +353,13 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
         }
     }
     return CSINN_TRUE;
-#else
-    shl_debug_error("unsupport conv2d for int8 without xtheadv extension\n");
-    return CSINN_FALSE;
-#endif
 }
 
+#ifdef SHL_USE_DOT_INT4
 int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
-#ifdef XTHEADV
     int32_t out_c = kernel->dim[0];
     int32_t in_c = kernel->dim[1];
     int32_t in_h = input->dim[2];
@@ -411,8 +412,5 @@ int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *ou
         return CSINN_TRUE;
     }
     return CSINN_FALSE;
-#else
-    shl_debug_error("unsupport conv2d for int4 without xtheadv extension\n");
-    return CSINN_FALSE;
-#endif
 }
+#endif

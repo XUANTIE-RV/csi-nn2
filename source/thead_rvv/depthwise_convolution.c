@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -36,15 +36,14 @@ int shl_rvv_depthwise_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_
     const int packn = csrr_vlenb() / sizeof(float);
 
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+        shl_rvv_dwconv_reorder_kernel_packn_fp32(kernel, params);
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
-            shl_rvv_dwconv_reorder_kernel_packn_fp32(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s1_packn_fp32;
-
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {
-            shl_rvv_dwconv_reorder_kernel_packn_fp32(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s2_packn_fp32;
         } else {
-            cb->exec = shl_ref_depthwise_conv2d_f32;
+            cb->exec = shl_rvv_dwconv_packn_fp32;
         }
     }
 
@@ -76,15 +75,14 @@ int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_
     const int packn = csrr_vlenb() / sizeof(__fp16);
 
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+        shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
-            shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s1_packn_fp16;
-
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {
-            shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s2_packn_fp16;
         } else {
-            cb->exec = shl_ref_depthwise_conv2d_quant;
+            cb->exec = shl_rvv_dwconv_packn_fp16;
         }
     }
 
@@ -117,6 +115,7 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
 
     // enable fuse zeropoint to bias
     if (!params->conv_extra.fuse_zp2bias) {
+        params->conv_extra.fuse_zp2bias = true;
         int32_t *bias_data = (int32_t *)bias->data;
         int8_t *kernel_data = (int8_t *)kernel->data;
         int32_t input_zp = input->qinfo->zero_point;
@@ -137,14 +136,14 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
     }
 
     if (in_c % packn == 0 && out_c % packn == 0) {
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+        shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
-            shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s1_packn_int8;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {
-            shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
             cb->exec = shl_rvv_dwconv3x3s2_packn_int8;
         } else {
-            cb->exec = shl_ref_depthwise_conv2d_quant;
+            cb->exec = shl_rvv_dwconv_packn_int8;
         }
     }
 

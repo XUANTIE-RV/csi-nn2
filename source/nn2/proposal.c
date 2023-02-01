@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -26,7 +26,6 @@ int csinn_proposal_init(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox
                         struct csinn_proposal_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_PROPOSAL, output->dtype);
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(cls_prob, bbox_pred, im_info, output, params);

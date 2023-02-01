@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c908.h"
 
@@ -61,13 +61,10 @@ int shl_c908_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor
             shl_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
                                     &(weights->qinfo[i].shift));
         }
-        if (in_nodes % 4 == 0) {
-            shl_rvv_fc_gemv_transform_weight_int8_dot(weights);
-            cb->exec = shl_rvv_fullyconnected_packn_int8_dot;
-        } else {
-            shl_rvv_fc_gemv_transform_weight_int8(weights);
-            cb->exec = shl_rvv_fullyconnected_packn_int8;
-        }
+
+        shl_rvv_fc_gemv_transform_weight_int8(weights);
+        cb->exec = shl_rvv_fullyconnected_packn_int8;
+#ifdef SHL_USE_DOT_INT4
     } else if (input->dtype == CSINN_DTYPE_INT4) {
         // support channel quantization
         for (int i = 0; i < weights->quant_channel; i++) {
@@ -82,6 +79,7 @@ int shl_c908_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor
             shl_debug_warning("fc is not optimized for int4, call reference func replaced.\n");
             cb->exec = shl_ref_fullyconnected_quant;
         }
+#endif
     }
     return CSINN_TRUE;
 }

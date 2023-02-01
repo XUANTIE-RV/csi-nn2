@@ -1,0 +1,1073 @@
+
+menu "C Reference"
+
+config C_REFERENCE_SOURCE
+	bool "SHL c reference code"
+	default y
+	help
+		Select SHL build c reference
+
+config C_REFERENCE_ABS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer abs"
+	default y
+	help
+		Select SHL build reference abs
+
+config C_REFERENCE_ACOS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer acos"
+	default y
+	help
+		Select SHL build reference acos
+
+config C_REFERENCE_ACOSH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer acosh"
+	default y
+	help
+		Select SHL build reference acosh
+
+config C_REFERENCE_ADD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer add"
+	default y
+	help
+		Select SHL build reference add
+
+config C_REFERENCE_AND
+	depends on C_REFERENCE_SOURCE
+	bool "Layer and"
+	default y
+	help
+		Select SHL build reference and
+
+config C_REFERENCE_ARANGE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer arange"
+	default y
+	help
+		Select SHL build reference arange
+
+config C_REFERENCE_ARGMAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer argmax"
+	default y
+	help
+		Select SHL build reference argmax
+
+config C_REFERENCE_ARGMIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer argmin"
+	default y
+	help
+		Select SHL build reference argmin
+
+config C_REFERENCE_ASIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer asin"
+	default y
+	help
+		Select SHL build reference asin
+
+config C_REFERENCE_ASINH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer asinh"
+	default y
+	help
+		Select SHL build reference asinh
+
+config C_REFERENCE_ATAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer atan"
+	default y
+	help
+		Select SHL build reference atan
+
+config C_REFERENCE_ATANH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer atanh"
+	default y
+	help
+		Select SHL build reference atanh
+
+config C_REFERENCE_AVERAGEPOOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer averagepool"
+	default y
+	help
+		Select SHL build reference averagepool
+
+config C_REFERENCE_AVERAGEPOOL3D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer averagepool3d"
+	default y
+	help
+		Select SHL build reference averagepool3d
+
+config C_REFERENCE_BATCH_NORMALIZATION
+	depends on C_REFERENCE_SOURCE
+	bool "Layer batch_normalization"
+	default y
+	help
+		Select SHL build reference batch_normalization
+
+config C_REFERENCE_BATCH_TO_SPACE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer batch_to_space"
+	default y
+	help
+		Select SHL build reference batch_to_space
+
+config C_REFERENCE_BROADCOST_TO
+	depends on C_REFERENCE_SOURCE
+	bool "Layer broadcast_to"
+	default y
+	help
+		Select SHL build reference broadcast_to
+
+config C_REFERENCE_CACHE_CONV1D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cache_conv1d"
+	default y
+	help
+		Select SHL build reference cache_conv1d
+
+config C_REFERENCE_CACHE_MATMUL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cache matmul"
+	default y
+	help
+		Select SHL build reference cache_matmul
+
+config C_REFERENCE_CEIL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer ceil"
+	default y
+	help
+		Select SHL build reference ceil
+
+config C_REFERENCE_CLIP
+	depends on C_REFERENCE_SOURCE
+	bool "Layer clip"
+	default y
+	help
+		Select SHL build reference clip
+
+config C_REFERENCE_COL2IM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer col2im"
+	default y
+	help
+		Select SHL build reference col2im
+
+config C_REFERENCE_CONCAT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer concat"
+	default y
+	help
+		Select SHL build reference concat
+
+config C_REFERENCE_CONVOLUTION_CHANNEL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution_channel"
+	default y
+	help
+		Select SHL build reference convolution_channel
+
+config C_REFERENCE_CONVOLUTION_RELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution_relu"
+	default y
+	help
+		Select SHL build reference convolution_relu
+
+config C_REFERENCE_CONVOLUTION_RELU6
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution_relu6"
+	default y
+	help
+		Select SHL build reference convolution_relu6
+
+config C_REFERENCE_CONVOLUTION
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution"
+	default y
+	help
+		Select SHL build reference convolution
+
+config C_REFERENCE_CONVOLUTION1D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution1d"
+	default y
+	help
+		Select SHL build reference convolution1d
+
+config C_REFERENCE_CONVOLUTION3D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer convolution3d"
+	default y
+	help
+		Select SHL build reference convolution3d
+
+config C_REFERENCE_COS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cos"
+	default y
+	help
+		Select SHL build reference cos
+
+config C_REFERENCE_COSH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cosh"
+	default y
+	help
+		Select SHL build reference cosh
+
+config C_REFERENCE_CUMPROD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cumprod"
+	default y
+	help
+		Select SHL build reference abs
+
+config C_REFERENCE_CUMSUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer cumsum"
+	default y
+	help
+		Select SHL build reference cumsum
+
+config C_REFERENCE_DATA_CONVERT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer data_convert"
+	default y
+	help
+		Select SHL build reference data_convert
+
+config C_REFERENCE_DECONVOLUTION
+	depends on C_REFERENCE_SOURCE
+	bool "Layer deconvolution"
+	default y
+	help
+		Select SHL build reference deconvolution
+
+config C_REFERENCE_DECONVOLUTION3D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer deconvolution3d"
+	default y
+	help
+		Select SHL build reference deconvolution3d
+
+config C_REFERENCE_DEPTH_TO_SPACE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer depth_to_space"
+	default y
+	help
+		Select SHL build reference depth_to_space
+
+config C_REFERENCE_DIV
+	depends on C_REFERENCE_SOURCE
+	bool "Layer div"
+	default y
+	help
+		Select SHL build reference div
+
+config C_REFERENCE_ELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer elu"
+	default y
+	help
+		Select SHL build reference elu
+
+config C_REFERENCE_EQUAL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer equal"
+	default y
+	help
+		Select SHL build reference equal
+
+config C_REFERENCE_ERF
+	depends on C_REFERENCE_SOURCE
+	bool "Layer erf"
+	default y
+	help
+		Select SHL build reference erf
+
+config C_REFERENCE_EXP
+	depends on C_REFERENCE_SOURCE
+	bool "Layer exp"
+	default y
+	help
+		Select SHL build reference exp
+
+config C_REFERENCE_EXPAND_DIMS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer expand_dims"
+	default y
+	help
+		Select SHL build reference expand_dims
+
+config C_REFERENCE_EXPM1
+	depends on C_REFERENCE_SOURCE
+	bool "Layer expm1"
+	default y
+	help
+		Select SHL build reference expm1
+
+config C_REFERENCE_FLATTEN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer flatten"
+	default y
+	help
+		Select SHL build reference flatten
+
+config C_REFERENCE_FLOOR_DIVIDE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer floor_divide"
+	default y
+	help
+		Select SHL build reference floor_divide
+
+config C_REFERENCE_FLOOR_MOD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer floor_mod"
+	default y
+	help
+		Select SHL build reference floor_mod
+
+config C_REFERENCE_FLOOR
+	depends on C_REFERENCE_SOURCE
+	bool "Layer floor"
+	default y
+	help
+		Select SHL build reference floor
+
+config C_REFERENCE_FSMN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer fsmn"
+	default y
+	help
+		Select SHL build reference fsmn
+
+config C_REFERENCE_FULLYCONNECTED
+	depends on C_REFERENCE_SOURCE
+	bool "Layer fullyconnected"
+	default y
+	help
+		Select SHL build reference fullyconnected
+
+config C_REFERENCE_GATHER_ND
+	depends on C_REFERENCE_SOURCE
+	bool "Layer gather_nd"
+	default y
+	help
+		Select SHL build reference gather_nd
+
+config C_REFERENCE_GATHER
+	depends on C_REFERENCE_SOURCE
+	bool "Layer gather"
+	default y
+	help
+		Select SHL build reference gather
+
+config C_REFERENCE_GLOBAL_AVERAGEPOOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer global_averagepool"
+	default y
+	help
+		Select SHL build reference global_averagepool
+
+config C_REFERENCE_GLOBAL_MAXPOOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer global_maxpool"
+	default y
+	help
+		Select SHL build reference global_maxpool
+
+config C_REFERENCE_GREATER_EQUAL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer greater_equal"
+	default y
+	help
+		Select SHL build reference greater_equal
+
+config C_REFERENCE_GREATER
+	depends on C_REFERENCE_SOURCE
+	bool "Layer greater"
+	default y
+	help
+		Select SHL build reference greater
+
+config C_REFERENCE_HARD_SIGMOID
+	depends on C_REFERENCE_SOURCE
+	bool "Layer hard_sigmoid"
+	default y
+	help
+		Select SHL build reference hard_sigmoid
+
+config C_REFERENCE_IM2COL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer im2col"
+	default y
+	help
+		Select SHL build reference im2col
+
+config C_REFERENCE_ISNAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer isnan"
+	default y
+	help
+		Select SHL build reference isnan
+
+config C_REFERENCE_L2_NORMALIZATION
+	depends on C_REFERENCE_SOURCE
+	bool "Layer l2_normalization"
+	default y
+	help
+		Select SHL build reference l2_normalization
+
+config C_REFERENCE_L2POOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer l2pool"
+	default y
+	help
+		Select SHL build reference l2pool
+
+config C_REFERENCE_LAYER_NORM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer layer_normal"
+	default y
+	help
+		Select SHL build reference layer_normal
+
+config C_REFERENCE_LEAKY_RELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer leaky_relu"
+	default y
+	help
+		Select SHL build reference leaky_relu
+
+config C_REFERENCE_LESS_EQUAL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer less_equal"
+	default y
+	help
+		Select SHL build reference less_equal
+
+config C_REFERENCE_LESS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer less"
+	default y
+	help
+		Select SHL build reference less
+
+config C_REFERENCE_LOG_SOFTMAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer log_softmax"
+	default y
+	help
+		Select SHL build reference log_softmax
+
+config C_REFERENCE_LOG
+	depends on C_REFERENCE_SOURCE
+	bool "Layer log"
+	default y
+	help
+		Select SHL build reference log
+
+config C_REFERENCE_LOG1P
+	depends on C_REFERENCE_SOURCE
+	bool "Layer log1p"
+	default y
+	help
+		Select SHL build reference log1p
+
+config C_REFERENCE_LOGICAL_AND
+	depends on C_REFERENCE_SOURCE
+	bool "Layer and"
+	default y
+	help
+		Select SHL build reference and
+
+config C_REFERENCE_LOGICAL_NOT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer not"
+	default y
+	help
+		Select SHL build reference not
+
+config C_REFERENCE_LOGICAL_OR
+	depends on C_REFERENCE_SOURCE
+	bool "Layer or"
+	default y
+	help
+		Select SHL build reference or
+
+config C_REFERENCE_LOGICAL_XOR
+	depends on C_REFERENCE_SOURCE
+	bool "Layer xor"
+	default y
+	help
+		Select SHL build reference xor
+
+config C_REFERENCE_LRN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer lrn"
+	default y
+	help
+		Select SHL build reference lrn
+
+config C_REFERENCE_MATMUL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer matmul"
+	default y
+	help
+		Select SHL build reference matmul
+
+config C_REFERENCE_MAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer max"
+	default y
+	help
+		Select SHL build reference max
+
+config C_REFERENCE_MAXIMUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer maximum"
+	default y
+	help
+		Select SHL build reference maximum
+
+config C_REFERENCE_MAXPOOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer maxpool"
+	default y
+	help
+		Select SHL build reference maxpool
+
+config C_REFERENCE_MAXPOOL2D_LOCAT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer maxpool2d_local"
+	default y
+	help
+		Select SHL build reference maxpool2d_local
+
+config C_REFERENCE_MAXPOOL3D
+	depends on C_REFERENCE_SOURCE
+	bool "Layer maxpool3d"
+	default y
+	help
+		Select SHL build reference maxpool3d
+
+config C_REFERENCE_MEAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer mean"
+	default y
+	help
+		Select SHL build reference mean
+
+config C_REFERENCE_MIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer min"
+	default y
+	help
+		Select SHL build reference min
+
+config C_REFERENCE_MINIMUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer minimum"
+	default y
+	help
+		Select SHL build reference minimum
+
+config C_REFERENCE_MOD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer mod"
+	default y
+	help
+		Select SHL build reference mod
+
+config C_REFERENCE_MUL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer mul"
+	default y
+	help
+		Select SHL build reference mul
+
+config C_REFERENCE_NDARRAY_SIZE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer ndarray_size"
+	default y
+	help
+		Select SHL build reference ndarray_size
+
+config C_REFERENCE_NEGATIVE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer negative"
+	default y
+	help
+		Select SHL build reference negative
+
+config C_REFERENCE_NON_MAX_SUPPRESSION
+	depends on C_REFERENCE_SOURCE
+	bool "Layer non_max_suppression"
+	default y
+	help
+		Select SHL build reference non_max_suppression
+
+config C_REFERENCE_NOT_EQUAL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer not_equal"
+	default y
+	help
+		Select SHL build reference not_equal
+
+config C_REFERENCE_NOT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer not"
+	default y
+	help
+		Select SHL build reference not
+
+config C_REFERENCE_OR
+	depends on C_REFERENCE_SOURCE
+	bool "Layer or"
+	default y
+	help
+		Select SHL build reference or
+
+config C_REFERENCE_PAD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer pad"
+	default y
+	help
+		Select SHL build reference pad
+
+config C_REFERENCE_POWER
+	depends on C_REFERENCE_SOURCE
+	bool "Layer power"
+	default y
+	help
+		Select SHL build reference power
+
+config C_REFERENCE_PRELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer prelu"
+	default y
+	help
+		Select SHL build reference prelu
+
+config C_REFERENCE_PROD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer prod"
+	default y
+	help
+		Select SHL build reference prod
+
+config C_REFERENCE_PROPOSAL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer proposal"
+	default y
+	help
+		Select SHL build reference proposal
+
+config C_REFERENCE_PSROIPOOLING
+	depends on C_REFERENCE_SOURCE
+	bool "Layer psroipooling"
+	default y
+	help
+		Select SHL build reference psroipooling
+
+config C_REFERENCE_REDUCE_LOGSUMEXP
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_logsumexp"
+	default y
+	help
+		Select SHL build reference reduce_logsumexp
+
+config C_REFERENCE_REDUCE_MAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_max"
+	default y
+	help
+		Select SHL build reference reduce_max
+
+config C_REFERENCE_REDUCE_MEAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_mean"
+	default y
+	help
+		Select SHL build reference reduce_mean
+
+config C_REFERENCE_REDUCE_MIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_min"
+	default y
+	help
+		Select SHL build reference reduce_min
+
+config C_REFERENCE_REDUCE_PROD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_prod"
+	default y
+	help
+		Select SHL build reference reduce_prod
+
+config C_REFERENCE_REDUCE_SUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reduce_sum"
+	default y
+	help
+		Select SHL build reference reduce_sum
+
+config C_REFERENCE_RELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer relu"
+	default y
+	help
+		Select SHL build reference relu
+
+config C_REFERENCE_RELU1
+	depends on C_REFERENCE_SOURCE
+	bool "Layer relu1"
+	default y
+	help
+		Select SHL build reference relu1
+
+config C_REFERENCE_RELU6
+	depends on C_REFERENCE_SOURCE
+	bool "Layer relu6"
+	default y
+	help
+		Select SHL build reference relu6
+
+config C_REFERENCE_RELUN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer relun"
+	default y
+	help
+		Select SHL build reference relun
+
+config C_REFERENCE_RESHAPE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reshape"
+	default y
+	help
+		Select SHL build reference reshape
+
+config C_REFERENCE_RESIZE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer resize"
+	default y
+	help
+		Select SHL build reference resize
+
+config C_REFERENCE_REVERSE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer reverse"
+	default y
+	help
+		Select SHL build reference reverse
+
+config C_REFERENCE_ROIALIGN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer roialign"
+	default y
+	help
+		Select SHL build reference roialign
+
+config C_REFERENCE_ROIPOOL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer roipool"
+	default y
+	help
+		Select SHL build reference roipool
+
+config C_REFERENCE_ROUND
+	depends on C_REFERENCE_SOURCE
+	bool "Layer round"
+	default y
+	help
+		Select SHL build reference round
+
+config C_REFERENCE_RSQRT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer rsqrt"
+	default y
+	help
+		Select SHL build reference rsqrt
+
+config C_REFERENCE_SCATTER
+	depends on C_REFERENCE_SOURCE
+	bool "Layer scatter"
+	default y
+	help
+		Select SHL build reference scatter
+
+config C_REFERENCE_SEGMENT_MAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer segmnet_max"
+	default y
+	help
+		Select SHL build reference segmnet_max
+
+config C_REFERENCE_SEGMENT_MEAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer segmnet_mean"
+	default y
+	help
+		Select SHL build reference segmnet_mean
+
+config C_REFERENCE_SEGMENT_MIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer segmnet_min"
+	default y
+	help
+		Select SHL build reference segmnet_min
+
+config C_REFERENCE_SEGMENT_PROD
+	depends on C_REFERENCE_SOURCE
+	bool "Layer segmnet_prod"
+	default y
+	help
+		Select SHL build reference segmnet_prod
+
+config C_REFERENCE_SEGMENT_SUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer segmnet_sum"
+	default y
+	help
+		Select SHL build reference segmnet_sum
+
+config C_REFERENCE_SELECT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer select"
+	default y
+	help
+		Select SHL build reference select
+
+config C_REFERENCE_SHAPE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer shape"
+	default y
+	help
+		Select SHL build reference shape
+
+config C_REFERENCE_SHUFFLE_CHANNEL
+	depends on C_REFERENCE_SOURCE
+	bool "Layer shuffle_channel"
+	default y
+	help
+		Select SHL build reference shuffle_channel
+
+config C_REFERENCE_SIGMOID
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sigmoid"
+	default y
+	help
+		Select SHL build reference sigmoid
+
+config C_REFERENCE_SIGN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sign"
+	default y
+	help
+		Select SHL build reference sign
+
+config C_REFERENCE_SIN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sin"
+	default y
+	help
+		Select SHL build reference sin
+
+config C_REFERENCE_SINH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sinh"
+	default y
+	help
+		Select SHL build reference sinh
+
+config C_REFERENCE_SLICE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer slice"
+	default y
+	help
+		Select SHL build reference slice
+
+config C_REFERENCE_SOFTMAX
+	depends on C_REFERENCE_SOURCE
+	bool "Layer softmax"
+	default y
+	help
+		Select SHL build reference softmax
+
+config C_REFERENCE_SOFTPLUS
+	depends on C_REFERENCE_SOURCE
+	bool "Layer softplus"
+	default y
+	help
+		Select SHL build reference softplus
+
+config C_REFERENCE_SOFTRELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer softrelu"
+	default y
+	help
+		Select SHL build reference softrelu
+
+config C_REFERENCE_SOFTSIGN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer softsign"
+	default y
+	help
+		Select SHL build reference softsign
+
+config C_REFERENCE_SPACE_TO_BATCH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer space_to_batch"
+	default y
+	help
+		Select SHL build reference space_to_batch
+
+config C_REFERENCE_SPACE_TO_DEPTH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer space_to_depth"
+	default y
+	help
+		Select SHL build reference space_to_depth
+
+config C_REFERENCE_SPLIT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer split"
+	default y
+	help
+		Select SHL build reference split
+
+config C_REFERENCE_SQRT
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sqrt"
+	default y
+	help
+		Select SHL build reference sqrt
+
+config C_REFERENCE_SQUARE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer square"
+	default y
+	help
+		Select SHL build reference squeeze
+
+config C_REFERENCE_SQUEEZE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer squeeze"
+	default y
+	help
+		Select SHL build reference squeeze
+
+config C_REFERENCE_STACK
+	depends on C_REFERENCE_SOURCE
+	bool "Layer stack"
+	default y
+	help
+		Select SHL build reference stack
+
+config C_REFERENCE_STRIDED_SLICE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer slice"
+	default y
+	help
+		Select SHL build reference slice
+
+config C_REFERENCE_SUB
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sub"
+	default y
+	help
+		Select SHL build reference sub
+
+config C_REFERENCE_SUM
+	depends on C_REFERENCE_SOURCE
+	bool "Layer sum"
+	default y
+	help
+		Select SHL build reference sum
+
+config C_REFERENCE_TAN
+	depends on C_REFERENCE_SOURCE
+	bool "Layer tan"
+	default y
+	help
+		Select SHL build reference tan
+
+config C_REFERENCE_TANH
+	depends on C_REFERENCE_SOURCE
+	bool "Layer tanh"
+	default y
+	help
+		Select SHL build reference tanh
+
+config C_REFERENCE_THRESHOLD_RELU
+	depends on C_REFERENCE_SOURCE
+	bool "Layer threshold_relu"
+	default y
+	help
+		Select SHL build reference threshold_relu
+
+config C_REFERENCE_TILE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer tile"
+	default y
+	help
+		Select SHL build reference tile
+
+config C_REFERENCE_TOPK
+	depends on C_REFERENCE_SOURCE
+	bool "Layer topk"
+	default y
+	help
+		Select SHL build reference topk
+
+config C_REFERENCE_TRANSPOSE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer transpose"
+	default y
+	help
+		Select SHL build reference transpose
+
+config C_REFERENCE_TRUNC
+	depends on C_REFERENCE_SOURCE
+	bool "Layer trunc"
+	default y
+	help
+		Select SHL build reference trunc
+
+config C_REFERENCE_UNPOOLING
+	depends on C_REFERENCE_SOURCE
+	bool "Layer unpooling"
+	default y
+	help
+		Select SHL build reference unpooling
+
+config C_REFERENCE_UNSTACK
+	depends on C_REFERENCE_SOURCE
+	bool "Layer unstack"
+	default y
+	help
+		Select SHL build reference unstack
+
+config C_REFERENCE_XOR
+	depends on C_REFERENCE_SOURCE
+	bool "Layer xor"
+	default y
+	help
+		Select SHL build reference xor
+
+config C_REFERENCE_YUV_RGB_SCALE
+	depends on C_REFERENCE_SOURCE
+	bool "Layer yuv_rgb_scale"
+	default y
+	help
+		Select SHL build reference yuv_rgb_scale
+endmenu

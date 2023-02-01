@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
 int shl_gref_negative(struct csinn_tensor *input, struct csinn_tensor *output,
                       struct csinn_siso_params *params)
 {
-    shl_gref_siso_op(input, output, CSINN_OP_NEGATIIVE, params);
+    shl_gref_siso_op(input, output, CSINN_OP_NEGATIVE, params);
     return CSINN_TRUE;
 }

@@ -16,13 +16,25 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
 int shl_gref_where(struct csinn_tensor *condition, struct csinn_tensor *x, struct csinn_tensor *y,
                    struct csinn_tensor *output, struct csinn_where_params *params)
 {
-    shl_debug_error("shl_gref_where unsupport\n");
-    return CSINN_FALSE;
+    struct csinn_params_base *ptr = (struct csinn_params_base *)params;
+    struct shl_node *layer = shl_node_alloc(CSINN_OP_WHERE, ptr->name, 3, 1, params);
+    struct shl_node *in0 = (struct shl_node *)condition->data;
+    struct shl_node *in1 = (struct shl_node *)x->data;
+    struct shl_node *in2 = (struct shl_node *)y->data;
+    struct shl_node *out = shl_node_var_alloc(output->name, output);
+    shl_node_add_in(layer, in0, 0);
+    shl_node_add_in(layer, in1, 1);
+    shl_node_add_in(layer, in2, 2);
+    shl_node_add_out(layer, out, 0);
+    output->data = out;
+    struct shl_ref_graph *graph = shl_gref_get_graph(condition->sess);
+    shl_gref_graph_insert(layer, graph);
+    return CSINN_TRUE;
 }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_c906.h"
 
@@ -1119,7 +1119,9 @@ int shl_c906_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor
         shl_rvv_fc_gemv_transform_weight_fp32(weights);
         cb->exec = shl_rvv_fullyconnected_packn_fp32;
     } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
-        shl_c906_fc_gemv_transform_weight_fp16(weights);
+        if (weights->mtype != CSINN_MEM_TYPE_CPU_ALIGNED) {
+            shl_c906_fc_gemv_transform_weight_fp16(weights);
+        }
         int output_depth = weights->dim[weights->dim_count - 2];
         if (bias != NULL && output_depth % 16 == 0) {
             cb->exec = shl_c906_fullyconnected_pack16_output16_fp16;

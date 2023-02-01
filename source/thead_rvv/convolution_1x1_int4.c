@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+#ifdef SHL_USE_DOT_INT4
 // kernel_layout: [o, h, w, i]
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
                                                 struct csinn_conv2d_params *params)
@@ -36,8 +36,8 @@ void shl_rvv_conv1x1s1_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
 
     for (int g = 0; g < group; g++) {
-        shl_rvv_reorder_kernel_n8_int8(kernel_data + g * n * k_2, pa_reorder + g * n * k4, n, k_2,
-                                       k_2);
+        shl_rvv_reorder_kernel_n8_int8_dot(kernel_data + g * n * k_2, pa_reorder + g * n * k4, n,
+                                           k_2, k_2);
     }
     // FIXME: free params->conv_extra.kernel_tm->data
     // memcpy(kernel_data, pa_reorder, group * m * k * sizeof(int8_t));
@@ -91,10 +91,10 @@ int shl_rvv_conv1x1s1_gemm_int4(struct csinn_tensor *input, struct csinn_tensor 
             }
 
             // pack
-            shl_rvv_reorder_input_n8_int4(input_data, pa, m, k_2, k_2);
+            shl_rvv_reorder_input_n8_int4_dot(input_data, pa, m, k_2, k_2);
             // GEMM
-            shl_rvv_gemm_8x8_int4(pc, pa, pb, m, k4, n, n / 2, bias_data + g * n,
-                                  output->qinfo->zero_point, multiplier, shift);
+            shl_rvv_gemm_8x8_int4_dot(pc, pa, pb, m, k4, n, n / 2, bias_data + g * n,
+                                      output->qinfo->zero_point, multiplier, shift);
             input_data += m * k_2;
             output_data += m * n / 2;
         }

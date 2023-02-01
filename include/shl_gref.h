@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_GREF_H_
 #define INCLUDE_SHL_GREF_H_
@@ -81,6 +81,10 @@ int shl_gref_depthwise_conv2d(struct csinn_tensor *input, struct csinn_tensor *o
 int shl_gref_group_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                           struct csinn_conv2d_params *params);
+
+int shl_gref_group_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                               struct csinn_conv2d_params *params);
 
 int shl_gref_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -551,6 +555,10 @@ int shl_gref_cache_conv1d(struct csinn_tensor *input, struct csinn_tensor *outpu
 
 int shl_gref_data_convert(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_siso_params *params);
+
+int shl_gref_one_hot(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_one_hot_params *params);
+
 struct shl_ref_graph {
     struct shl_node **input;
     struct shl_node **output;
@@ -563,8 +571,10 @@ struct shl_ref_graph {
 
 struct shl_gref_target_data {
     struct shl_ref_graph *graph;
+    int is_hybrid_quantization_type;
 };
 
+struct shl_ref_graph *shl_subgraph_establish(struct shl_ref_graph *ograph);
 struct shl_ref_graph *shl_gref_get_graph(struct csinn_session *sess);
 int shl_gref_graph_insert(struct shl_node *node, struct shl_ref_graph *graph);
 void shl_gref_post_dfs(struct shl_ref_graph *graph,
@@ -592,7 +602,7 @@ int shl_subgraph_setup(struct shl_node *n);
 int shl_subgraph_deinit(struct shl_node *n);
 int shl_subgraph_run_init(struct shl_node *n);
 int shl_subgraph_run(struct shl_node *n);
-int shl_subgraph_run_deinit(struct shl_node *n);
+int shl_subgraph_run_deinit(struct shl_node *n, struct shl_ref_graph *graph);
 
 struct shl_ref_graph *shl_subgraph_generate(struct shl_ref_graph *ograph);
 struct shl_ref_graph *shl_subgraph_rebuild(struct shl_ref_graph *subgraph);

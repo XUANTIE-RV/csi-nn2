@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -50,8 +50,13 @@ int shl_gref_diso_op(struct csinn_tensor *input0, struct csinn_tensor *input1,
 {
     struct csinn_params_base *ptr = params;
     struct shl_node *layer = shl_node_alloc(op, ptr->name, 2, 1, params);
-    struct shl_node *in0 = (struct shl_node *)input0->data;
+    struct shl_node *in0;
     struct shl_node *in1;
+    if (input0->is_const) {
+        in0 = shl_node_const_var_alloc(input0->name, input0);
+    } else {
+        in0 = (struct shl_node *)input0->data;
+    }
     if (input1->is_const) {
         in1 = shl_node_const_var_alloc(input1->name, input1);
     } else {
