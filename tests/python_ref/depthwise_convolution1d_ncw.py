@@ -49,6 +49,10 @@ def depthwise_convolution1d_f32():
 
     out_size_x = np.shape(t_src_out)[2]
 
+    print(np.shape(src_in))
+    print(np.shape(weight))
+    print(np.shape(t_src_out))
+
     src_in_1  = src_in.flatten()
     weight_1  = weight.flatten()
     src_out_1 = t_src_out.flatten()
@@ -56,16 +60,16 @@ def depthwise_convolution1d_f32():
     total_size = (len(src_in_1) + len(src_out_1)) + len(weight_1) + len(bias) + 17
 
     para.append(total_size)
-    para.append(batch)       # 0
-    para.append(in_channel)  # 1
-    para.append(in_size_x)   # 2
-    para.append(stride_x)    # 3
-    para.append(kernel_x)    # 4
-    para.append(pad_left)    # 5
-    para.append(pad_right)   # 6
-    para.append(out_channel) # 7
-    para.append(dilation_x)  # 8
-    para.append(out_size_x)  # 9
+    para.append(batch)       # 0 
+    para.append(in_channel)  # 1 
+    para.append(in_size_x)   # 2 
+    para.append(stride_x)    # 3 
+    para.append(kernel_x)    # 4 
+    para.append(pad_left)    # 5 
+    para.append(pad_right)   # 6 
+    para.append(out_channel) # 7 
+    para.append(dilation_x)  # 8 
+    para.append(out_size_x)  # 9 
     print(para)
 
     with open("depthwise_convolution1d_ncw_data_f32.bin", "wb") as fp:

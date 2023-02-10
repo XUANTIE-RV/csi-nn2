@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -1319,19 +1317,24 @@ int shl_c906_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor
 {
     int32_t input_h = input->dim[2];
     int32_t input_w = input->dim[3];
-
     int32_t kernel_h = params->filter_height;
     int32_t kernel_w = params->filter_width;
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-
     int32_t pad_left = params->pad_left;
     int32_t pad_right = params->pad_right;
     int32_t pad_top = params->pad_top;
     int32_t pad_down = params->pad_down;
-
     struct csinn_callback *cb = params->base.cb;
     cb->exec = NULL;
+
+    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+        if (option && option->base.use_packn_layout) {
+            shl_debug_error("%s: unsupport packn\n", __func__);
+            return CSINN_UNSUPPORT_LAYOUT;
+        }
+    }
 
     // global avgpool2d
     if (input_h == kernel_h && input_w == kernel_w) {
@@ -1368,7 +1371,16 @@ int shl_c906_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor
                 // end consider ceil_mode 3x3s2p0
                 cb->exec = avgpool3x3s2;
             } else if (pad_left == 1 && pad_top == 1) {
-                cb->exec = avgpool3x3s2_p1;
+                if (params->ceil_mode == 0) {
+                    cb->exec = avgpool3x3s2_p1;
+                } else {
+                    if ((input_w % 2 == 0 && pad_right == 1) ||
+                        (input_h % 2 == 0 && pad_down == 1)) {
+                        cb->exec = shl_ref_avgpool2d_f32;
+                    } else {
+                        cb->exec = avgpool3x3s2_p1;
+                    }
+                }
             }
         }
     } else if (stride_h == 1 && stride_w == 1) {

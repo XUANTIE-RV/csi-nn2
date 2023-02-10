@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_arange_f32(struct csinn_tensor *output, struct csinn_arange_params *params)

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -107,7 +105,6 @@ int shl_rvv_maxpool3x3s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
                     float max1 = fmax(line1[0], line1[1]);
                     float max2 = fmax(line2[0], line2[1]);
                     outptr[0] = fmax(max0, fmax(max1, max2));
-                    outptr[0] = fmax(outptr[0], 0.0f);  // consider padding with constant "0"
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -135,7 +132,7 @@ int shl_rvv_maxpool3x3s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
                     vfloat32m1_t _max1 =
                         vfmax_vv_f32m1(_line1_2_8, vfmax_vv_f32m1(_line1_0_6, _line1_1_7, vl), vl);
 
-                    vfloat32m1_t _max = vfmax_vf_f32m1(vfmax_vv_f32m1(_max0, _max1, vl), 0.0f, vl);
+                    vfloat32m1_t _max = vfmax_vv_f32m1(_max0, _max1, vl);
                     vse32_v_f32m1(outptr, _max, vl);
 
                     outptr += vl;
@@ -145,7 +142,7 @@ int shl_rvv_maxpool3x3s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
                 if (extend_w) {
                     float max0 = fmax(line0[0], line0[1]);
                     float max1 = fmax(line1[0], line1[1]);
-                    outptr[0] = fmax(fmax(max0, max1), 0.0f);
+                    outptr[0] = fmax(max0, max1);
                     outptr++;
                 }
             }
@@ -201,7 +198,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
 
             // h top ---- w left
             outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-            outptr[0] = fmax(outptr[0], 0.0f);
             outptr++;
             line0++;
             line1++;
@@ -226,7 +222,7 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 vfloat32m1_t _max1 =
                     vfmax_vv_f32m1(_line1_2_8, vfmax_vv_f32m1(_line1_0_6, _line1_1_7, vl), vl);
 
-                vfloat32m1_t _max = vfmax_vf_f32m1(vfmax_vv_f32m1(_max0, _max1, vl), 0.0f, vl);
+                vfloat32m1_t _max = vfmax_vv_f32m1(_max0, _max1, vl);
                 vse32_v_f32m1(outptr, _max, vl);
 
                 outptr += vl;
@@ -235,7 +231,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             // h top ---- w right
             if (extend_w) {
                 outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-                outptr[0] = fmax(outptr[0], 0.0f);
                 outptr++;
             }
             line0 += remain_w;
@@ -249,7 +244,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 float max1 = fmax(line1[0], line1[1]);
                 float max2 = fmax(line2[0], line2[1]);
                 outptr[0] = fmax(max0, fmax(max1, max2));
-                outptr[0] = fmax(outptr[0], 0.0f);  // consider padding with constant "0"
                 outptr++;
                 line0++;
                 line1++;
@@ -295,7 +289,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                     float max1 = fmax(line1[0], line1[1]);
                     float max2 = fmax(line2[0], line2[1]);
                     outptr[0] = fmax(max0, fmax(max1, max2));
-                    outptr[0] = fmax(outptr[0], 0.0f);
                     outptr++;
                 }
                 line0 += in_w + remain_w;
@@ -307,7 +300,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             if (extend_h) {
                 // h bottom ---- w left
                 outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-                outptr[0] = fmax(outptr[0], 0.0f);
                 outptr++;
                 line0++;
                 line1++;
@@ -333,7 +325,7 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                     vfloat32m1_t _max1 =
                         vfmax_vv_f32m1(_line1_2_8, vfmax_vv_f32m1(_line1_0_6, _line1_1_7, vl), vl);
 
-                    vfloat32m1_t _max = vfmax_vf_f32m1(vfmax_vv_f32m1(_max0, _max1, vl), 0.0f, vl);
+                    vfloat32m1_t _max = vfmax_vv_f32m1(_max0, _max1, vl);
                     vse32_v_f32m1(outptr, _max, vl);
 
                     outptr += vl;
@@ -342,7 +334,6 @@ int shl_rvv_maxpool3x3s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 // h bottom ---- w right
                 if (extend_w) {
                     outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-                    outptr[0] = fmax(outptr[0], 0.0f);
                     outptr++;
                 }
             }
@@ -381,7 +372,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             float *outptr = output_data + c * out_h * out_w;
             // h top ---- w left
             outptr[0] = fmax(fmax(line1[0], line1[1]), fmax(line2[0], line2[1]));
-            outptr[0] = fmax(outptr[0], 0.0f);
             outptr++;
             // h top ---- w mid
             int w = out_w - 2;
@@ -405,7 +395,7 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 vfloat32m1_t _max2 =
                     vfmax_vv_f32m1(_line2_2_5, vfmax_vv_f32m1(_line2_0_3, _line2_1_4, vl), vl);
 
-                vfloat32m1_t _max = vfmax_vf_f32m1(vfmax_vv_f32m1(_max1, _max2, vl), 0.0f, vl);
+                vfloat32m1_t _max = vfmax_vv_f32m1(_max1, _max2, vl);
                 vse32_v_f32m1(outptr, _max, vl);
 
                 outptr += vl;
@@ -413,7 +403,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             }
             // h top ---- w right
             outptr[0] = fmax(fmax(line1[0], line1[1]), fmax(line2[0], line2[1]));
-            outptr[0] = fmax(outptr[0], 0.0f);
             outptr++;
             line1 += 2;  // bump next line: line1 --> line2
             line2 += 2;
@@ -426,7 +415,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 float max1 = fmax(line1[0], line1[1]);
                 float max2 = fmax(line2[0], line2[1]);
                 outptr[0] = fmax(max0, fmax(max1, max2));
-                outptr[0] = fmax(outptr[0], 0.0f);
                 outptr++;
                 // h mid ---- w mid
                 w = out_w - 2;
@@ -470,8 +458,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 float max1_0 = fmax(line1[0], line1[1]);
                 float max2_0 = fmax(line2[0], line2[1]);
                 outptr[0] = fmax(max0_0, fmax(max1_0, max2_0));
-                outptr[0] = fmax(outptr[0], 0.0f);
-
                 outptr++;
                 line0 += 2;
                 line1 += 2;
@@ -480,7 +466,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
 
             // h bottom ---- w left
             outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-            outptr[0] = fmax(outptr[0], 0.0f);
             outptr++;
             // h bottom ---- w mid
             w = out_w - 2;
@@ -504,7 +489,7 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 vfloat32m1_t _max1 =
                     vfmax_vv_f32m1(_line1_2_5, vfmax_vv_f32m1(_line1_0_3, _line1_1_4, vl), vl);
 
-                vfloat32m1_t _max = vfmax_vf_f32m1(vfmax_vv_f32m1(_max0, _max1, vl), 0.0f, vl);
+                vfloat32m1_t _max = vfmax_vv_f32m1(_max0, _max1, vl);
                 vse32_v_f32m1(outptr, _max, vl);
 
                 outptr += vl;
@@ -512,7 +497,6 @@ int shl_rvv_maxpool3x3s1_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             }
             // h bottom ---- w right
             outptr[0] = fmax(fmax(line0[0], line0[1]), fmax(line1[0], line1[1]));
-            outptr[0] = fmax(outptr[0], 0.0f);
         }
         input_data += input_size;
         output_data += output_size;

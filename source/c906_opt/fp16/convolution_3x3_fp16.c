@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /*
     the conditions for using winograd convolution
     in_channel >= 16

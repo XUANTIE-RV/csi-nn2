@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 int shl_rvv_clip_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -35,10 +33,15 @@ int shl_rvv_clip_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
         vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
         input_data += vl;
         vfloat16m2_t _output = vfmax_vf_f16m2(_input, min_value, vl);
-        _output = vfmin_vf_f16m2(_input, max_value, vl);
+        _output = vfmin_vf_f16m2(_output, max_value, vl);
         vse16_v_f16m2(output_data, _output, vl);
         output_data += vl;
         size -= vl;
+    }
+    output->layout = input->layout;
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = input->dim[i];
     }
     // requantize
     shl_rvv_siso_op_requantize_fp16(input, output);

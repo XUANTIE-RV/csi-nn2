@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void shl_c908_conv_im2col_gemm_reorder_kernel_packnto1_int8(struct csinn_tensor *kernel,
@@ -30,6 +28,9 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
                                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                             struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
@@ -37,7 +38,7 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
 
     int32_t group = params->group;
     int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];
+    int32_t in_c = input->dim[1] * input->dim[4];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
     int32_t out_c = kernel->dim[0];
@@ -47,6 +48,8 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
     int32_t ksize_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
 
     int32_t m = out_c / group;
     int32_t in_cp = in_c / group;
@@ -61,13 +64,12 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
     for (int i = 0; i < batch; i++) {
         for (int g = 0, j = 0; g < group; g++) {
             // paddding
-            int padded_in_hw = (in_h + params->pad_top + params->pad_down) *
-                               (in_w + params->pad_left + params->pad_right);
+            int padded_in_h = in_h + params->pad_top + params->pad_down;
+            int padded_in_w = in_w + params->pad_left + params->pad_right;
+            int padded_in_hw = padded_in_h * padded_in_w;
             int8_t *input_pad_buf = (int8_t *)shl_mem_alloc(in_cp * padded_in_hw * sizeof(int8_t));
-            shl_rvv_pad_input_packn_int8(input_data, input_pad_buf, in_cp, in_h, in_w,
-                                         (in_h + params->pad_top + params->pad_down),
-                                         (in_w + params->pad_left + params->pad_right),
-                                         params->pad_top, params->pad_left,
+            shl_rvv_pad_input_packn_int8(input_data, input_pad_buf, in_cp, in_h, in_w, padded_in_h,
+                                         padded_in_w, params->pad_top, params->pad_left,
                                          input->qinfo->zero_point);
 
             // im2col
@@ -77,9 +79,7 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
             // [in_c/packn, maxk, out_h, out_w, packn]
             int8_t *im2col_buf = (int8_t *)shl_mem_alloc(in_cp / packn * maxk * out_h * out_w *
                                                          packn * sizeof(int8_t));
-            const int tailstep =
-                ((in_w + params->pad_left + params->pad_right) * stride_h - out_w * stride_w) *
-                packn;
+            const int tailstep = (padded_in_w * stride_h - out_w * stride_w) * packn;
 
             for (int c = 0; c + packn - 1 < in_cp; c += packn) {
                 const int8_t *img0 = input_pad_buf + c * padded_in_hw;
@@ -88,8 +88,7 @@ int shl_c908_conv_im2col_gemm_packnto1_int8(struct csinn_tensor *input, struct c
                 for (int a = 0; a < ksize_h; a++) {
                     for (int b = 0; b < ksize_w; b++) {
                         const int8_t *img1 =
-                            img0 + a * (in_w + params->pad_left + params->pad_right) * packn +
-                            b * packn;
+                            img0 + a * dilation_h * padded_in_w * packn + b * dilation_w * packn;
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {

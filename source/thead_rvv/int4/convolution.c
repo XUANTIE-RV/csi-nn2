@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 #ifdef SHL_USE_DOT_INT4
@@ -25,7 +23,7 @@ int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
-    int32_t out_c = kernel->dim[0];
+    int32_t out_c = kernel->dim[0] / params->group;
     int32_t in_c = kernel->dim[1];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];

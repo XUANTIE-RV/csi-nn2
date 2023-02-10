@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_utils.h"
 
@@ -26,11 +24,7 @@ void shl_target_init_gref();
 void shl_target_init_ovx();
 void shl_target_init_c906();
 void shl_target_init_pnna();
-void shl_target_init_i805();
-void shl_target_init_e804();
-void shl_target_init_ref_i805();
 void shl_target_init_c908();
-void shl_target_init_asp();
 void shl_target_init_rvv();
 void shl_target_init_rvm();
 void shl_target_init_e907();
@@ -55,20 +49,8 @@ void shl_init()
 #ifdef SHL_BUILD_PNNA
     shl_target_init_pnna();
 #endif
-#ifdef SHL_BUILD_I805
-    shl_target_init_i805();
-#endif
-#ifdef SHL_BUILD_E804
-    shl_target_init_e804();
-#endif
-#ifdef SHL_BUILD_REF_I805
-    shl_target_init_ref_i805();
-#endif
 #ifdef SHL_BUILD_C908
     shl_target_init_c908();
-#endif
-#ifdef SHL_BUILD_ASP
-    shl_target_init_asp();
 #endif
 #ifdef SHL_BUILD_RVV
     shl_target_init_rvv();
@@ -115,8 +97,10 @@ void shl_register_op_callback(int api, void *cb) { shl_cb_func_table[api] = cb; 
 int shl_op_callback_map(struct csinn_params_base *base, int op, int dtype)
 {
     void *(*op_map)();
-    if (base->sess && base->sess->base_run_mode == CSINN_RM_CPU_GRAPH &&
-        base->sess->base_api == CSINN_REF) {
+    /* FIXME: unuse CSINN_REF */
+    if (base->sess &&
+        ((base->sess->base_run_mode == CSINN_RM_CPU_GRAPH && base->sess->base_api == CSINN_REF) ||
+         base->sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID)) {
         /* Heterogeneous use GREF */
         op_map = shl_cb_func_table[CSINN_GREF];
     } else {
@@ -143,7 +127,9 @@ void shl_register_runtime_callback(int api, void *cb) { shl_runtime_callback_tab
 void *shl_get_runtime_callback(struct csinn_session *sess, int op)
 {
     void *(*runtime_map)();
-    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH && sess->base_api == CSINN_REF) {
+    /* FIXME: unuse CSINN_REF */
+    if ((sess->base_run_mode == CSINN_RM_CPU_GRAPH && sess->base_api == CSINN_REF) ||
+        sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
         /* Heterogeneous use GREF */
         runtime_map = shl_runtime_callback_table[CSINN_GREF];
     } else {

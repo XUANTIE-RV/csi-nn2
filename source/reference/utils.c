@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include <time.h>
 
 #include "shl_ref.h"
@@ -93,8 +91,8 @@ int shl_ref_diso_broadcast_base(struct csinn_tensor *input0, struct csinn_tensor
     cb->output = output;
 
     int out_size = csinn_tensor_size(output);
-    float *in0_data_b = shl_mem_alloc(out_size * 4);
-    float *in1_data_b = shl_mem_alloc(out_size * 4);
+    float *in0_data_b = shl_mem_alloc(out_size * sizeof(float));
+    float *in1_data_b = shl_mem_alloc(out_size * sizeof(float));
 
     struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
     struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);
@@ -126,6 +124,8 @@ int shl_ref_diso_broadcast_base(struct csinn_tensor *input0, struct csinn_tensor
     }
     shl_mem_free(in0_data_b);
     shl_mem_free(in1_data_b);
+    csinn_free_tensor(b_input0);
+    csinn_free_tensor(b_input1);
     return CSINN_TRUE;
 }
 
@@ -198,15 +198,15 @@ float shl_ref_dequantize_i8_to_f32(int8_t input, struct csinn_quant_info *qinfo)
 uint8_t shl_ref_quantize_f32_to_u8(float input, struct csinn_quant_info *qinfo)
 {
     float scale = shl_ref_get_scale(qinfo->multiplier, qinfo->shift);
-    float output = round(input / scale + qinfo->zero_point);
+    float output = nearbyint(input / scale + qinfo->zero_point);
     return fmin(255, fmax(0, output));
 }
 
 int8_t shl_ref_quantize_f32_to_i8(float input, struct csinn_quant_info *qinfo)
 {
     float scale = shl_ref_get_scale(qinfo->multiplier, qinfo->shift);
-    float output = round(input / scale + qinfo->zero_point);
-    return fmin(127, fmax(-127, output));
+    float output = nearbyint(input / scale + qinfo->zero_point);
+    return fmin(127, fmax(-128, output));
 }
 
 struct csinn_tensor *shl_ref_deconv_kernel_nchw_to_nhwc_f32(struct csinn_tensor *t,
@@ -322,7 +322,7 @@ struct csinn_tensor *shl_ref_nchw_to_nhwc_f32(struct csinn_tensor *t)
     nt->dim[2] = t->dim[3];
     nt->dim[3] = t->dim[1];
 
-    nt->data = shl_mem_alloc(size * 4);
+    nt->data = shl_mem_alloc(size * sizeof(float));
     int32_t permute[4] = {0, 2, 3, 1};
 
     struct csinn_transpose_params tparams;
@@ -491,7 +491,8 @@ void shl_ref_conv_free_float_tensor(struct csinn_tensor *input, struct csinn_ten
     shl_ref_free_float_tensor(bias);
 }
 
-struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
+struct csinn_tensor *shl_ref_tensor_transform_base(struct csinn_tensor *input, int csinn_dtype,
+                                                   uint8_t num_bits)
 {
     struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
     csinn_tensor_copy(ret, input);
@@ -500,7 +501,35 @@ struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
         ret->qinfo = NULL;
     }
     ret->quant_channel = 0;
-    ret->dtype = CSINN_DTYPE_FLOAT32;
+    ret->dtype = csinn_dtype;
+    switch (input->layout) {
+        case CSINN_LAYOUT_NC1DHWC0:
+            ret->layout = CSINN_LAYOUT_NCDHW;
+            ret->dim[1] *= input->dim[5];
+            ret->dim[5] = 0;
+            ret->dim_count = 5;
+            break;
+        case CSINN_LAYOUT_NC1HWC0:
+            ret->layout = CSINN_LAYOUT_NCHW;
+            ret->dim[1] *= input->dim[4];
+            ret->dim[4] = 0;
+            ret->dim_count = 4;
+            break;
+        case CSINN_LAYOUT_NC1WC0:
+            ret->layout = CSINN_LAYOUT_NCW;
+            ret->dim[1] *= input->dim[3];
+            ret->dim[3] = 0;
+            ret->dim_count = 3;
+            break;
+        case CSINN_LAYOUT_NC1C0:
+            ret->layout = CSINN_LAYOUT_NC;
+            ret->dim[1] *= input->dim[2];
+            ret->dim[2] = 0;
+            ret->dim_count = 2;
+            break;
+        default:
+            break;
+    }
     if (ret->dim_count == 0) {
         return ret;
     }
@@ -508,11 +537,31 @@ struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
     if (input_size == 0) {
         return ret;
     }
-    ret->data = shl_mem_alloc(input_size * 4);
+    ret->data = shl_mem_alloc(input_size * num_bits);
     if (csinn_tensor_data_convert(ret, input) == CSINN_TRUE) {
         return ret;
     }
     return NULL;
+}
+
+struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
+{
+    return shl_ref_tensor_transform_base(input, CSINN_DTYPE_FLOAT32, sizeof(float));
+}
+
+struct csinn_tensor *shl_ref_tensor_transform_int64(struct csinn_tensor *input)
+{
+    return shl_ref_tensor_transform_base(input, CSINN_DTYPE_INT64, sizeof(int64_t));
+}
+
+int shl_ref_tensor_transform_free_int64(struct csinn_tensor *input)
+{
+    int size = csinn_tensor_size(input);
+    if (size != 0) {
+        shl_mem_free(input->data);
+    }
+    csinn_free_tensor(input);
+    return CSINN_TRUE;
 }
 
 int shl_ref_tensor_transform_free_f32(struct csinn_tensor *input)
@@ -579,6 +628,13 @@ uint8_t *shl_ref_f32_to_input_dtype(uint32_t index, float *data, struct csinn_se
     csinn_tensor_copy(ftmp, sess->input[index]);
     ftmp->data = data;
     ftmp->dtype = CSINN_DTYPE_FLOAT32;
+    /* The img preprocess only accepts nchw layout input */
+    if (sess->input[index]->layout == CSINN_LAYOUT_NHWC) {
+        ftmp->layout = CSINN_LAYOUT_NCHW;
+        ftmp->dim[1] = sess->input[index]->dim[3];
+        ftmp->dim[2] = sess->input[index]->dim[1];
+        ftmp->dim[3] = sess->input[index]->dim[2];
+    }
     struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
     csinn_tensor_copy(ret, sess->input[index]);
     ret->data = shl_mem_alloc(csinn_tensor_byte_size(ret));
@@ -630,6 +686,13 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
         return CSINN_TRUE;
     }
 
+    if (data_size == 1) {
+        for (int i = 0; i < out_size; i++) {
+            output_data[i] = input_data[0];
+        }
+        return CSINN_TRUE;
+    }
+
     // full in_shape
     int32_t new_shape[target_shape_rank];
     memcpy(new_shape, in_shape, in_shape_rank * 4);
@@ -644,7 +707,7 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
     }
     in_shape = new_shape;
 
-    float *output_data_t = shl_mem_alloc(out_size * 4);
+    float *output_data_t = shl_mem_alloc(out_size * sizeof(float));
     memcpy(output_data_t, input_data, data_size * 4);
     memcpy(output_data, input_data, data_size * 4);
 
@@ -666,7 +729,7 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
                 target_inner_size *= target_shape[j];
             }
 
-            float tmp_arr[inner_size];
+            float *tmp_arr = (float *)shl_mem_alloc(inner_size * sizeof(float));
             for (int idx = 0; idx < data_size; idx++) {
                 // at first output equal to input, then tmp data be saved in output
                 tmp_arr[idx % inner_size] = output_data_t[idx];
@@ -680,6 +743,7 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
                     }
                 }
             }
+            shl_mem_free(tmp_arr);
             in_shape[target_shape_rank - i - 1] = target_shape[target_shape_rank - i - 1];
             memcpy(output_data_t, output_data, out_size * 4);
         }
@@ -698,4 +762,14 @@ int shl_ref_broadcast_to_shape_quant(struct csinn_tensor *input, struct csinn_te
     shl_ref_tensor_transform_free_f32(finput);
     shl_ref_tensor_transform_free_f32(foutput);
     return ret;
+}
+
+bool shl_is_first_layer_input(struct csinn_tensor *input, struct csinn_session *sess)
+{
+    for (int i = 0; i < sess->input_num; i++) {
+        if (input == sess->input[i]) {
+            return true;
+        }
+    }
+    return false;
 }

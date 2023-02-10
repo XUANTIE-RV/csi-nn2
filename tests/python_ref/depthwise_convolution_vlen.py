@@ -41,11 +41,13 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
             stride_y    = 2
             kernel_x    = 3
             kernel_y    = 3
+            out_channel = 8 + 4 + 2 + 1
         elif test_type == "pack1_conv3x3s1":
             stride_x    = 1
             stride_y    = 1
             kernel_x    = 3
             kernel_y    = 3
+            out_channel = 8 + 4 + 2 + 1
 
     elif "packn_" in test_type:
         in_channel  = packn * n
@@ -102,9 +104,9 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
     out_channel = np.shape(t_src_out)[1]
 
     # nc1c0hw ==> nc1hwc0
-    if "packn_" in test_type:
-        t_src_in = t_src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
-        t_src_out = t_src_out.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose([0, 1, 3, 4, 2])
+    # if "packn_" in test_type:
+    #     t_src_in = t_src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
+    #     t_src_out = t_src_out.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose([0, 1, 3, 4, 2])
 
     src_in_1  = t_src_in.flatten()
     weight_1  = weight.flatten()

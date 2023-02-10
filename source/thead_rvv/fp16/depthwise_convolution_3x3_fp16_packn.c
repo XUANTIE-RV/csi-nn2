@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -27,17 +25,24 @@ int shl_rvv_dwconv3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tens
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];  // group = in_channel
+    int32_t in_c = input->dim[1] * input->dim[4];  // group = in_channel
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
-
-    int32_t out_c = output->dim[1];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
 
@@ -46,7 +51,7 @@ int shl_rvv_dwconv3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tens
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_rvv_pad_input_packn_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
@@ -538,17 +543,24 @@ int shl_rvv_dwconv3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tens
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];  // group = in_channel
+    int32_t in_c = input->dim[1] * input->dim[4];  // group = in_channel
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
-
-    int32_t out_c = output->dim[1];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
 
@@ -557,7 +569,7 @@ int shl_rvv_dwconv3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tens
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_rvv_pad_input_packn_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,

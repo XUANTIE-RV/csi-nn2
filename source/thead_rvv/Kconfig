@@ -301,6 +301,20 @@ config THEAD_RVV_LEAKY_RELU_INT8
 	help
 		Select SHL build v extension optimized leaky_relu
 
+config THEAD_RVV_MATMUL_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer matmul fp32"
+	default y
+	help
+		Select SHL build v extension optimized matmul
+
+config THEAD_RVV_MATMUL_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer matmul fp16"
+	default y
+	help
+		Select SHL build v extension optimized matmul
+
 config THEAD_RVV_MATMUL_INT8
 	depends on THEAD_RVV_SOURCE
 	bool "Layer matmul int8"
@@ -448,6 +462,13 @@ config THEAD_RVV_RESHAPE_INT8
 	help
 		Select SHL build v extension optimized reshape
 
+config THEAD_RVV_SIGMOID_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer sigmoid fp32"
+	default y
+	help
+		Select SHL build v extension optimized sigmoid
+
 config THEAD_RVV_SIGMOID_FP16
 	depends on THEAD_RVV_SOURCE
 	bool "Layer sigmoid fp16"
@@ -469,12 +490,19 @@ config THEAD_RVV_SOFTMAX_FP16
 	help
 		Select SHL build v extension optimized softmax
 
-config THEAD_RVV_SUM_INT8
+config THEAD_RVV_REDUCE_SUM_INT8
 	depends on THEAD_RVV_SOURCE
-	bool "Layer sum int8"
+	bool "Layer reduce_sum int8"
 	default y
 	help
-		Select SHL build v extension optimized sum
+		Select SHL build v extension optimized reduce_sum
+
+config THEAD_RVV_TRANSPOSE_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer transpose fp32"
+	default y
+	help
+		Select SHL build v extension optimized transpose
 
 config THEAD_RVV_TRANSPOSE_FP16
 	depends on THEAD_RVV_SOURCE
@@ -490,11 +518,25 @@ config THEAD_RVV_TRANSPOSE_INT8
 	help
 		Select SHL build v extension optimized transpose
 
+config THEAD_RVV_GATHER_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer gather fp16"
+	default y
+	help
+		Select SHL build v extension optimized gather
+
 config THEAD_RVV_GATHER_INT8
 	depends on THEAD_RVV_SOURCE
 	bool "Layer gather int8"
 	default y
 	help
 		Select SHL build v extension optimized gather
+
+config THEAD_RVV_STRIDED_SLICE_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer strided_slice fp16"
+	default y
+	help
+		Select SHL build v extension optimized strided_slice
 
 endmenu

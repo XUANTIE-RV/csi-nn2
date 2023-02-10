@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /* The matrices are stored in row-major order */
@@ -3419,7 +3417,7 @@ void shl_c906_sgemm_kernel_f32(float *dst, const float *sa, const float *sb, int
     bool flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (float *)shl_mem_alloc(m * 4);
+        bias = (float *)shl_mem_alloc(m * sizeof(float));
     }
     float *bias_tmp = bias;
 

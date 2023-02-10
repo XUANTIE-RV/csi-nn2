@@ -16,9 +16,37 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
+
+/*************************************************************
+  Matmul fp16_w_int8 performance on C906@1GHz
+  -------------------------
+  |      mkn     | GFlops |
+  |-----------------------|
+  |   49,32,49   |  2.29  |
+  |   8,176,176  |  3.13  |
+  |  8,1584,176  |  3.54  |
+  | 384,512,512  |  3.71  |
+  | 196,1536,384 |  3.83  |
+  -------------------------
+
+  Matmul fp16 performance on C906@1GHz
+  ----------------------------------
+  |              |      GFlops     |
+  |      mkn     |-----------------|
+  |              |  C906  |  RVV   |
+  |--------------------------------|
+  |   49,32,49   |  2.27  |  1.94  |
+  |   8,176,176  |  1.2   |  1.59  |
+  |  8,1584,176  |  0.36  |  1.81  |
+  | 384,512,512  |  2.52  |  2.84  |
+  | 196,1536,384 |  1.19  |  2.91  |
+  -----------------------------------
+ ************************************************************/
+
+#define MATMUL_M_BLK 64
+#define MATMUL_K_BLK 64
+#define MATMUL_N_BLK 64
 
 static void reorder_matrixa_n8_fp16(__fp16 *src, __fp16 *dst, int row, int col)
 {
@@ -161,49 +189,6 @@ static void reorder_matrixb_z8_fp16(__fp16 *src, __fp16 *dst, int row, int col)
             vl = vsetvl_e16m1(row & 7);
             vfloat16m1_t _input0 = vlse16_v_f16m1(in_ptr, col * sizeof(__fp16), vl);
             vse16_v_f16m1(dst, _input0, vl);
-            dst += vl;
-        }
-    }
-}
-
-static void reorder_matrixb_z8_int8_fp16(int8_t *src, __fp16 *dst, int row, int col, int32_t zp,
-                                         float scale)
-{
-    int vl = vsetvl_e8m1(8);
-    int i = 0;
-    for (; i + 7 < col; i += 8) {
-        int8_t *in_ptr = src + i;
-        for (int j = 0; j < row; j++) {
-            vint8m1_t _input = vle8_v_i8m1(in_ptr, vl);
-            vint16m2_t _in_w = vwsub_vx_i16m2(_input, zp, vl);
-            vfloat16m2_t _in_f = vfcvt_f_x_v_f16m2(_in_w, vl);
-            _in_f = vfmul_vf_f16m2(_in_f, scale, vl);
-            in_ptr += col;
-            vse16_v_f16m2(dst, _in_f, vl);
-            dst += vl;
-        }
-    }
-    for (; i < col; i++) {
-        int8_t *in_ptr = src + i;
-        vl = vsetvl_e8m1(8);
-        int j = 0;
-        for (; j + 7 < row; j += 8) {
-            vint8m1_t _input0 = vlse8_v_i8m1(in_ptr, col * sizeof(int8_t), vl);
-            vint16m2_t _in_w = vwsub_vx_i16m2(_input0, zp, vl);
-            vfloat16m2_t _in_f = vfcvt_f_x_v_f16m2(_in_w, vl);
-            _in_f = vfmul_vf_f16m2(_in_f, scale, vl);
-            in_ptr += 8 * col;
-            vse16_v_f16m2(dst, _in_f, vl);
-            dst += vl;
-        }
-        // col tail
-        if (j < row) {
-            vl = vsetvl_e8m1(row & 7);
-            vint8m1_t _input0 = vlse8_v_i8m1(in_ptr, col * sizeof(int8_t), vl);
-            vint16m2_t _in_w = vwsub_vx_i16m2(_input0, zp, vl);
-            vfloat16m2_t _in_f = vfcvt_f_x_v_f16m2(_in_w, vl);
-            _in_f = vfmul_vf_f16m2(_in_f, scale, vl);
-            vse16_v_f16m2(dst, _in_f, vl);
             dst += vl;
         }
     }
@@ -449,10 +434,16 @@ static int matmul_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *ma
 int shl_c906_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                          struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
+    const int dim_k = mat0->dim[mat0->dim_count - (params->trans_a ? 2 : 1)];
     if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
         return matmul_fp16_w_int8(mat0, mat1, output, params);
     } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
-        return matmul_fp16(mat0, mat1, output, params);
+        if (dim_k > MATMUL_K_BLK) {
+            return shl_rvv_matmul_block_fp16(mat0, mat1, output, params, MATMUL_M_BLK, MATMUL_K_BLK,
+                                             MATMUL_N_BLK);
+        } else {
+            return matmul_fp16(mat0, mat1, output, params);
+        }
     } else {
         shl_debug_error("mat1 unsupport dtype: %d\n", mat1->dtype);
         return CSINN_FALSE;
@@ -507,13 +498,24 @@ int shl_c906_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *ma
                               struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
+    const int dim_k = mat1->dim[mat1->dim_count - (params->trans_b ? 1 : 2)];
     if (mat0->dtype == CSINN_DTYPE_FLOAT16) {
         if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
             shl_c906_matmul_reorder_weight_z32_int8(mat1);
+        } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
+            if (dim_k > MATMUL_K_BLK) {
+                if (mat1->is_const) {
+                    shl_rvv_matmul_reorder_weight_fp16(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+                }
+            }
+        } else {
+            shl_debug_error("mat1 unsupported dtype: %d\n", mat1->dtype);
+            return CSINN_FALSE;
         }
         cb->exec = shl_c906_matmul_fp16;
     } else {
         shl_debug_error("mat0 unsupport dtype: %d\n", mat0->dtype);
+        return CSINN_FALSE;
     }
     return CSINN_TRUE;
 }

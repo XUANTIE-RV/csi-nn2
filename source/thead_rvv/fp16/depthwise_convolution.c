@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -34,10 +32,28 @@ int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_
     struct csinn_callback *cb = params->base.cb;
 
     const int packn = csrr_vlenb() / sizeof(__fp16);
+    int in_elempack = 1;
+    int out_elempack = 1;
+    struct csinn_session *sess = params->base.sess;
+    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_rvv_option *option = shl_rvv_get_graph_option(sess);
+        if (option && option->use_packn_layout) {
+            in_elempack = in_c % packn == 0 ? packn : 1;
+            out_elempack = out_c % packn == 0 ? packn : 1;
+        }
+        /* first layer do not convert input layout */
+        if (shl_is_first_layer_input(input, sess)) {
+            in_elempack = 1;
+            out_elempack = 1;  // dwconv2d out_channel pack is same as in_channel
+        }
+    }
 
-    if (in_c % packn == 0 && out_c % packn == 0) {
-        output->layout = CSINN_LAYOUT_NC1HWC0;
-        shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
+
+    if (in_elempack % packn == 0 && out_elempack % packn == 0) {
+        if (!binary_model_op_init) {
+            shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
+        }
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_packn_fp16;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {
@@ -47,7 +63,7 @@ int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_
         }
     }
 
-    if (in_c % packn != 0 && out_c % packn != 0) {
+    if (in_elempack % packn != 0 && out_elempack % packn != 0) {
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_fp16;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {

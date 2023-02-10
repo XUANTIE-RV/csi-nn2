@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include <math.h>
 
 #include "shl_ref.h"
@@ -42,8 +40,8 @@ int shl_ref_where_softmax_f32(struct csinn_tensor *condition, struct csinn_tenso
     }
 
     uint8_t *c_data_b = shl_mem_alloc(where_out_size);
-    float *y_data_b = shl_mem_alloc(where_out_size * 4);
-    float *where_output_data = shl_mem_alloc(where_out_size * 4);
+    float *y_data_b = shl_mem_alloc(where_out_size * sizeof(float));
+    float *where_output_data = shl_mem_alloc(where_out_size * sizeof(float));
     struct csinn_tensor *b_c = csinn_alloc_tensor(NULL);
     struct csinn_tensor *b_y = csinn_alloc_tensor(NULL);
     struct csinn_tensor *where_out = csinn_alloc_tensor(NULL);

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -45,7 +43,6 @@ static void avgpool_w8_int8_packn(const int8_t *src, int8_t *dst, struct csinn_p
                                                       idx_w_end, loc);
     __fp16 ratio = 1.0f / window_size;
     ratio *= real_scale;
-    int z1xn = z1 * window_size;
 
     vint16m2_t _acc0, _acc1, _acc2, _acc3;
     vint16m2_t _acc4, _acc5, _acc6, _acc7;
@@ -57,21 +54,21 @@ static void avgpool_w8_int8_packn(const int8_t *src, int8_t *dst, struct csinn_p
         for (int w = idx_w_start; w < idx_w_end; w++) {
             const int8_t *in_ptr = src + (h * in_w + w) * packn;
             _acc0 = vadd_vv_i16m2(
-                _acc0, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 0 * stride_w * packn, vl), 0, vl), vl);
+                _acc0, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 0 * stride_w * packn, vl), z1, vl), vl);
             _acc1 = vadd_vv_i16m2(
-                _acc1, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 1 * stride_w * packn, vl), 0, vl), vl);
+                _acc1, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 1 * stride_w * packn, vl), z1, vl), vl);
             _acc2 = vadd_vv_i16m2(
-                _acc2, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 2 * stride_w * packn, vl), 0, vl), vl);
+                _acc2, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 2 * stride_w * packn, vl), z1, vl), vl);
             _acc3 = vadd_vv_i16m2(
-                _acc3, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 3 * stride_w * packn, vl), 0, vl), vl);
+                _acc3, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 3 * stride_w * packn, vl), z1, vl), vl);
             _acc4 = vadd_vv_i16m2(
-                _acc4, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 4 * stride_w * packn, vl), 0, vl), vl);
+                _acc4, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 4 * stride_w * packn, vl), z1, vl), vl);
             _acc5 = vadd_vv_i16m2(
-                _acc5, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 5 * stride_w * packn, vl), 0, vl), vl);
+                _acc5, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 5 * stride_w * packn, vl), z1, vl), vl);
             _acc6 = vadd_vv_i16m2(
-                _acc6, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 6 * stride_w * packn, vl), 0, vl), vl);
+                _acc6, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 6 * stride_w * packn, vl), z1, vl), vl);
             _acc7 = vadd_vv_i16m2(
-                _acc7, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr + 7 * stride_w * packn, vl), 0, vl), vl);
+                _acc7, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr + 7 * stride_w * packn, vl), z1, vl), vl);
         }
     }
 
@@ -140,17 +137,15 @@ static void avgpool_border_int8_packn(const int8_t *src, int8_t *dst,
                                                       idx_w_end, loc);
     __fp16 ratio = 1.0f / window_size;
     ratio *= real_scale;
-    int z1xn = z1 * window_size;
 
     vint16m2_t _acc = vmv_v_x_i16m2(0, vl);
     for (int h = idx_h_start; h < idx_h_end; h++) {
         for (int w = idx_w_start; w < idx_w_end; w++) {
             const int8_t *in_ptr = src + (h * in_w + w) * packn;
-            _acc = vadd_vv_i16m2(_acc, vwadd_vx_i16m2(vle8_v_i8m1(in_ptr, vl), 0, vl), vl);
+            _acc = vadd_vv_i16m2(_acc, vwsub_vx_i16m2(vle8_v_i8m1(in_ptr, vl), z1, vl), vl);
         }
     }
 
-    _acc = vsub_vx_i16m2(_acc, z1xn, vl);
     vfloat16m2_t _tmp = vfcvt_f_x_v_f16m2(_acc, vl);
     _tmp = vfmul_vf_f16m2(_tmp, ratio, vl);
     vint16m2_t _res = vfcvt_x_f_v_i16m2(_tmp, vl);
@@ -163,11 +158,20 @@ static void avgpool_border_int8_packn(const int8_t *src, int8_t *dst,
 int shl_rvv_avgpool_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
 
@@ -194,7 +198,7 @@ int shl_rvv_avgpool_packn_int8(struct csinn_tensor *input, struct csinn_tensor *
     int z1 = input->qinfo->zero_point;
     int z2 = output->qinfo->zero_point;
 
-    for (int bc = 0; bc < batch * in_c; bc += packn) {
+    for (int bc = 0; bc + packn - 1 < batch * in_c; bc += packn) {
         const int8_t *in_ptr = input_data + bc * in_h * in_w;
         int8_t *out_ptr = output_data + bc * out_h * out_w;
 

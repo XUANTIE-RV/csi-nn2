@@ -16,9 +16,9 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
+#ifndef SHL_BUILD_RTOS
 #include <dirent.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -945,16 +945,18 @@ char *op_strings[] = {
     [CSINN_OP_AVGPOOL2D] = "avgpool2d",
     [CSINN_OP_CONCAT] = "concat",
     [CSINN_OP_CONV2D] = "conv2d",
-    [CSINN_OP_DEPTHWISE_CONV2D] = "dwconv2d",
     [CSINN_OP_CONV2D_RELU] = "conv2d_relu",
-    [CSINN_OP_DATA_CONVERT] = "data_convert",
+    [CSINN_OP_GROUP_CONV2D] = "group_conv2d",
+    [CSINN_OP_GROUP_CONV2D_RELU6] = "group_conv2d_relu",
     [CSINN_OP_DEPTHWISE_CONV2D] = "dwconv2d",
     [CSINN_OP_DEPTHWISE_CONV2D_RELU] = "dwconv2d_relu",
+    [CSINN_OP_DATA_CONVERT] = "data_convert",
     [CSINN_OP_FULLYCONNECTED] = "fullyconnected",
     [CSINN_OP_GLOBAL_AVGPOOL2D] = "global_avgpool2d",
     [CSINN_OP_LEAKY_RELU] = "leaky_relu",
     [CSINN_OP_MAXPOOL2D] = "maxpool2d",
     [CSINN_OP_RELU] = "relu",
+    [CSINN_OP_RELU1] = "relu1",
     [CSINN_OP_RELU6] = "relu6",
     [CSINN_OP_RESHAPE] = "reshape",
     [CSINN_OP_RESIZE] = "resize",
@@ -975,9 +977,12 @@ char *op_strings[] = {
     [CSINN_OP_LAYER_NORM] = "layer_norm",
     [CSINN_OP_WHERE] = "where",
     [CSINN_OP_CONV1D] = "conv1d",
+    [CSINN_OP_GROUP_CONV1D] = "group_conv1d",
     [CSINN_OP_DEPTHWISE_CONV1D] = "dwconv1d",
     [CSINN_OP_CLIP] = "clip",
     [CSINN_OP_WHERE_SOFTMAX] = "where_softmax",
+    [CSINN_OP_ERF] = "erf",
+    [CSINN_OP_CAST] = "cast",
 };
 
 // #define FREQ 50  // FPGA: 50MHz
@@ -1010,14 +1015,19 @@ int shl_benchmark_layer(struct shl_node *n, uint64_t start_time, uint64_t end_ti
         struct csinn_tensor *in1 = (struct csinn_tensor *)node->in[1]->data;
         struct csinn_conv2d_params *params = node->data;
         int32_t k_h, k_w, in_c = 0;
-        if (in0->layout == CSINN_LAYOUT_NCHW) {
+        if (in1->layout == CSINN_LAYOUT_OIHW) {
             k_h = in1->dim[2];
             k_w = in1->dim[3];
             in_c = in1->dim[1];
-        } else if (in0->layout == CSINN_LAYOUT_NHWC) {
+        } else if (in1->layout == CSINN_LAYOUT_OHWI) {
             k_h = in1->dim[1];
             k_w = in1->dim[2];
             in_c = in1->dim[3];
+        } else {
+            shl_debug_info(" unsupport kernel layout ");
+            k_h = 0;
+            k_w = 0;
+            in_c = 0;
         }
         float cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * 0.000001f * in_c * k_h * k_w * 2;
         shl_debug_info(" | k: %dx%d |", k_h, k_w);
@@ -1030,12 +1040,16 @@ int shl_benchmark_layer(struct shl_node *n, uint64_t start_time, uint64_t end_ti
         struct csinn_tensor *in1 = (struct csinn_tensor *)node->in[1]->data;
         struct csinn_conv2d_params *params = node->data;
         int32_t k_h, k_w = 0;
-        if (in0->layout == CSINN_LAYOUT_NCHW) {
+        if (in1->layout == CSINN_LAYOUT_O1HW) {
             k_h = in1->dim[2];
             k_w = in1->dim[3];
-        } else if (in0->layout == CSINN_LAYOUT_NHWC) {
+        } else if (in1->layout == CSINN_LAYOUT_1HWO) {
             k_h = in1->dim[1];
             k_w = in1->dim[2];
+        } else {
+            shl_debug_info(" unsupport kernel layout ");
+            k_h = 0;
+            k_w = 0;
         }
         float cacls = out0->dim[1] * out0->dim[2] * out0->dim[3] * 0.000001f * k_h * k_w * 2;
         shl_debug_info(" | k: %dx%d |", k_h, k_w);
@@ -1053,13 +1067,20 @@ int shl_benchmark_layer(struct shl_node *n, uint64_t start_time, uint64_t end_ti
         float cacls = in0->dim[0] * in0->dim[1] * out0->dim[1] * 0.000001f * 2;
         shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
     } else if (node->type == CSINN_OP_MATMUL) {
-        if (in0->dim_count == 3) {
-            float cacls = in0->dim[0] * in0->dim[1] * in0->dim[2] * out0->dim[2] * 0.000001f * 2;
-            shl_debug_info(" | m,k,n: %d,%d,%d | ", in0->dim[1], in0->dim[2], out0->dim[2]);
-            shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
+        struct csinn_tensor *in1 = (struct csinn_tensor *)node->in[1]->data;
+        struct csinn_matmul_params *params = node->data;
+        int dim_m = in0->dim[in0->dim_count - (params->trans_a ? 1 : 2)];
+        int dim_k = in0->dim[in0->dim_count - (params->trans_a ? 2 : 1)];
+        int dim_n = in1->dim[in1->dim_count - (params->trans_b ? 2 : 1)];
+        float cacls = dim_n * 0.000001f * 2;
+        for (int i = 0; i < in0->dim_count; i++) {
+            cacls *= in0->dim[i];
         }
+        shl_debug_info(" | m,k,n: %d,%d,%d | ", dim_m, dim_k, dim_n);
+        shl_debug_info(" MOPS:%6.2f (%7.4fGOPS)", cacls, cacls / time_ms);
     }
     shl_debug_info("\n");
+    fflush(stdout);
     return CSINN_TRUE;
 }
 
@@ -1099,8 +1120,9 @@ static char *shl_debug_filter_invalid_char(char *src)
     return dst;
 }
 
-int shl_dump_output_tensor(struct shl_node *node)
+int __attribute__((weak)) shl_dump_output_tensor(struct shl_node *node)
 {
+#ifndef SHL_BUILD_RTOS
     const char TENSOR_DUMP_DIR[] = "shl_dump";
     DIR *dir = opendir(TENSOR_DUMP_DIR);
     if (dir) {
@@ -1110,10 +1132,12 @@ int shl_dump_output_tensor(struct shl_node *node)
     }
     int output_num = 1;
     struct shl_node **output_node;
+    int is_cpu_node = 1;
     if (node->type == CSINN_SUBGRAPH) {
         struct shl_ref_graph *sgraph = node->data;
         output_num = sgraph->output_num;
         output_node = sgraph->output;
+        is_cpu_node = 0;
     } else {
         output_num = node->out_num;
         output_node = node->out;
@@ -1130,6 +1154,33 @@ int shl_dump_output_tensor(struct shl_node *node)
         shl_ref_tensor_transform_free_f32(foutput);
         shl_mem_free(output_name);
     }
+    if (node->type == CSINN_OP_CONV2D || node->type == CSINN_OP_DEPTHWISE_CONV2D ||
+        node->type == CSINN_OP_FULLYCONNECTED && is_cpu_node) {
+        // dump output
+        struct csinn_tensor *kernel_node = node->in[1]->data;
+        char shape[128] = {0};
+        shl_debug_shape2string(kernel_node->dim, kernel_node->dim_count, shape, 128);
+        char *kernel_name = shl_debug_filter_invalid_char(kernel_node->name);
+        char filename[1024] = {0};
+        snprintf(filename, 1024, "%s/%s_%s.txt", TENSOR_DUMP_DIR, kernel_name, shape);
+        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(kernel_node);
+        shl_debug_dump_data(foutput, filename);
+        shl_ref_tensor_transform_free_f32(foutput);
+        shl_mem_free(kernel_name);
+
+        // dump input
+        struct csinn_tensor *input_node = node->in[0]->data;
+        char input_shape[128] = {0};
+        shl_debug_shape2string(input_node->dim, input_node->dim_count, shape, 128);
+        char *input_name = shl_debug_filter_invalid_char(input_node->name);
+        char input_filename[1024] = {0};
+        snprintf(filename, 1024, "%s/%s_%s_input.txt", TENSOR_DUMP_DIR, input_name, shape);
+        struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input_node);
+        shl_debug_dump_data(finput, filename);
+        shl_ref_tensor_transform_free_f32(finput);
+        shl_mem_free(input_name);
+    }
+#endif
     return CSINN_TRUE;
 }
 #endif

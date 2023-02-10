@@ -16,14 +16,22 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c920.h"
 
 int shl_c920_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        const int packn = csrr_vlenb() / sizeof(float);
+        output->dim[1] /= packn;
+        output->dim[4] = packn;
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     float *kernel_data = (float *)kernel->data;
@@ -31,16 +39,19 @@ int shl_c920_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csin
 
     int32_t group = params->group;
     int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];
+    int32_t in_c = input->dim[1] * input->dim[4];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
     int32_t out_c = kernel->dim[0];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
+
     int32_t ksize_h = kernel->dim[2];
     int32_t ksize_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
 
     int32_t m = out_c / group;
     int32_t in_cp = in_c / group;
@@ -50,13 +61,12 @@ int shl_c920_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csin
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
             // padding
-            int padded_in_hw = (in_h + params->pad_top + params->pad_down) *
-                               (in_w + params->pad_left + params->pad_right);
+            int padded_in_h = in_h + params->pad_top + params->pad_down;
+            int padded_in_w = in_w + params->pad_left + params->pad_right;
+            int padded_in_hw = padded_in_h * padded_in_w;
             float *input_pad_buf = (float *)shl_mem_alloc(in_cp * padded_in_hw * sizeof(float));
-            shl_rvv_pad_input_packn_fp32(input_data, input_pad_buf, in_cp, in_h, in_w,
-                                         (in_h + params->pad_top + params->pad_down),
-                                         (in_w + params->pad_left + params->pad_right),
-                                         params->pad_top, params->pad_left);
+            shl_rvv_pad_input_packn_fp32(input_data, input_pad_buf, in_cp, in_h, in_w, padded_in_h,
+                                         padded_in_w, params->pad_top, params->pad_left);
 
             // im2col
             const int packn = csrr_vlenb() / sizeof(float);
@@ -65,9 +75,7 @@ int shl_c920_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csin
             // [in_c/packn, maxk, out_h, out_w, packn]
             float *im2col_buf = (float *)shl_mem_alloc(in_cp / packn * maxk * out_h * out_w *
                                                        packn * sizeof(float));
-            const int tailstep =
-                ((in_w + params->pad_left + params->pad_right) * stride_h - out_w * stride_w) *
-                packn;
+            const int tailstep = (padded_in_w * stride_h - out_w * stride_w) * packn;
 
             for (int c = 0; c + packn - 1 < in_cp; c += packn) {
                 const float *img0 = input_pad_buf + c * padded_in_hw;
@@ -76,8 +84,7 @@ int shl_c920_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csin
                 for (int a = 0; a < ksize_h; a++) {
                     for (int b = 0; b < ksize_w; b++) {
                         const float *img1 =
-                            img0 + a * (in_w + params->pad_left + params->pad_right) * packn +
-                            b * packn;
+                            img0 + a * dilation_h * padded_in_w * packn + b * dilation_w * packn;
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {

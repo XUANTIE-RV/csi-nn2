@@ -161,7 +161,8 @@ static void conv_im2col_sgemm_avx(struct csinn_tensor* input, struct csinn_tenso
     // bottom_im2col memory packed 8 x 8
     struct csinn_tensor* bottom_tm = csinn_alloc_tensor(NULL);
     csinn_tensor_copy(bottom_tm, input);
-    bottom_tm->data = shl_mem_alloc(8 * kernel_size * inch * (out_size / 8 + out_size % 8) * 4);
+    bottom_tm->data =
+        shl_mem_alloc(8 * kernel_size * inch * (out_size / 8 + out_size % 8) * sizeof(float));
     bottom_tm->dim[0] = 0;
     bottom_tm->dim[1] = out_size / 8 + out_size % 8;
     bottom_tm->dim[2] = inch;

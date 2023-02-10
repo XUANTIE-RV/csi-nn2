@@ -39,6 +39,10 @@ def stride_slice_f32():
         # stride.append(int(np.random.randint(1, high=in_shape[i]+1, size=1)))
         stride.append(int(np.random.randint(1, high=4, size=1)))
 
+    for i in range(slice_count, in_dim):
+        begin.append(0)
+        end.append(in_shape[i])
+        stride.append(1)
 
     zero_point = int(np.random.randint(-600, high=600, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
@@ -59,7 +63,7 @@ def stride_slice_f32():
     for i in range(0, in_dim):
         para.append(in_shape[i])
     para.append(slice_count)
-    for i in range(0, slice_count):
+    for i in range(0, in_dim):
         para.append(begin[i])
         para.append(end[i])
         para.append(stride[i])

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static int shl_ref_maxpool2d_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -47,19 +45,13 @@ static int shl_ref_maxpool2d_nhwc_f32(struct csinn_tensor *input, struct csinn_t
                     const int filter_y_end =
                         shl_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = -FLT_MAX;
-                    int filter_cnt = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
                             max = fmax(max, input_data[shl_ref_get_index(input->dim, batch, in_y,
                                                                          in_x, channel)]);
-                            filter_cnt++;
                         }
-                    }
-                    // consider padding with constant 0
-                    if (filter_cnt != params->filter_height * params->filter_width) {
-                        max = fmax(max, 0);
                     }
                     output_data[shl_ref_get_index(output->dim, batch, out_y, out_x, channel)] = max;
                 }
@@ -96,19 +88,13 @@ static int shl_ref_maxpool2d_nchw_f32(struct csinn_tensor *input, struct csinn_t
                     const int filter_y_end =
                         shl_ref_min_internal_s32(params->filter_height, input_height - in_y_origin);
                     float max = -FLT_MAX;
-                    int filter_cnt = 0;
                     for (int filter_y = filter_y_start; filter_y < filter_y_end; ++filter_y) {
                         for (int filter_x = filter_x_start; filter_x < filter_x_end; ++filter_x) {
                             const int in_x = in_x_origin + filter_x;
                             const int in_y = in_y_origin + filter_y;
                             max = fmax(max, input_data[shl_ref_get_index(input->dim, batch, channel,
                                                                          in_y, in_x)]);
-                            filter_cnt++;
                         }
-                    }
-                    // consider padding with constant 0
-                    if (filter_cnt != params->filter_height * params->filter_width) {
-                        max = fmax(max, 0);
                     }
                     output_data[shl_ref_get_index(output->dim, batch, channel, out_y, out_x)] = max;
                 }

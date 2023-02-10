@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -119,7 +117,6 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
                 if (extend_w) {
                     outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -130,7 +127,6 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "srai           t0, %2, 3\n\t"  // t0 = out_w >> 3 (out_w8)
                     "beqz           t0, 2f\n\t"
                     "vsetvli        zero, zero, e16, m1\n\t"
-                    "vmv.v.x        v3, zero\n\t"  // clear
 
                     "1:\n\t"
                     "vlseg2e.v      v0, (%0)\n\t"  // v0[0..7] = line0[0,2,4,6,8,10,12,14] v1[0..7]
@@ -138,8 +134,7 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "vfmax.vv       v2, v0, v1\n\t"
                     "addi           %0, %0, 32\n\t"  // line0 += 16
 
-                    "vfmax.vv       v4, v2, v3\n\t"
-                    "vse.v          v4, (%1)\n\t"
+                    "vse.v          v2, (%1)\n\t"
                     "addi           %1, %1, 16\n\t"  // outptr += 8
 
                     "addi           t0, t0, -1\n\t"
@@ -151,7 +146,6 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
                     // out_w_tail
                     "vsetvli        zero, t0, e16, m1\n\t"
-                    "vmv.v.x        v3, zero\n\t"  // clear
                     "slli           t1, t0, 1\n\t"
                     "slli           t2, t0, 2\n\t"
 
@@ -159,8 +153,7 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "vfmax.vv       v2, v0, v1\n\t"
                     "add            %0, %0, t2\n\t"
 
-                    "vfmax.vv       v4, v2, v3\n\t"
-                    "vse.v          v4, (%1)\n\t"
+                    "vse.v          v2, (%1)\n\t"
                     "add            %1, %1, t1\n\t"
 
                     "3:\n\t"  // ending
@@ -169,10 +162,10 @@ static int maxpool2x2s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                       "=r"(outptr),  // %1
                       "=r"(out_w)    // %2
                     : "0"(line0), "1"(outptr), "2"(out_w)
-                    : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "t0", "t1", "t2");
+                    : "cc", "memory", "v0", "v1", "v2", "t0", "t1", "t2");
 
                 if (extend_w) {
-                    outptr[0] = line0[0] > 0 ? line0[0] : 0;
+                    outptr[0] = line0[0];
                     outptr++;
                 }
             }
@@ -228,7 +221,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             __fp16 *outptr = output_data + c * out_hw;
 
             // h top ---- w left
-            outptr[0] = line00[0] > 0 ? line00[0] : 0;
+            outptr[0] = line00[0];
             outptr++;
             line00++;
             // h top ---- w mid
@@ -237,7 +230,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "srai           t0, t3, 3\n\t"   // t0 = (out_w - 1) >> 3 (out_w8)
                 "beqz           t0, 2f\n\t"
                 "vsetvli        zero, zero, e16, m1\n\t"
-                "vmv.v.x        v3, zero\n\t"  // clear
 
                 "1:\n\t"
                 "vlseg2e.v      v0, (%0)\n\t"  // v0[0..7] = line0[0,2,4,6,8,10,12,14]   v1[0..7] =
@@ -245,8 +237,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v2, v0, v1\n\t"
                 "addi           %0, %0, 32\n\t"  // line0 += 16
 
-                "vfmax.vv       v4, v2, v3\n\t"
-                "vse.v          v4, (%1)\n\t"
+                "vse.v          v2, (%1)\n\t"
                 "addi           %1, %1, 16\n\t"  // outptr += 8
 
                 "addi           t0, t0, -1\n\t"
@@ -258,7 +249,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                 // out_w_tail
                 "vsetvli        zero, t0, e16, m1\n\t"
-                "vmv.v.x        v3, zero\n\t"  // clear
                 "slli           t1, t0, 1\n\t"
                 "slli           t2, t0, 2\n\t"
 
@@ -266,8 +256,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v2, v0, v1\n\t"
                 "add            %0, %0, t2\n\t"
 
-                "vfmax.vv       v4, v2, v3\n\t"
-                "vse.v          v4, (%1)\n\t"
+                "vse.v          v2, (%1)\n\t"
                 "add            %1, %1, t1\n\t"
 
                 "3:\n\t"  // ending
@@ -276,10 +265,10 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                   "=r"(outptr),  // %1
                   "=r"(out_w)    // %2
                 : "0"(line00), "1"(outptr), "2"(out_w)
-                : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "t0", "t1", "t2", "t3");
+                : "cc", "memory", "v0", "v1", "v2", "t0", "t1", "t2", "t3");
             // h top ---- w right
             if (extend_w) {
-                outptr[0] = line00[0] > 0 ? line00[0] : 0;
+                outptr[0] = line00[0];
                 outptr++;
             }
             line00 += remain_w;
@@ -290,7 +279,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             for (int h = 0; h < out_h - 1; h++) {
                 // h mid ---- w left
                 outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                 outptr++;
                 line0++;
                 line1++;
@@ -354,7 +342,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 // h mid ---- w right
                 if (extend_w) {
                     outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -363,7 +350,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             // h bottom
             if (extend_h) {
                 // h bottom ---- w left
-                outptr[0] = line0[0] > 0 ? line0[0] : 0;
+                outptr[0] = line0[0];
                 outptr++;
                 line0++;
                 // h bottom ---- w mid
@@ -372,7 +359,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "srai           t0, t3, 3\n\t"   // t0 = (out_w - 1) >> 3 (out_w8)
                     "beqz           t0, 2f\n\t"
                     "vsetvli        zero, zero, e16, m1\n\t"
-                    "vmv.v.x        v3, zero\n\t"  // clear
 
                     "1:\n\t"
                     "vlseg2e.v      v0, (%0)\n\t"  // v0[0..7] = line0[0,2,4,6,8,10,12,14] v1[0..7]
@@ -380,8 +366,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "vfmax.vv       v2, v0, v1\n\t"
                     "addi           %0, %0, 32\n\t"  // line0 += 16
 
-                    "vfmax.vv       v4, v2, v3\n\t"
-                    "vse.v          v4, (%1)\n\t"
+                    "vse.v          v2, (%1)\n\t"
                     "addi           %1, %1, 16\n\t"  // outptr += 8
 
                     "addi           t0, t0, -1\n\t"
@@ -393,7 +378,6 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                     // out_w_tail
                     "vsetvli        zero, t0, e16, m1\n\t"
-                    "vmv.v.x        v3, zero\n\t"  // clear
                     "slli           t1, t0, 1\n\t"
                     "slli           t2, t0, 2\n\t"
 
@@ -401,8 +385,7 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "vfmax.vv       v2, v0, v1\n\t"
                     "add            %0, %0, t2\n\t"
 
-                    "vfmax.vv       v4, v2, v3\n\t"
-                    "vse.v          v4, (%1)\n\t"
+                    "vse.v          v2, (%1)\n\t"
                     "add            %1, %1, t1\n\t"
 
                     "3:\n\t"  // ending
@@ -411,10 +394,10 @@ static int maxpool2x2s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                       "=r"(outptr),  // %1
                       "=r"(out_w)    // %2
                     : "0"(line0), "1"(outptr), "2"(out_w)
-                    : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "t0", "t1", "t2", "t3");
+                    : "cc", "memory", "v0", "v1", "v2", "t0", "t1", "t2", "t3");
                 // h bottom ---- w right
                 if (extend_w) {
-                    outptr[0] = line0[0] > 0 ? line0[0] : 0;
+                    outptr[0] = line0[0];
                 }
             }
         }
@@ -564,7 +547,6 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     __fp16 max2 = line2[0] > line2[1] ? line2[0] : line2[1];
                     outptr[0] = max1 > max2 ? max1 : max2;
                     outptr[0] = outptr[0] > max0 ? outptr[0] : max0;
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -578,7 +560,6 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "srai           t0, %3, 3\n\t"  // t0 = out_w >> 3 (out_w8)
                     "beqz           t0, 2f\n\t"
                     "vsetvli        zero, zero, e16, m1\n\t"
-                    "vmv.v.x        v11, zero\n\t"  // clear
 
                     "1:\n\t"
                     "vlseg2e.v      v0, (%0)\n\t"
@@ -596,7 +577,6 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "addi           %1, %1, 28\n\t"
 
                     "vfmax.vv       v10, v8, v9\n\t"
-                    "vfmax.vv       v10, v10, v11\n\t"
 
                     "vse.v          v10, (%2)\n\t"
                     "addi           %2, %2, 16\n\t"
@@ -610,7 +590,6 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
                     // out_w_tail
                     "vsetvli        zero, t0, e16, m1\n\t"
-                    "vmv.v.x        v11, zero\n\t"  // clear
                     "slli           t1, t0, 1\n\t"
                     "slli           t2, t0, 2\n\t"
                     "addi           t2, t2, -4\n\t"
@@ -630,7 +609,6 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                     "add            %1, %1, t2\n\t"
 
                     "vfmax.vv       v10, v8, v9\n\t"
-                    "vfmax.vv       v10, v10, v11\n\t"
 
                     "vse.v          v10, (%2)\n\t"
                     "add            %2, %2, t1\n\t"
@@ -643,13 +621,12 @@ static int maxpool3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                       "=r"(out_w)    // %3
                     : "0"(line0), "1"(line1), "2"(outptr), "3"(out_w)
                     : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",
-                      "v10", "v11", "t0", "t1", "t2", "t3", "t4");
+                      "v10", "t0", "t1", "t2", "t3", "t4");
 
                 if (extend_w) {
                     __fp16 max0 = line0[0] > line0[1] ? line0[0] : line0[1];
                     __fp16 max1 = line1[0] > line1[1] ? line1[0] : line1[1];
                     outptr[0] = max0 > max1 ? max0 : max1;
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
             }
@@ -709,7 +686,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             __fp16 max0 = line0[0] > line0[1] ? line0[0] : line0[1];
             __fp16 max1 = line1[0] > line1[1] ? line1[0] : line1[1];
             outptr[0] = max0 > max1 ? max0 : max1;
-            outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
             outptr++;
             line0++;
             line1++;
@@ -720,7 +696,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "srai           t0, t4, 3\n\t"   // t0 = (out_w - 1) >> 3 (out_w8)
                 "beqz           t0, 2f\n\t"
                 "vsetvli        zero, zero, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
 
                 "1:\n\t"
                 "vlseg2e.v      v0, (%0)\n\t"  // v0[0..7] = line0[0,2,4,6,8,10,12,14]   v1[0..7] =
@@ -739,7 +714,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "addi           %1, %1, 28\n\t"  // line1 += 6
 
                 "vfmax.vv       v10, v8, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
 
                 "vse.v          v10, (%2)\n\t"
                 "addi           %2, %2, 16\n\t"  // outptr += 8
@@ -753,7 +727,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                 // out_w_tail
                 "vsetvli        zero, t0, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
                 "slli           t1, t0, 1\n\t"
                 "slli           t2, t0, 2\n\t"
                 "addi           t2, t2, -4\n\t"
@@ -773,7 +746,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "add            %1, %1, t2\n\t"
 
                 "vfmax.vv       v10, v8, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
 
                 "vse.v          v10, (%2)\n\t"
                 "add            %2, %2, t1\n\t"
@@ -786,7 +758,7 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                   "=r"(out_w)    // %3
                 : "0"(line0), "1"(line1), "2"(outptr), "3"(out_w)
                 : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10",
-                  "v11", "t0", "t1", "t2", "t3", "t4"
+                  "t0", "t1", "t2", "t3", "t4"
 
             );
 
@@ -795,7 +767,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 max0 = line0[0] > line0[1] ? line0[0] : line0[1];
                 max1 = line1[0] > line1[1] ? line1[0] : line1[1];
                 outptr[0] = max0 > max1 ? max0 : max1;
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                 outptr++;
             }
             line0 += remain_w;
@@ -811,7 +782,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 max2 = line2[0] > line2[1] ? line2[0] : line2[1];
                 max1 = max1 > max2 ? max1 : max2;
                 outptr[0] = max0 > max1 ? max0 : max1;
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;  // consider padding with constant "0"
                 outptr++;
                 line0++;
                 line1++;
@@ -910,7 +880,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     max2 = line2[0] > line2[1] ? line2[0] : line2[1];
                     max1 = max1 > max2 ? max1 : max2;
                     outptr[0] = max0 > max1 ? max0 : max1;
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
                 line0 += in_w + remain_w;
@@ -924,7 +893,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 max0 = line0[0] > line0[1] ? line0[0] : line0[1];
                 max1 = line1[0] > line1[1] ? line1[0] : line1[1];
                 outptr[0] = max0 > max1 ? max0 : max1;
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                 outptr++;
                 line0++;
                 line1++;
@@ -936,7 +904,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "srai           t0, t4, 3\n\t"   // t0 = (out_w - 1) >> 3 (out_w8)
                     "beqz           t0, 2f\n\t"
                     "vsetvli        zero, zero, e16, m1\n\t"
-                    "vmv.v.x        v11, zero\n\t"  // clear
 
                     "1:\n\t"
                     "vlseg2e.v      v0, (%0)\n\t"
@@ -954,8 +921,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "addi           %1, %1, 28\n\t"
 
                     "vfmax.vv       v10, v8, v9\n\t"
-                    "vfmax.vv       v10, v10, v11\n\t"
-
                     "vse.v          v10, (%2)\n\t"
                     "addi           %2, %2, 16\n\t"
 
@@ -968,7 +933,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                     // out_w_tail
                     "vsetvli        zero, t0, e16, m1\n\t"
-                    "vmv.v.x        v11, zero\n\t"  // clear
                     "slli           t1, t0, 1\n\t"
                     "slli           t2, t0, 2\n\t"
                     "addi           t2, t2, -4\n\t"
@@ -988,8 +952,6 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                     "add            %1, %1, t2\n\t"
 
                     "vfmax.vv       v10, v8, v9\n\t"
-                    "vfmax.vv       v10, v10, v11\n\t"
-
                     "vse.v          v10, (%2)\n\t"
                     "add            %2, %2, t1\n\t"
 
@@ -1001,14 +963,13 @@ static int maxpool3x3s2_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                       "=r"(out_w)    // %3
                     : "0"(line0), "1"(line1), "2"(outptr), "3"(out_w)
                     : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",
-                      "v10", "v11", "t0", "t1", "t2", "t3", "t4");
+                      "v10", "t0", "t1", "t2", "t3", "t4");
 
                 // h bottom ---- w right
                 if (extend_w) {
                     max0 = line0[0] > line0[1] ? line0[0] : line0[1];
                     max1 = line1[0] > line1[1] ? line1[0] : line1[1];
                     outptr[0] = max0 > max1 ? max0 : max1;
-                    outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                     outptr++;
                 }
             }
@@ -1052,7 +1013,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             __fp16 max0 = line1[0] > line1[1] ? line1[0] : line1[1];
             __fp16 max1 = line2[0] > line2[1] ? line2[0] : line2[1];
             outptr[0] = max0 > max1 ? max0 : max1;
-            outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
             outptr++;
             // h top ---- w mid
             asm volatile(
@@ -1060,7 +1020,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "srai           t0, t3, 3\n\t"   // t0 = (out_w - 2) >> 3 (out_w8)
                 "beqz           t0, 2f\n\t"
                 "vsetvli        zero, zero, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
 
                 "1:\n\t"
                 "vle.v          v0, (%0)\n\t"
@@ -1082,7 +1041,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v9, v7, v8\n\t"
 
                 "vfmax.vv       v10, v4, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
                 "vse.v          v10, (%2)\n\t"
                 "addi           %2, %2, 16\n\t"
 
@@ -1095,7 +1053,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                 // out_w_tail
                 "vsetvli        zero, t0, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
                 "slli           t1, t0, 1\n\t"
                 "addi           t2, t1, -4\n\t"
 
@@ -1118,7 +1075,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v9, v7, v8\n\t"
 
                 "vfmax.vv       v10, v4, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
                 "vse.v          v10, (%2)\n\t"
                 "add            %2, %2, t1\n\t"
 
@@ -1130,14 +1086,13 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                   "=r"(out_w)    // %3
                 : "0"(line1), "1"(line2), "2"(outptr), "3"(out_w)
                 : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10",
-                  "v11", "t0", "t1", "t2", "t3"
+                  "t0", "t1", "t2", "t3"
 
             );
             // h top ---- w right
             max0 = line1[0] > line1[1] ? line1[0] : line1[1];
             max1 = line2[0] > line2[1] ? line2[0] : line2[1];
             outptr[0] = max0 > max1 ? max0 : max1;
-            outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
             outptr++;
             line1 += 2;  // bump next line: line1 --> line2
             line2 += 2;
@@ -1152,7 +1107,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 max2 = line2[0] > line2[1] ? line2[0] : line2[1];
                 max1 = max1 > max2 ? max1 : max2;
                 outptr[0] = max0 > max1 ? max0 : max1;
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
                 outptr++;
                 // h mid ---- w mid
                 asm volatile(
@@ -1254,8 +1208,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 max2 = line2[0] > line2[1] ? line2[0] : line2[1];
                 max1 = max1 > max2 ? max1 : max2;
                 outptr[0] = max0 > max1 ? max0 : max1;
-                outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
-
                 outptr++;
                 line0 += 2;
                 line1 += 2;
@@ -1265,7 +1217,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
             max0 = line0[0] > line0[1] ? line0[0] : line0[1];
             max1 = line1[0] > line1[1] ? line1[0] : line1[1];
             outptr[0] = max0 > max1 ? max0 : max1;
-            outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
             outptr++;
             // h bottom ---- w mid
             asm volatile(
@@ -1273,7 +1224,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "srai           t0, t3, 3\n\t"   // t0 = (out_w - 2) >> 3 (out_w8)
                 "beqz           t0, 2f\n\t"
                 "vsetvli        zero, zero, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
 
                 "1:\n\t"
                 "vle.v          v0, (%0)\n\t"
@@ -1295,7 +1245,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v9, v7, v8\n\t"
 
                 "vfmax.vv       v10, v4, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
                 "vse.v          v10, (%2)\n\t"
                 "addi           %2, %2, 16\n\t"
 
@@ -1308,7 +1257,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
 
                 // out_w_tail
                 "vsetvli        zero, t0, e16, m1\n\t"
-                "vmv.v.x        v11, zero\n\t"  // clear
                 "slli           t1, t0, 1\n\t"
                 "addi           t2, t1, -4\n\t"
 
@@ -1331,7 +1279,6 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 "vfmax.vv       v9, v7, v8\n\t"
 
                 "vfmax.vv       v10, v4, v9\n\t"
-                "vfmax.vv       v10, v10, v11\n\t"
                 "vse.v          v10, (%2)\n\t"
                 "add            %2, %2, t1\n\t"
 
@@ -1343,13 +1290,12 @@ static int maxpool3x3s1_p1_fp16(struct csinn_tensor *input, struct csinn_tensor 
                   "=r"(out_w)    // %3
                 : "0"(line0), "1"(line1), "2"(outptr), "3"(out_w)
                 : "cc", "memory", "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10",
-                  "v11", "t0", "t1", "t2", "t3");
+                  "t0", "t1", "t2", "t3");
 
             // h bottom ---- w right
             max0 = line0[0] > line0[1] ? line0[0] : line0[1];
             max1 = line1[0] > line1[1] ? line1[0] : line1[1];
             outptr[0] = max0 > max1 ? max0 : max1;
-            outptr[0] = outptr[0] > 0 ? outptr[0] : 0;
         }
         input_data += input_size;
         output_data += output_size;
@@ -1364,19 +1310,24 @@ int shl_c906_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
 {
     int32_t input_h = input->dim[2];
     int32_t input_w = input->dim[3];
-
     int32_t kernel_h = params->filter_height;
     int32_t kernel_w = params->filter_width;
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-
     int32_t pad_left = params->pad_left;
     int32_t pad_right = params->pad_right;
     int32_t pad_top = params->pad_top;
     int32_t pad_down = params->pad_down;
-
     struct csinn_callback *cb = params->base.cb;
     cb->exec = NULL;
+
+    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+        if (option && option->base.use_packn_layout) {
+            shl_debug_error("%s: unsupport packn\n", __func__);
+            return CSINN_UNSUPPORT_LAYOUT;
+        }
+    }
 
     // global maxpool2d
     if (input_h == kernel_h && input_w == kernel_w) {
@@ -1413,7 +1364,16 @@ int shl_c906_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
                 // end consider ceil_mode 3x3s2p0
                 cb->exec = maxpool3x3s2_fp16;
             } else if (pad_left == 1 && pad_top == 1) {
-                cb->exec = maxpool3x3s2_p1_fp16;
+                if (params->ceil_mode == 0) {
+                    cb->exec = maxpool3x3s2_p1_fp16;
+                } else {
+                    if ((input_w % 2 == 0 && pad_right == 1) ||
+                        (input_h % 2 == 0 && pad_down == 1)) {
+                        cb->exec = shl_ref_maxpool2d_quant;
+                    } else {
+                        cb->exec = maxpool3x3s2_p1_fp16;
+                    }
+                }
             }
         }
     } else if (stride_h == 1 && stride_w == 1) {

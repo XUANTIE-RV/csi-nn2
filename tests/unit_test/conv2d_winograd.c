@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "./valid_data/conv2d.dat"
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
@@ -53,12 +51,20 @@ void verify_conv2d_winograd3x3s1_compute(void *input_data, void *kernel_data, vo
                                          int in_w, int out_c, int out_h, int out_w, int k_h,
                                          int k_w, enum csinn_dtype_enum dtype)
 {
+    int packn = 4;
+    if (dtype == CSINN_DTYPE_FLOAT32) {
+        packn = csrr_vlenb() / sizeof(float);
+    } else if (dtype == CSINN_DTYPE_FLOAT16) {
+        packn = csrr_vlenb() / sizeof(__fp16);
+    }
     struct csinn_tensor *input = csinn_alloc_tensor(NULL);
     input->dim[0] = 1;
-    input->dim[1] = in_c;
+    input->dim[1] = in_c / packn;
     input->dim[2] = in_h;
     input->dim[3] = in_w;
-    input->dim_count = 4;
+    input->dim[4] = packn;
+    input->dim_count = 5;
+    input->layout = CSINN_LAYOUT_NC1HWC0;
     input->name = "input";
     int in_size = csinn_tensor_size(input);
 
@@ -78,10 +84,12 @@ void verify_conv2d_winograd3x3s1_compute(void *input_data, void *kernel_data, vo
 
     struct csinn_tensor *output = csinn_alloc_tensor(NULL);
     output->dim[0] = 1;
-    output->dim[1] = out_c;
+    output->dim[1] = out_c / packn;
     output->dim[2] = out_h;
     output->dim[3] = out_w;
-    output->dim_count = 4;
+    output->dim[4] = packn;
+    output->dim_count = 5;
+    output->layout = CSINN_LAYOUT_NC1HWC0;
     output->name = "output";
     int out_size = csinn_tensor_size(output);
 
@@ -115,7 +123,7 @@ void verify_conv2d_winograd3x3s1_compute(void *input_data, void *kernel_data, vo
 
 int main(int argc, char **argv)
 {
-    init_testsuite("Test function of convolution winograd3x3s1 for RVV.\n");
+    init_testsuite("Test function of convolution winograd3x3s1 for RVV(vlen128).\n");
 
     verify_conv2d_winograd3x3s1_trans(conv2d_winograd_fp32_ker, conv2d_winograd_fp32_ker1,
                                       shl_rvv_wg_b6f3s1_trans_kernel_packn_fp32, 16, 8, 3, 3,

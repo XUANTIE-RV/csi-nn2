@@ -15,8 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/* SHL version 2.1.x */
 #include <unistd.h>
 
 #include "csi_nn.h"
@@ -65,7 +63,7 @@ static int shl_mem_map_insert(void *ptr, uint64_t size)
     return 0;
 }
 
-void *shl_mem_alloc(int64_t size)
+__attribute__((weak)) void *shl_mem_alloc(int64_t size)
 {
     void *ret;
     if (size == 0) {
@@ -98,7 +96,8 @@ void *shl_mem_alloc(int64_t size)
 #ifdef SHL_MEM_DEBUG
     shl_mem_map_insert(ret, size);
     shl_mem_alloc_debug_map.total_size += size;
-    printf("shl_mem_alloc: total size = %ld\n", shl_mem_alloc_debug_map.total_size);
+    printf("shl_mem_alloc: total size = %ld, get size is %lld\n",
+           shl_mem_alloc_debug_map.total_size, size);
 #endif
     return ret;
 }
@@ -147,7 +146,7 @@ void *shl_mem_alloc_aligned(int64_t size, int aligned_bytes)
     return ptr;
 }
 
-void shl_mem_free(void *ptr)
+__attribute__((weak)) void shl_mem_free(void *ptr)
 {
 #ifdef SHL_MEM_DEBUG
     for (int i = 0; i < shl_mem_alloc_debug_map.index; i++) {

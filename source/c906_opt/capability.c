@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 static int common_all_support(struct csinn_tensor *input, struct csinn_params_base *base)
@@ -452,10 +450,28 @@ int shl_c906_lrn_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_c906_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
-    if (mat0->dtype == CSINN_DTYPE_FLOAT16) {
-        return CSINN_OPT_ASM;
-    } else {
-        return CSINN_OPT_UNSUPPORTED;
+    const int dims_count = mat0->dim_count;
+    int batches_a = 1;
+    int batches_b = 1;
+
+    /* compute the outer size */
+    for (int i = 0; i < dims_count - 2; i++) {
+        batches_a *= mat0->dim[i];
+        batches_b *= mat1->dim[i];
+    }
+
+    if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32 ||
+        mat0->dtype == CSINN_DTYPE_FLOAT16 &&
+            (mat1->dtype == CSINN_DTYPE_FLOAT16 || mat1->dtype == CSINN_DTYPE_INT8)) {
+        if (batches_a == batches_b) {
+            if (!params->trans_a && !params->trans_b) {
+                return CSINN_OPT_INTRINSIC;
+            }
+        } else if (batches_a > 1 && batches_b == 1) {
+            if (!params->trans_a && !params->trans_b) {
+                return CSINN_OPT_INTRINSIC;
+            }
+        }
     }
 
     return CSINN_OPT_UNSUPPORTED;
@@ -577,7 +593,7 @@ int shl_c906_reshape_cap(struct csinn_tensor *input, struct csinn_tensor *output
     return CSINN_OPT_UNSUPPORTED;
 }
 
-int shl_c906_sum_stride_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_c906_reduce_sum_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_reduce_params *params)
 {
     if (input->dtype == CSINN_DTYPE_FLOAT16) {

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 #include "shl_c906_cap.h"
 
@@ -68,6 +66,77 @@ struct csinn_callback *shl_cb_map_c906(int op, int dtype)
         cb = shl_cb_map_rvv(op, dtype);
     }
     return cb;
+}
+
+int shl_c906_set_packn_layout(struct csinn_session *sess, bool packn_layout)
+{
+    struct shl_gref_target_data *gref_td = sess->td;
+    struct shl_c906_option *c906_option = gref_td->cpu_option;
+    c906_option->base.use_packn_layout = packn_layout;
+    return CSINN_TRUE;
+}
+
+struct shl_c906_option *shl_c906_get_graph_option(struct csinn_session *sess)
+{
+    struct shl_gref_target_data *gref_td = sess->td;
+    if (gref_td) {
+        return (struct shl_c906_option *)(gref_td->cpu_option);
+    } else {
+        return NULL;
+    }
+}
+
+void shl_c906_session_init(struct csinn_session *sess)
+{
+    struct shl_c906_option *c906_option = shl_mem_alloc(sizeof(struct shl_c906_option));
+    struct shl_ref_graph *graph = shl_mem_alloc(sizeof(struct shl_ref_graph));
+    struct shl_gref_target_data *target_data = shl_mem_alloc(sizeof(struct shl_gref_target_data));
+    target_data->graph = graph;
+    c906_option->base.use_packn_layout = 0;  // c906 set use_packn_layout false default
+    target_data->cpu_option = c906_option;
+    sess->td = target_data;
+    sess->base_layout = CSINN_LAYOUT_NCHW;
+}
+
+void shl_c906_session_deinit(struct csinn_session *sess)
+{
+    struct shl_ref_graph *graph = shl_gref_get_graph(sess);
+    shl_mem_free(graph->input);
+    shl_mem_free(graph->output);
+    struct shl_c906_option *c906_option = shl_c906_get_graph_option(sess);
+    if (c906_option) {
+        shl_mem_free(c906_option);
+    }
+}
+
+void *shl_c906_runtime_callback(int api)
+{
+    switch (api) {
+        case CSINN_SESSION_INIT:
+            return shl_c906_session_init;
+            break;
+        case CSINN_SESSION_DEINIT:
+            return shl_c906_session_deinit;
+            break;
+        case CSINN_SESSION_SETUP:
+        case CSINN_SESSION_RUN:
+        case CSINN_UPDATE_INPUT:
+        case CSINN_UPDATE_OUTPUT:
+        case CSINN_SET_INPUT_NUMBER:
+        case CSINN_SET_OUTPUT_NUMBER:
+        case CSINN_SET_INPUT:
+        case CSINN_SET_OUTPUT:
+        case CSINN_GET_INPUT:
+        case CSINN_GET_OUTPUT:
+        case CSINN_TENSOR_ENTRY:
+        case CSINN_LOAD_BG:
+            return shl_gref_runtime_callback(api);
+            break;
+        default:
+            shl_debug_info("%s: Cannot find callback\n", __func__);
+            break;
+    }
+    return NULL;
 }
 
 void __attribute__((weak)) shl_target_init_c906()
@@ -187,8 +256,8 @@ void __attribute__((weak)) shl_target_init_c906()
 #ifndef CONFIG_C906_SUN_FP16_DISABLED
     shl_c906_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SUB, NULL, shl_c906_sub_fp16);
 #endif
-#ifndef CONFIG_C906_SUM_FP16_DISABLED
-    shl_c906_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SUM, NULL, shl_c906_sum_stride_fp16);
+#ifndef CONFIG_C906_REDUCE_SUM_FP16_DISABLED
+    shl_c906_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_REDUCE_SUM, NULL, shl_c906_reduce_sum_fp16);
 #endif
 #ifndef CONFIG_C906_ABS_FP32_DISABLED
     shl_c906_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_ABS, NULL, shl_c906_abs_f32);
@@ -239,7 +308,7 @@ void __attribute__((weak)) shl_target_init_c906()
 #endif
 
 #ifdef SHL_BUILD_GREF
-    shl_register_runtime_callback(CSINN_C906, shl_gref_runtime_callback);
+    shl_register_runtime_callback(CSINN_C906, shl_c906_runtime_callback);
 #ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION_DISABLED
     shl_c906_reg_op_est(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_gref_conv2d);
     shl_c906_reg_op_est(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_gref_conv2d);
@@ -334,7 +403,7 @@ void __attribute__((weak)) shl_target_init_c906()
     shl_c906_reg_op_est(CSINN_DTYPE_FLOAT16, CSINN_OP_SUB, shl_gref_sub);
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_SUM_DISABLED
-    shl_c906_reg_op_est(CSINN_DTYPE_FLOAT16, CSINN_OP_SUM, shl_gref_sum);
+    shl_c906_reg_op_est(CSINN_DTYPE_FLOAT16, CSINN_OP_REDUCE_SUM, shl_gref_reduce_sum);
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_ABS_DISABLED
     shl_c906_reg_op_est(CSINN_DTYPE_FLOAT32, CSINN_OP_ABS, shl_gref_abs);
@@ -440,5 +509,5 @@ void __attribute__((weak)) shl_target_init_c906()
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_RESHAPE, shl_c906_reshape_cap);
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_SPLIT, shl_c906_split_cap);
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_SUB, shl_c906_sub_cap);
-    shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_SUM, shl_c906_sum_stride_cap);
+    shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_REDUCE_SUM, shl_c906_reduce_sum_cap);
 }

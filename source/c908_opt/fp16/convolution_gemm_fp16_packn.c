@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 /*************************************************************************************
@@ -39,6 +37,16 @@ int shl_c908_conv_im2col_gemm_packn_fp16(struct csinn_tensor *input, struct csin
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        const int packn = csrr_vlenb() / sizeof(__fp16);
+        output->dim[1] /= packn;
+        output->dim[4] = packn;
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;
@@ -46,16 +54,19 @@ int shl_c908_conv_im2col_gemm_packn_fp16(struct csinn_tensor *input, struct csin
 
     int32_t group = params->group;
     int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];
+    int32_t in_c = input->dim[1] * input->dim[4];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
     int32_t out_c = kernel->dim[0];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
+
     int32_t ksize_h = kernel->dim[2];
     int32_t ksize_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
 
     int32_t m = out_c / group;
     int32_t in_cp = in_c / group;
@@ -86,7 +97,8 @@ int shl_c908_conv_im2col_gemm_packn_fp16(struct csinn_tensor *input, struct csin
 
                 for (int a = 0; a < ksize_h; a++) {
                     for (int b = 0; b < ksize_w; b++) {
-                        const __fp16 *img1 = img0 + a * padded_in_w * packn + b * packn;
+                        const __fp16 *img1 =
+                            img0 + a * dilation_h * padded_in_w * packn + b * dilation_w * packn;
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {

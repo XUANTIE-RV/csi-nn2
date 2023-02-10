@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 #include "shl_tvmgen.h"
 #include "shl_utils.h"
@@ -74,7 +72,7 @@ void shl_gref_session_init(struct csinn_session *sess)
     sess->base_layout = CSINN_LAYOUT_NCHW;
 }
 
-static int call_layer_func(void *fn, struct shl_node *node)
+int shl_gref_call_layer_func(void *fn, struct shl_node *node)
 {
     /* base has same address with params */
     struct csinn_params_base *params = node->data;
@@ -187,6 +185,7 @@ static int call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_TRUNC:
         case CSINN_OP_UNPOOLING:
         case CSINN_OP_UNSTACK:
+        case CSINN_OP_CAST:
         case CSINN_OP_YUV_RGB_SCALE:
             ret = func(node->in[0]->data, node->out[0]->data, params);
             break;
@@ -252,6 +251,7 @@ static int call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_CONV3D:
         case CSINN_OP_DECONV2D:
         case CSINN_OP_DEPTHWISE_DECONV2D:
+        case CSINN_OP_GROUP_DECONV2D:
         case CSINN_OP_DECONV3D:
         case CSINN_OP_FULLYCONNECTED:
         case CSINN_OP_LAYER_NORM:
@@ -329,7 +329,7 @@ static int call_layer_func(void *fn, struct shl_node *node)
     return ret;
 }
 
-static struct csinn_callback *best_callback(struct shl_node *node)
+struct csinn_callback *shl_gref_best_callback(struct shl_node *node)
 {
     struct csinn_params_base *params = node->data;
 #ifdef GRAPH_REFERENCE_TVMGEN
@@ -352,7 +352,7 @@ static struct csinn_callback *best_callback(struct shl_node *node)
 #ifdef GRAPH_REFERENCE_TVMGEN
     if (tvmgen_cb) {
         if (params->cb->caps != NULL) {
-            int opt_method = call_layer_func(params->cb->caps, node);
+            int opt_method = shl_gref_call_layer_func(params->cb->caps, node);
             if (opt_method > tvm_gen_opt_method) {
                 params->api = CSINN_TVMGEN;
                 memcpy(params->cb, tvmgen_cb, sizeof(struct csinn_callback));
@@ -377,20 +377,19 @@ static int init_op(struct shl_node *node)
 
     int org_rm = params->sess->base_run_mode;
     params->sess->base_run_mode = CSINN_RM_LAYER;
-    struct csinn_callback *cb = best_callback(node);
+    struct csinn_callback *cb = shl_gref_best_callback(node);
+    params->sess->base_run_mode = org_rm;
 
     if (cb->init != NULL) {
-        if (call_layer_func(cb->init, node) != CSINN_TRUE) {
+        if (shl_gref_call_layer_func(cb->init, node) != CSINN_TRUE) {
             return CSINN_FALSE;
         }
     }
 
-    params->sess->base_run_mode = org_rm;
-
     return CSINN_TRUE;
 }
 
-static inline int shl_size_align(int orig, int align)
+int shl_gref_size_align(int orig, int align)
 {
     int aligned = (orig + align - 1) / align * align;
     return aligned;
@@ -424,21 +423,21 @@ void shl_gref_session_setup(struct csinn_session *sess)
     }
 
     struct shl_ref_graph *ggraph;
-#ifdef GRAPH_REFERENCE_SUBGRAPH
-    ggraph = shl_subgraph_establish(graph);
-#else
-    ggraph = graph;
-    /* update subgraph_idx */
-    for (int i = 0; i < ggraph->layer_index; i++) {
-        ggraph->layer[i]->subgraph_idx = i;
-        if (ggraph->layer[i]->type == CSINN_SUBGRAPH) {
-            struct shl_ref_graph *s_subgraph = ggraph->layer[i]->data;
-            for (int j = 0; j < s_subgraph->layer_index; j++) {
-                s_subgraph->layer[j]->subgraph_idx = i;
+    if (sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
+        ggraph = shl_subgraph_establish(graph);
+    } else {
+        ggraph = graph;
+        /* update subgraph_idx */
+        for (int i = 0; i < ggraph->layer_index; i++) {
+            ggraph->layer[i]->subgraph_idx = i;
+            if (ggraph->layer[i]->type == CSINN_SUBGRAPH) {
+                struct shl_ref_graph *s_subgraph = ggraph->layer[i]->data;
+                for (int j = 0; j < s_subgraph->layer_index; j++) {
+                    s_subgraph->layer[j]->subgraph_idx = i;
+                }
             }
         }
     }
-#endif
 
     if (save_binary_model) {
         if (sess->model.bm_path == NULL) {
@@ -466,14 +465,14 @@ void shl_gref_session_setup(struct csinn_session *sess)
     for (int i = 0; i < ggraph->layer_index; i++) {
         struct shl_node *n = ggraph->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
-#ifdef GRAPH_REFERENCE_SUBGRAPH
-            shl_subgraph_setup(n);
-            if (save_binary_model) {
-                struct shl_ref_graph *sgraph = n->data;
-                subgraphs[subgraph_count] = sgraph;
-                subgraph_count++;
+            if (sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
+                shl_subgraph_setup(n);
+                if (save_binary_model) {
+                    struct shl_ref_graph *sgraph = n->data;
+                    subgraphs[subgraph_count] = sgraph;
+                    subgraph_count++;
+                }
             }
-#endif
         } else if (n->type >= 0 && n->type < CSINN_OP_SIZE) {
             init_op(n);
         } else {
@@ -513,13 +512,13 @@ void shl_gref_session_setup(struct csinn_session *sess)
         int ggraph_size = shl_dump_bm_graph_struct_section(b, ggraph);
         sinfo->sections[0].graph_offset = bm_offset / 4096;
         sinfo->sections[0].graph_size = ggraph_size;
-        bm_offset = shl_size_align(bm_offset + ggraph_size, 4096);
+        bm_offset = shl_gref_size_align(bm_offset + ggraph_size, 4096);
 
         fseek(b, bm_offset, SEEK_SET);
         int info_size = shl_dump_bm_graph_info_section(b, sess);
         sinfo->sections[0].info_offset = bm_offset / 4096;
         sinfo->sections[0].info_size = info_size;
-        bm_offset = shl_size_align(bm_offset + info_size, 4096);
+        bm_offset = shl_gref_size_align(bm_offset + info_size, 4096);
 
         /* TODO: support more subgraph */
         if (subgraph_num > 63) {
@@ -542,19 +541,19 @@ void shl_gref_session_setup(struct csinn_session *sess)
             fwrite(sub_binary_addr, 1, sub_binary_size, b);
             sinfo->sections[subgraph_count].params_offset = bm_offset / 4096;
             sinfo->sections[subgraph_count].params_size = sub_binary_size;
-            bm_offset = shl_size_align(bm_offset + sub_binary_size, 4096);
+            bm_offset = shl_gref_size_align(bm_offset + sub_binary_size, 4096);
 
             fseek(b, bm_offset, SEEK_SET);
             int subgraph_size = shl_dump_bm_graph_struct_section(b, subgraphs[i]);
             sinfo->sections[subgraph_count].graph_offset = bm_offset / 4096;
             sinfo->sections[subgraph_count].graph_size = subgraph_size;
-            bm_offset = shl_size_align(bm_offset + subgraph_size, 4096);
+            bm_offset = shl_gref_size_align(bm_offset + subgraph_size, 4096);
 
             fseek(b, bm_offset, SEEK_SET);
             int info_size = shl_dump_bm_graph_info_section(b, subgraph_sess);
             sinfo->sections[subgraph_count].info_offset = bm_offset / 4096;
             sinfo->sections[subgraph_count].info_size = info_size;
-            bm_offset = shl_size_align(bm_offset + info_size, 4096);
+            bm_offset = shl_gref_size_align(bm_offset + info_size, 4096);
             subgraph_count++;
         }
 
@@ -569,7 +568,9 @@ void shl_gref_session_setup(struct csinn_session *sess)
 static void graph_match_session(struct shl_ref_graph *graph, struct csinn_session *sess)
 {
     struct shl_gref_target_data *td = sess->td;
-    if (sess->base_api == CSINN_REF && sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+    /* FIXME: unuse CSINN_REF */
+    if ((sess->base_api == CSINN_REF && sess->base_run_mode == CSINN_RM_CPU_GRAPH) ||
+        sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
         td->graph = graph;
     }
 
@@ -610,10 +611,10 @@ static void merge_output(struct shl_ref_graph *ggraph, struct shl_ref_graph **sg
                 }
             }
             /* match graph output */
-            for (int i = 0; i < ggraph->output_num; i++) {
-                struct shl_node *gnode = ggraph->output[i];
+            for (int n = 0; n < ggraph->output_num; n++) {
+                struct shl_node *gnode = ggraph->output[n];
                 if (strcmp(gnode->name, sname) == 0) {
-                    ggraph->output[i] = snode->out[j];
+                    ggraph->output[n] = snode->out[j];
                 }
             }
         }
@@ -716,12 +717,16 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_DIV:
             case CSINN_OP_LAYER_NORM:
             case CSINN_OP_RELU:
+            case CSINN_OP_RELU1:
+            case CSINN_OP_RELU6:
             case CSINN_OP_SIGMOID:
             case CSINN_OP_SOFTMAX:
                 shl_gref_siso_infer_shape(n->in[0]->data, n->out[0]->data, params);
                 break;
             case CSINN_OP_ADD:
             case CSINN_OP_MUL:
+            case CSINN_OP_SUB:
+            case CSINN_OP_POWER:
                 shl_gref_diso_infer_shape(n->in[0]->data, n->in[1]->data, n->out[0]->data, params);
                 break;
             case CSINN_OP_CONCAT:
@@ -741,6 +746,7 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
                 break;
             case CSINN_OP_CONV2D:
             case CSINN_OP_GROUP_CONV2D:
+            case CSINN_OP_DEPTHWISE_CONV2D:
                 shl_gref_conv2d_infer_shape(n->in[0]->data, n->out[0]->data, n->in[1]->data,
                                             n->in[2]->data, (struct csinn_conv2d_params *)params);
                 break;
@@ -782,6 +788,10 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_WHERE_SOFTMAX:
                 shl_gref_where_softmax_infer_shape(n->in[0]->data, n->in[1]->data, n->out[0]->data,
                                                    (struct csinn_where_softmax_params *)params);
+                break;
+            case CSINN_OP_GLOBAL_AVGPOOL2D:
+            case CSINN_OP_GLOBAL_MAXPOOL2D:
+                shl_gref_global_pooling2d_infer_shape(n->in[0]->data, n->out[0]->data, (struct csinn_pool_params *)params);
                 break;
             default:
                 shl_debug_error("[infer_shape]:unknown op %d\n", n->type);
@@ -835,7 +845,7 @@ static int op_run(struct shl_node *node)
     int (*func)();
     struct csinn_callback *cb = params->cb;
     func = cb->exec;
-    return call_layer_func(func, node);
+    return shl_gref_call_layer_func(func, node);
 }
 
 int shl_gref_session_run(struct csinn_session *sess)
@@ -851,32 +861,31 @@ int shl_gref_session_run(struct csinn_session *sess)
     for (int i = 0; i < g->layer_index; i++) {
         struct shl_node *n = g->layer[i];
         if (n->type == CSINN_SUBGRAPH) {
-#ifdef GRAPH_REFERENCE_SUBGRAPH
-            shl_subgraph_run_init(n);
+            if (sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
+                shl_subgraph_run_init(n);
 #ifdef SHL_LAYER_BENCHMARK
-            if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER ||
-                sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
-                uint64_t start_time = shl_get_timespec();
-                shl_subgraph_run(n);
-                uint64_t end_time = shl_get_timespec();
-                shl_benchmark_layer(n, start_time, end_time, i);
-                time_acc += end_time - start_time;
-            } else {
-                shl_subgraph_run(n);
-            }
+                if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER ||
+                    sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
+                    uint64_t start_time = shl_get_timespec();
+                    shl_subgraph_run(n);
+                    uint64_t end_time = shl_get_timespec();
+                    shl_benchmark_layer(n, start_time, end_time, i);
+                    time_acc += end_time - start_time;
+                } else {
+                    shl_subgraph_run(n);
+                }
 
-            shl_subgraph_run_deinit(n, g);
+                shl_subgraph_run_deinit(n, g);
 
-            if (sess->profiler_level == CSINN_PROFILER_LEVEL_DUMP ||
-                sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
-                shl_dump_output_tensor(n);
-            }
+                if (sess->profiler_level == CSINN_PROFILER_LEVEL_DUMP ||
+                    sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
+                    shl_dump_output_tensor(n);
+                }
 #else
-            shl_subgraph_run(n);
-            shl_subgraph_run_deinit(n, g);
+                shl_subgraph_run(n);
+                shl_subgraph_run_deinit(n, g);
 #endif
-
-#endif
+            }
         } else if (n->type >= 0 && n->type < CSINN_OP_SIZE) {
             op_run_init(n);
 #ifdef SHL_LAYER_BENCHMARK
@@ -934,16 +943,17 @@ void shl_gref_set_output(int index, struct csinn_tensor *output, struct csinn_se
 
 void shl_gref_session_deinit(struct csinn_session *sess)
 {
-#ifdef GRAPH_REFERENCE_SUBGRAPH
-    struct shl_ref_graph *g = shl_gref_get_graph(sess);
+    if (sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
+        struct shl_ref_graph *g = shl_gref_get_graph(sess);
 
-    for (int i = 0; i < g->layer_index; i++) {
-        struct shl_node *n = g->layer[i];
-        if (n->type == CSINN_SUBGRAPH) {
-            shl_subgraph_deinit(n);
+        for (int i = 0; i < g->layer_index; i++) {
+            struct shl_node *n = g->layer[i];
+            if (n->type == CSINN_SUBGRAPH) {
+                shl_subgraph_deinit(n);
+            }
         }
     }
-#endif
+
     struct shl_ref_graph *graph = shl_gref_get_graph(sess);
     shl_mem_free(graph->input);
     shl_mem_free(graph->output);
@@ -1043,6 +1053,7 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION1D_DISABLED
     cb_map[CSINN_OP_CONV1D].est = shl_gref_conv1d;
+    cb_map[CSINN_OP_GROUP_CONV1D].est = shl_gref_conv1d;
     cb_map[CSINN_OP_DEPTHWISE_CONV1D].est = shl_gref_depthwise_conv1d;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION_DISABLED
@@ -1063,6 +1074,7 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION_DISABLED
     cb_map[CSINN_OP_DECONV2D].est = shl_gref_deconv2d;
     cb_map[CSINN_OP_DEPTHWISE_DECONV2D].est = shl_gref_depthwise_deconv2d;
+    cb_map[CSINN_OP_GROUP_DECONV2D].est = shl_gref_group_deconv2d;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION3D_DISABLED
     cb_map[CSINN_OP_DECONV3D].est = shl_gref_deconv3d;

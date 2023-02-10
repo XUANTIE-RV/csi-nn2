@@ -27,7 +27,7 @@ def group_convolution_f32(test_dtype, test_vlen, test_type):
     # init the input data and parameters
     if test_type == "packn_conv3x3s1d1":
         in_channel  = packn * n
-        out_channel = packn * n 
+        out_channel = packn * n
         stride_x    = 1
         stride_y    = 1
         kernel_x    = 3
@@ -35,7 +35,19 @@ def group_convolution_f32(test_dtype, test_vlen, test_type):
         dilation_x = 1
         dilation_y = 1
 
-    
+    elif test_type == "common":
+        in_channel  = packn * n
+        out_channel = packn * n
+        stride_x    = int(np.random.randint(1, high=3, size=1))
+        stride_y    = int(np.random.randint(1, high=3, size=1))
+        kernel_x    = int(np.random.randint(1, high=6, size=1))
+        kernel_y    = int(np.random.randint(1, high=6, size=1))
+        dilation_x = int(np.random.randint(1, high=3, size=1))
+        dilation_y = int(np.random.randint(1, high=3, size=1))
+
+
+
+
     group      = int(np.random.randint(2, high=3, size=1))
     in_channel = int(in_channel / group) * group
     kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
@@ -82,18 +94,18 @@ def group_convolution_f32(test_dtype, test_vlen, test_type):
 
     s_channel = int(in_channel / group)
     # nc1c0hw ==> nc1hwc0
-    if "packn" in test_type:
-        for i in range(group):
-            temp = t_src_in[:,i*s_channel:(i+1)*s_channel,:,:]
-            a = temp.reshape([batch, math.ceil(s_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
-            if i == 0:
-                out = a
-            else:
-                out = np.concatenate((out, a), axis=1)
-        t_src_out1 = t_src_out1.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose([0, 1, 3, 4, 2])
+    # if "packn" in test_type:
+    #     for i in range(group):
+    #         temp = t_src_in[:,i*s_channel:(i+1)*s_channel,:,:]
+    #         a = temp.reshape([batch, math.ceil(s_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
+    #         if i == 0:
+    #             out = a
+    #         else:
+    #             out = np.concatenate((out, a), axis=1)
+    #     t_src_out1 = t_src_out1.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose([0, 1, 3, 4, 2])
 
-    
-    src_in_1 = out.flatten()
+
+    src_in_1 = src_in.flatten()
     src_out_1 = t_src_out1.flatten()
     weight_1  = weight.flatten()
 

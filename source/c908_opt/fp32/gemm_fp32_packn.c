@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void gemm_fp32_ncxhwx_12xpack2n(float *output, const float *kernel, const float *input,

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 static int shl_rvv_gather_in_i8_out_f16(struct csinn_tensor *input, struct csinn_tensor *indices,

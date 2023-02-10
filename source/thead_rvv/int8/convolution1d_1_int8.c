@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 void shl_rvv_conv1d_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,

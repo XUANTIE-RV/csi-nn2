@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -999,6 +997,15 @@ int shl_rvv_wg_b4f3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tensor
                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                  struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)params->conv_extra.kernel_tm->data;
@@ -1009,7 +1016,7 @@ int shl_rvv_wg_b4f3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tensor
     int pad_top = params->pad_top;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -1191,6 +1198,15 @@ int shl_rvv_wg_b6f3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tensor
                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                  struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)params->conv_extra.kernel_tm->data;
@@ -1201,7 +1217,7 @@ int shl_rvv_wg_b6f3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tensor
     int pad_top = params->pad_top;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;

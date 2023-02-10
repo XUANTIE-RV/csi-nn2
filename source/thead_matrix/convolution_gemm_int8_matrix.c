@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 static void im2col_gemm_reorder_kernel_per_group_int8_matrix(int8_t *src, int8_t *dst, int out_c,
@@ -171,6 +169,8 @@ int shl_rvm_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
             shl_rvv_pad_input_nhwc_int8(input_data, input_pad_buf, in_h, in_w, in_c, padded_in_h,
                                         padded_in_w, params->pad_top, params->pad_left,
                                         input->qinfo->zero_point);
+        } else {
+            input_pad_buf = input_data;
         }
         // im2col
         int vl = vsetvl_e8m1(csrr_vlenb() / sizeof(int8_t));

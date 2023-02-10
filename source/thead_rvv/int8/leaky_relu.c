@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -28,7 +26,6 @@
  * s2 * (q2 - z2) = leaky_relu{ s1 * (q1 - z1) }
  * if (q1 >= z1)  q2 = s1/s2 * (q1 - z1) + z2
  * else q2 = s1/s2 * alpha * (q1 -z1) + z2
- * constrains: params->n < 0.5
  * ******************************************************************/
 int shl_rvv_leaky_relu_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_relu_params *params)
@@ -55,7 +52,11 @@ int shl_rvv_leaky_relu_int8(struct csinn_tensor *input, struct csinn_tensor *out
 
         vbool8_t _mask = vmslt_vx_i32m4_b8(_input2, input->qinfo->zero_point, vl);
         vint32m4_t _mulh_neg = vmulh_vx_i32m4_m(_mask, _mulh, _mulh, params->n_multiplier, vl);
-        _mulh_neg = vssra_vx_i32m4_m(_mask, _mulh, _mulh_neg, -params->n_shift - 1, vl);
+        if (params->n_shift < 0) {
+            _mulh_neg = vssra_vx_i32m4_m(_mask, _mulh, _mulh_neg, -params->n_shift - 1, vl);
+        } else {
+            _mulh_neg = vsll_vx_i32m4_m(_mask, _mulh, _mulh_neg, params->n_shift + 1, vl);
+        }
 
         vint32m4_t _res0 = vadd_vx_i32m4(_mulh_neg, output->qinfo->zero_point, vl);
         vint16m2_t _res1 = vnclip_wx_i16m2(_res0, 0, vl);
@@ -65,6 +66,11 @@ int shl_rvv_leaky_relu_int8(struct csinn_tensor *input, struct csinn_tensor *out
         input_data += vl;
         output_data += vl;
         size -= vl;
+    }
+    output->layout = input->layout;
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = input->dim[i];
     }
     return CSINN_TRUE;
 }

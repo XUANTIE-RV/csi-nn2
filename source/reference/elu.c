@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static float elu(float x) { return x < 0.0 ? exp(x) - 1 : x; }

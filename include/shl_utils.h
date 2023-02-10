@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_UTILS_H_
 #define INCLUDE_SHL_UTILS_H_
 
@@ -53,6 +51,7 @@ struct shl_ref_graph {
 struct shl_gref_target_data {
     struct shl_ref_graph *graph;
     int is_hybrid_quantization_type;
+    void *cpu_option;
 };
 
 void shl_get_top5(float *buf, uint32_t size, float *prob, uint32_t *cls);
@@ -114,6 +113,27 @@ int shl_dump_bm_graph_info_section(FILE *f, struct csinn_session *sess);
 void shl_bm_session_load(struct csinn_session *dest, struct csinn_session *src);
 int shl_dump_bm_graph_struct_section(FILE *f, struct shl_ref_graph *graph);
 void shl_bm_graph_struct_load(struct shl_ref_graph *dest, struct shl_ref_graph *src);
+
+bool shl_is_first_layer_input(struct csinn_tensor *input, struct csinn_session *sess);
+
+/** YOLOv5 detect box */
+struct shl_yolov5_box {
+    int label;   /**< Object label */
+    float score; /**< Object confidence */
+    float x1;    /**< X1 coordinate of object detection rectangle */
+    float y1;    /**< Y1 coordinate of object detection rectangle */
+    float x2;    /**< X2 coordinate of object detection rectangle */
+    float y2;    /**< Y2 coordinate of object detection rectangle */
+    float area;  /**< Area of object detection rectangle */
+};
+
+/** YOLOv5 detect params */
+struct shl_yolov5_params {
+    float conf_thres;   /**< Confidence threshold, must be between 0 and 1 */
+    float iou_thres;    /**< IoU threshold for NMS calculation */
+    int32_t strides[3]; /**< Strides */
+    float anchors[18];  /**< Anchor box of three strides */
+};
 
 #ifdef __cplusplus
 }

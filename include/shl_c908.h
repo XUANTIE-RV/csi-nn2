@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_C908_H_
 #define INCLUDE_SHL_C908_H_
 
@@ -331,6 +329,11 @@ void shl_c908_gemm_8x16_int8_v256_dot(int8_t *dst, const int8_t *sa, const int8_
                                       int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
                                       int32_t *mult, int32_t *shift);
 
+void shl_c908_f32_to_u8(const float *input, uint8_t *output, int32_t offset, float *scale,
+                        uint32_t length);
+void shl_c908_f32_to_i8(const float *input, int8_t *output, int32_t offset, float *scale,
+                        uint32_t length);
+
 #ifdef SHL_UNUSED_REGISTER_BLK
 void shl_c908_reorder_input_z8_fp32(float *src, float *dst, int k, int n, int ldc);
 void shl_c908_gemm_8x8_fp32(float *dst, const float *sa, const float *sb, float *bias, int m, int k,
@@ -356,5 +359,12 @@ int shl_c908_depthwise_conv2d_init_int4(struct csinn_tensor *input, struct csinn
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                         struct csinn_conv2d_params *params);
 #endif
+
+struct shl_c908_option {
+    struct shl_rvv_option base;
+};
+
+int shl_c908_set_packn_layout(struct csinn_session *sess, bool packn_layout);
+struct shl_c908_option *shl_c908_get_graph_option(struct csinn_session *sess);
 
 #endif  // INCLUDE_SHL_C908_H_

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
@@ -25,14 +23,15 @@ int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
 {
     int32_t inner_size = 1;
     int32_t out_size = 1;
-    int32_t avg_dim = (input->dim[params->axis] + params->output_num - 1) / params->output_num;
+    int32_t axis = params->axis < 0 ? (params->axis + input->dim_count) : params->axis;
+    int32_t avg_dim = (input->dim[axis] + params->output_num - 1) / params->output_num;
     float *input_data = input->data;
 
-    for (int i = 0; i < params->axis; i++) {
+    for (int i = 0; i < axis; i++) {
         out_size *= input->dim[i];
     }
 
-    for (int i = params->axis + 1; i < input->dim_count; i++) {
+    for (int i = axis + 1; i < input->dim_count; i++) {
         inner_size *= input->dim[i];
     }
 
@@ -41,7 +40,7 @@ int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
         int s_index;
         if (params->split_index != NULL) {
             if (i == params->output_num - 1) {
-                p_size = inner_size * (input->dim[params->axis] - params->split_index[i - 1]);
+                p_size = inner_size * (input->dim[axis] - params->split_index[i - 1]);
                 s_index = params->split_index[i - 1];
             } else if (i == 0) {
                 p_size = inner_size * params->split_index[0];
@@ -52,7 +51,7 @@ int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
             }
         } else {
             if (i == params->output_num - 1) {
-                p_size = inner_size * (input->dim[params->axis] - i * avg_dim);
+                p_size = inner_size * (input->dim[axis] - i * avg_dim);
             } else {
                 p_size = inner_size * avg_dim;
             }
@@ -61,10 +60,9 @@ int shl_c906_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
         float *output_i_data = output[i]->data;
 
         for (int out = 0; out < out_size; out++) {
-            int in_index = out * input->dim[params->axis] * inner_size + s_index * inner_size;
-            int out_index = out * inner_size;
-            shl_c906_memcpy(output_i_data + out_index, input_data + in_index,
-                            p_size * sizeof(float));
+            int in_index = out * input->dim[axis] * inner_size + s_index * inner_size;
+            shl_c906_memcpy(output_i_data, input_data + in_index, p_size * sizeof(float));
+            output_i_data += p_size;
         }
     }
     return CSINN_TRUE;

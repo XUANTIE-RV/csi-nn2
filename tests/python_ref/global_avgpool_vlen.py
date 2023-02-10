@@ -46,9 +46,9 @@ def global_avgpool2d_f32(test_dtype, test_vlen, test_type):
 
 
     # nc1c0hw ==> nc1hwc0
-    if "packn" in test_type:
-        t_src_in = t_src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
-        t_src_out = t_src_out.reshape([batch, math.ceil(in_channel/packn), packn, out_height, out_width]).transpose([0, 1, 3, 4, 2])
+    # if "packn" in test_type:
+    #     t_src_in = t_src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).permute([0, 1, 3, 4, 2])
+    #     t_src_out = t_src_out.reshape([batch, math.ceil(in_channel/packn), packn, out_height, out_width]).transpose([0, 1, 3, 4, 2])
 
 
 

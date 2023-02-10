@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_THEAD_RVM_H_
 #define INCLUDE_SHL_THEAD_RVM_H_
 

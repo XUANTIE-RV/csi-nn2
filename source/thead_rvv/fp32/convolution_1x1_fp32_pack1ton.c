@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************************************
@@ -34,6 +32,16 @@ int shl_rvv_conv1x1s1_gemm_pack1ton_fp32(struct csinn_tensor *input, struct csin
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        const int packn = csrr_vlenb() / sizeof(float);
+        output->dim[1] /= packn;
+        output->dim[4] = packn;
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     float *kernel_data = (float *)kernel->data;

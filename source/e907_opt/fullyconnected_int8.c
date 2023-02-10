@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_e907.h"
 
 static void shl_e907_fullyconnectd_int8_internel(const int8_t *input, int32_t *output,

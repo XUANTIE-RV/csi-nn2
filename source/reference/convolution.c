@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 #ifdef SHL_AVX_OPT
 #include "conv_avx.h"
@@ -101,8 +99,8 @@ static int shl_ref_conv2d_nchw_f32(struct csinn_tensor *input, struct csinn_tens
     int32_t pad_a[4] = {0, 0, params->pad_down, params->pad_right};
     t_input->dim[2] = input->dim[2] + params->pad_top + params->pad_down;
     t_input->dim[3] = input->dim[3] + params->pad_left + params->pad_right;
-    t_input->data =
-        shl_mem_alloc(t_input->dim[0] * t_input->dim[1] * t_input->dim[2] * t_input->dim[3] * 4);
+    t_input->data = shl_mem_alloc(t_input->dim[0] * t_input->dim[1] * t_input->dim[2] *
+                                  t_input->dim[3] * sizeof(float));
     struct csinn_pad_params pparams;
     pparams.base.layout = CSINN_LAYOUT_NCHW;
     pparams.base.api = CSINN_REF;
@@ -324,10 +322,13 @@ static int shl_ref_group_conv2d_nchw_f32(struct csinn_tensor *o_input,
     csinn_tensor_copy(kernel, o_kernel);
     csinn_tensor_copy(bias, o_bias);
 
+    input->dim[0] = 1;
+    output->dim[0] = 1;
     input->dim[1] /= params->group;
     output->dim[1] /= params->group;
     kernel->dim[0] /= params->group;
 
+    int batch = o_input->dim[0];
     int input_size = csinn_tensor_size(input);
     int output_size = csinn_tensor_size(output);
     int kernel_size = csinn_tensor_size(kernel);
@@ -336,14 +337,18 @@ static int shl_ref_group_conv2d_nchw_f32(struct csinn_tensor *o_input,
     float *output_data = o_output->data;
     float *kernel_data = o_kernel->data;
     float *bias_data = o_bias->data;
-    for (int i = 0; i < params->group; i++) {
-        input->data = input_data + i * input_size;
-        output->data = output_data + i * output_size;
-        kernel->data = kernel_data + i * kernel_size;
-        if (bias->data && bias->dim_count != 0) {
-            bias->data = bias_data + i * o_output->dim[1] / params->group;
+    for (int j = 0; j < batch; j++) {
+        input_data = o_input->data + sizeof(float) * j * params->group * input_size;
+        output_data = o_output->data + sizeof(float) * j * params->group * output_size;
+        for (int i = 0; i < params->group; i++) {
+            input->data = input_data + i * input_size;
+            output->data = output_data + i * output_size;
+            kernel->data = kernel_data + i * kernel_size;
+            if (bias->data && bias->dim_count != 0) {
+                bias->data = bias_data + i * o_output->dim[1] / params->group;
+            }
+            shl_ref_conv2d_nchw_f32(input, output, kernel, bias, params);
         }
-        shl_ref_conv2d_nchw_f32(input, output, kernel, bias, params);
     }
     return CSINN_TRUE;
 }

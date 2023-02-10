@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -38,17 +36,25 @@ int shl_rvv_dwconv_packn_int8(struct csinn_tensor *input, struct csinn_tensor *o
                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
                               struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)kernel->data;
     int32_t *bias_data = (int32_t *)bias->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];  // group = in_channel
+    int in_c = input->dim[1] * input->dim[4];  // group = in_channel
     int in_h = input->dim[2];
     int in_w = input->dim[3];
-
-    int out_c = output->dim[1];
+    int out_c = in_c;
     int out_h = output->dim[2];
     int out_w = output->dim[3];
 
@@ -124,5 +130,8 @@ int shl_rvv_dwconv_packn_int8(struct csinn_tensor *input, struct csinn_tensor *o
         input_data += in_c * in_h * in_w;
         output_data += out_c * out_h * out_w;
     }
+    shl_mem_free(multiplier);
+    shl_mem_free(shift);
+    shl_mem_free(input_padd_buf);
     return CSINN_TRUE;
 }

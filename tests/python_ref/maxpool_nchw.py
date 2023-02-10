@@ -49,8 +49,8 @@ def maxpool2d_f32(test_type):
         kernel_h    =  kernel_w   = 2
         pad_left  = pad_top = 1
         pad_down  = pad_right = 1
-        in_height = 2 * in_height 
-        in_width = 2 * in_width 
+        in_height = 2 * in_height
+        in_width = 2 * in_width
 
 
     elif test_type == "3x3s2":
@@ -73,13 +73,8 @@ def maxpool2d_f32(test_type):
         stride_h    =  stride_w     = 1
         kernel_h    =  kernel_w     = 3
         pad_left = pad_right = pad_top = pad_down = 1
-    
 
-
-    zero_point = int(np.random.randint(-8, high=8, size=1))
-    std        = int(np.random.randint(1, high=3, size=1))
-
-    src_in = np.random.normal(zero_point, std, (batch, channel, in_height, in_width))
+    src_in = np.random.uniform(1, 10, (batch, channel, in_height, in_width))
 
     t_src_in  = tensor(src_in)
     t_src_in1  = fn.pad(t_src_in, (pad_left, pad_right, pad_top, pad_down), 'constant', 0)

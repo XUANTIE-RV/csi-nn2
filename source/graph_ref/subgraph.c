@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 void shl_gref_reset_graph_visit(struct shl_ref_graph *graph)
@@ -376,14 +374,6 @@ static void set_sub_session(struct csinn_session *sub_sess, struct csinn_params_
         } else if (params->quant_type == CSINN_QUANT_INT4_SYM) {
             sub_sess->base_dtype = CSINN_DTYPE_INT4;
         }
-    } else if (params->api = CSINN_ASP) {
-        sub_sess->base_dtype = base_sess->base_dtype;
-        sub_sess->debug_level = base_sess->debug_level;
-        sub_sess->base_quant_type = base_sess->base_quant_type;
-        sub_sess->td = shl_mem_alloc(sizeof(struct shl_gref_target_data));
-        /* ASP: reuse gref graph */
-        struct shl_gref_target_data *td = sub_sess->td;
-        td->graph = graph;
     } else {
         shl_debug_error("sub session api unsupport\n");
     }
@@ -560,6 +550,7 @@ int shl_subgraph_setup(struct shl_node *n)
             case CSINN_OP_CONV3D:
             case CSINN_OP_DECONV2D:
             case CSINN_OP_DEPTHWISE_DECONV2D:
+            case CSINN_OP_GROUP_DECONV2D:
             case CSINN_OP_DECONV3D:
             case CSINN_OP_FULLYCONNECTED:
                 output = node->out[0]->data;
@@ -927,9 +918,11 @@ void shl_subgraph_fvisit_fuse(struct shl_ref_graph *graph, struct shl_node *node
     }
 
     int is_th1520 = shl_subgraph_get_device(node) == CSINN_TH1520 ? 1 : 0;
-    int is_profiler = params->sess->debug_level == CSINN_PROFILER_LEVEL_UNSET ? 0 : 1;
-    if (shl_gref_is_root_node(graph, node) || (is_profiler && !is_th1520) ||
-        (is_profiler && is_th1520 && !is_memory_op(node->type) && node->type != CSINN_OP_ADD)) {
+    int is_profiler = params->sess->profiler_level == CSINN_PROFILER_LEVEL_UNSET ? 0 : 1;
+    if (shl_gref_is_root_node(graph, node) || (is_profiler && is_th1520)) {
+        // if (shl_gref_is_root_node(graph, node) || (is_profiler && !is_th1520) ||
+        //     (is_profiler && is_th1520 && !is_memory_op(node->type) && node->type !=
+        //     CSINN_OP_ADD)) {
         /* create subgraph node */
         struct shl_ref_graph *sgraph = shl_mem_alloc(sizeof(struct shl_ref_graph));
         struct shl_node *sg_in = shl_node_alloc(CSINN_SUBGRAPH, "graph_in", 0, 0, sgraph);

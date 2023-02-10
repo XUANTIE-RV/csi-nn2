@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 #define C908_OP_PATTERN_MAX 60
@@ -50,25 +48,96 @@ struct csinn_callback *shl_cb_map_c908(int op, int dtype)
     return cb;
 }
 
+int shl_c908_set_packn_layout(struct csinn_session *sess, bool packn_layout)
+{
+    struct shl_gref_target_data *gref_td = sess->td;
+    struct shl_c908_option *c908_option = gref_td->cpu_option;
+    c908_option->base.use_packn_layout = packn_layout;
+    return CSINN_TRUE;
+}
+
+struct shl_c908_option *shl_c908_get_graph_option(struct csinn_session *sess)
+{
+    struct shl_gref_target_data *gref_td = sess->td;
+    if (gref_td) {
+        return (struct shl_c908_option *)(gref_td->cpu_option);
+    } else {
+        return NULL;
+    }
+}
+
+void shl_c908_session_init(struct csinn_session *sess)
+{
+    struct shl_c908_option *c908_option = shl_mem_alloc(sizeof(struct shl_c908_option));
+    struct shl_ref_graph *graph = shl_mem_alloc(sizeof(struct shl_ref_graph));
+    struct shl_gref_target_data *target_data = shl_mem_alloc(sizeof(struct shl_gref_target_data));
+    target_data->graph = graph;
+    c908_option->base.use_packn_layout = 1;  // c908 set use_packn_layout true default
+    target_data->cpu_option = c908_option;
+    sess->td = target_data;
+    sess->base_layout = CSINN_LAYOUT_NCHW;
+}
+
+void shl_c908_session_deinit(struct csinn_session *sess)
+{
+    struct shl_ref_graph *graph = shl_gref_get_graph(sess);
+    shl_mem_free(graph->input);
+    shl_mem_free(graph->output);
+    struct shl_c908_option *c908_option = shl_c908_get_graph_option(sess);
+    if (c908_option) {
+        shl_mem_free(c908_option);
+    }
+}
+
+void *shl_c908_runtime_callback(int api)
+{
+    switch (api) {
+        case CSINN_SESSION_INIT:
+            return shl_c908_session_init;
+            break;
+        case CSINN_SESSION_DEINIT:
+            return shl_c908_session_deinit;
+            break;
+        case CSINN_SESSION_SETUP:
+        case CSINN_SESSION_RUN:
+        case CSINN_UPDATE_INPUT:
+        case CSINN_UPDATE_OUTPUT:
+        case CSINN_SET_INPUT_NUMBER:
+        case CSINN_SET_OUTPUT_NUMBER:
+        case CSINN_SET_INPUT:
+        case CSINN_SET_OUTPUT:
+        case CSINN_GET_INPUT:
+        case CSINN_GET_OUTPUT:
+        case CSINN_TENSOR_ENTRY:
+        case CSINN_LOAD_BG:
+            return shl_gref_runtime_callback(api);
+            break;
+        default:
+            shl_debug_info("%s: Cannot find callback\n", __func__);
+            break;
+    }
+    return NULL;
+}
+
 void shl_target_init_c908()
 {
 #ifndef CONFIG_C908_CONVOLUTION_FP32_DISABLED
     shl_c908_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_c908_conv2d_init_fp32, NULL,
                     shl_gref_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_c908_conv2d_init_fp32, NULL,
-                    shl_gref_conv2d);
+                    shl_gref_group_conv2d);
 #endif
 #ifndef CONFIG_C908_CONVOLUTION_FP16_DISABLED
     shl_c908_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_c908_conv2d_init_fp16, NULL,
                     shl_gref_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_c908_conv2d_init_fp16, NULL,
-                    shl_gref_conv2d);
+                    shl_gref_group_conv2d);
 #endif
 #ifndef CONFIG_C908_CONVOLUTION_INT8_DISABLED
     shl_c908_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D, shl_c908_conv2d_init_int8, NULL,
                     shl_gref_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D, shl_c908_conv2d_init_int8, NULL,
-                    shl_gref_conv2d);
+                    shl_gref_group_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D_RELU, shl_c908_conv2d_init_int8, NULL,
                     shl_gref_conv2d_relu);
     shl_c908_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D_RELU, shl_c908_conv2d_init_int8, NULL,
@@ -116,7 +185,7 @@ void shl_target_init_c908()
     shl_c908_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D, shl_c908_conv2d_init_int4, NULL,
                     shl_gref_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_INT4, CSINN_OP_GROUP_CONV2D, shl_c908_conv2d_init_int4, NULL,
-                    shl_gref_conv2d);
+                    shl_gref_group_conv2d);
     shl_c908_reg_op(CSINN_DTYPE_INT4, CSINN_OP_CONV2D_RELU, shl_c908_conv2d_init_int4, NULL,
                     shl_gref_conv2d_relu);
     shl_c908_reg_op(CSINN_DTYPE_INT4, CSINN_OP_GROUP_CONV2D_RELU, shl_c908_conv2d_init_int4, NULL,
@@ -139,5 +208,5 @@ void shl_target_init_c908()
     shl_register_runtime_callback(CSINN_C908, NULL);
 
     shl_register_op_callback(CSINN_C908, shl_cb_map_c908);
-    shl_register_runtime_callback(CSINN_C908, shl_gref_runtime_callback);
+    shl_register_runtime_callback(CSINN_C908, shl_c908_runtime_callback);
 }

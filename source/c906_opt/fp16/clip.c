@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 int shl_c906_clip_fp16(struct csinn_tensor *input, struct csinn_tensor *output,

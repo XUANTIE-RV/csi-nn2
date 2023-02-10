@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void gemm_int16_ncxhwx_12xpackn(int32_t *output, const int16_t *kernel, const int16_t *input, int k,

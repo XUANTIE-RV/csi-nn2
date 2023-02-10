@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
-#include "../rvv_mathfun.h"
+#include "rvv_mathfun_fp32.h"
 #include "shl_thead_rvv.h"
 
 static inline float fast_exp32(float y)
@@ -36,6 +34,9 @@ static inline float fast_exp32(float y)
 int shl_rvv_softmax_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_softmax_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 

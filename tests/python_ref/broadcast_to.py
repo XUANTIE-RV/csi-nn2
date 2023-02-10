@@ -11,13 +11,13 @@ def broadcast_to_f32():
     para = []
     broadcast_shape = []
     # init the input data and parameters
-    broadcast_dimcount  = int(np.random.randint(1, high=7, size=1))
+    broadcast_dimcount  = int(np.random.randint(1, high=6, size=1))
 
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=2, size=1))
 
     for i in range(0, broadcast_dimcount):
-        broadcast_shape.append(int(np.random.randint(1, high=32, size=1)))
+        broadcast_shape.append(int(np.random.randint(1, high=24, size=1)))
 
     input_shape_t = []
     for i in range(0, broadcast_dimcount):

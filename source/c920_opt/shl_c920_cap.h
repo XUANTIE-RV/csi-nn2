@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_C920_CAP_H_
 #define INCLUDE_SHL_C920_CAP_H_
 
@@ -27,5 +25,8 @@
 int shl_c920_conv2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                         struct csinn_conv2d_params *params);
+
+int shl_c920_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                        struct csinn_tensor *output, struct csinn_matmul_params *params);
 
 #endif  // INCLUDE_SHL_C920_CAP_H_

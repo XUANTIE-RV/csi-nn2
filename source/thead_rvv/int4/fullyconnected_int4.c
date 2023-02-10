@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 #ifdef SHL_USE_DOT_INT4
 /*************************************************************

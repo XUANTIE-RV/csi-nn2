@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_gref.h"
 #include "shl_utils.h"
@@ -203,6 +201,7 @@ static char *tensor_dump(struct csinn_tensor *tensor, int *size)
         append_ptr = (char *)ret + tensor_size;
         memcpy(append_ptr, tensor->data, csinn_tensor_byte_size(tensor));
         ret->data = offset_to_ptr(tensor_size);
+        tensor_size += csinn_tensor_byte_size(tensor);
     } else {
         /* ignore data */
         ret->data = 0;
@@ -422,9 +421,129 @@ static char *layer_data_dump(struct shl_node *layer, int *size)
     /* ignore callback pointer space */
     struct csinn_params_base *ret = shl_mem_alloc(extend_size);
     memcpy(ret, layer->data, layer_data_size);
+    ret->name = offset_to_ptr(layer_data_size);
     memcpy((char *)ret + layer_data_size, params->name, name_size);
 
     *size = extend_size;
+
+    if (layer->type == CSINN_OP_RESHAPE) {
+        struct csinn_reshape_params *reshape_params = layer->data;
+        int shape_size = reshape_params->shape_num * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + shape_size, extend_size);
+
+        struct csinn_reshape_params *ret_reshape_params = (struct csinn_reshape_params *)ret;
+        ret_reshape_params->shape = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, reshape_params->shape, shape_size);
+        extend_size += shape_size;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_TRANSPOSE) {
+        struct csinn_transpose_params *transpose_params = layer->data;
+        int permute_size = transpose_params->permute_num * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + permute_size, extend_size);
+
+        struct csinn_transpose_params *ret_transpose_params = (struct csinn_transpose_params *)ret;
+        ret_transpose_params->permute = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, transpose_params->permute, permute_size);
+        extend_size += permute_size;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_PAD) {
+        struct csinn_pad_params *pad_params = layer->data;
+        if (pad_params->pad_num > 8) {
+            shl_debug_error("Error: pad_num cannot = %d\n", pad_params->pad_num);
+        }
+        int pad_size = pad_params->pad_num * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + pad_size * 2, extend_size);
+
+        struct csinn_pad_params *ret_pad_params = (struct csinn_pad_params *)ret;
+        ret_pad_params->pad_before = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, pad_params->pad_before, pad_size);
+        ret_pad_params->pad_after = (int32_t *)offset_to_ptr(extend_size + pad_size);
+        memcpy((char *)ret + extend_size + pad_size, pad_params->pad_after, pad_size);
+        extend_size += pad_size * 2;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_SPLIT) {
+        struct csinn_split_params *split_params = layer->data;
+        int split_size = split_params->output_num * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + split_size, extend_size);
+
+        struct csinn_split_params *ret_split_params = (struct csinn_split_params *)ret;
+        ret_split_params->split_index = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, split_params->split_index, split_size);
+        extend_size += split_size;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_REDUCE_SUM || layer->type == CSINN_OP_REDUCE_MAX ||
+               layer->type == CSINN_OP_REDUCE_MIN || layer->type == CSINN_OP_REDUCE_MEAN ||
+               layer->type == CSINN_OP_REDUCE_PROD || layer->type == CSINN_OP_REDUCE_LOGSUMEXP ||
+               layer->type == CSINN_OP_MEAN || layer->type == CSINN_OP_SUM ||
+               layer->type == CSINN_OP_MAX || layer->type == CSINN_OP_MIN ||
+               layer->type == CSINN_OP_PROD || layer->type == CSINN_OP_ARGMIN ||
+               layer->type == CSINN_OP_ARGMAX || layer->type == CSINN_OP_ALL ||
+               layer->type == CSINN_OP_ANY) {
+        struct csinn_reduce_params *reduce_params = layer->data;
+
+        int outer_size = reduce_params->n * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + outer_size * 2, extend_size);
+        struct csinn_reduce_params *ret_reduce_params = (struct csinn_reduce_params *)ret;
+        ret_reduce_params->out_strides = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, reduce_params->out_strides, outer_size);
+        ret_reduce_params->out_extents = (int32_t *)offset_to_ptr(extend_size + outer_size);
+        memcpy((char *)ret + extend_size + outer_size, reduce_params->out_extents, outer_size);
+        extend_size += outer_size * 2;
+
+        int inner_size = reduce_params->m * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + inner_size * 2, extend_size);
+        ret_reduce_params = (struct csinn_reduce_params *)ret;
+
+        ret_reduce_params->inner_strides = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, reduce_params->inner_strides, inner_size);
+        ret_reduce_params->inner_extents = (int32_t *)offset_to_ptr(extend_size + inner_size);
+        memcpy((char *)ret + extend_size + inner_size, reduce_params->inner_extents, inner_size);
+        extend_size += inner_size * 2;
+
+        int axis_size = reduce_params->axis_count * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + axis_size, extend_size);
+        ret_reduce_params = (struct csinn_reduce_params *)ret;
+
+        ret_reduce_params->axis = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, reduce_params->axis, axis_size);
+
+        extend_size += axis_size;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_BROADCOST) {
+        struct csinn_broadcast_to_params *broadcast_params = layer->data;
+        int broadcast_size = broadcast_params->shape_count * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + broadcast_size, extend_size);
+
+        struct csinn_broadcast_to_params *ret_broadcast_params =
+            (struct csinn_broadcast_to_params *)ret;
+        ret_broadcast_params->shape = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, broadcast_params->shape, broadcast_size);
+        extend_size += broadcast_size;
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_STRIDED_SLICE) {
+        struct csinn_strided_slice_params *stride_slice_params = layer->data;
+        int slice_size = stride_slice_params->slice_count * sizeof(int32_t);
+        ret = shl_mem_realloc(ret, extend_size + slice_size * 3, extend_size);
+
+        struct csinn_strided_slice_params *ret_stride_slice_params = (struct csinn_strided_slice_params *)ret;
+        ret_stride_slice_params->begin = (int32_t *)offset_to_ptr(extend_size);
+        memcpy((char *)ret + extend_size, stride_slice_params->begin, slice_size);
+        ret_stride_slice_params->end = (int32_t *)offset_to_ptr(extend_size + slice_size);
+        memcpy((char *)ret + extend_size + slice_size, stride_slice_params->end, slice_size);
+        ret_stride_slice_params->stride = (int32_t *)offset_to_ptr(extend_size + slice_size * 2);
+        memcpy((char *)ret + extend_size + slice_size * 2, stride_slice_params->stride, slice_size);
+        extend_size += slice_size * 3;
+
+        *size = extend_size;
+    } else if (layer->type == CSINN_OP_L2N || layer->type == CSINN_OP_PROPOSAL ||
+               layer->type == CSINN_OP_CROP || layer->type == CSINN_OP_SLICE ||
+               layer->type == CSINN_OP_TILE || layer->type == CSINN_OP_SQUEEZE ||
+               layer->type == CSINN_OP_SPACE_TO_BATCH_ND ||
+               layer->type == CSINN_OP_BATCH_TO_SPACE_ND || layer->type == CSINN_OP_CACHE_MATMUL ||
+               layer->type == CSINN_OP_CACHE_CONV1D) {
+        shl_debug_error("%d params save unsupported\n", layer->type);
+    }
+
     return (char *)ret;
 }
 
@@ -445,6 +564,88 @@ static void layer_data_load(struct shl_node *dest, struct shl_node *src)
     // /* dest's input have been loaded */
     // struct csinn_tensor *input = dest->in[0]->data;
     // shl_op_callback_map(ret, src->type, input->dtype);
+
+    if (src->type == CSINN_OP_RESHAPE) {
+        struct csinn_reshape_params *reshape_params = (struct csinn_reshape_params *)ret;
+        char *shape_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reshape_params->shape);
+        reshape_params->shape =
+            copy_from_bm(shape_addr, reshape_params->shape_num * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_TRANSPOSE) {
+        struct csinn_transpose_params *transpose_params = (struct csinn_transpose_params *)ret;
+        char *permute_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), transpose_params->permute);
+        transpose_params->permute =
+            copy_from_bm(permute_addr, transpose_params->permute_num * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_PAD) {
+        struct csinn_pad_params *pad_params = (struct csinn_pad_params *)ret;
+        char *pad_before_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), pad_params->pad_before);
+        pad_params->pad_before =
+            copy_from_bm(pad_before_addr, pad_params->pad_num * sizeof(int32_t));
+        char *pad_after_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), pad_params->pad_after);
+        pad_params->pad_after = copy_from_bm(pad_after_addr, pad_params->pad_num * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_SPLIT) {
+        struct csinn_split_params *split_params = (struct csinn_split_params *)ret;
+        char *split_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), split_params->split_index);
+        split_params->split_index =
+            copy_from_bm(split_addr, split_params->output_num * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_REDUCE_SUM || src->type == CSINN_OP_REDUCE_MAX ||
+               src->type == CSINN_OP_REDUCE_MIN || src->type == CSINN_OP_REDUCE_MEAN ||
+               src->type == CSINN_OP_REDUCE_PROD || src->type == CSINN_OP_REDUCE_LOGSUMEXP ||
+               src->type == CSINN_OP_MEAN || src->type == CSINN_OP_SUM ||
+               src->type == CSINN_OP_MAX || src->type == CSINN_OP_MIN ||
+               src->type == CSINN_OP_PROD || src->type == CSINN_OP_ARGMIN ||
+               src->type == CSINN_OP_ARGMAX || src->type == CSINN_OP_ALL ||
+               src->type == CSINN_OP_ANY) {
+        struct csinn_reduce_params *reduce_params = (struct csinn_reduce_params *)ret;
+        char *outer_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reduce_params->out_extents);
+        reduce_params->out_extents = copy_from_bm(outer_addr, reduce_params->n * sizeof(int32_t));
+        outer_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reduce_params->out_strides);
+        reduce_params->out_strides = copy_from_bm(outer_addr, reduce_params->n * sizeof(int32_t));
+        char *inner_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reduce_params->inner_extents);
+        reduce_params->inner_extents = copy_from_bm(inner_addr, reduce_params->m * sizeof(int32_t));
+        inner_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reduce_params->inner_strides);
+        reduce_params->inner_strides = copy_from_bm(inner_addr, reduce_params->m * sizeof(int32_t));
+        char *axis_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reduce_params->axis);
+        reduce_params->axis = copy_from_bm(axis_addr, reduce_params->axis_count * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_BROADCOST) {
+        struct csinn_broadcast_to_params *broadcast_params =
+            (struct csinn_broadcast_to_params *)ret;
+        char *broadcast_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), broadcast_params->shape);
+        broadcast_params->shape =
+            copy_from_bm(broadcast_addr, broadcast_params->shape_count * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_STRIDED_SLICE) {
+        struct csinn_strided_slice_params *stride_slice_params =
+            (struct csinn_strided_slice_params *)ret;
+        char *begin_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), stride_slice_params->begin);
+        stride_slice_params->begin =
+            copy_from_bm(begin_addr, stride_slice_params->slice_count * sizeof(int32_t));
+        char *end_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), stride_slice_params->end);
+        stride_slice_params->end =
+            copy_from_bm(end_addr, stride_slice_params->slice_count * sizeof(int32_t));
+        char *stride_addr =
+            ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), stride_slice_params->stride);
+        stride_slice_params->stride =
+            copy_from_bm(stride_addr, stride_slice_params->slice_count * sizeof(int32_t));
+    } else if (src->type == CSINN_OP_L2N || src->type == CSINN_OP_PROPOSAL ||
+               src->type == CSINN_OP_CROP || src->type == CSINN_OP_SLICE ||
+               src->type == CSINN_OP_TILE || src->type == CSINN_OP_SQUEEZE ||
+               src->type == CSINN_OP_SPACE_TO_BATCH_ND || src->type == CSINN_OP_BATCH_TO_SPACE_ND ||
+               src->type == CSINN_OP_CACHE_MATMUL || src->type == CSINN_OP_CACHE_CONV1D) {
+        shl_debug_error("%d params load unsupported\n", src->type);
+    }
+
     dest->data = ret;
 }
 
@@ -755,7 +956,7 @@ struct csinn_session *__attribute__((weak)) csinn_import_binary_model(char *bm_a
     shl_bm_session_load(sess, bm_sess);
     float version = check_bm_version(bm_addr);
     if (version == 2.0) {
-        if (sess->base_api == CSINN_REF) {
+        if (sess->base_run_mode != CSINN_RM_NPU_GRAPH) {
             /* load binary model in GREF */
             sess->model.bm_addr = bm_addr;
         } else {

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_e907.h"
 
 static struct shl_cb_op_list shl_e907_cb_op_list;

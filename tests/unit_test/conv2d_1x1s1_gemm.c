@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "./valid_data/conv2d.dat"
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"

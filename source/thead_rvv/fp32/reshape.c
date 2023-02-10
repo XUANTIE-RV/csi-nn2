@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -29,16 +27,17 @@ int shl_rvv_reshape_fp32(struct csinn_tensor *input, struct csinn_tensor *output
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 
-    int size = csinn_tensor_byte_size(input);
-
-    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
-        const int packn = csrr_vlenb() / sizeof(float);
+    shl_gref_reshape_infer_shape(input, output, params);
+    if (input->layout >= CSINN_LAYOUT_NC1WC0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        const int packn = csrr_vlenb() / sizeof(float);  // = input->dim[input->dim_count - 1]
         const int vl = vsetvl_e32m1(packn);
-
-        int outer_size = input->dim[1];
-        int inner_size = input->dim[2] * input->dim[3];
-        for (int ic = 0; ic + packn - 1 < outer_size; ic += packn) {
-            float *out_ptr = output_data + ic * inner_size;
+        int outer_size = input->dim[0] * input->dim[1];  // batch fuse to outer
+        int inner_size = 1;
+        for (int i = 2; i < input->dim_count - 1; i++) {
+            inner_size *= input->dim[i];
+        }
+        for (int bc = 0; bc < outer_size; bc++) {
+            float *out_ptr = output_data + bc * inner_size * packn;
             for (int i = 0; i < inner_size; i++) {
                 vfloat32m1_t _input = vle32_v_f32m1(input_data, vl);
                 input_data += vl;
@@ -46,8 +45,56 @@ int shl_rvv_reshape_fp32(struct csinn_tensor *input, struct csinn_tensor *output
                 out_ptr += 1;
             }
         }
-    } else {
-        memcpy(output_data, input_data, size);
+        if (output->dim_count == 1)
+            output->layout = CSINN_LAYOUT_N;
+        else if (output->dim_count == 2)
+            output->layout = CSINN_LAYOUT_NC;
+        else if (output->dim_count == 3)
+            output->layout = CSINN_LAYOUT_NCW;
+        else if (output->dim_count == 4)
+            output->layout = CSINN_LAYOUT_NCHW;
+        else if (output->dim_count == 5)
+            output->layout = CSINN_LAYOUT_NCDHW;
+    } else if (input->layout >= CSINN_LAYOUT_N && input->layout <= CSINN_LAYOUT_NCDHW) {
+        memcpy(output_data, input_data, csinn_tensor_byte_size(input));
+        if (output->dim_count == 1)
+            output->layout = CSINN_LAYOUT_N;
+        else if (output->dim_count == 2)
+            output->layout = CSINN_LAYOUT_NC;
+        else if (output->dim_count == 3)
+            output->layout = CSINN_LAYOUT_NCW;
+        else if (output->dim_count == 4)
+            output->layout = CSINN_LAYOUT_NCHW;
+        else if (output->dim_count == 5)
+            output->layout = CSINN_LAYOUT_NCDHW;
+        else if (output->dim_count == 6)
+            output->layout = CSINN_LAYOUT_NLCDHW;
+    } else if (input->layout >= CSINN_LAYOUT_NWC && input->layout <= CSINN_LAYOUT_NDHWC) {
+        memcpy(output_data, input_data, csinn_tensor_byte_size(input));
+        if (output->dim_count == 1)
+            output->layout = CSINN_LAYOUT_N;
+        else if (output->dim_count == 2)
+            output->layout = CSINN_LAYOUT_NC;
+        else if (output->dim_count == 3)
+            output->layout = CSINN_LAYOUT_NWC;
+        else if (output->dim_count == 4)
+            output->layout = CSINN_LAYOUT_NHWC;
+        else if (output->dim_count == 5)
+            output->layout = CSINN_LAYOUT_NDHWC;
+    } else if (input->layout == CSINN_LAYOUT_NLCDHW) {
+        memcpy(output_data, input_data, csinn_tensor_byte_size(input));
+        if (output->dim_count == 1)
+            output->layout = CSINN_LAYOUT_N;
+        else if (output->dim_count == 2)
+            output->layout = CSINN_LAYOUT_NC;
+        else if (output->dim_count == 3)
+            output->layout = CSINN_LAYOUT_NCW;
+        else if (output->dim_count == 4)
+            output->layout = CSINN_LAYOUT_NCHW;
+        else if (output->dim_count == 5)
+            output->layout = CSINN_LAYOUT_NCDHW;
+        else if (output->dim_count == 6)
+            output->layout = CSINN_LAYOUT_NLCDHW;
     }
     return CSINN_TRUE;
 }

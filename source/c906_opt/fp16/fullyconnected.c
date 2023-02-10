@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -399,7 +397,7 @@ int shl_c906_fullyconnected_pack8_fp16(struct csinn_tensor *input, struct csinn_
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * sizeof(__fp16));
     }
 
     for (int b = 0; b < batches; b++) {
@@ -640,7 +638,7 @@ int shl_c906_fullyconnected_pack8_fp16_1(struct csinn_tensor *input, struct csin
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * sizeof(__fp16));
     }
 
     for (int b = 0; b < batches; b++) {
@@ -778,7 +776,7 @@ int shl_c906_fullyconnected_pack16_fp16(struct csinn_tensor *input, struct csinn
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * sizeof(__fp16));
     }
 
     __fp16 *weights_fp16 = NULL;
@@ -952,6 +950,86 @@ int shl_c906_fullyconnected_pack16_output16_fp16(struct csinn_tensor *input,
     int packn = 16;
     int vl = 16;
     int b = 0;
+    for (; b + 7 < batches; b += 8) {
+        __fp16 *init_output = output_data + b * output_depth;
+        __fp16 *init_output2 = init_output + output_depth;
+        __fp16 *init_output3 = init_output2 + output_depth;
+        __fp16 *init_output4 = init_output3 + output_depth;
+        __fp16 *init_output5 = init_output4 + output_depth;
+        __fp16 *init_output6 = init_output5 + output_depth;
+        __fp16 *init_output7 = init_output6 + output_depth;
+        __fp16 *init_output8 = init_output7 + output_depth;
+        __fp16 *init_input = input_data + b * accum_depth;
+        __fp16 *init_input2 = init_input + accum_depth;
+        __fp16 *init_input3 = init_input2 + accum_depth;
+        __fp16 *init_input4 = init_input3 + accum_depth;
+        __fp16 *init_input5 = init_input4 + accum_depth;
+        __fp16 *init_input6 = init_input5 + accum_depth;
+        __fp16 *init_input7 = init_input6 + accum_depth;
+        __fp16 *init_input8 = init_input7 + accum_depth;
+        __fp16 *init_weight = weights_data;
+        __fp16 *init_bias = bias_data;
+        int n = output_depth;
+        while (n > 0) {
+            __fp16 *in_ptr = init_input;
+            __fp16 *in_ptr2 = init_input2;
+            __fp16 *in_ptr3 = init_input3;
+            __fp16 *in_ptr4 = init_input4;
+            __fp16 *in_ptr5 = init_input5;
+            __fp16 *in_ptr6 = init_input6;
+            __fp16 *in_ptr7 = init_input7;
+            __fp16 *in_ptr8 = init_input8;
+            vfloat16m2_t _acc = vle16_v_f16m2(init_bias, vl);
+            vfloat16m2_t _acc2 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc3 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc4 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc5 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc6 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc7 = vmv_v_v_f16m2(_acc, vl);
+            vfloat16m2_t _acc8 = vmv_v_v_f16m2(_acc, vl);
+
+            init_bias += vl;
+            int k = accum_depth;
+            while (k > 0) {
+                vfloat16m2_t _weight = vle16_v_f16m2(init_weight, vl);
+                _acc = vfmacc_vf_f16m2(_acc, *in_ptr, _weight, vl);
+                _acc2 = vfmacc_vf_f16m2(_acc2, *in_ptr2, _weight, vl);
+                _acc3 = vfmacc_vf_f16m2(_acc3, *in_ptr3, _weight, vl);
+                _acc4 = vfmacc_vf_f16m2(_acc4, *in_ptr4, _weight, vl);
+                _acc5 = vfmacc_vf_f16m2(_acc5, *in_ptr5, _weight, vl);
+                _acc6 = vfmacc_vf_f16m2(_acc6, *in_ptr6, _weight, vl);
+                _acc7 = vfmacc_vf_f16m2(_acc7, *in_ptr7, _weight, vl);
+                _acc8 = vfmacc_vf_f16m2(_acc8, *in_ptr8, _weight, vl);
+                init_weight += vl;
+                in_ptr++;
+                in_ptr2++;
+                in_ptr3++;
+                in_ptr4++;
+                in_ptr5++;
+                in_ptr6++;
+                in_ptr7++;
+                in_ptr8++;
+                k--;
+            }
+            vse16_v_f16m2(init_output, _acc, vl);
+            vse16_v_f16m2(init_output2, _acc2, vl);
+            vse16_v_f16m2(init_output3, _acc3, vl);
+            vse16_v_f16m2(init_output4, _acc4, vl);
+            vse16_v_f16m2(init_output5, _acc5, vl);
+            vse16_v_f16m2(init_output6, _acc6, vl);
+            vse16_v_f16m2(init_output7, _acc7, vl);
+            vse16_v_f16m2(init_output8, _acc8, vl);
+            init_output += vl;
+            init_output2 += vl;
+            init_output3 += vl;
+            init_output4 += vl;
+            init_output5 += vl;
+            init_output6 += vl;
+            init_output7 += vl;
+            init_output8 += vl;
+            n -= vl;
+        }
+    }
     for (; b + 3 < batches; b += 4) {
         __fp16 *init_output = output_data + b * output_depth;
         __fp16 *init_output2 = init_output + output_depth;

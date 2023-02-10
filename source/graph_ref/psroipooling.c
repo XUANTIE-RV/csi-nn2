@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_psroipooling(struct csinn_tensor *data, struct csinn_tensor *rois,

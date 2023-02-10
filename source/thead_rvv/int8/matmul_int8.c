@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /************************************************************************************
@@ -51,11 +49,11 @@ static void matmul_int8_axb(int8_t *output, const int8_t *mat0, const int8_t *ma
                             int32_t shift)
 {
     for (int i = 0; i < dim_i; i++) {
-        const int8_t *m1_ptr = mat1;
         int j = 0;
         while (j < dim_j) {
             int vl = vsetvl_e8m1(dim_j - j);
             const int8_t *m0_ptr = mat0;
+            const int8_t *m1_ptr = mat1 + j;
             vint32m4_t _acc = vmv_v_x_i32m4(0, vl);
 
             for (int k = 0; k < dim_k; k++) {
@@ -65,7 +63,7 @@ static void matmul_int8_axb(int8_t *output, const int8_t *mat0, const int8_t *ma
                 vint32m4_t _mul = vwmul_vx_i32m4(_m1_w, m0_w, vl);
                 _acc = vadd_vv_i32m4(_acc, _mul, vl);
                 m0_ptr += 1;
-                m1_ptr += vl;
+                m1_ptr += dim_j;
             }
 
             vint32m4_t _mulh = vmulh_vx_i32m4(_acc, mult, vl);

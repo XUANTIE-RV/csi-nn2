@@ -371,12 +371,12 @@ config C906_SPLIT_FP16
 	help
 		Select SHL build v extension optimized split
 
-config C906_SUM_FP16
+config C906_REDUCE_SUM_FP16
 	depends on C906_SOURCE
-	bool "Layer sum fp16"
+	bool "Layer reduce_sum fp16"
 	default y
 	help
-		Select SHL build v extension optimized fp16
+		Select SHL build v extension optimized reduce_sum
 
 config C906_SUB_FP32
 	depends on C906_SOURCE

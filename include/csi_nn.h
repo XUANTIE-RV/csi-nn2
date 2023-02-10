@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**
  * @file csi_nn.h
  */
@@ -2880,7 +2878,8 @@ int csinn_where(struct csinn_tensor *condition, struct csinn_tensor *x, struct c
  *              equal to 0.
  */
 int csinn_where_softmax_init(struct csinn_tensor *condition, struct csinn_tensor *y,
-                             struct csinn_tensor *output, struct csinn_where_softmax_params *params);
+                             struct csinn_tensor *output,
+                             struct csinn_where_softmax_params *params);
 
 /**
  * @brief       Select each element from two input tensors according to the condition tensor.
@@ -4608,6 +4607,31 @@ int csinn_conv1d(struct csinn_tensor *input, struct csinn_tensor *output,
                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                  struct csinn_conv1d_params *params);
 
+/**
+ * @brief       Data convert initialization function
+ *
+ * @param[in]   input   Pointer to the input tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Data Cast parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_cast_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_cast_params *params);
+
+/**
+ * @brief       Data convert function
+ *
+ * @param[in]   input   Pointer to the input tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Data convert parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_cast(struct csinn_tensor *input, struct csinn_tensor *output,
+               struct csinn_cast_params *params);
 /**
  * @brief       Data convert initialization function
  *

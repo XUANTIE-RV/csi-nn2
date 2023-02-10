@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -28,11 +26,20 @@
 int shl_rvv_avgpool3x3s2_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -124,11 +131,20 @@ int shl_rvv_avgpool3x3s2_packn_int8(struct csinn_tensor *input, struct csinn_ten
 int shl_rvv_avgpool3x3s1_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 static vint8m1_t requantize_4xn(vint32m4_t _src, int32_t *mult, int32_t *shift, int32_t out_zp,
                                 int vl)

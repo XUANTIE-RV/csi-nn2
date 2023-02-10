@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void shl_c908_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
@@ -43,6 +41,9 @@ int shl_c908_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor
                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                  struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;

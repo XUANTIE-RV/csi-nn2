@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 /*************************************************************
@@ -1754,6 +1752,15 @@ int shl_c908_ncxhwx_wg_b4f3s1_packn_fp32(struct csinn_tensor *input, struct csin
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     float *kernel_data = (float *)params->conv_extra.kernel_tm->data;
@@ -1764,7 +1771,7 @@ int shl_c908_ncxhwx_wg_b4f3s1_packn_fp32(struct csinn_tensor *input, struct csin
     int pad_top = params->pad_top;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -1947,6 +1954,15 @@ int shl_c908_ncxhwx_wg_b6f3s1_packn_fp32(struct csinn_tensor *input, struct csin
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
     float *kernel_data = (float *)params->conv_extra.kernel_tm->data;
@@ -1957,7 +1973,7 @@ int shl_c908_ncxhwx_wg_b6f3s1_packn_fp32(struct csinn_tensor *input, struct csin
     int pad_top = params->pad_top;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;

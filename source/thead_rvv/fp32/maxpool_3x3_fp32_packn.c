@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -26,11 +24,20 @@
 int shl_rvv_maxpool3x3s2_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -92,11 +99,20 @@ int shl_rvv_maxpool3x3s2_packn_fp32(struct csinn_tensor *input, struct csinn_ten
 int shl_rvv_maxpool3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -115,6 +131,7 @@ int shl_rvv_maxpool3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_ten
     float *input_ncxhwx = (float *)shl_mem_alloc(in_c * padded_in_hw * sizeof(float));
 
     for (int b = 0; b < batch; b++) {
+        /* TODO: remove padding */
         shl_rvv_pad_input_packn_fp32(input_data, input_ncxhwx, in_c, in_h, in_w, padded_in_h,
                                      padded_in_w, params->pad_top, params->pad_left);
 

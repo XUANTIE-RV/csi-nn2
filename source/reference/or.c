@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_or_u32(struct csinn_tensor *input0, struct csinn_tensor *input1,

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 /*************************************************************
@@ -1882,7 +1880,7 @@ void shl_c908_gemm_8x48_fp16_v256(__fp16 *dst, const __fp16 *sa, const __fp16 *s
     bool flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16 *)shl_mem_alloc(m * 2);
+        bias = (__fp16 *)shl_mem_alloc(m * sizeof(__fp16));
     }
     __fp16 *bias_ptr = bias;
 
@@ -3212,7 +3210,7 @@ void shl_c908_gemm_8x32_fp16_v256(__fp16 *dst, const __fp16 *sa, const __fp16 *s
     bool flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16 *)shl_mem_alloc(m * 2);
+        bias = (__fp16 *)shl_mem_alloc(m * sizeof(__fp16));
     }
     __fp16 *bias_ptr = bias;
 

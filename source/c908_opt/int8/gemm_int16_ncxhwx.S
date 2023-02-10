@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**************************************************************************************************
 
     void gemm_int16_ncxhwx_12xpackn(const int32_t *output,

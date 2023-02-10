@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -77,7 +75,7 @@ int shl_rvv_fullyconnected_packn_fp32(struct csinn_tensor *input, struct csinn_t
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (float *)shl_mem_alloc(output_depth * 2);
+        bias_data = (float *)shl_mem_alloc(output_depth * sizeof(float));
     }
     const int packn = csrr_vlenb() / sizeof(float);  // VLEN128=4  VLEN256=8
     int vl = vsetvl_e32m1(packn);

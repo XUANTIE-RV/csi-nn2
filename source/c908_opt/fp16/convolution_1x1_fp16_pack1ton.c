@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 /*************************************************************************************
@@ -34,6 +32,16 @@ int shl_c908_conv1x1s1_gemm_pack1ton_fp16(struct csinn_tensor *input, struct csi
                                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                           struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        const int packn = csrr_vlenb() / sizeof(__fp16);
+        output->dim[1] /= packn;
+        output->dim[4] = packn;
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;

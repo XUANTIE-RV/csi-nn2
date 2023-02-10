@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 void shl_rvv_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
@@ -56,6 +54,9 @@ int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                   struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
@@ -75,13 +76,11 @@ int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
     int32_t stride_w = params->stride_width;
     int32_t pad_left = params->pad_left;
     int32_t pad_top = params->pad_top;
-
-    // im2col matrix_col = out_height * out_width
-    // im2col matrix_row = channel_col
-    int channel_col = in_ch / group * ksize_h * ksize_w;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
 
     int32_t m = out_ch / group;
-    int32_t k = channel_col;
+    int32_t k = in_ch / group * ksize_h * ksize_w;
     int32_t n = out_height * out_width;
 
     int8_t *im2col_data = (int8_t *)shl_mem_alloc(k * n * sizeof(int8_t));
@@ -99,27 +98,34 @@ int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
             // im2col
-            for (int c = 0; c < channel_col; ++c) {
-                int w_offset = c % ksize_w;
-                int h_offset = c / ksize_w % ksize_h;
-                int c_im = c / ksize_h / ksize_w;
-                for (int h = 0; h < out_height; ++h) {
-                    for (int w = 0; w < out_width; ++w) {
-                        int im_row = h_offset + h * stride_h;
-                        int im_col = w_offset + w * stride_w;
-                        int col_index =
-                            (c * out_height + h) * out_width + w;  // [channel_col, out_h, out_w]
-                        im_row = im_row - params->pad_top;
-                        im_col = im_col - params->pad_left;
-                        if (im_row < 0 || im_col < 0 || im_row >= in_height || im_col >= in_width) {
-                            im2col_data[col_index] = input->qinfo->zero_point;
-                        } else {
-                            im2col_data[col_index] =
-                                input_data[(c_im * input->dim[2] + im_row) * input->dim[3] +
-                                           im_col];
+            int8_t *data_col = im2col_data;
+            int8_t *channel_data = input_data;
+            for (int c = 0; c < in_ch / group; c++) {
+                for (int kh = 0; kh < ksize_h; kh++) {
+                    for (int kw = 0; kw < ksize_w; kw++) {
+                        int in_row = -pad_top + kh * dilation_h;
+                        for (int oh = 0; oh < out_height; oh++) {
+                            if (in_row >= in_height || in_row < 0) {
+                                for (int ow = 0; ow < out_width; ow++) {
+                                    *data_col++ = input->qinfo->zero_point;
+                                }
+                            } else {
+                                int in_col = -pad_left + kw * dilation_w;
+                                for (int ow1 = 0; ow1 < out_width; ow1++) {
+                                    int col_idx = (c * out_height + oh) * out_width + ow1;
+                                    if (in_col < in_width && in_col >= 0) {
+                                        *data_col++ = channel_data[in_row * in_width + in_col];
+                                    } else {
+                                        *data_col++ = input->qinfo->zero_point;
+                                    }
+                                    in_col += stride_w;
+                                }
+                            }
+                            in_row += stride_h;
                         }
                     }
                 }
+                channel_data += in_height * in_width;
             }
 
             if (kernel->quant_channel > 1) {

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_conv2d_relu_f32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -40,8 +38,9 @@ int shl_ref_conv2d_relu_quant(struct csinn_tensor *input, struct csinn_tensor *o
     shl_ref_conv2d_quant(input, output, kernel, bias, params);
     struct csinn_relu_params *rp = shl_mem_alloc(sizeof(struct csinn_relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
-    csinn_relu_init(output, output, rp);
-    csinn_relu(output, output, rp);
+    // csinn_relu_init(output, output, rp);
+    // csinn_relu(output, output, rp);
+    shl_ref_relu_quant(output, output, rp);
     return CSINN_TRUE;
 }
 
@@ -65,8 +64,9 @@ int shl_ref_depthwise_conv2d_relu_quant(struct csinn_tensor *input, struct csinn
     shl_ref_depthwise_conv2d_quant(input, output, kernel, bias, params);
     struct csinn_relu_params *rp = shl_mem_alloc(sizeof(struct csinn_relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
-    csinn_relu_init(output, output, rp);
-    csinn_relu(output, output, rp);
+    // csinn_relu_init(output, output, rp);
+    // csinn_relu(output, output, rp);
+    shl_ref_relu_quant(output, output, rp);
     return CSINN_TRUE;
 }
 
@@ -77,8 +77,9 @@ int shl_ref_group_conv2d_relu_quant(struct csinn_tensor *input, struct csinn_ten
     shl_ref_group_conv2d_quant(input, output, kernel, bias, params);
     struct csinn_relu_params *rp = shl_mem_alloc(sizeof(struct csinn_relu_params));
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
-    csinn_relu_init(output, output, rp);
-    csinn_relu(output, output, rp);
+    // csinn_relu_init(output, output, rp);
+    // csinn_relu(output, output, rp);
+    shl_ref_relu_quant(output, output, rp);
 
     return CSINN_TRUE;
 }

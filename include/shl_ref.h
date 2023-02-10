@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_REF_H_
 #define INCLUDE_SHL_REF_H_
 
@@ -338,6 +336,14 @@ int shl_ref_depthwise_deconv2d_f32(struct csinn_tensor *input, struct csinn_tens
 int shl_ref_depthwise_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                      struct csinn_conv2d_params *params);
+
+int shl_ref_group_deconv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                               struct csinn_conv2d_params *params);
+
+int shl_ref_group_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                 struct csinn_conv2d_params *params);
 
 int shl_ref_deconv3d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -1024,8 +1030,14 @@ int shl_ref_sqrt_quant(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_ref_square_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_siso_params *params);
 
+int shl_ref_square_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_siso_params *params);
+
 int shl_ref_squeeze(struct csinn_tensor *input, struct csinn_tensor *output,
                     struct csinn_squeeze_params *params);
+
+int shl_ref_squeeze_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_squeeze_params *params);
 
 int shl_ref_stack_f32(struct csinn_tensor **input, struct csinn_tensor *output,
                       struct csinn_stack_params *params);
@@ -1147,10 +1159,12 @@ int shl_ref_where_quant(struct csinn_tensor *condition, struct csinn_tensor *x,
                         struct csinn_where_params *params);
 
 int shl_ref_where_softmax_f32(struct csinn_tensor *condition, struct csinn_tensor *y,
-                              struct csinn_tensor *output, struct csinn_where_softmax_params *params);
+                              struct csinn_tensor *output,
+                              struct csinn_where_softmax_params *params);
 
 int shl_ref_where_softmax_quant(struct csinn_tensor *condition, struct csinn_tensor *y,
-                                struct csinn_tensor *output, struct csinn_where_softmax_params *params);
+                                struct csinn_tensor *output,
+                                struct csinn_where_softmax_params *params);
 
 int shl_ref_cast_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_cast_params *params);
@@ -1160,6 +1174,17 @@ int shl_ref_cast_bool(struct csinn_tensor *input, struct csinn_tensor *output,
 
 int shl_ref_cast_i64(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_cast_params *params);
+
+int shl_ref_cast_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_cast_params *params);
+
+int shl_ref_instance_norm_f32(struct csinn_tensor *input, struct csinn_tensor *scales,
+                              struct csinn_tensor *bias, struct csinn_tensor *output,
+                              struct csinn_instance_norm_params *params);
+
+int shl_ref_instance_norm_quant(struct csinn_tensor *input, struct csinn_tensor *scales,
+                                struct csinn_tensor *bias, struct csinn_tensor *output,
+                                struct csinn_instance_norm_params *params);
 
 int32_t shl_ref_max_internal_s32(int32_t a, int32_t b);
 int32_t shl_ref_min_internal_s32(int32_t a, int32_t b);
@@ -1197,7 +1222,9 @@ struct csinn_tensor *shl_ref_convert_float_tensor(struct csinn_tensor *src);
 void shl_ref_conv_free_float_tensor(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_tensor *kernel, struct csinn_tensor *bias);
 struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input);
+struct csinn_tensor *shl_ref_tensor_transform_int64(struct csinn_tensor *input);
 int shl_ref_tensor_transform_free_f32(struct csinn_tensor *input);
+int shl_ref_tensor_transform_free_int64(struct csinn_tensor *input);
 uint8_t *shl_ref_f32_to_input_dtype(uint32_t index, float *data, struct csinn_session *sess);
 
 struct shl_ref_diso_callback {

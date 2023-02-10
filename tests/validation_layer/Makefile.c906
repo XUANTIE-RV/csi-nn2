@@ -6,174 +6,50 @@ CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
 CFLAGS += -DCSINN_API=3
 LIB_NAME = shl_c906
 CC = riscv64-unknown-linux-gnu-gcc
+CPLUS = riscv64-unknown-linux-gnu-g++
+TYPE=?
 
 test_objs =
 
-# test_objs += abs.o
-test_objs += acos.o
-test_objs += acosh.o
-test_objs += asin.o
-test_objs += asinh.o
-test_objs += atan.o
-test_objs += atanh.o
-test_objs += ceil.o
-test_objs += cos.o
-test_objs += cosh.o
-test_objs += erf.o
-test_objs += exp.o
-test_objs += expm1.o
-test_objs += floor.o
-test_objs += log.o
-test_objs += log1p.o
-test_objs += logical_not.o
-# test_objs += not.o
-test_objs += round.o
-test_objs += rsqrt.o
-test_objs += sign.o
-test_objs += negative.o
-test_objs += sin.o
-test_objs += sinh.o
-test_objs += softplus.o
-test_objs += softsign.o
-test_objs += sqrt.o
-test_objs += square.o
-test_objs += tan.o
-test_objs += tanh.o
-test_objs += trunc.o
-test_objs += yuv_rgb_scale.o
+test_objs += abs.o
+test_objs += add.o
+test_objs += averagepool.o
 test_objs += broadcast_to.o
-test_objs += arange.o
-
-
-# test_objs += add.o
-# test_objs += and.o
 test_objs += div.o
-test_objs += equal.o    ### output is bool
-test_objs += floor_div.o
-test_objs += floor_mod.o
-test_objs += greater_equal.o
-test_objs += greater.o
-test_objs += less_equal.o
-test_objs += less.o
-test_objs += logical_and.o
-test_objs += logical_or.o
-test_objs += logical_xor.o
-test_objs += maximum.o
-test_objs += minimum.o
-test_objs += mod.o
-# test_objs += mul.o
-test_objs += not_equal.o
-test_objs += power.o
-test_objs += sub.o
-# test_objs += xor.o
-test_objs += argmax.o
-test_objs += argmin.o
-
-# test_objs += averagepool.o
-test_objs += averagepool3d.o
-test_objs += batch_norm.o
 test_objs += clip.o
-# test_objs += concat.o
-# test_objs += convolution.o
-test_objs += convolution3d.o
-test_objs += convolution_relu.o
-test_objs += convolution_relu6.o
-test_objs += batch_to_space.o
-test_objs += cumprod.o
-test_objs += cumsum.o
-test_objs += deconvolution.o
-test_objs += deconvolution3d.o
-test_objs += depth_to_space.o
-# test_objs += depthwise_convolution.o
-test_objs += depthwise_convolution_relu.o
-test_objs += depthwise_convolution_relu6.o
-test_objs += depthwise_deconvolution.o
-test_objs += elu.o
-
-test_objs += expand_dims.o
-test_objs += flatten.o
-# test_objs += fullyconnected.o
-test_objs += gather_nd.o  ###TODO
+test_objs += concat.o
+test_objs += convolution.o
+test_objs += convolution1d.o
+test_objs += group_convolution.o
+test_objs += depthwise_convolution.o
+test_objs += depthwise_convolution1d.o
+test_objs += fullyconnected.o
 test_objs += gather.o
-# test_objs += global_avgpool.o
-# test_objs += global_maxpool.o
-# test_objs += group_convolution_relu.o
-# test_objs += group_convolution_relu6.o
-# test_objs += group_convolution.o
-test_objs += hard_sigmoid.o
-
-test_objs += im2col.o
-test_objs += l2_norm.o
-# test_objs += leaky_relu.o
-test_objs += log_softmax.o
-test_objs += lrn.o
-
+test_objs += global_avgpool.o
+test_objs += global_maxpool.o
+test_objs += layer_norm.o
+test_objs += leaky_relu.o
+test_objs += maxpool.o
+test_objs += mul.o
+test_objs += minimum.o
 test_objs += matmul.o
-test_objs += max_stride.o
-# test_objs += maxpool.o
-test_objs += maxpool3d.o
-test_objs += mean_stride.o
-test_objs += min_stride.o
-test_objs += non_max_suppression.o
-# test_objs += pad.o
+test_objs += pad.o
 test_objs += prelu.o
-test_objs += prod_stride.o
-test_objs += psroipooling.o
-test_objs += reduce_logsumexp.o
-test_objs += reduce_max.o
-test_objs += reduce_mean.o
-test_objs += reduce_min.o
-test_objs += reduce_prod.o
-test_objs += reduce_sum.o
-# test_objs += relu.o
+test_objs += relu.o
 test_objs += relu1.o
 test_objs += relu6.o
-test_objs += relun.o
-test_objs += reshape.o
-test_objs += resize_bilinear.o
-test_objs += resize_nearestneighbor.o
-test_objs += reverse.o
-test_objs += roialign.o
-test_objs += roipooling.o
-
-
-
-test_objs += segment_max.o
-test_objs += segment_mean.o
-test_objs += segment_min.o
-test_objs += segment_prod.o
-test_objs += segment_sum.o
-test_objs += select.o
-test_objs += shuffle_channel.o
-# test_objs += sigmoid.o
-test_objs += slice.o
-# test_objs += softmax.o
-test_objs += softrelu.o
-test_objs += space_to_batch.o
-test_objs += space_to_depth.o
 test_objs += split.o
-
-test_objs += squeeze.o
-test_objs += stack.o
-test_objs += strided_slice.o
-# test_objs += sum_stride.o
-test_objs += threshold_relu.o
-
-test_objs += tile.o
-test_objs += topk.o
+test_objs += sub.o
+test_objs += lrn.o
+test_objs += reshape.o
+test_objs += softmax.o
+test_objs += sum_stride.o
 test_objs += transpose.o
-test_objs += unsorted_segment_max.o
-test_objs += unsorted_segment_mean.o
-test_objs += unsorted_segment_min.o
-test_objs += unsorted_segment_prod.o
-test_objs += unsorted_segment_sum.o
-test_objs += unstack.o
 
 
 
 utils_objs =
 utils_objs += ../utils/test_utils.o
-utils_objs += ./layer/common.o
 
 all: csi
 
@@ -182,9 +58,9 @@ csi: $(utils_objs) $(test_objs)
 $(utils_objs): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
 
-$(test_objs): %.o: %.c
-	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
-	$(CC) $@  $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
+$(test_objs): %.o: %.cpp
+	$(CPLUS) -c $(CFLAGS) $(INCLUDE) -D DTYPE=$(TYPE) $< -o $@
+	$(CPLUS) $@  $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
 
 clean:
 	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

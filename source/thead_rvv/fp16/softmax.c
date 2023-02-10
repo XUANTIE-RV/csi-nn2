@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
-#include "../rvv_mathfun.h"
+#include "rvv_mathfun_fp16.h"
 #include "shl_thead_rvv.h"
 
 static inline __fp16 fast_exp16(__fp16 y)
@@ -41,6 +39,9 @@ int shl_rvv_softmax_fp16(struct csinn_tensor *input, struct csinn_tensor *output
         fabs(output->qinfo->scale - 1) > FLT_EPSILON) {
         shl_debug_error("unsupport fp16 quantization of softmax op\n");
         return CSINN_FALSE;
+    }
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
     }
 
     __fp16 *input_data = (__fp16 *)input->data;

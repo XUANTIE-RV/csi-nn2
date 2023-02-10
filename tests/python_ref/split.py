@@ -9,26 +9,28 @@ import tensorflow as tf
 def split_f32():
     para = []
     # init the input data and parameters
-    batch      = int(np.random.randint(2, high=8, size=1))
-    in_size_x  = int(np.random.randint(128, high=512, size=1))
-    in_size_y  = int(np.random.randint(128, high=512, size=1))
-    in_channel = int(np.random.randint(4, high=64, size=1))
-    axis_split = int(np.random.randint(0, high=3, size=1))
-
+    batch      = int(np.random.randint(2, high=4, size=1))
+    in_channel = int(np.random.randint(4, high=16, size=1))
+    in_size_y  = int(np.random.randint(5, high=16, size=1))
+    in_size_x  = int(np.random.randint(5, high=16, size=1))
+    axis_split = int(np.random.randint(0, high=4, size=1))
     num_split  = int(np.random.randint(2, high=4, size=1))
-    pad0  = batch -  int(batch / num_split) * num_split
-    pad1  = in_size_y -  int(in_size_y / num_split) * num_split
-    pad2  = in_size_x -  int(in_size_x / num_split) * num_split
-    pad3  = in_channel -  int(in_channel / num_split) * num_split
-    batch = batch + pad0
-    in_size_y = in_size_y + pad1
-    in_size_x = in_size_x + pad2
-    in_channel = in_channel + pad3
 
-    zero_point = int(np.random.randint(-60000, high=60000, size=1))
+
+    zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
-    src_in = np.random.normal(zero_point, std, (batch, in_size_y, in_size_x, in_channel))
+
+    size_in = [batch, in_channel, in_size_y, in_size_x]
+    size_in[axis_split] *= num_split
+
+    batch = size_in[0]
+    in_channel = size_in[1]
+    in_size_y = size_in[2]
+    in_size_x = size_in[3]
+
+
+    src_in = np.random.normal(zero_point, std, size_in)
 
     out_calcu = tf.split(src_in, num_split, axis=axis_split)
 
@@ -45,11 +47,12 @@ def split_f32():
 
     para.append(total_size)
     para.append(batch)
+    para.append(in_channel)
     para.append(in_size_y)
     para.append(in_size_x)
-    para.append(in_channel)
     para.append(axis_split)
     para.append(num_split)
+    print(para)
 
     with open("split_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
@@ -57,7 +60,7 @@ def split_f32():
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)
         fp.write(data)
         for i in range(0, num_split):
-            data = struct.pack(('%df' % len(src_out_1[i])), *src_out_1[0])
+            data = struct.pack(('%df' % len(src_out_1[i])), *src_out_1[i])
             fp.write(data)
         fp.close()
 

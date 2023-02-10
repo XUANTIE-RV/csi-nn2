@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_e907.h"
 
 int shl_e907_sum_int8(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -37,103 +35,85 @@ int shl_e907_sum_int8(struct csinn_tensor *input, struct csinn_tensor *output,
     intXLEN_t multiplier_32xn = shl_rvp_int32_to_xlen(multiplier);
     intXLEN_t z2_16xn = shl_rvp_int16_to_xlen(z2);
 
-    if (*(params->axis) == -1) {
-        int size = 1;
-        for (int i = 0; i < input->dim_count; i++) {
-            size = size * input->dim[i];
-        }
-        float res = 0;
-        for (int j = 0; j < size; j++) {
-            float temp = (input_data[j] - input->qinfo->zero_point) * input->qinfo->scale;
-            res = res + temp;
-        }
-        float ret = round(res / output->qinfo->scale) + output->qinfo->zero_point;
-        if (ret > 127)
-            ret = 127;
-        else if (ret < -128)
-            ret = -128;
-        *output_data = (int8_t)ret;
-    } else {
-        int32_t inner_size = 1;
-        int32_t outer_size = 1;
-        for (int32_t k = 0; k < params->n; k++) {
-            outer_size *= params->out_extents[k];
-        }
-        for (int32_t k = 0; k < params->m; k++) {
-            inner_size *= params->inner_extents[k];
-        }
+    int32_t inner_size = 1;
+    int32_t outer_size = 1;
+    for (int32_t k = 0; k < params->n; k++) {
+        outer_size *= params->out_extents[k];
+    }
+    for (int32_t k = 0; k < params->m; k++) {
+        inner_size *= params->inner_extents[k];
+    }
 
-        int16_t z1xn = inner_size * z1;
-        intXLEN_t z1_16xn = shl_rvp_int16_to_xlen(z1xn);
-        const int xlenh = shl_rvp_get_xlenb() >> 1;  // xlen in half-word
+    int16_t z1xn = inner_size * z1;
+    intXLEN_t z1_16xn = shl_rvp_int16_to_xlen(z1xn);
+    const int xlenh = shl_rvp_get_xlenb() >> 1;  // xlen in half-word
 
-        int i = 0;
-        for (; i + xlenh - 1 < outer_size; i += xlenh) {
-            int8_t *input_ptr = input_data + i;
-            intXLEN_t acc = 0;
-            for (int j = 0; j < inner_size; j++) {
-                int16_t tmp_i16[xlenh];
-                shl_rvp_int8_to_int16((input_ptr + j * outer_size), tmp_i16, xlenh);
-                intXLEN_t *x_16xn = (intXLEN_t *)(tmp_i16);
-                acc = __rv__add16(acc, x_16xn[0]);
-            }
-            acc = __rv__sub16(acc, z1_16xn);  // - (z1 * inner_size)
-            int32_t tmp_i32[xlenh];
-            shl_rvp_int16_to_int32((int16_t *)(&acc), tmp_i32, xlenh);
-            intXLEN_t *x_32xn = (intXLEN_t *)(tmp_i32);
+    int i = 0;
+    for (; i + xlenh - 1 < outer_size; i += xlenh) {
+        int8_t *input_ptr = input_data + i;
+        intXLEN_t acc = 0;
+        for (int j = 0; j < inner_size; j++) {
+            int16_t tmp_i16[xlenh];
+            shl_rvp_int8_to_int16((input_ptr + j * outer_size), tmp_i16, xlenh);
+            intXLEN_t *x_16xn = (intXLEN_t *)(tmp_i16);
+            acc = __rv__add16(acc, x_16xn[0]);
+        }
+        acc = __rv__sub16(acc, z1_16xn);  // - (z1 * inner_size)
+        int32_t tmp_i32[xlenh];
+        shl_rvp_int16_to_int32((int16_t *)(&acc), tmp_i32, xlenh);
+        intXLEN_t *x_32xn = (intXLEN_t *)(tmp_i32);
 
 #if __riscv_xlen == 64
-            if (shift < 0) {
-                x_32xn[0] = __rv__sra32_u(x_32xn[0], -shift - 1);
-                x_32xn[1] = __rv__sra32_u(x_32xn[1], -shift - 1);
-            } else {
-                x_32xn[0] = __rv__sll32(x_32xn[0], shift + 1);
-                x_32xn[1] = __rv__sll32(x_32xn[1], shift + 1);
-            }
+        if (shift < 0) {
+            x_32xn[0] = __rv__sra32_u(x_32xn[0], -shift - 1);
+            x_32xn[1] = __rv__sra32_u(x_32xn[1], -shift - 1);
+        } else {
+            x_32xn[0] = __rv__sll32(x_32xn[0], shift + 1);
+            x_32xn[1] = __rv__sll32(x_32xn[1], shift + 1);
+        }
 #elif __riscv_xlen == 32
-            if (shift < 0) {
-                x_32xn[0] >>= -shift - 1;
-                x_32xn[1] >>= -shift - 1;
-            } else {
-                x_32xn[0] <<= shift + 1;
-                x_32xn[1] <<= shift + 1;
-            }
+        if (shift < 0) {
+            x_32xn[0] >>= -shift - 1;
+            x_32xn[1] >>= -shift - 1;
+        } else {
+            x_32xn[0] <<= shift + 1;
+            x_32xn[1] <<= shift + 1;
+        }
 #endif
 
-            intXLEN_t mulh[2];
-            for (int k = 0; k < 2; k++) {
-                mulh[k] = __rv__smmul_u(x_32xn[k], multiplier_32xn);
-                mulh[k] = __rv__sclip32(mulh[k], 15);  // narrow 32->16
-            }
-
-            int16_t tmp_i16[xlenh];
-            shl_rvp_int32_to_int16((int32_t *)mulh, tmp_i16, xlenh);
-
-            intXLEN_t *x_16xn = (intXLEN_t *)tmp_i16;
-            for (int j = 0; j < 2; j++) {
-                x_16xn[j] = __rv__add16(x_16xn[j], z2_16xn);  // + z2
-                x_16xn[j] = __rv__sclip16(x_16xn[j], 7);      // narrow 16->8
-            }
-            shl_rvp_int16_to_int8((int16_t *)x_16xn, output_data + i, xlenh);
+        intXLEN_t mulh[2];
+        for (int k = 0; k < 2; k++) {
+            mulh[k] = __rv__smmul_u(x_32xn[k], multiplier_32xn);
+            mulh[k] = __rv__sclip32(mulh[k], 15);  // narrow 32->16
         }
 
-        for (; i < outer_size; i++) {
-            int8_t *input_ptr = input_data + i;
-            int32_t res = 0;
-            for (int j = 0; j < inner_size; j++) {
-                int32_t in = (int32_t)input_ptr[j * outer_size];
-                res += in;
-            }
-            res -= z1xn;
-            res = shl_rvp_mulh(res, multiplier);
-            if (shift < 0) {
-                res >>= -shift - 1;
-            } else {
-                res <<= shift + 1;
-            }
-            res += z2;
-            output_data[i] = shl_rvp_clip_i8(res);
+        int16_t tmp_i16[xlenh];
+        shl_rvp_int32_to_int16((int32_t *)mulh, tmp_i16, xlenh);
+
+        intXLEN_t *x_16xn = (intXLEN_t *)tmp_i16;
+        for (int j = 0; j < 2; j++) {
+            x_16xn[j] = __rv__add16(x_16xn[j], z2_16xn);  // + z2
+            x_16xn[j] = __rv__sclip16(x_16xn[j], 7);      // narrow 16->8
         }
+        shl_rvp_int16_to_int8((int16_t *)x_16xn, output_data + i, xlenh);
+    }
+
+    for (; i < outer_size; i++) {
+        int8_t *input_ptr = input_data + i;
+        int32_t res = 0;
+        for (int j = 0; j < inner_size; j++) {
+            int32_t in = (int32_t)input_ptr[j * outer_size];
+            res += in;
+        }
+        res -= z1xn;
+        res = shl_rvp_mulh(res, multiplier);
+        if (shift < 0) {
+            res >>= -shift - 1;
+        } else {
+            res <<= shift + 1;
+        }
+        res += z2;
+        output_data[i] = shl_rvp_clip_i8(res);
     }
 
     return CSINN_TRUE;

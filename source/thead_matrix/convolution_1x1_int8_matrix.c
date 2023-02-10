@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 void shl_rvm_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
@@ -91,6 +89,8 @@ int shl_rvm_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor 
         int8_t *in_ptr = input_align_buf;
         if (k_align != k) {
             align_input_channel_int8(input_align_buf, input_data, m, k, k_align);
+        } else {
+            in_ptr = input_data;
         }
         int8_t *out_ptr = output_data;
         int32_t *bias_ptr = bias_data;  // bias_data != NULL with fusing zp to bias

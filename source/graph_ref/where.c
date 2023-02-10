@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_where(struct csinn_tensor *condition, struct csinn_tensor *x, struct csinn_tensor *y,

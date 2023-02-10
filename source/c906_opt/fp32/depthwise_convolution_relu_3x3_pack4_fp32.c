@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #define DWCONV3X3S1_PACK4 shl_c906_dwconv3x3s1_pack4_fuse_relu
 #define DWCONV3X3S2_PACK4 shl_c906_dwconv3x3s2_pack4_fuse_relu
 

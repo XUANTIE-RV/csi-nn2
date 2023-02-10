@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 int shl_c906_global_avgpool2d_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -32,50 +30,105 @@ int shl_c906_global_avgpool2d_fp16(struct csinn_tensor *input, struct csinn_tens
     int in_w = input->dim[3];
     int in_hw = in_h * in_w;
 
-    asm volatile(
-        "vsetvli        zero, zero, e16, m2\n\t"
-        "mv             t0, %4\n\t"
-        "li             t1, 1\n\t"
-        "fcvt.h.w       ft0, t0\n\t"
-        "fcvt.h.w       ft1, t1\n\t"
-        "fdiv.h         ft1, ft1, ft0\n\t"  // 1 / in_hw
+    /* avoid overflow fp32 = sum(fp16) */
+    if (in_hw >= 1000) {
+        asm volatile(
+            "mv             t0, %4\n\t"
+            "li             t1, 1\n\t"
+            "fcvt.s.w       ft0, t0\n\t"
+            "fcvt.s.w       ft1, t1\n\t"
+            "fdiv.s         ft1, ft1, ft0\n\t"  // 1 / in_hw
 
-        "1:\n\t"                     // batch_loop
-        "mv             t1, %3\n\t"  // t1 = in_c
+            "1:\n\t"                     // batch_loop
+            "mv             t1, %3\n\t"  // t1 = in_c
 
-        "2:\n\t"                       // channel loop
-        "mv             t2, %4\n\t"    // t2 = in_hw
-        "vmv.v.x        v4, zero\n\t"  // clear v4
+            "2:\n\t"                     // channel loop
+            "mv             t2, %4\n\t"  // t2 = in_hw
+            "vsetvli        zero, zero, e32, m1\n\t"
+            "vmv.v.x        v4, zero\n\t"  // clear v4
 
-        "3:\n\t"
-        "vsetvli        t0, t2, e16, m2\n\t"  // set vl = 8
-        "vle.v          v2, (%0)\n\t"
-        "sub            t2, t2, t0\n\t"
-        "slli           t0, t0, 1\n\t"
-        // "vfadd.vv       v4, v2, v4\n\t"
-        "vfredsum.vs    v4, v2, v4\n\t"  // v4[0] = unorder_sum(v2[0..7]) + v4[0]
+            "3:\n\t"
+            "vsetvli        t0, t2, e16, m2\n\t"  // set vl = 8
+            "csrr	          t5, vl\n\t"
+            "csrr	          t6, vtype\n\t"
+            "vle.v          v2, (%0)\n\t"
+            "sub            t2, t2, t0\n\t"
+            "slli           t0, t0, 1\n\t"
+            // "vfadd.vv       v4, v2, v4\n\t"
+            "vsetvli        zero, zero, e32, m1\n\t"
+            "vsetvl	        zero, t5, t6\n\t"
+            "vfwredsum.vs   v4, v2, v4\n\t"  // v4[0] = unorder_sum(v2[0..7]) + v4[0]
 
-        "add            %0, %0, t0\n\t"
-        "bnez           t2, 3b\n\t"
+            "add            %0, %0, t0\n\t"
+            "bnez           t2, 3b\n\t"
 
-        "vfmv.f.s       ft0, v4\n\t"        // sum = v4[0]
-        "fmul.h         ft0, ft0, ft1\n\t"  // sum / in_hw
-        "fsh            ft0, 0(%1)\n\t"
-        "addi           %1, %1, 2\n\t"
+            "vsetvli        zero, zero, e32, m1\n\t"
+            "vfmv.f.s       ft0, v4\n\t"        // sum = v4[0]
+            "fmul.s         ft0, ft0, ft1\n\t"  // sum / in_hw
 
-        "addi           t1, t1, -1\n\t"
-        "bnez           t1, 2b\n\t"
+            "fcvt.h.s       ft0, ft0\n\t"
+            "fsh            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 2\n\t"
 
-        "addi           %2, %2, -1\n\t"
-        "bnez           %2, 1b\n\t"
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
 
-        : "=r"(input_data),   // %0
-          "=r"(output_data),  // %1
-          "=r"(batch),        // %2
-          "=r"(in_c),         // %3
-          "=r"(in_hw)         // %4
-        : "0"(input_data), "1"(output_data), "2"(batch), "3"(in_c), "4"(in_hw)
-        : "cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0", "ft1");
+            "addi           %2, %2, -1\n\t"
+            "bnez           %2, 1b\n\t"
+
+            : "=r"(input_data),   // %0
+              "=r"(output_data),  // %1
+              "=r"(batch),        // %2
+              "=r"(in_c),         // %3
+              "=r"(in_hw)         // %4
+            : "0"(input_data), "1"(output_data), "2"(batch), "3"(in_c), "4"(in_hw)
+            : "cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0", "ft1");
+    } else {
+        asm volatile(
+            "vsetvli        zero, zero, e16, m2\n\t"
+            "mv             t0, %4\n\t"
+            "li             t1, 1\n\t"
+            "fcvt.h.w       ft0, t0\n\t"
+            "fcvt.h.w       ft1, t1\n\t"
+            "fdiv.h         ft1, ft1, ft0\n\t"  // 1 / in_hw
+
+            "1:\n\t"                     // batch_loop
+            "mv             t1, %3\n\t"  // t1 = in_c
+
+            "2:\n\t"                       // channel loop
+            "mv             t2, %4\n\t"    // t2 = in_hw
+            "vmv.v.x        v4, zero\n\t"  // clear v4
+
+            "3:\n\t"
+            "vsetvli        t0, t2, e16, m2\n\t"  // set vl = 8
+            "vle.v          v2, (%0)\n\t"
+            "sub            t2, t2, t0\n\t"
+            "slli           t0, t0, 1\n\t"
+            // "vfadd.vv       v4, v2, v4\n\t"
+            "vfredsum.vs    v4, v2, v4\n\t"  // v4[0] = unorder_sum(v2[0..7]) + v4[0]
+
+            "add            %0, %0, t0\n\t"
+            "bnez           t2, 3b\n\t"
+
+            "vfmv.f.s       ft0, v4\n\t"        // sum = v4[0]
+            "fmul.h         ft0, ft0, ft1\n\t"  // sum / in_hw
+            "fsh            ft0, 0(%1)\n\t"
+            "addi           %1, %1, 2\n\t"
+
+            "addi           t1, t1, -1\n\t"
+            "bnez           t1, 2b\n\t"
+
+            "addi           %2, %2, -1\n\t"
+            "bnez           %2, 1b\n\t"
+
+            : "=r"(input_data),   // %0
+              "=r"(output_data),  // %1
+              "=r"(batch),        // %2
+              "=r"(in_c),         // %3
+              "=r"(in_hw)         // %4
+            : "0"(input_data), "1"(output_data), "2"(batch), "3"(in_c), "4"(in_hw)
+            : "cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "ft0", "ft1");
+    }
     // requantize
     shl_rvv_siso_op_requantize_fp16(input, output);
     return CSINN_TRUE;

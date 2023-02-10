@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**
  * @file csinn_data_structure.h
  */
@@ -77,6 +75,7 @@ enum csinn_quant_enum {
     CSINN_QUANT_FLOAT32,         /**< 32-bit floating-point not quantized */
     CSINN_QUANT_INT4_ASYM_W_SYM, /**< Signed 4-bit Asymmetric activation and Symmetric weight */
     CSINN_QUANT_INT8_ASYM_W_SYM, /**< Signed 8-bit Asymmetric activation and Symmetric weight */
+    CSINN_QUANT_FLOAT16_W_INT8,  /**< 16-bit floating-point and 8-bit symmetric weight */
     CSINN_QUANT_SIZE,
 };
 
@@ -108,9 +107,10 @@ enum csinn_api_enum {
 
 /** CSI-NN run mode */
 enum csinn_rmode_enum {
-    CSINN_RM_LAYER = 0, /**< Run by layer */
-    CSINN_RM_CPU_GRAPH, /**< CPU Graph Execution*/
-    CSINN_RM_NPU_GRAPH, /**< NPU Graph Execution */
+    CSINN_RM_LAYER = 0,       /**< Run by layer */
+    CSINN_RM_CPU_GRAPH,       /**< CPU Graph Execution*/
+    CSINN_RM_NPU_GRAPH,       /**< NPU Graph Execution */
+    CSINN_RM_CPU_BASE_HYBRID, /**< CPU base graph and has subgraph */
     CSINN_RUN_MODE_SIZE,
 };
 
@@ -179,6 +179,7 @@ enum csinn_op_enum {
     CSINN_OP_CUMSUM,
     CSINN_OP_DECONV2D,
     CSINN_OP_DEPTHWISE_DECONV2D,
+    CSINN_OP_GROUP_DECONV2D,
     CSINN_OP_DECONV3D,
     CSINN_OP_DEPTH_TO_SPACE,
     CSINN_OP_DIV,
@@ -309,6 +310,7 @@ enum csinn_op_enum {
     CSINN_OP_WHERE_SOFTMAX,
     CSINN_OP_XOR,
     CSINN_OP_YUV_RGB_SCALE,
+    CSINN_OP_INSTANCE_NORM,
 
     CSINN_OP_SIZE,
 
@@ -407,10 +409,16 @@ enum csinn_layout_enum {
     CSINN_LAYOUT_1HW16O16, /**< 16 bytes in parallel for ASP platform */
     CSINN_LAYOUT_1HW32O32, /**< 32 bytes in parallel for ASP platform */
 
-    // NCXHWX
+    // NC1HWC0
     // ACTIVITION
-    // rvv: c0=4/8/8 for fp32/fp16/int8 when vlen=128
-    CSINN_LAYOUT_NC1HWC0, /**< RVV optimization format */
+    // RVV optimization format: c0=4/8/8 for fp32/fp16/int8 when vlen=128
+    CSINN_LAYOUT_NC1C0,    /**< NC1HWC0 input and output, 2 dimension */
+    CSINN_LAYOUT_NC1WC0,   /**< NC1HWC0 input and output, 3 dimension */
+    CSINN_LAYOUT_NC1HWC0,  /**< NC1HWC0 input and output, 4 dimension */
+    CSINN_LAYOUT_NC1DHWC0, /**< NC1HWC0 input and output, 5 dimension */
+
+    // for 6D shape
+    CSINN_LAYOUT_NLCDHW, /**< NCHW input and output, 6 dimensions */
 };
 
 /** CSI-NN return type */
@@ -1161,6 +1169,12 @@ struct csinn_conv1d_params {
     int32_t dilation_width;        /**< Horizontal expansion coefficient */
     int32_t pad_left;              /**< The number of left padding */
     int32_t pad_right;             /**< The number of right padding */
+};
+
+/** CSI-NN instance normalization params */
+struct csinn_instance_norm_params {
+    struct csinn_params_base base; /**< The basic information of the operator */
+    float epsilon;
 };
 
 /**

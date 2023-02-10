@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /****************************************************************************
@@ -55,7 +53,6 @@ int shl_rvv_maxpool2x2s2_int8(struct csinn_tensor *input, struct csinn_tensor *o
 
     int remain_w = in_w - 2 * out_w;
     int vl;
-    int8_t input_zp = (int8_t)input->qinfo->zero_point;
 
     for (int b = 0; b < batch; b++) {
         for (int c = 0; c < in_c; c++) {
@@ -85,7 +82,6 @@ int shl_rvv_maxpool2x2s2_int8(struct csinn_tensor *input, struct csinn_tensor *o
                 }
                 if (extend_w) {
                     outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                    outptr[0] = outptr[0] > input_zp ? outptr[0] : input_zp;
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -99,9 +95,7 @@ int shl_rvv_maxpool2x2s2_int8(struct csinn_tensor *input, struct csinn_tensor *o
 
                     vlseg2e8_v_i8m1(&_line0_0_14, &_line0_1_15, line0, vl);
 
-                    vint8m1_t _max0 = vmax_vv_i8m1(_line0_0_14, _line0_1_15, vl);
-                    vint8m1_t _max = vmax_vx_i8m1(_max0, input_zp, vl);
-
+                    vint8m1_t _max = vmax_vv_i8m1(_line0_0_14, _line0_1_15, vl);
                     vse8_v_i8m1(outptr, _max, vl);
                     line0 += 2 * vl;
                     outptr += vl;
@@ -109,7 +103,7 @@ int shl_rvv_maxpool2x2s2_int8(struct csinn_tensor *input, struct csinn_tensor *o
                 }
 
                 if (extend_w) {
-                    outptr[0] = line0[0] > input_zp ? line0[0] : input_zp;
+                    outptr[0] = line0[0];
                     outptr++;
                 }
             }
@@ -151,7 +145,6 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
 
     int remain_w = in_w - 2 * out_w + 1;
     int vl;
-    int8_t input_zp = (int8_t)input->qinfo->zero_point;
 
     for (int b = 0; b < batch; b++) {
         for (int c = 0; c < in_c; c++) {
@@ -159,7 +152,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
             int8_t *outptr = output_data + c * out_hw;
 
             // h top ---- w left
-            outptr[0] = line00[0] > input_zp ? line00[0] : input_zp;
+            outptr[0] = line00[0];
             outptr++;
             line00++;
             // h top ---- w mid
@@ -168,8 +161,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
                 vl = vsetvl_e8m1(w);
                 vint8m1_t _line0_0_6, _line0_1_7;
                 vlseg2e8_v_i8m1(&_line0_0_6, &_line0_1_7, line00, vl);
-                vint8m1_t _max0 = vmax_vv_i8m1(_line0_0_6, _line0_1_7, vl);
-                vint8m1_t _max = vmax_vx_i8m1(_max0, input_zp, vl);
+                vint8m1_t _max = vmax_vv_i8m1(_line0_0_6, _line0_1_7, vl);
                 vse8_v_i8m1(outptr, _max, vl);
                 line00 += 2 * vl;
                 outptr += vl;
@@ -177,7 +169,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
             }
             // h top ---- w right
             if (extend_w) {
-                outptr[0] = line00[0] > input_zp ? line00[0] : input_zp;
+                outptr[0] = line00[0];
                 outptr++;
             }
             line00 += remain_w;
@@ -188,7 +180,6 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
             for (int h = 0; h < out_h - 1; h++) {
                 // h mid ---- w left
                 outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                outptr[0] = outptr[0] > input_zp ? outptr[0] : input_zp;
                 outptr++;
                 line0++;
                 line1++;
@@ -216,7 +207,6 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
                 // h mid ---- w right
                 if (extend_w) {
                     outptr[0] = line0[0] > line1[0] ? line0[0] : line1[0];
-                    outptr[0] = outptr[0] > input_zp ? outptr[0] : input_zp;
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -225,7 +215,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
             // h bottom
             if (extend_h) {
                 // h bottom ---- w left
-                outptr[0] = line0[0] > input_zp ? line0[0] : input_zp;
+                outptr[0] = line0[0];
                 outptr++;
                 line0++;
                 // h bottom ---- w mid
@@ -236,9 +226,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
 
                     vlseg2e8_v_i8m1(&_line0_0_6, &_line0_1_7, line0, vl);
 
-                    vint8m1_t _max0 = vmax_vv_i8m1(_line0_0_6, _line0_1_7, vl);
-                    vint8m1_t _max = vmax_vx_i8m1(_max0, input_zp, vl);
-
+                    vint8m1_t _max = vmax_vv_i8m1(_line0_0_6, _line0_1_7, vl);
                     vse8_v_i8m1(outptr, _max, vl);
                     line0 += 2 * vl;
                     outptr += vl;
@@ -246,7 +234,7 @@ int shl_rvv_maxpool2x2s2_p1_int8(struct csinn_tensor *input, struct csinn_tensor
                 }
                 // h bottom ---- w right
                 if (extend_w) {
-                    outptr[0] = line0[0] > input_zp ? line0[0] : input_zp;
+                    outptr[0] = line0[0];
                 }
             }
         }

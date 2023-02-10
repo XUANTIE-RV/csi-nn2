@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -31,7 +29,7 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_siso_params *params = csinn_alloc_params(sizeof(struct csinn_siso_params), sess);
+    struct csinn_siso_params *params = (csinn_siso_params *)csinn_alloc_params(sizeof(struct csinn_siso_params), sess);
     int in_size, out_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -64,10 +62,14 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
+#if (DTYPE==32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_abs_init, csinn_abs, &difference);
-    test_unary_op(input, output, params, CSINN_QUANT_UINT8_ASYM, csinn_abs_init, csinn_abs,
+#elif (DTYPE==16)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_abs_init, csinn_abs,
                   &difference);
-    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_abs_init, csinn_abs, &difference);
+#elif (DTYPE==8)
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_abs_init, csinn_abs, &difference);
 
+#endif
     return done_testing();
 }

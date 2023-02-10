@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 static int tail_coincide(struct csinn_tensor *input0, struct csinn_tensor *input1)
@@ -147,8 +145,8 @@ int shl_c906_add_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
             }
         }
         if (!flag) {
-            __fp16 *in0_data_b = shl_mem_alloc(out_size * 2);
-            __fp16 *in1_data_b = shl_mem_alloc(out_size * 2);
+            __fp16 *in0_data_b = shl_mem_alloc(out_size * sizeof(__fp16));
+            __fp16 *in1_data_b = shl_mem_alloc(out_size * sizeof(__fp16));
 
             struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
             struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);

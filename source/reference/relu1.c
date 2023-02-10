@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static float relu1(float x) { return fmin(x > 0 ? x : 0, 1); }

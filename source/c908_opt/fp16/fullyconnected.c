@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 int shl_c908_fullyconnected_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,

@@ -15,8 +15,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/* SHL version 2.1.x */
 #ifndef INCLUDE_SHL_MEMORY_H_
 #define INCLUDE_SHL_MEMORY_H_
 

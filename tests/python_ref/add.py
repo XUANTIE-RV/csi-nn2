@@ -24,7 +24,7 @@ def add_f32():
     src_in1 = np.random.normal(zero_point1, std1, (batch, in_size_y, in_size_x, in_channel))
     src_in1 = src_in1.astype(np.float32)
 
-    if(len(sys.argv) == 1):
+    if(sys.argv[1] == "common"):
         src_in2 = np.random.normal(zero_point2, std2, (batch, in_size_y, in_size_x, in_channel))
         src_in2 = src_in2.astype(np.float32)
         size2   = size_all

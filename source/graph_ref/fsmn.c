@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_fsmn(struct csinn_tensor *frame, struct csinn_tensor *l_filter,

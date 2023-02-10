@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -3491,7 +3489,7 @@ void shl_c906_sgemm_kernel_fp16(__fp16* dst, const __fp16* sa, const __fp16* sb,
     bool flag_bias = 1;  // default: conv2d layer include bias
     if (bias == NULL) {
         flag_bias = 0;
-        bias = (__fp16*)shl_mem_alloc(m * 2);
+        bias = (__fp16*)shl_mem_alloc(m * sizeof(__fp16));
     }
     __fp16* bias_tmp = bias;
 

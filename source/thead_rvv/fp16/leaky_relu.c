@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -39,6 +37,11 @@ int shl_rvv_leaky_relu_fp16(struct csinn_tensor *input, struct csinn_tensor *out
         input_data += vl;
         output_data += vl;
         size -= vl;
+    }
+    output->layout = input->layout;
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = input->dim[i];
     }
     // requantize
     shl_rvv_siso_op_requantize_fp16(input, output);

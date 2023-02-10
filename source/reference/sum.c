@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_sum_stride_f32(struct csinn_tensor *input, struct csinn_tensor *output,

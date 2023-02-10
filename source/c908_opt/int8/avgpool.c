@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 int shl_c908_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -34,20 +32,30 @@ int shl_c908_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor
     int32_t pad_right = params->pad_right;
     int32_t pad_top = params->pad_top;
     int32_t pad_down = params->pad_down;
-
     struct csinn_callback *cb = params->base.cb;
     cb->exec = NULL;
 
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int elempack = 1;
+    struct csinn_session *sess = params->base.sess;
+    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c908_option *option = shl_c908_get_graph_option(sess);
+        if (option && option->base.use_packn_layout) {
+            elempack = in_c % packn == 0 ? packn : 1;
+        }
+        /* first layer do not convert input layout */
+        if (shl_is_first_layer_input(input, sess)) {
+            elempack = 1;
+        }
+    }
 
     // global avgpool2d
     if (in_h == kernel_h && in_w == kernel_w) {
-        cb->exec = (in_c % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
-                                       : shl_ref_global_avgpool2d_quant;
+        cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
+                                           : shl_ref_global_avgpool2d_quant;
         return CSINN_TRUE;
     }
-    if (in_c % packn == 0) {
-        output->layout = CSINN_LAYOUT_NC1HWC0;
+    if (elempack % packn == 0) {
         if (stride_h == 2 && stride_w == 2) {
             if (kernel_h == 2 && kernel_w == 2) {
                 if (pad_left == 0 && pad_top == 0) {
@@ -88,8 +96,7 @@ int shl_c908_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor
         }
     }
     if (cb->exec == NULL) {
-        if (in_c % packn == 0) {
-            output->layout = CSINN_LAYOUT_NC1HWC0;
+        if (elempack % packn == 0) {
             cb->exec = shl_rvv_avgpool_packn_int8;
         } else {
             shl_debug_warning(

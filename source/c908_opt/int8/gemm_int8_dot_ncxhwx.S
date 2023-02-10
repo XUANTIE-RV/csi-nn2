@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**************************************************************************************************
 
     void gemm_int8_dot_ncxhwx_12xpackn(const int8_t *output,

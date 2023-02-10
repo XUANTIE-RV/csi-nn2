@@ -61,6 +61,8 @@ def avgpool2d_f32(test_dtype, test_vlen, test_type):
             channel    = int(n*packn)
         elif test_type == "pack1_2x2s2p0":
             channel    = int(n*packn) + 1
+        elif test_type == "packn_2x2s2p0c1":
+            c_model = True
 
 
     elif "2x2s2p1" in test_type:
@@ -100,6 +102,8 @@ def avgpool2d_f32(test_dtype, test_vlen, test_type):
             channel    = int(n*packn)
         elif test_type == "pack1_3x3s2p0":
             channel    = int(n*packn) + 1
+        elif test_type == "pack1_3x3s2p0c1":
+            c_model = True
 
     elif "3x3s2p1" in test_type:
         stride_h    =  stride_w    = 2
@@ -122,6 +126,15 @@ def avgpool2d_f32(test_dtype, test_vlen, test_type):
         elif test_type == "pack1_3x3s1_p1":
             channel    = int(n*packn) + 1
 
+    elif "s3k5" in test_type:
+        stride_h    =  stride_w     = 3
+        kernel_h    =  kernel_w     = 5
+        pad_left = pad_right = pad_top = pad_down = 0
+        if test_type == "packn_s3k5":
+            channel    = int(n*packn)
+        elif test_type == "pack1_s3k5":
+            channel    = int(n*packn) + 1
+    
     elif "global" in test_type:
         if test_type == "packn_global":
             channel    = int(n*packn)
@@ -151,9 +164,9 @@ def avgpool2d_f32(test_dtype, test_vlen, test_type):
 
 
     # nc1c0hw ==> nc1hwc0
-    if "packn" in test_type:
-        t_src_in = t_src_in.reshape([batch, math.ceil(channel/packn), packn, in_height, in_width]).permute([0, 1, 3, 4, 2])
-        t_src_out = t_src_out.reshape([batch, math.ceil(channel/packn), packn, out_height, out_width]).transpose([0, 1, 3, 4, 2])
+    # if "packn" in test_type:
+    #     t_src_in = t_src_in.reshape([batch, math.ceil(channel/packn), packn, in_height, in_width]).permute([0, 1, 3, 4, 2])
+    #     t_src_out = t_src_out.reshape([batch, math.ceil(channel/packn), packn, out_height, out_width]).transpose([0, 1, 3, 4, 2])
 
     c_model = 1 if c_model else 0
     src_in_1  = t_src_in.flatten()

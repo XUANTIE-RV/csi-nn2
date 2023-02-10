@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**************************************************************************************************
 
     void shl_c906_u8_to_f32(const uint8_t *input,
@@ -27,7 +25,10 @@
                             uint32_t length)
 
     Algorithm works as follows:
-        (1)
+        (1) u8/i8 widden to u16/i16
+        (2) u16/i16 vwsub(offset) to i32
+        (3) i32 convert to f32
+        (4) f32 *= scale
 
     register definition:
         a0: input addr

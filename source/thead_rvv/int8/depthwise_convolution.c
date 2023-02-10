@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -32,11 +30,27 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
     struct csinn_callback *cb = params->base.cb;
+
     if (params->base.quant_type != CSINN_QUANT_INT8_ASYM_W_SYM) {
         cb->exec = shl_ref_depthwise_conv2d_quant;
         return CSINN_TRUE;
     }
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int in_elempack = 1;
+    int out_elempack = 1;
+    struct csinn_session *sess = params->base.sess;
+    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_rvv_option *option = shl_rvv_get_graph_option(sess);
+        if (option && option->use_packn_layout) {
+            in_elempack = in_c % packn == 0 ? packn : 1;
+            out_elempack = out_c % packn == 0 ? packn : 1;
+        }
+        /* first layer do not convert input layout */
+        if (shl_is_first_layer_input(input, sess)) {
+            in_elempack = 1;
+            out_elempack = 1;  // dwconv2d out_channel pack is same as in_channel
+        }
+    }
 
     // enable fuse zeropoint to bias
     if (!params->conv_extra.fuse_zp2bias) {
@@ -60,8 +74,7 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
         }
     }
 
-    if (in_c % packn == 0 && out_c % packn == 0) {
-        output->layout = CSINN_LAYOUT_NC1HWC0;
+    if (in_elempack % packn == 0 && out_elempack % packn == 0) {
         shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_packn_int8;
@@ -72,7 +85,7 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
         }
     }
 
-    if (in_c % packn != 0 && out_c % packn != 0) {
+    if (in_elempack % packn != 0 && out_elempack % packn != 0) {
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_int8;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {

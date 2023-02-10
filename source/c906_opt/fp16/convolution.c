@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -31,7 +29,7 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
                               struct csinn_conv2d_params *params)
 {
-    int32_t out_c = kernel->dim[0];
+    int32_t out_c = kernel->dim[0] / params->group;
     int32_t in_c = kernel->dim[1];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
@@ -42,6 +40,14 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
     int32_t dalition_h = params->dilation_height;
     int32_t dalition_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
+
+    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+        if (option && option->base.use_packn_layout) {
+            shl_debug_error("%s: unsupport packn\n", __func__);
+            return CSINN_UNSUPPORT_LAYOUT;
+        }
+    }
 
     // check
     int out_height = (in_h + params->pad_top + params->pad_down - kernel_h) / stride_h + 1;

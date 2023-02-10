@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -107,11 +105,20 @@ static void avgpool_border_fp32_packn(const float *src, float *dst,
 int shl_rvv_avgpool_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
 
@@ -134,7 +141,7 @@ int shl_rvv_avgpool_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *
     int dst_1x8_start_w = max((pad_left + stride_w - 1) / stride_w, 0);
     int dst_1x8_end_w = min((in_w + pad_left - kernel_w) / stride_w + 1, out_w);
 
-    for (int bc = 0; bc < batch * in_c; bc += packn) {
+    for (int bc = 0; bc + packn - 1 < batch * in_c; bc += packn) {
         const float *in_ptr = input_data + bc * in_h * in_w;
         float *out_ptr = output_data + bc * out_h * out_w;
 

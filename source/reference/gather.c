@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_gather_f32(struct csinn_tensor *input, struct csinn_tensor *indices,
@@ -170,10 +168,12 @@ int shl_ref_gather_quant(struct csinn_tensor *input, struct csinn_tensor *indice
     }
 
     struct csinn_tensor *finput = shl_ref_tensor_transform_f32(input);
+    struct csinn_tensor *int64_indices = shl_ref_tensor_transform_int64(indices);
     struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
-    ret = shl_ref_gather_f32(finput, indices, foutput, params);
+    ret = shl_ref_gather_f32(finput, int64_indices, foutput, params);
     csinn_tensor_data_convert(output, foutput);
     shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(int64_indices);
     shl_ref_tensor_transform_free_f32(foutput);
     return ret;
 }

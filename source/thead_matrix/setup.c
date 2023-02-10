@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 #define RVM_OP_PATTERN_MAX 60

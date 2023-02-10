@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_utils.h"
 
@@ -31,7 +29,7 @@ int csinn_min_init(struct csinn_tensor *input, struct csinn_tensor *output,
     if (params->n == 0 && params->m == 0) {
         return CSINN_FALSE;
     } else {
-        shl_op_callback_map(&params->base, CSINN_OP_MIN_STRIDE, input->dtype);
+        shl_op_callback_map(&params->base, CSINN_OP_MIN, input->dtype);
     }
 
     int (*func)() = shl_get_init_cb(&params->base);

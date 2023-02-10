@@ -7,13 +7,6 @@ config GRAPH_REFERENCE_SOURCE
 	help
 		Select SHL build graph reference
 
-config GRAPH_REFERENCE_SUBGRAPH
-	depends on GRAPH_REFERENCE_SOURCE
-	bool "Subgraph for hybrid model"
-	default n
-	help
-		Select to support subgraph for hybrid model
-
 config GRAPH_REFERENCE_TVMGEN
 	depends on GRAPH_REFERENCE_SOURCE
 	bool "Subgraph for hhb(tvm) generate code"

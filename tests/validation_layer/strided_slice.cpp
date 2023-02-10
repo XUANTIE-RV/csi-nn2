@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "test_utils.h"
 #include "testutil.h"
@@ -43,10 +41,10 @@ int main(int argc, char **argv)
         in_size *= input->dim[i];
     }
     params->slice_count = buffer[1 + input->dim_count];
-    params->begin = (int *)malloc(params->slice_count * sizeof(int));
-    params->end = (int *)malloc(params->slice_count * sizeof(int));
-    params->stride = (int *)malloc(params->slice_count * sizeof(int));
-    for (int i = 0; i < params->slice_count; i++) {
+    params->begin = (int *)malloc(input->dim_count * sizeof(int));
+    params->end = (int *)malloc(input->dim_count * sizeof(int));
+    params->stride = (int *)malloc(input->dim_count * sizeof(int));
+    for (int i = 0; i < input->dim_count; i++) {
         params->begin[i] = buffer[2 + input->dim_count + 3 * i];
         params->end[i] = buffer[3 + input->dim_count + 3 * i];
         params->stride[i] = buffer[4 + input->dim_count + 3 * i];

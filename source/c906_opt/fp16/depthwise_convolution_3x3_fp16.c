@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 /*
@@ -79,7 +77,7 @@ int shl_c906_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *o
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_c906_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
@@ -606,7 +604,7 @@ int shl_c906_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *o
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_c906_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,

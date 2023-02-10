@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
 #include "test_utils.h"
@@ -73,9 +71,10 @@ int main(int argc, char **argv)
     out_size = output->dim[0] * output->dim[1] * output->dim[2] * output->dim[3];
     params->base.api = CSINN_API;
     params->count_include_pad = buffer[14];
+    params->ceil_mode = buffer[15];
 
-    input->data = (float *)(buffer + 15);
-    reference->data = (float *)(buffer + 15 + in_size);
+    input->data = (float *)(buffer + 16);
+    reference->data = (float *)(buffer + 16 + in_size);
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 

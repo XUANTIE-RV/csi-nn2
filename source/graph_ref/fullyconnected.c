@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_fullyconnected(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -32,8 +30,10 @@ int shl_gref_fullyconnected_infer_shape(struct csinn_tensor *input, struct csinn
                                         struct csinn_tensor *weights, struct csinn_tensor *bias,
                                         struct csinn_fc_params *params)
 {
-    output->dim_count = 2;
-    output->dim[0] = input->dim[0];
-    output->dim[1] = weights->dim[0];
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < input->dim_count; i++) {
+        output->dim[i] = input->dim[i];
+    }
+    output->dim[output->dim_count - 1] = weights->dim[0];
     return CSINN_TRUE;
 }

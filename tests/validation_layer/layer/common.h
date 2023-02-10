@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include <stddef.h>
 
 #include "csi_nn.h"

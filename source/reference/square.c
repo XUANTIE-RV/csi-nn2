@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_square_f32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -34,4 +32,10 @@ int shl_ref_square_f32(struct csinn_tensor *input, struct csinn_tensor *output,
         output_data[i] = input_data[i] * input_data[i];
     }
     return CSINN_TRUE;
+}
+
+int shl_ref_square_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_siso_params *params)
+{
+    return shl_ref_siso_callback_base(input, output, params, shl_ref_square_f32);
 }

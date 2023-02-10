@@ -627,3 +627,7 @@ endif()
 if(CONFIG_C_REFERENCE_WHERE_SOFTMAX)
     list(APPEND REF_SRCS source/reference/where_softmax.c)
 endif()
+
+if(CONFIG_C_REFERENCE_INSTANCE_NORM)
+    list(APPEND REF_SRCS source/reference/instance_norm.c)
+endif()

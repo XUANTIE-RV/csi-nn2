@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -27,6 +25,9 @@ int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;
@@ -43,7 +44,7 @@ int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_rvv_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,
@@ -348,6 +349,9 @@ int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *kernel_data = (__fp16 *)kernel->data;
@@ -364,7 +368,7 @@ int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
-                                (in_w + params->pad_left + params->pad_right) * sizeof(float));
+                                (in_w + params->pad_left + params->pad_right) * sizeof(__fp16));
 
     shl_rvv_pad_input_fp16(
         input_data, input_padd_buf, in_c, in_h, in_w, in_h + params->pad_top + params->pad_down,

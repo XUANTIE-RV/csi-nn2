@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_proposal(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_pred,

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -29,12 +27,7 @@ int shl_ref_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *o
     asr_buffer_init(&params->asr_buffer, 2 * data_size, data_size);
 
     struct csinn_callback *cb = params->base.cb;
-    if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        cb->exec = shl_ref_cache_conv1d_f32;
-    } else {
-        cb->exec = shl_ref_cache_conv1d_quant;
-    }
-
+    cb->exec = shl_ref_cache_conv1d_quant;
     return CSINN_TRUE;
 }
 

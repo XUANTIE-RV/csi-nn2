@@ -17,7 +17,7 @@ def getpackn(test_dtype, test_vlen):
 def convolution_f32(test_dtype, test_vlen, test_type):
 
     para = []
-    batch       = int(np.random.randint(1, high=2, size=1))
+    batch       = int(np.random.randint(1, high=4, size=1))
     in_size_x   = int(np.random.randint(6, high=7, size=1)) #width
     in_size_y   = int(np.random.randint(6, high=7, size=1)) #height
     stride_x    = int(np.random.randint(2, high=3, size=1))
@@ -47,7 +47,7 @@ def convolution_f32(test_dtype, test_vlen, test_type):
             stride_y    = 1
             kernel_x    = 1
             kernel_y    = 1
-            out_channel = 12 + 8 + 4 + 2 + 1
+            out_channel = 8 + 4 + 2 + 1
             in_size_x = 7
             in_size_y = 9
 
@@ -144,11 +144,11 @@ def convolution_f32(test_dtype, test_vlen, test_type):
 
 
     # nc1c0hw ==> nc1hwc0
-    if "packnto1" in test_type or "packn_" in test_type:
-        src_in = src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).transpose( [0, 1, 3, 4, 2])
+    # if "packnto1" in test_type or "packn_" in test_type:
+    #     src_in = src_in.reshape([batch, math.ceil(in_channel/packn), packn, in_size_y, in_size_x]).transpose( [0, 1, 3, 4, 2])
 
-    if "pack1ton" in test_type or "packn_" in test_type:
-        t_src_out1 = t_src_out1.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose( [0, 1, 3, 4, 2])
+    # if "pack1ton" in test_type or "packn_" in test_type:
+    #     t_src_out1 = t_src_out1.reshape([batch, math.ceil(out_channel/packn), packn, out_size_y, out_size_x]).transpose( [0, 1, 3, 4, 2])
 
 
 

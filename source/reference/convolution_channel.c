@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static float shl_ref_uint8_to_float_channel(uint8_t i, float scale, int32_t zero_point)

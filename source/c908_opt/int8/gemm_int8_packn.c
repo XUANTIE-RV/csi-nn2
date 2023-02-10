@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void gemm_int8_ncxhwx_4xpack2n(int8_t *output, const int8_t *kernel, const int8_t *input,

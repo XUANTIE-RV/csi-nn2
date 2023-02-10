@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_C906_CAP_H_
 #define INCLUDE_SHL_C906_CAP_H_
 
@@ -107,6 +105,6 @@ int shl_c906_sub_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
 int shl_c906_reshape_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_reshape_params *params);
 
-int shl_c906_sum_stride_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_c906_reduce_sum_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_reduce_params *params);
 #endif  // INCLUDE_SHL_C906_CAP_H_

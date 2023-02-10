@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_global_maxpool2d(struct csinn_tensor *input, struct csinn_tensor *output,

@@ -2,15 +2,12 @@
 if(CONFIG_GRAPH_REFERENCE_SOURCE)
     list(APPEND GREF_SRCS source/graph_ref/utils.c)
     list(APPEND GREF_SRCS source/graph_ref/setup.c)
+    list(APPEND GREF_SRCS source/graph_ref/subgraph.c)
 endif()
 
 if(CONFIG_GRAPH_REFERENCE_TVMGEN)
     list(APPEND GREF_SRCS source/tvm_gen/utils.c)
     list(APPEND GREF_SRCS source/tvm_gen/setup.c)
-endif()
-
-if(CONFIG_GRAPH_REFERENCE_SUBGRAPH)
-    list(APPEND GREF_SRCS source/graph_ref/subgraph.c)
 endif()
 
 if(CONFIG_GRAPH_REFERENCE_ABS)
@@ -647,4 +644,8 @@ endif()
 
 if(CONFIG_GRAPH_REFERENCE_ONE_HOT)
     list(APPEND GREF_SRCS source/graph_ref/one_hot.c)
+endif()
+
+if(CONFIG_GRAPH_REFERENCE_INSTANCE_NORM)
+    list(APPEND GREF_SRCS source/graph_ref/instance_norm.c)
 endif()

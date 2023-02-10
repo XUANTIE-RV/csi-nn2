@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -185,6 +183,16 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
                                            struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                            struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+        output->dim[1] /= packn;
+        output->dim[4] = packn;
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
@@ -198,10 +206,13 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
     int32_t out_c = kernel->dim[0];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
+
     int32_t ksize_h = kernel->dim[2];
     int32_t ksize_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
 
     int32_t m = out_c / group;
     int32_t in_cp = in_c / group;
@@ -214,14 +225,13 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
     for (int i = 0; i < batch; i++) {
         for (int g = 0, j = 0; g < group; g++) {
             // padding
-            int padded_in_hw = (in_h + params->pad_top + params->pad_down) *
-                               (in_w + params->pad_left + params->pad_right);
+            int padded_in_h = in_h + params->pad_top + params->pad_down;
+            int padded_in_w = in_w + params->pad_left + params->pad_right;
+            int padded_in_hw = padded_in_h * padded_in_w;
             int8_t *input_pad_buf = (int8_t *)shl_mem_alloc(in_cp * padded_in_hw * sizeof(int8_t));
             shl_rvv_pad_input_pack1ton_int8(input_data, input_pad_buf, in_cp, in_h, in_w,
-                                            (in_h + params->pad_top + params->pad_down),
-                                            (in_w + params->pad_left + params->pad_right),
-                                            params->pad_top, params->pad_left,
-                                            input->qinfo->zero_point);
+                                            padded_in_h, padded_in_w, params->pad_top,
+                                            params->pad_left, input->qinfo->zero_point);
 
             if (kernel->quant_channel > 1) {
                 for (int c = 0; c < m; c++, j++) {
@@ -244,8 +254,7 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
             int in_cp4 = ((in_cp - 1) & -4) + 4;
             // [in_cp4/packn, maxk, out_h, out_w, packn] + [maxk, out_h, out_w, in_cp4%packn]
             int8_t *im2col_buf = (int8_t *)shl_mem_alloc(in_cp4 * maxk * n * sizeof(int8_t));
-            const int tailstep =
-                ((in_w + params->pad_left + params->pad_right) * stride_h - out_w * stride_w);
+            const int tailstep = (padded_in_w * stride_h - out_w * stride_w);
 
             const int8_t *img0 = input_pad_buf;
             int8_t *dst_ptr = im2col_buf;
@@ -257,7 +266,7 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
                 for (int a = 0; a < ksize_h; a++) {
                     for (int b = 0; b < ksize_w; b++) {
                         const int8_t *img1 =
-                            img0 + a * (in_w + params->pad_left + params->pad_right) * vl + b * vl;
+                            img0 + a * dilation_h * padded_in_w * vl + b * dilation_w * vl;
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {
@@ -289,8 +298,7 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
             // im2col
             // [in_c/packn, maxk, out_h, out_w, packn] + [maxk, out_h, out_w, in_c%packn]
             int8_t *im2col_buf = (int8_t *)shl_mem_alloc(in_cp * maxk * n * sizeof(int8_t));
-            const int tailstep =
-                ((in_w + params->pad_left + params->pad_right) * stride_h - out_w * stride_w);
+            const int tailstep = (padded_in_w * stride_h - out_w * stride_w);
 
             const int8_t *img0 = input_pad_buf;
             int8_t *dst_ptr = im2col_buf;
@@ -301,7 +309,7 @@ int shl_rvv_conv_im2col_gemm_pack1ton_int8(struct csinn_tensor *input, struct cs
                 for (int a = 0; a < ksize_h; a++) {
                     for (int b = 0; b < ksize_w; b++) {
                         const int8_t *img1 =
-                            img0 + a * (in_w + params->pad_left + params->pad_right) * vl + b * vl;
+                            img0 + a * dilation_h * padded_in_w * vl + b * dilation_w * vl;
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 // https://github.com/AceCoooool/RoIAlign-RoIPool-pytorch/blob/master/roialign/roi_align_cpu.cpp

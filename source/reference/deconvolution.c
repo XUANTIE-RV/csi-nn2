@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static int shl_ref_deconv2d_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -63,9 +61,9 @@ static int shl_ref_deconv2d_nhwc_f32(struct csinn_tensor *input, struct csinn_te
                                         input->dim, batch, in_y, in_x, in_channel)];
                                     float filter_value = filter_data[shl_ref_get_index(
                                         kernel->dim, out_channel, filter_y, filter_x, in_channel)];
-                                    output_data[shl_ref_get_index(output->dim, batch, out_y, out_x,
-                                                                  out_channel)] +=
-                                        input_value * filter_value;
+                                    int out_index = shl_ref_get_index(output->dim, batch, out_y,
+                                                                      out_x, out_channel);
+                                    output_data[out_index] += input_value * filter_value;
                                 }
                             }
                         }
@@ -176,6 +174,119 @@ int shl_ref_depthwise_deconv2d_nhwc_f32(struct csinn_tensor *input, struct csinn
     return CSINN_TRUE;
 }
 
+int shl_ref_group_deconv2d_nchw_f32(struct csinn_tensor *o_input, struct csinn_tensor *o_output,
+                                    struct csinn_tensor *o_kernel, struct csinn_tensor *o_bias,
+                                    struct csinn_conv2d_params *params)
+{
+    int groups = params->group;
+    int s_channel = o_input->dim[1] / groups;
+    if (o_input->dim[1] % groups != 0) {
+        return CSINN_FALSE;
+    }
+
+    struct csinn_tensor *s_input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_kernel = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_bias = csinn_alloc_tensor(NULL);
+
+    csinn_tensor_copy(s_input, o_input);
+    csinn_tensor_copy(s_output, o_output);
+    csinn_tensor_copy(s_kernel, o_kernel);
+    csinn_tensor_copy(s_bias, o_bias);
+
+    s_input->dim[0] = 1;
+    s_output->dim[0] = 1;
+    s_input->dim[1] = s_channel;
+    s_output->dim[1] /= groups;
+    s_kernel->dim[0] = s_channel;
+
+    int batch = o_input->dim[0];
+    int input_size = csinn_tensor_size(s_input);
+    int output_size = csinn_tensor_size(s_output);
+    int kernel_size = csinn_tensor_size(s_kernel);
+
+    float *input_data = o_input->data;
+    float *output_data = o_output->data;
+    float *kernel_data = o_kernel->data;
+    float *bias_data = o_bias->data;
+
+    for (int j = 0; j < batch; j++) {
+        input_data = o_input->data + sizeof(float) * j * params->group * input_size;
+        output_data = o_output->data + sizeof(float) * j * params->group * output_size;
+        for (int i = 0; i < params->group; i++) {
+            s_input->data = input_data + i * input_size;
+            s_output->data = output_data + i * output_size;
+            s_kernel->data = kernel_data + i * kernel_size;
+            if (s_bias->data && s_bias->dim_count != 0) {
+                s_bias->data = bias_data + i * o_output->dim[1] / params->group;
+            }
+            struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(s_input);
+            struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(s_output);
+            int32_t permute[4] = {1, 2, 3, 0};
+            struct csinn_tensor *kernel = shl_ref_deconv_kernel_nchw_to_nhwc_f32(s_kernel, permute);
+            struct csinn_tensor *bias = s_bias;
+            shl_ref_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+
+            shl_ref_nhwc_to_nchw_f32(s_output, output);
+        }
+    }
+
+    return CSINN_TRUE;
+}
+
+int shl_ref_group_deconv2d_nhwc_f32(struct csinn_tensor *o_input, struct csinn_tensor *o_output,
+                                    struct csinn_tensor *o_kernel, struct csinn_tensor *o_bias,
+                                    struct csinn_conv2d_params *params)
+{
+    int groups = params->group;
+    int s_channel = o_input->dim[1] / groups;
+    if (o_input->dim[1] % groups != 0) {
+        return CSINN_FALSE;
+    }
+
+    struct csinn_tensor *s_input = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_output = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_kernel = csinn_alloc_tensor(NULL);
+    struct csinn_tensor *s_bias = csinn_alloc_tensor(NULL);
+
+    csinn_tensor_copy(s_input, o_input);
+    csinn_tensor_copy(s_output, o_output);
+    csinn_tensor_copy(s_kernel, o_kernel);
+    csinn_tensor_copy(s_bias, o_bias);
+
+    s_input->dim[0] = 1;
+    s_output->dim[0] = 1;
+    s_input->dim[1] = s_channel;
+    s_output->dim[1] /= groups;
+    s_kernel->dim[0] = s_channel;
+
+    int batch = o_input->dim[0];
+    int input_size = csinn_tensor_size(s_input);
+    int output_size = csinn_tensor_size(s_output);
+    int kernel_size = csinn_tensor_size(s_kernel);
+
+    float *input_data = o_input->data;
+    float *output_data = o_output->data;
+    float *kernel_data = o_kernel->data;
+    float *bias_data = o_bias->data;
+
+    for (int j = 0; j < batch; j++) {
+        input_data = o_input->data + sizeof(float) * j * params->group * input_size;
+        output_data = o_output->data + sizeof(float) * j * params->group * output_size;
+        for (int i = 0; i < params->group; i++) {
+            s_input->data = input_data + i * input_size;
+            s_output->data = output_data + i * output_size;
+            s_kernel->data = kernel_data + i * kernel_size;
+            if (s_bias->data && s_bias->dim_count != 0) {
+                s_bias->data = bias_data + i * o_output->dim[1] / params->group;
+            }
+            shl_ref_deconv2d_nhwc_f32(s_input, s_output, s_kernel, s_bias, params);
+        }
+    }
+
+    return CSINN_TRUE;
+}
+
 int shl_ref_depthwise_deconv2d_nchw_f32(struct csinn_tensor *o_input, struct csinn_tensor *o_output,
                                         struct csinn_tensor *o_kernel, struct csinn_tensor *o_bias,
                                         struct csinn_conv2d_params *params)
@@ -206,12 +317,34 @@ int shl_ref_depthwise_deconv2d_f32(struct csinn_tensor *input, struct csinn_tens
     return CSINN_TRUE;
 }
 
+int shl_ref_group_deconv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                               struct csinn_conv2d_params *params)
+{
+    if (params->base.layout == CSINN_LAYOUT_NCHW) {
+        shl_ref_group_deconv2d_nchw_f32(input, output, kernel, bias, params);
+    } else if (params->base.layout == CSINN_LAYOUT_NHWC) {
+        shl_ref_group_deconv2d_nhwc_f32(input, output, kernel, bias, params);
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+    return CSINN_TRUE;
+}
+
 int shl_ref_depthwise_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                      struct csinn_conv2d_params *params)
 {
     return shl_ref_conv_callback_base(input, output, kernel, bias, params,
                                       shl_ref_depthwise_deconv2d_f32);
+}
+
+int shl_ref_group_deconv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                 struct csinn_conv2d_params *params)
+{
+    return shl_ref_conv_callback_base(input, output, kernel, bias, params,
+                                      shl_ref_group_deconv2d_f32);
 }
 
 int shl_ref_deconv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,

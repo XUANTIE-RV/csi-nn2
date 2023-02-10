@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 void gemm_fp16_nhwc_matrix_rowxn(__fp16 *output, const __fp16 *kernel, const __fp16 *input,

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -87,7 +85,7 @@ int shl_rvv_maxpool2x2s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
                     w -= vl;
                 }
                 if (extend_w) {
-                    outptr[0] = fmax(fmax(line0[0], line1[0]), 0.0f);
+                    outptr[0] = fmax(line0[0], line1[0]);
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -101,9 +99,7 @@ int shl_rvv_maxpool2x2s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
 
                     vlseg2e32_v_f32m1(&_line0_0_6, &_line0_1_7, line0, vl);
 
-                    vfloat32m1_t _max0 = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
-                    vfloat32m1_t _max = vfmax_vf_f32m1(_max0, 0.0f, vl);
-
+                    vfloat32m1_t _max = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
                     vse32_v_f32m1(outptr, _max, vl);
                     line0 += 2 * vl;
                     outptr += vl;
@@ -111,7 +107,7 @@ int shl_rvv_maxpool2x2s2_fp32(struct csinn_tensor *input, struct csinn_tensor *o
                 }
 
                 if (extend_w) {
-                    outptr[0] = fmax(line0[0], 0.0f);
+                    outptr[0] = line0[0];
                     outptr++;
                 }
             }
@@ -165,7 +161,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             float *outptr = output_data + c * out_hw;
 
             // h top ---- w left
-            outptr[0] = fmax(line00[0], 0.0f);
+            outptr[0] = line00[0];
             outptr++;
             line00++;
             // h top ---- w mid
@@ -174,8 +170,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 vl = vsetvl_e32m1(w);
                 vfloat32m1_t _line0_0_6, _line0_1_7;
                 vlseg2e32_v_f32m1(&_line0_0_6, &_line0_1_7, line00, vl);
-                vfloat32m1_t _max0 = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
-                vfloat32m1_t _max = vfmax_vf_f32m1(_max0, 0.0f, vl);
+                vfloat32m1_t _max = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
                 vse32_v_f32m1(outptr, _max, vl);
                 line00 += 2 * vl;
                 outptr += vl;
@@ -183,7 +178,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             }
             // h top ---- w right
             if (extend_w) {
-                outptr[0] = fmax(line00[0], 0.0f);
+                outptr[0] = line00[0];
                 outptr++;
             }
             line00 += remain_w;
@@ -193,7 +188,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             const float *line1 = line0 + in_w;
             for (int h = 0; h < out_h - 1; h++) {
                 // h mid ---- w left
-                outptr[0] = fmax(fmax(line0[0], line1[0]), 0.0f);
+                outptr[0] = fmax(line0[0], line1[0]);
                 outptr++;
                 line0++;
                 line1++;
@@ -220,7 +215,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
 
                 // h mid ---- w right
                 if (extend_w) {
-                    outptr[0] = fmax(fmax(line0[0], line1[0]), 0.0f);
+                    outptr[0] = fmax(line0[0], line1[0]);
                     outptr++;
                 }
                 line0 += remain_w + in_w;
@@ -229,7 +224,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
             // h bottom
             if (extend_h) {
                 // h bottom ---- w left
-                outptr[0] = fmax(line0[0], 0.0f);
+                outptr[0] = line0[0];
                 outptr++;
                 line0++;
                 // h bottom ---- w mid
@@ -240,9 +235,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
 
                     vlseg2e32_v_f32m1(&_line0_0_6, &_line0_1_7, line0, vl);
 
-                    vfloat32m1_t _max0 = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
-                    vfloat32m1_t _max = vfmax_vf_f32m1(_max0, 0.0f, vl);
-
+                    vfloat32m1_t _max = vfmax_vv_f32m1(_line0_0_6, _line0_1_7, vl);
                     vse32_v_f32m1(outptr, _max, vl);
                     line0 += 2 * vl;
                     outptr += vl;
@@ -250,7 +243,7 @@ int shl_rvv_maxpool2x2s2_p1_fp32(struct csinn_tensor *input, struct csinn_tensor
                 }
                 // h bottom ---- w right
                 if (extend_w) {
-                    outptr[0] = fmax(line0[0], 0.0f);
+                    outptr[0] = line0[0];
                 }
             }
         }

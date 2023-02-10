@@ -2,6 +2,8 @@
 if(CONFIG_C908_SOURCE)
     list(APPEND C908_SRCS source/c908_opt/reorder.c)
     list(APPEND C908_SRCS source/c908_opt/setup.c)
+    list(APPEND C908_SRCS source/c908_opt/shl_c908_f32_to_i8.S)
+    list(APPEND C908_SRCS source/c908_opt/shl_c908_f32_to_u8.S)
 endif()
 
 if(CONFIG_C908_AVERAGEPOOL_FP32)

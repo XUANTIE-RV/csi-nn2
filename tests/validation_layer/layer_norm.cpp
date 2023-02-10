@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
 #include "test_utils.h"
@@ -93,14 +91,14 @@ int main(int argc, char** argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if (DTYPE==32)
-    test_fully_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT32, csinn_layer_norm_init,
-                  csinn_layer_norm, &difference);
+    test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT32, csinn_layer_norm_init,
+                    csinn_layer_norm, &difference);
 #elif (DTYPE==16)
-    test_fully_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT16, csinn_layer_norm_init,
-                  csinn_layer_norm, &difference);
+    test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT16, csinn_layer_norm_init,
+                    csinn_layer_norm, &difference);
 #elif (DTYPE==8)
-    test_fully_op(input, output, gamma, beta, params, CSINN_QUANT_INT8_SYM, csinn_layer_norm_init,
-                  csinn_layer_norm, &difference);
+    test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_INT8_SYM, csinn_layer_norm_init,
+                    csinn_layer_norm, &difference);
 #endif
 
     return done_testing();

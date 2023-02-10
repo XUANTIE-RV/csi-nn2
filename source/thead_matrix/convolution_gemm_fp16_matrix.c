@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 static void im2col_gemm_reorder_kernel_nhwc_per_group_fp16(__fp16 *src, __fp16 *dst, int out_c,
@@ -149,6 +147,8 @@ int shl_rvm_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tenso
         if (flag_pad) {
             shl_rvv_pad_input_nhwc_fp16(input_data, input_pad_buf, in_h, in_w, in_c, padded_in_h,
                                         padded_in_w, params->pad_top, params->pad_left);
+        } else {
+            input_pad_buf = input_data;
         }
         // im2col
         for (int oh = 0; oh < out_h; oh++) {

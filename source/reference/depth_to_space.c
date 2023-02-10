@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 // the input->data is a 4-D Tensor with shape [batch, depth, height, width].

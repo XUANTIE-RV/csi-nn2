@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 static void element_sub_f32(float *input0, float *input1, float *output, int size)
@@ -124,8 +122,8 @@ int shl_c906_sub_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
         }
         // example: [1, 3, 224, 224] + [3, 224, 1] or [1, 3, 224, 224] + [3, 1, 224]
         if (!flag) {
-            float *in0_data_b = shl_mem_alloc(out_size * 4);
-            float *in1_data_b = shl_mem_alloc(out_size * 4);
+            float *in0_data_b = shl_mem_alloc(out_size * sizeof(float));
+            float *in1_data_b = shl_mem_alloc(out_size * sizeof(float));
 
             struct csinn_tensor *b_input0 = csinn_alloc_tensor(NULL);
             struct csinn_tensor *b_input1 = csinn_alloc_tensor(NULL);

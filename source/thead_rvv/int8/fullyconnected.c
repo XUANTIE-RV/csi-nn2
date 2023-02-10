@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,

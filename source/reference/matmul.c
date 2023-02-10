@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_matmul_f32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
@@ -33,12 +31,16 @@ int shl_ref_matmul_f32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
     /* compute the outer size */
     for (int i = 0; i < dims_count - 2; i++) {
         batches_a *= mat0->dim[i];
+    }
+
+    // /* compute the outer size */
+    for (int i = 0; i < mat1->dim_count - 2; i++) {
         batches_b *= mat1->dim[i];
     }
 
     const int dim_i = mat0->dim[dims_count - (params->trans_a ? 1 : 2)];
     const int dim_k = mat0->dim[dims_count - (params->trans_a ? 2 : 1)];
-    const int dim_j = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
+    const int dim_j = mat1->dim[mat1->dim_count - (params->trans_b ? 2 : 1)];
     const int mat0_offset = dim_i * dim_k;
     const int mat1_offset = dim_k * dim_j;
     const int out_offset = dim_i * dim_j;

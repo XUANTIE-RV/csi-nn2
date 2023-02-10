@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c906.h"
 
 static int shl_c906_prelu_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,

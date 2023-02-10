@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_conv2d(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -56,7 +54,7 @@ int shl_gref_conv2d_infer_shape(struct csinn_tensor *input, struct csinn_tensor 
     int32_t dilation_h = params->dilation_height;
     int32_t dilation_w = params->dilation_width;
 
-    output->dim_count = input->dim_count;
+    output->dim_count = kernel->dim_count;
     output->dim[0] = input->dim[0];  // N
     output->dim[c] = kernel->dim[0];
     output->dim[h] = (in_h + padding_h - dilation_h * (kernel_h - 1) - 1) / stride_h + 1;

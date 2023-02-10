@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /************************************************************************
@@ -669,7 +667,7 @@ void shl_rvv_reorder_input_z8_int8_dot(int8_t *b, int8_t *sb, int k, int n, int 
             vl = vsetvl_e8m1(k & 15);
             vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
             vse8_v_i8m1(sb, _tmp, vl);
-            sb += ((k & 15) / 4 + 1) * 4;
+            sb += ((k - j - 1) / 4 + 1) * 4;
         }
     }
 }
@@ -2210,5 +2208,469 @@ void shl_rvv_reorder_input_m4_int8(int8_t *a, int8_t *sa, int m, int k)
     }
     for (; i < m; i++) {
         memcpy(sa, a, k * sizeof(int8_t));
+    }
+}
+
+/*************************************************************
+ * src: [M_BLOCK, K_BLOCK]
+ * dst: [M_BLOCK/m_blk, K_BLOCK, m_blk]
+ * m_blk: 12/8/4/2/1
+ ************************************************************/
+static inline void reorder_kernel_12xk_fp32(float *src, float *dst, int M_BLOCK, int K_BLOCK,
+                                            int lda)
+{
+    int i = 0;
+    for (; i + 11 < M_BLOCK; i += 12) {
+        float *s_ptr = src + i * lda;
+        float *d_ptr = dst + i * K_BLOCK;
+        int stride = 12 * sizeof(float);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e32m2(K_BLOCK - c);
+            vfloat32m2_t _s0 = vle32_v_f32m2(s_ptr, vl);
+            vfloat32m2_t _s1 = vle32_v_f32m2(s_ptr + lda, vl);
+            vfloat32m2_t _s2 = vle32_v_f32m2(s_ptr + lda * 2, vl);
+            vfloat32m2_t _s3 = vle32_v_f32m2(s_ptr + lda * 3, vl);
+            vfloat32m2_t _s4 = vle32_v_f32m2(s_ptr + lda * 4, vl);
+            vfloat32m2_t _s5 = vle32_v_f32m2(s_ptr + lda * 5, vl);
+            vfloat32m2_t _s6 = vle32_v_f32m2(s_ptr + lda * 6, vl);
+            vfloat32m2_t _s7 = vle32_v_f32m2(s_ptr + lda * 7, vl);
+            vfloat32m2_t _s8 = vle32_v_f32m2(s_ptr + lda * 8, vl);
+            vfloat32m2_t _s9 = vle32_v_f32m2(s_ptr + lda * 9, vl);
+            vfloat32m2_t _s10 = vle32_v_f32m2(s_ptr + lda * 10, vl);
+            vfloat32m2_t _s11 = vle32_v_f32m2(s_ptr + lda * 11, vl);
+            vsse32_v_f32m2(d_ptr, stride, _s0, vl);
+            vsse32_v_f32m2(d_ptr + 1, stride, _s1, vl);
+            vsse32_v_f32m2(d_ptr + 2, stride, _s2, vl);
+            vsse32_v_f32m2(d_ptr + 3, stride, _s3, vl);
+            vsse32_v_f32m2(d_ptr + 4, stride, _s4, vl);
+            vsse32_v_f32m2(d_ptr + 5, stride, _s5, vl);
+            vsse32_v_f32m2(d_ptr + 6, stride, _s6, vl);
+            vsse32_v_f32m2(d_ptr + 7, stride, _s7, vl);
+            vsse32_v_f32m2(d_ptr + 8, stride, _s8, vl);
+            vsse32_v_f32m2(d_ptr + 9, stride, _s9, vl);
+            vsse32_v_f32m2(d_ptr + 10, stride, _s10, vl);
+            vsse32_v_f32m2(d_ptr + 11, stride, _s11, vl);
+            s_ptr += vl;
+            d_ptr += vl * 12;
+            c += vl;
+        }
+    }
+    for (; i + 7 < M_BLOCK; i += 8) {
+        float *s_ptr = src + i * lda;
+        float *d_ptr = dst + i * K_BLOCK;
+        int stride = 8 * sizeof(float);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e32m4(K_BLOCK - c);
+            vfloat32m4_t _s0 = vle32_v_f32m4(s_ptr, vl);
+            vfloat32m4_t _s1 = vle32_v_f32m4(s_ptr + lda, vl);
+            vfloat32m4_t _s2 = vle32_v_f32m4(s_ptr + lda * 2, vl);
+            vfloat32m4_t _s3 = vle32_v_f32m4(s_ptr + lda * 3, vl);
+            vfloat32m4_t _s4 = vle32_v_f32m4(s_ptr + lda * 4, vl);
+            vfloat32m4_t _s5 = vle32_v_f32m4(s_ptr + lda * 5, vl);
+            vfloat32m4_t _s6 = vle32_v_f32m4(s_ptr + lda * 6, vl);
+            vfloat32m4_t _s7 = vle32_v_f32m4(s_ptr + lda * 7, vl);
+            vsse32_v_f32m4(d_ptr, stride, _s0, vl);
+            vsse32_v_f32m4(d_ptr + 1, stride, _s1, vl);
+            vsse32_v_f32m4(d_ptr + 2, stride, _s2, vl);
+            vsse32_v_f32m4(d_ptr + 3, stride, _s3, vl);
+            vsse32_v_f32m4(d_ptr + 4, stride, _s4, vl);
+            vsse32_v_f32m4(d_ptr + 5, stride, _s5, vl);
+            vsse32_v_f32m4(d_ptr + 6, stride, _s6, vl);
+            vsse32_v_f32m4(d_ptr + 7, stride, _s7, vl);
+            s_ptr += vl;
+            d_ptr += vl * 8;
+            c += vl;
+        }
+    }
+    for (; i + 3 < M_BLOCK; i += 4) {
+        float *s_ptr = src + i * lda;
+        float *d_ptr = dst + i * K_BLOCK;
+        int stride = 4 * sizeof(float);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e32m4(K_BLOCK - c);
+            vfloat32m4_t _s0 = vle32_v_f32m4(s_ptr, vl);
+            vfloat32m4_t _s1 = vle32_v_f32m4(s_ptr + lda, vl);
+            vfloat32m4_t _s2 = vle32_v_f32m4(s_ptr + lda * 2, vl);
+            vfloat32m4_t _s3 = vle32_v_f32m4(s_ptr + lda * 3, vl);
+            vsse32_v_f32m4(d_ptr, stride, _s0, vl);
+            vsse32_v_f32m4(d_ptr + 1, stride, _s1, vl);
+            vsse32_v_f32m4(d_ptr + 2, stride, _s2, vl);
+            vsse32_v_f32m4(d_ptr + 3, stride, _s3, vl);
+            s_ptr += vl;
+            d_ptr += vl * 4;
+            c += vl;
+        }
+    }
+    for (; i + 1 < M_BLOCK; i += 2) {
+        float *s_ptr = src + i * lda;
+        float *d_ptr = dst + i * K_BLOCK;
+        int stride = 2 * sizeof(float);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e32m4(K_BLOCK - c);
+            vfloat32m4_t _s0 = vle32_v_f32m4(s_ptr, vl);
+            vfloat32m4_t _s1 = vle32_v_f32m4(s_ptr + lda, vl);
+            vsse32_v_f32m4(d_ptr, stride, _s0, vl);
+            vsse32_v_f32m4(d_ptr + 1, stride, _s1, vl);
+            s_ptr += vl;
+            d_ptr += vl * 2;
+            c += vl;
+        }
+    }
+    for (; i < M_BLOCK; i++) {
+        float *s_ptr = src + i * lda;
+        float *d_ptr = dst + i * K_BLOCK;
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e32m4(K_BLOCK - c);
+            vfloat32m4_t _src = vle32_v_f32m4(s_ptr, vl);
+            vse32_v_f32m4(d_ptr, _src, vl);
+            s_ptr += vl;
+            d_ptr += vl;
+            c += vl;
+        }
+    }
+}
+
+/*************************************************************
+ * src: [m, k]
+ * dst: [m/m_blk, k/k_blk, m_blk/12, 12, k_blk]
+ * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 12
+ * k_blk: K_BLK, K_tail
+ ************************************************************/
+void shl_rvv_reorder_kernel_block_12xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
+                                            const int K_BLK)
+{
+    const int MIN_M_BLK = 12;
+
+    int m_block = M_BLK;
+    int m_idx = 0;
+    while (m_idx < m) {
+        while (!(m_idx + m_block - 1 < m)) {
+            m_block /= 2;
+        }
+        if (m_block < MIN_M_BLK) {
+            m_block = m - m_idx;
+        }
+        int k_block = K_BLK;
+        int k_idx = 0;
+        while (k_idx < k) {
+            if (k - k_idx < k_block) {
+                k_block = k - k_idx;
+            }
+            float *s_ptr = src + m_idx * k + k_idx;
+            float *d_ptr = dst + m_idx * k + k_idx * m_block;
+            reorder_kernel_12xk_fp32(s_ptr, d_ptr, m_block, k_block, k);
+            k_idx += k_block;
+        }
+        m_idx += m_block;
+    }
+}
+
+/*************************************************************
+ * src: [M_BLOCK, K_BLOCK]
+ * dst: [M_BLOCK/m_blk, K_BLOCK, m_blk]
+ * m_blk: 12/8/4/2/1
+ ************************************************************/
+static inline void reorder_kernel_12xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOCK, int K_BLOCK,
+                                            int lda)
+{
+    int i = 0;
+    for (; i + 11 < M_BLOCK; i += 12) {
+        __fp16 *s_ptr = src + i * lda;
+        __fp16 *d_ptr = dst + i * K_BLOCK;
+        int stride = 12 * sizeof(__fp16);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e16m2(K_BLOCK - c);
+            vfloat16m2_t _s0 = vle16_v_f16m2(s_ptr, vl);
+            vfloat16m2_t _s1 = vle16_v_f16m2(s_ptr + lda, vl);
+            vfloat16m2_t _s2 = vle16_v_f16m2(s_ptr + lda * 2, vl);
+            vfloat16m2_t _s3 = vle16_v_f16m2(s_ptr + lda * 3, vl);
+            vfloat16m2_t _s4 = vle16_v_f16m2(s_ptr + lda * 4, vl);
+            vfloat16m2_t _s5 = vle16_v_f16m2(s_ptr + lda * 5, vl);
+            vfloat16m2_t _s6 = vle16_v_f16m2(s_ptr + lda * 6, vl);
+            vfloat16m2_t _s7 = vle16_v_f16m2(s_ptr + lda * 7, vl);
+            vfloat16m2_t _s8 = vle16_v_f16m2(s_ptr + lda * 8, vl);
+            vfloat16m2_t _s9 = vle16_v_f16m2(s_ptr + lda * 9, vl);
+            vfloat16m2_t _s10 = vle16_v_f16m2(s_ptr + lda * 10, vl);
+            vfloat16m2_t _s11 = vle16_v_f16m2(s_ptr + lda * 11, vl);
+            vsse16_v_f16m2(d_ptr, stride, _s0, vl);
+            vsse16_v_f16m2(d_ptr + 1, stride, _s1, vl);
+            vsse16_v_f16m2(d_ptr + 2, stride, _s2, vl);
+            vsse16_v_f16m2(d_ptr + 3, stride, _s3, vl);
+            vsse16_v_f16m2(d_ptr + 4, stride, _s4, vl);
+            vsse16_v_f16m2(d_ptr + 5, stride, _s5, vl);
+            vsse16_v_f16m2(d_ptr + 6, stride, _s6, vl);
+            vsse16_v_f16m2(d_ptr + 7, stride, _s7, vl);
+            vsse16_v_f16m2(d_ptr + 8, stride, _s8, vl);
+            vsse16_v_f16m2(d_ptr + 9, stride, _s9, vl);
+            vsse16_v_f16m2(d_ptr + 10, stride, _s10, vl);
+            vsse16_v_f16m2(d_ptr + 11, stride, _s11, vl);
+            s_ptr += vl;
+            d_ptr += vl * 12;
+            c += vl;
+        }
+    }
+    for (; i + 7 < M_BLOCK; i += 8) {
+        __fp16 *s_ptr = src + i * lda;
+        __fp16 *d_ptr = dst + i * K_BLOCK;
+        int stride = 8 * sizeof(__fp16);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e16m4(K_BLOCK - c);
+            vfloat16m4_t _s0 = vle16_v_f16m4(s_ptr, vl);
+            vfloat16m4_t _s1 = vle16_v_f16m4(s_ptr + lda, vl);
+            vfloat16m4_t _s2 = vle16_v_f16m4(s_ptr + lda * 2, vl);
+            vfloat16m4_t _s3 = vle16_v_f16m4(s_ptr + lda * 3, vl);
+            vfloat16m4_t _s4 = vle16_v_f16m4(s_ptr + lda * 4, vl);
+            vfloat16m4_t _s5 = vle16_v_f16m4(s_ptr + lda * 5, vl);
+            vfloat16m4_t _s6 = vle16_v_f16m4(s_ptr + lda * 6, vl);
+            vfloat16m4_t _s7 = vle16_v_f16m4(s_ptr + lda * 7, vl);
+            vsse16_v_f16m4(d_ptr, stride, _s0, vl);
+            vsse16_v_f16m4(d_ptr + 1, stride, _s1, vl);
+            vsse16_v_f16m4(d_ptr + 2, stride, _s2, vl);
+            vsse16_v_f16m4(d_ptr + 3, stride, _s3, vl);
+            vsse16_v_f16m4(d_ptr + 4, stride, _s4, vl);
+            vsse16_v_f16m4(d_ptr + 5, stride, _s5, vl);
+            vsse16_v_f16m4(d_ptr + 6, stride, _s6, vl);
+            vsse16_v_f16m4(d_ptr + 7, stride, _s7, vl);
+            s_ptr += vl;
+            d_ptr += vl * 8;
+            c += vl;
+        }
+    }
+    for (; i + 3 < M_BLOCK; i += 4) {
+        __fp16 *s_ptr = src + i * lda;
+        __fp16 *d_ptr = dst + i * K_BLOCK;
+        int stride = 4 * sizeof(__fp16);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e16m4(K_BLOCK - c);
+            vfloat16m4_t _s0 = vle16_v_f16m4(s_ptr, vl);
+            vfloat16m4_t _s1 = vle16_v_f16m4(s_ptr + lda, vl);
+            vfloat16m4_t _s2 = vle16_v_f16m4(s_ptr + lda * 2, vl);
+            vfloat16m4_t _s3 = vle16_v_f16m4(s_ptr + lda * 3, vl);
+            vsse16_v_f16m4(d_ptr, stride, _s0, vl);
+            vsse16_v_f16m4(d_ptr + 1, stride, _s1, vl);
+            vsse16_v_f16m4(d_ptr + 2, stride, _s2, vl);
+            vsse16_v_f16m4(d_ptr + 3, stride, _s3, vl);
+            s_ptr += vl;
+            d_ptr += vl * 4;
+            c += vl;
+        }
+    }
+    for (; i + 1 < M_BLOCK; i += 2) {
+        __fp16 *s_ptr = src + i * lda;
+        __fp16 *d_ptr = dst + i * K_BLOCK;
+        int stride = 2 * sizeof(__fp16);
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e16m4(K_BLOCK - c);
+            vfloat16m4_t _s0 = vle16_v_f16m4(s_ptr, vl);
+            vfloat16m4_t _s1 = vle16_v_f16m4(s_ptr + lda, vl);
+            vsse16_v_f16m4(d_ptr, stride, _s0, vl);
+            vsse16_v_f16m4(d_ptr + 1, stride, _s1, vl);
+            s_ptr += vl;
+            d_ptr += vl * 2;
+            c += vl;
+        }
+    }
+    for (; i < M_BLOCK; i++) {
+        __fp16 *s_ptr = src + i * lda;
+        __fp16 *d_ptr = dst + i * K_BLOCK;
+        int c = 0;
+        while (c < K_BLOCK) {
+            int vl = vsetvl_e16m4(K_BLOCK - c);
+            vfloat16m4_t _src = vle16_v_f16m4(s_ptr, vl);
+            vse16_v_f16m4(d_ptr, _src, vl);
+            s_ptr += vl;
+            d_ptr += vl;
+            c += vl;
+        }
+    }
+}
+
+/*************************************************************
+ * src: [m, k]
+ * dst: [m/m_blk, k/k_blk, m_blk/12, 12, k_blk]
+ * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 12
+ * k_blk: K_BLK, K_tail
+ ************************************************************/
+void shl_rvv_reorder_kernel_block_12xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
+                                            const int K_BLK)
+{
+    const int MIN_M_BLK = 12;
+
+    int m_block = M_BLK;
+    int m_idx = 0;
+    while (m_idx < m) {
+        while (!(m_idx + m_block - 1 < m)) {
+            m_block /= 2;
+        }
+        if (m_block < MIN_M_BLK) {
+            m_block = m - m_idx;
+        }
+        int k_block = K_BLK;
+        int k_idx = 0;
+        while (k_idx < k) {
+            if (k - k_idx < k_block) {
+                k_block = k - k_idx;
+            }
+            __fp16 *s_ptr = src + m_idx * k + k_idx;
+            __fp16 *d_ptr = dst + m_idx * k + k_idx * m_block;
+            reorder_kernel_12xk_fp16(s_ptr, d_ptr, m_block, k_block, k);
+            k_idx += k_block;
+        }
+        m_idx += m_block;
+    }
+}
+
+/*************************************************************
+ * packn = vlenb / sizeof(float)
+ * src: [K_BLOCK, N_BLOCK]
+ * dst: [N_BLOCK/n_blk, K_BLOCK, n_blk]
+ * n_blk: pack2n/packn/n_tail
+ ************************************************************/
+static inline void reorder_input_pack2nxk_fp32(float *src, float *dst, int N_BLOCK, int K_BLOCK,
+                                               int ldb)
+{
+    const int packn = csrr_vlenb() / sizeof(float);
+    const int pack2n = packn * 2;
+    int vl = vsetvl_e32m2(pack2n);
+
+    int j = 0;
+    for (; j + pack2n - 1 < N_BLOCK; j += pack2n) {
+        float *s_ptr = src + j;
+        for (int c = 0; c < K_BLOCK; c++) {
+            vfloat32m2_t _src = vle32_v_f32m2(s_ptr, vl);
+            vse32_v_f32m2(dst, _src, vl);
+            s_ptr += ldb;
+            dst += vl;
+        }
+    }
+    while (j < N_BLOCK) {
+        vl = vsetvl_e32m1(N_BLOCK - j);
+        float *s_ptr = src + j;
+        for (int c = 0; c < K_BLOCK; c++) {
+            vfloat32m1_t _src = vle32_v_f32m1(s_ptr, vl);
+            vse32_v_f32m1(dst, _src, vl);
+            s_ptr += ldb;
+            dst += vl;
+        }
+        j += vl;
+    }
+}
+
+/*************************************************************
+ * packn = vlenb / sizeof(float)
+ * src: [k, n]
+ * dst: [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
+ * n_blk: N_BLK, N_BLK/2, N_BLK/4, ..., pack2n
+ * k_blk: K_BLK, K_tail
+ ************************************************************/
+void shl_rvv_reorder_input_block_pack2nxk_fp32(float *src, float *dst, int k, int n,
+                                               const int K_BLK, const int N_BLK)
+{
+    const int packn = csrr_vlenb() / sizeof(float);
+    const int MIN_N_BLK = packn * 2;
+
+    int k_block = K_BLK;
+    int k_idx = 0;
+    while (k_idx < k) {
+        if (k - k_idx < k_block) {
+            k_block = k - k_idx;
+        }
+        int n_block = N_BLK;
+        int n_idx = 0;
+        while (n_idx < n) {
+            while (!(n_idx + n_block - 1 < n)) {
+                n_block /= 2;
+            }
+            if (n_block < MIN_N_BLK) {
+                n_block = n - n_idx;
+            }
+            float *s_ptr = src + k_idx * n + n_idx;
+            float *d_ptr = dst + n_idx * k + k_idx * n_block;
+            reorder_input_pack2nxk_fp32(s_ptr, d_ptr, n_block, k_block, n);
+            n_idx += n_block;
+        }
+        k_idx += k_block;
+    }
+}
+
+/*************************************************************
+ * packn = vlenb / sizeof(__fp16)
+ * src: [K_BLOCK, N_BLOCK]
+ * dst: [N_BLOCK/n_blk, K_BLOCK, n_blk]
+ * n_blk: pack2n/packn/n_tail
+ ************************************************************/
+static inline void reorder_input_pack2nxk_fp16(__fp16 *src, __fp16 *dst, int N_BLOCK, int K_BLOCK,
+                                               int ldb)
+{
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    const int pack2n = packn * 2;
+    int vl = vsetvl_e16m2(pack2n);
+
+    int j = 0;
+    for (; j + pack2n - 1 < N_BLOCK; j += pack2n) {
+        __fp16 *s_ptr = src + j;
+        for (int c = 0; c < K_BLOCK; c++) {
+            vfloat16m2_t _src = vle16_v_f16m2(s_ptr, vl);
+            vse16_v_f16m2(dst, _src, vl);
+            s_ptr += ldb;
+            dst += vl;
+        }
+    }
+    while (j < N_BLOCK) {
+        vl = vsetvl_e16m1(N_BLOCK - j);
+        __fp16 *s_ptr = src + j;
+        for (int c = 0; c < K_BLOCK; c++) {
+            vfloat16m1_t _src = vle16_v_f16m1(s_ptr, vl);
+            vse16_v_f16m1(dst, _src, vl);
+            s_ptr += ldb;
+            dst += vl;
+        }
+        j += vl;
+    }
+}
+
+/*************************************************************
+ * packn = vlenb / sizeof(__fp16)
+ * src: [k, n]
+ * dst: [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
+ * n_blk: N_BLK, N_BLK/2, N_BLK/4, ..., pack2n
+ * k_blk: K_BLK, K_tail
+ ************************************************************/
+void shl_rvv_reorder_input_block_pack2nxk_fp16(__fp16 *src, __fp16 *dst, int k, int n,
+                                               const int K_BLK, const int N_BLK)
+{
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    const int MIN_N_BLK = packn * 2;
+
+    int k_block = K_BLK;
+    int k_idx = 0;
+    while (k_idx < k) {
+        if (k - k_idx < k_block) {
+            k_block = k - k_idx;
+        }
+        int n_block = N_BLK;
+        int n_idx = 0;
+        while (n_idx < n) {
+            while (!(n_idx + n_block - 1 < n)) {
+                n_block /= 2;
+            }
+            if (n_block < MIN_N_BLK) {
+                n_block = n - n_idx;
+            }
+            __fp16 *s_ptr = src + k_idx * n + n_idx;
+            __fp16 *d_ptr = dst + n_idx * k + k_idx * n_block;
+            reorder_input_pack2nxk_fp16(s_ptr, d_ptr, n_block, k_block, n);
+            n_idx += n_block;
+        }
+        k_idx += k_block;
     }
 }

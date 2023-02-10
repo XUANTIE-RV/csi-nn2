@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -101,6 +99,15 @@ static void maxpool_border_fp16_packn(const __fp16 *src, __fp16 *dst,
 int shl_rvv_maxpool_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_pool_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     const int packn = csrr_vlenb() / sizeof(__fp16);
     const int vl = vsetvl_e16m1(packn);
 
@@ -108,10 +115,9 @@ int shl_rvv_maxpool_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *
     __fp16 *output_data = (__fp16 *)output->data;
 
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
-
     int out_h = output->dim[2];
     int out_w = output->dim[3];
 
@@ -125,7 +131,7 @@ int shl_rvv_maxpool_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *
     int dst_1x8_start_w = max((pad_left + stride_w - 1) / stride_w, 0);
     int dst_1x8_end_w = min((in_w + pad_left - kernel_w) / stride_w + 1, out_w);
 
-    for (int bc = 0; bc < batch * in_c; bc += packn) {
+    for (int bc = 0; bc + packn - 1 < batch * in_c; bc += packn) {
         __fp16 *in_ptr = input_data + bc * in_h * in_w;
         __fp16 *out_ptr = output_data + bc * out_h * out_w;
 

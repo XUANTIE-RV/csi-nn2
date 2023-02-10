@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_graph_insert(struct shl_node *node, struct shl_ref_graph *graph)
@@ -106,23 +104,43 @@ int shl_gref_siso_infer_shape(struct csinn_tensor *input, struct csinn_tensor *o
 int shl_gref_diso_infer_shape(struct csinn_tensor *input0, struct csinn_tensor *input1,
                               struct csinn_tensor *output, void *params)
 {
-    output->dim_count = input0->dim_count;
-    for (int i = 0; i < input0->dim_count; i++) {
-        output->dim[i] = input0->dim[i];
+    int32_t dim_count =
+        input0->dim_count > input1->dim_count ? input0->dim_count : input1->dim_count;
+
+    for (int i = 0; i < dim_count; ++i) {
+        const int d1 = input0->dim_count - 1 - i;
+        const int d2 = input1->dim_count - 1 - i;
+        const int s1 = d1 >= 0 ? input0->dim[d1] : 1;
+        const int s2 = d2 >= 0 ? input1->dim[d2] : 1;
+        if (s1 == s2) {
+            output->dim[dim_count - 1 - i] = s1;
+        } else if (s1 == 1) {
+            output->dim[dim_count - 1 - i] = s2;
+        } else if (s2 == 1) {
+            output->dim[dim_count - 1 - i] = s1;
+        } else {
+            shl_debug_error("%s: Invalid shapes for broadcast!\n", __func__);
+            return CSINN_FALSE;
+        }
     }
+    output->dim_count = dim_count;
     return CSINN_TRUE;
 }
 
 int shl_gref_pooling2d_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                    struct csinn_pool_params *params)
 {
-    int h, w;
+    int n, c, h, w;
     if (output->layout == CSINN_LAYOUT_NCHW) {
+        n = 0;
+        c = 1;
         h = 2;
         w = 3;
     } else if (output->layout == CSINN_LAYOUT_NHWC) {
+        n = 0;
         h = 1;
         w = 2;
+        c = 3;
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
@@ -143,6 +161,8 @@ int shl_gref_pooling2d_infer_shape(struct csinn_tensor *input, struct csinn_tens
         ceil_w = stride_w - 1;
     }
     output->dim_count = input->dim_count;
+    output->dim[n] = input->dim[n];
+    output->dim[c] = input->dim[c];
     output->dim[h] = (in_h + padding_h - kernel_h + ceil_h) / stride_h + 1;
     output->dim[w] = (in_w + padding_w - kernel_w + ceil_w) / stride_w + 1;
 
@@ -197,17 +217,21 @@ int shl_gref_pooling3d_infer_shape(struct csinn_tensor *input, struct csinn_tens
 int shl_gref_global_pooling2d_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                           struct csinn_pool_params *params)
 {
-    int h, w;
+    int c, h, w;
     if (output->layout == CSINN_LAYOUT_NCHW) {
+        c = 1;
         h = 2;
         w = 3;
     } else if (output->layout == CSINN_LAYOUT_NHWC) {
         h = 1;
         w = 2;
+        c = 3;
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
-
+    output->dim_count = input->dim_count;
+    output->dim[0] = input->dim[0];
+    output->dim[c] = input->dim[c];
     output->dim[h] = 1;
     output->dim[w] = 1;
 

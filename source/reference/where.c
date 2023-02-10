@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_where_f32(struct csinn_tensor *condition, struct csinn_tensor *x,
@@ -28,8 +26,8 @@ int shl_ref_where_f32(struct csinn_tensor *condition, struct csinn_tensor *x,
 
     int out_size = csinn_tensor_size(output);
     uint8_t *c_data_b = shl_mem_alloc(out_size);
-    float *x_data_b = shl_mem_alloc(out_size * 4);
-    float *y_data_b = shl_mem_alloc(out_size * 4);
+    float *x_data_b = shl_mem_alloc(out_size * sizeof(float));
+    float *y_data_b = shl_mem_alloc(out_size * sizeof(float));
     struct csinn_tensor *b_c = csinn_alloc_tensor(NULL);
     struct csinn_tensor *b_x = csinn_alloc_tensor(NULL);
     struct csinn_tensor *b_y = csinn_alloc_tensor(NULL);

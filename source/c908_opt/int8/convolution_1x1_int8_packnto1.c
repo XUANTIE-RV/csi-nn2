@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void shl_c908_conv1x1s1_gemm_reorder_kernel_packnto1_int8(struct csinn_tensor *kernel,
@@ -30,6 +28,9 @@ int shl_c908_conv1x1s1_gemm_packnto1_int8(struct csinn_tensor *input, struct csi
                                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                           struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
@@ -37,7 +38,7 @@ int shl_c908_conv1x1s1_gemm_packnto1_int8(struct csinn_tensor *input, struct csi
 
     int32_t group = params->group;
     int32_t batch = input->dim[0];
-    int32_t in_ch = input->dim[1];
+    int32_t in_ch = input->dim[1] * input->dim[4];
     int32_t out_ch = kernel->dim[0];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];

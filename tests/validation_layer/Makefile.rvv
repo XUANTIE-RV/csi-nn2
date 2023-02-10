@@ -11,23 +11,40 @@ TYPE=?
 
 test_objs =
 
+test_objs += abs.o
 test_objs += add.o
 test_objs += averagepool.o
+test_objs += broadcast_to.o
+test_objs += div.o
+test_objs += clip.o
 test_objs += concat.o
 test_objs += convolution.o
+test_objs += convolution1d.o
 test_objs += group_convolution.o
 test_objs += depthwise_convolution.o
+test_objs += depthwise_convolution1d.o
 test_objs += fullyconnected.o
+test_objs += gather.o
 test_objs += global_avgpool.o
 test_objs += global_maxpool.o
+test_objs += layer_norm.o
 test_objs += leaky_relu.o
 test_objs += maxpool.o
 test_objs += mul.o
+test_objs += minimum.o
+test_objs += matmul.o
+test_objs += pad.o
+test_objs += prelu.o
 test_objs += relu.o
-test_objs += sigmoid.o
+test_objs += relu1.o
+test_objs += relu6.o
+test_objs += split.o
+test_objs += sub.o
+test_objs += lrn.o
+test_objs += reshape.o
 test_objs += softmax.o
 test_objs += sum_stride.o
-
+test_objs += transpose.o
 
 
 

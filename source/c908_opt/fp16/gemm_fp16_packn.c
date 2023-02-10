@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_c908.h"
 
 void gemm_fp16_ncxhwx_12xpack2n(__fp16 *output, const __fp16 *kernel, const __fp16 *input,

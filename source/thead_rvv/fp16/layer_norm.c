@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -39,7 +37,9 @@ int shl_rvv_layer_norm_fp16(struct csinn_tensor *input, struct csinn_tensor *out
         shl_debug_error("Layer norm only support center & scale == true\n");
         return CSINN_FALSE;
     }
-
+    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *gamma_data = (__fp16 *)gamma->data;

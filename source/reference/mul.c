@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static void element_mul_f32(float *src0, float *src1, float *dest, int input_idx, int output_idx)

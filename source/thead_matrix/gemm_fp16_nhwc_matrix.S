@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 /**************************************************************************************************
 
     void gemm_fp16_nhwc_matrix_2rowxn(__fp16 *output,
@@ -227,7 +225,7 @@ gemm_fp16_rowxn_n:
 
     mcfgmi          zero, 1
     mldh            m0, t3, (a3)    // bias [1][n]
-    add             a3, a3, t0
+    add             a3, a3, t1
 
     mcfgm           zero, a4
     mmov.mv.i       m4, m0[0]
@@ -354,7 +352,7 @@ gemm_fp16_row_tailxn_n:
 
     mcfgmi          zero, 1
     mldh            m0, t3, (a3)    // bias [1][n]
-    add             a3, a3, t0
+    add             a3, a3, t1
 
     mcfgm           zero, a4
     mmov.mv.i       m4, m0[0]

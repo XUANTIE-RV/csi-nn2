@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 int shl_rvm_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_reshape(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -37,6 +35,10 @@ int shl_gref_reshape_infer_shape(struct csinn_tensor *input, struct csinn_tensor
     for (int i = 0; i < output->dim_count; i++) {
         if (params->shape[i] == -1) {
             index = i;
+        } else if (params->shape[i] == 0) {
+            // By default, when any value in the ‘shape’ input is equal to zero the corresponding
+            // dimension value is copied from the input tensor dynamically.
+            reshape_size *= output->dim[i];
         } else {
             output->dim[i] = params->shape[i];
             reshape_size *= params->shape[i];

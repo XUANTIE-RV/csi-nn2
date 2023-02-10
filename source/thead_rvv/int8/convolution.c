@@ -16,15 +16,13 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params)
 {
-    int32_t out_c = kernel->dim[0];
+    int32_t out_c = kernel->dim[0] / params->group;
     int32_t in_c = kernel->dim[1];
     int32_t in_h = input->dim[2];
     int32_t in_w = input->dim[3];
@@ -42,10 +40,23 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int in_elempack = 1;
+    int out_elempack = 1;
+    struct csinn_session *sess = params->base.sess;
+    if (sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_rvv_option *option = shl_rvv_get_graph_option(sess);
+        if (option && option->use_packn_layout) {
+            in_elempack = in_c % packn == 0 ? packn : 1;
+            out_elempack = out_c % packn == 0 ? packn : 1;
+        }
+        /* first layer do not convert input layout */
+        if (shl_is_first_layer_input(input, sess)) {
+            in_elempack = 1;
+        }
+    }
 
     // packn
-    if (in_c % packn == 0 && out_c % packn == 0) {
-        output->layout = CSINN_LAYOUT_NC1HWC0;
+    if (in_elempack % packn == 0 && out_elempack % packn == 0) {
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
             dalition_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
@@ -75,8 +86,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     // pack1ton
-    if (in_c % packn != 0 && out_c % packn == 0) {
-        output->layout = CSINN_LAYOUT_NC1HWC0;
+    if (in_elempack % packn != 0 && out_elempack % packn == 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
@@ -90,7 +100,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     // packnto1
-    if (in_c % packn == 0 && out_c % packn != 0) {
+    if (in_elempack % packn == 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
@@ -104,7 +114,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     // pack1
-    if (in_c % packn != 0 && out_c % packn != 0) {
+    if (in_elempack % packn != 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
@@ -138,11 +148,11 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
 
             if (bias_data == NULL) {
                 // XXX: memory leak
-                bias_data = (int32_t *)shl_mem_alloc(out_c * sizeof(int32_t));
+                bias_data = (int32_t *)shl_mem_alloc(out_c * params->group * sizeof(int32_t));
                 bias->data = bias_data;
             }
             int kernel_inner = in_c * kernel_h * kernel_w;
-            for (int oc = 0; oc < out_c; oc++) {
+            for (int oc = 0; oc < out_c * params->group; oc++) {
                 int32_t tmp = 0;
                 for (int j = 0; j < kernel_inner; j++) {
                     tmp += kernel_data[oc * kernel_inner + j] * input_zp;
@@ -160,7 +170,7 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
             int32_t input_zp = input->qinfo->zero_point;
 
             int kernel_inner = in_c * kernel_h * kernel_w;
-            for (int oc = 0; oc < out_c; oc++) {
+            for (int oc = 0; oc < out_c * params->group; oc++) {
                 int32_t tmp = 0;
                 for (int j = 0; j < kernel_inner; j++) {
                     tmp += kernel_data[oc * kernel_inner + j] * input_zp;

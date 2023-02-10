@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
@@ -38,17 +36,32 @@ int shl_rvv_global_avgpool2d_fp16(struct csinn_tensor *input, struct csinn_tenso
 
     for (int b = 0; b < batch; b++) {
         for (int c = 0; c < in_c; c++) {
-            vfloat16m1_t _res = vfmv_s_f_f16m1(vundefined_f16m1(), 0.0f, 8);
-            int size = in_hw;
-            while (size > 0) {
-                vl = vsetvl_e16m2(size);
-                vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
-                _res = vfredusum_vs_f16m2_f16m1(vundefined_f16m1(), _input, _res, vl);
-                input_data += vl;
-                size -= vl;
+            /* avoid overflow fp32 = sum(fp16) */
+            if (in_hw >= 1000) {
+                vfloat32m1_t _res = vfmv_s_f_f32m1(vundefined_f32m1(), 0.0f, 8);
+                int size = in_hw;
+                while (size > 0) {
+                    vl = vsetvl_e16m2(size);
+                    vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
+                    _res = vfwredusum_vs_f16m2_f32m1(vundefined_f32m1(), _input, _res, vl);
+                    input_data += vl;
+                    size -= vl;
+                }
+                float avg = vfmv_f_s_f32m1_f32(_res) / in_hw;
+                *output_data++ = (__fp16)avg;
+            } else {
+                vfloat16m1_t _res = vfmv_s_f_f16m1(vundefined_f16m1(), 0.0f, 8);
+                int size = in_hw;
+                while (size > 0) {
+                    vl = vsetvl_e16m2(size);
+                    vfloat16m2_t _input = vle16_v_f16m2(input_data, vl);
+                    _res = vfredusum_vs_f16m2_f16m1(vundefined_f16m1(), _input, _res, vl);
+                    input_data += vl;
+                    size -= vl;
+                }
+                __fp16 avg = vfmv_f_s_f16m1_f16(_res) / in_hw;
+                *output_data++ = avg;
             }
-            __fp16 avg = vfmv_f_s_f16m1_f16(_res) / in_hw;
-            *output_data++ = avg;
         }
     }
     // requantize

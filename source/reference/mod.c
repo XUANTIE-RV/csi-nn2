@@ -16,14 +16,11 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static void element_mod_f32(float *src0, float *src1, float *dest, int input_idx, int output_idx)
 {
-    dest[output_idx] =
-        src0[output_idx] - floor(src0[output_idx] / src1[output_idx]) * src1[input_idx];
+    dest[output_idx] = fmod(src0[output_idx], src1[input_idx]);
 }
 
 int shl_ref_mod_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,

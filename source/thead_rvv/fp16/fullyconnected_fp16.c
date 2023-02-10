@@ -16,25 +16,23 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
 *************************************************************/
-static void shl_rvv_reorder_weight_npackn_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
+static void shl_rvv_reorder_weight_npack2n_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx)
 {
     const int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
-    int vl = vsetvl_e16m1(packn);
+    int vl = vsetvl_e16m2(packn * 2);
 
     while (m > 0) {
-        vl = vsetvl_e16m1(m);
+        vl = vsetvl_e16m2(m);
         __fp16 *in_ptr = src;
         for (int j = 0; j < k; j++) {
-            vfloat16m1_t _input = vlse16_v_f16m1(in_ptr, k * sizeof(__fp16), vl);
+            vfloat16m2_t _input = vlse16_v_f16m2(in_ptr, k * sizeof(__fp16), vl);
             in_ptr++;
-            vse16_v_f16m1(dst, _input, vl);
+            vse16_v_f16m2(dst, _input, vl);
             dst += vl;
         }
         src += vl * k;
@@ -50,8 +48,40 @@ void shl_rvv_fc_gemv_transform_weight_fp16(struct csinn_tensor *weights)
     int k = weights->dim[1];  // in_nodes
 
     __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
-    shl_rvv_reorder_weight_npackn_fp16(weight_data, pa_reorder, n, k, k);
+    shl_rvv_reorder_weight_npack2n_fp16(weight_data, pa_reorder, n, k, k);
     memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
+    shl_mem_free(pa_reorder);
+}
+
+static void shl_rvv_reorder_weight_npackn_int8(int8_t *src, int8_t *dst, int m, int k, int ldx)
+{
+    const int packn = csrr_vlenb() / sizeof(int8_t);  // VLEN128=16  VLEN256=32
+    int vl = vsetvl_e8m1(packn);
+
+    while (m > 0) {
+        vl = vsetvl_e8m1(m);
+        int8_t *in_ptr = src;
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), vl);
+            in_ptr++;
+            vse8_v_i8m1(dst, _input, vl);
+            dst += vl;
+        }
+        src += vl * k;
+        m -= vl;
+    }
+}
+
+void shl_rvv_fc_gemv_transform_weight_fp16_w_int8(struct csinn_tensor *weights)
+{
+    int8_t *weight_data = (int8_t *)weights->data;
+
+    int n = weights->dim[0];  // out_nodes
+    int k = weights->dim[1];  // in_nodes
+
+    int8_t *pa_reorder = (int8_t *)shl_mem_alloc(n * k * sizeof(int8_t));
+    shl_rvv_reorder_weight_npackn_int8(weight_data, pa_reorder, n, k, k);
+    memcpy(weight_data, pa_reorder, n * k * sizeof(int8_t));
     shl_mem_free(pa_reorder);
 }
 
@@ -77,11 +107,28 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
     bool flag_bias = 1;  // default: fc layer include bias
     if (bias_data == NULL) {
         flag_bias = 0;
-        bias_data = (__fp16 *)shl_mem_alloc(output_depth * 2);
+        bias_data = (__fp16 *)shl_mem_alloc(output_depth * sizeof(__fp16));
     }
 
     const int packn = csrr_vlenb() / sizeof(__fp16);  // VLEN128=8  VLEN256=16
     int vl = vsetvl_e16m1(packn);
+
+    __fp16 *weights_fp16 = NULL;
+    if (weights->is_const && weights->dtype == CSINN_DTYPE_INT8) {
+        // TODO: support per-channel quantization
+        int32_t zp = weights->qinfo->zero_point;
+        float scale = weights->qinfo->scale;
+        int size = csinn_tensor_size(weights);
+        int8_t *weights_int8 = (int8_t *)weights->data;
+        weights_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
+        weights_data = weights_fp16;
+    } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {
+        weights_data = (__fp16 *)weights->data;
+    } else {
+        shl_debug_error("weights unsupport dtype: %d\n", weights->dtype);
+        return CSINN_FALSE;
+    }
 
     for (int b = 0; b < batches; b++) {
         __fp16 *init_output = output_data + b * output_depth;
@@ -91,15 +138,15 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
 
         int n = output_depth;
         while (n > 0) {
-            vl = vsetvl_e16m1(n);
-            vfloat16m1_t _acc = vle16_v_f16m1(init_bias, vl);
+            vl = vsetvl_e16m2(n);
+            vfloat16m2_t _acc = vle16_v_f16m2(init_bias, vl);
             init_bias += vl;
             for (int k = 0; k < accum_depth; k++) {
-                vfloat16m1_t _weight = vle16_v_f16m1(init_weight, vl);
-                _acc = vfmacc_vf_f16m1(_acc, init_input[k], _weight, vl);
+                vfloat16m2_t _weight = vle16_v_f16m2(init_weight, vl);
+                _acc = vfmacc_vf_f16m2(_acc, init_input[k], _weight, vl);
                 init_weight += vl;
             }
-            vse16_v_f16m1(init_output, _acc, vl);
+            vse16_v_f16m2(init_output, _acc, vl);
             init_output += vl;
             n -= vl;
         }
@@ -107,6 +154,10 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
     if (!flag_bias) {
         shl_mem_free(bias_data);
         bias_data = NULL;
+    }
+    if (weights->is_const && weights->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(weights_fp16);
+        return CSINN_TRUE;
     }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, weights);

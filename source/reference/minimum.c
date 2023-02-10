@@ -16,29 +16,21 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
+
+static void element_minimum_f32(float *src0, float *src1, float *dest, int input_idx,
+                                int output_idx)
+{
+    dest[output_idx] = fmin(src0[output_idx], src1[output_idx]);
+}
 
 int shl_ref_minimum_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
                         struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    float *input0_data = input0->data;
-    float *input1_data = input1->data;
-    float *output_data = output->data;
-    int size0 = csinn_tensor_size(input0);
-    int size1 = csinn_tensor_size(input1);
+    struct shl_ref_diso_callback cb;
 
-    if (size0 == size1) {
-        for (int i = 0; i < size0; i++) {
-            output_data[i] = fmin(input0_data[i], input1_data[i]);
-        }
-    } else {
-        if (size1 != 0 && size1 != 1) return CSINN_FALSE;
-        for (int i = 0; i < size0; i++) {
-            output_data[i] = fmin(input0_data[i], input1_data[0]);
-        }
-    }
+    cb.bc = element_minimum_f32;
+    shl_ref_diso_broadcast_base(input0, input1, output, params, &cb);
     return CSINN_TRUE;
 }
 

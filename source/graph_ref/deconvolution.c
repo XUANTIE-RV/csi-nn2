@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_deconv2d(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -66,6 +64,14 @@ int shl_gref_depthwise_deconv2d(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_conv2d_params *params)
 {
     shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_DEPTHWISE_DECONV2D, params);
+    return CSINN_TRUE;
+}
+
+int shl_gref_group_deconv2d(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                            struct csinn_conv2d_params *params)
+{
+    shl_gref_sidcso_op(input, output, kernel, bias, CSINN_OP_GROUP_DECONV2D, params);
     return CSINN_TRUE;
 }
 

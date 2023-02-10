@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvm.h"
 
 void shl_rvm_conv1x1s1_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
@@ -76,6 +74,8 @@ int shl_rvm_conv1x1s1_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor 
         __fp16 *in_ptr = input_align_buf;
         if (k_align != k) {
             align_input_channel_fp16(input_align_buf, input_data, m, k, k_align);
+        } else {
+            in_ptr = input_data;
         }
         __fp16 *out_ptr = output_data;
         __fp16 *bias_ptr = bias_data ? bias_data : NULL;

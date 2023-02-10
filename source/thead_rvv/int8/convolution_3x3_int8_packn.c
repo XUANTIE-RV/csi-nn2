@@ -14,9 +14,7 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
-/* SHL version 2.1.x */
-#include "shl_c908.h"
+ */#include "shl_c908.h"
 /*************************************************************
     note: VLEN = 128
 *************************************************************/
@@ -639,6 +637,15 @@ int shl_rvv_wg_b4f3s1_packn_int8(struct csinn_tensor *input, struct csinn_tensor
                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                  struct csinn_conv2d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
+    }
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        output->dim[1] /= input->dim[4];
+        output->dim[4] = input->dim[4];
+        output->dim_count = 5;
+        output->layout = CSINN_LAYOUT_NC1HWC0;
+    }
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int16_t *kernel_data = (int16_t *)params->conv_extra.kernel_tm->data;
@@ -647,7 +654,7 @@ int shl_rvv_wg_b4f3s1_packn_int8(struct csinn_tensor *input, struct csinn_tensor
     int pad_left = params->pad_left;
     int pad_top = params->pad_top;
     int batch = input->dim[0];
-    int in_c = input->dim[1];
+    int in_c = input->dim[1] * input->dim[4];
     int in_h = input->dim[2];
     int in_w = input->dim[3];
     int input_size = in_c * in_h * in_w;
@@ -655,6 +662,7 @@ int shl_rvv_wg_b4f3s1_packn_int8(struct csinn_tensor *input, struct csinn_tensor
     int out_h = output->dim[2];
     int out_w = output->dim[3];
     int output_size = out_c * out_h * out_w;
+
     // winograd param
     int block_h = (out_h + 3) / 4;
     int block_w = (out_w + 3) / 4;

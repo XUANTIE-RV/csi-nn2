@@ -16,22 +16,20 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_flatten_init(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_reshape_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
-    if (input->quant_channel == output->quant_channel) {
-        int quant_size = input->quant_channel * sizeof(struct csinn_quant_info);
-        int t = memcmp(input->qinfo, output->qinfo, quant_size);
-        if (t == 0) {
-            cb->exec = shl_ref_flatten;
-            return CSINN_TRUE;
-        }
-    }
+    // if (input->quant_channel == output->quant_channel) {
+    //     int quant_size = input->quant_channel * sizeof(struct csinn_quant_info);
+    //     int t = memcmp(input->qinfo, output->qinfo, quant_size);
+    //     if (t == 0) {
+    //         cb->exec = shl_ref_flatten;
+    //         return CSINN_TRUE;
+    //     }
+    // }
     cb->exec = shl_ref_flatten_quant;
     return CSINN_TRUE;
 }

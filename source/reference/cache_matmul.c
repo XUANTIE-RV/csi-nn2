@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 // asr data buffer
@@ -103,16 +101,8 @@ int shl_ref_cache_matmul_init(struct csinn_tensor *input, struct csinn_tensor *o
         params->shape[0] * params->shape[1] * params->shape[2] * params->shape[3] * sizeof(float);
     asr_buffer_init(&params->asr_buffer, 2 * data_size, data_size);
 
-    int accum_depth = weight->dim[0];
-    int output_depth = weight->dim[1];
-
     struct csinn_callback *cb = params->base.cb;
-    if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        cb->exec = shl_ref_cache_matmul_f32;
-    } else {
-        cb->exec = shl_ref_cache_matmul_quant;
-    }
-
+    cb->exec = shl_ref_cache_matmul_quant;
     return CSINN_TRUE;
 }
 

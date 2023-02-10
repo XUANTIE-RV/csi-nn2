@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_GREF_H_
 #define INCLUDE_SHL_GREF_H_
 #include "csi_nn.h"
@@ -174,6 +172,11 @@ int shl_gref_deconv3d_infer_shape(struct csinn_tensor *input, struct csinn_tenso
 int shl_gref_depthwise_deconv2d(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                 struct csinn_conv2d_params *params);
+
+int shl_gref_group_deconv2d(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                            struct csinn_conv2d_params *params);
+
 int shl_gref_depthwise_deconv2d_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                             struct csinn_conv2d_params *params);
@@ -181,6 +184,7 @@ int shl_gref_depthwise_deconv2d_infer_shape(struct csinn_tensor *input, struct c
 int shl_gref_depthwise_conv2d_relu(struct csinn_tensor *input, struct csinn_tensor *output,
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params);
+
 int shl_gref_depthwise_conv2d_relu_infer_shape(struct csinn_tensor *input,
                                                struct csinn_tensor *output,
                                                struct csinn_tensor *kernel,
@@ -958,6 +962,14 @@ int shl_gref_cast(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_cast_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_cast_params *params);
 
+int shl_gref_instance_norm(struct csinn_tensor *input, struct csinn_tensor *scales,
+                           struct csinn_tensor *bias, struct csinn_tensor *output,
+                           struct csinn_instance_norm_params *params);
+
+int shl_gref_instance_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *scales,
+                                       struct csinn_tensor *bias, struct csinn_tensor *output,
+                                       struct csinn_instance_norm_params *params);
+
 struct shl_ref_graph *shl_subgraph_establish(struct shl_ref_graph *ograph);
 struct shl_ref_graph *shl_gref_get_graph(struct csinn_session *sess);
 int shl_gref_graph_insert(struct shl_node *node, struct shl_ref_graph *graph);
@@ -1012,4 +1024,8 @@ int shl_gref_segment_infer_shape(struct csinn_tensor *input0, struct csinn_tenso
                                  struct csinn_tensor *output, struct csinn_segment_params *params);
 int shl_gref_stride_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_reduce_params *params);
+
+int shl_gref_call_layer_func(void *fn, struct shl_node *node);
+struct csinn_callback *shl_gref_best_callback(struct shl_node *node);
+int shl_gref_size_align(int orig, int align);
 #endif  // INCLUDE_SHL_GREF_H_

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_memory.h"
 #include "shl_node.h"
 #include "shl_utils.h"

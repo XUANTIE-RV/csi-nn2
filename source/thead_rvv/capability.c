@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_thead_rvv.h"
 
 static int common_all_support(struct csinn_tensor *input, struct csinn_params_base *base)
@@ -555,11 +553,7 @@ int shl_rvv_reshape_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_rvv_sigmoid_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_sigmoid_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_FLOAT16) {
-        return CSINN_OPT_INTRINSIC;
-    }
-
-    return CSINN_OPT_UNSUPPORTED;
+    return float_all_support(input, &(params->base));
 }
 
 int shl_rvv_softmax_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -568,7 +562,7 @@ int shl_rvv_softmax_cap(struct csinn_tensor *input, struct csinn_tensor *output,
     return float_all_support(input, &(params->base));
 }
 
-int shl_rvv_sum_stride_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_rvv_reduce_sum_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_reduce_params *params)
 {
     if (input->dtype == CSINN_DTYPE_INT8) {
@@ -603,18 +597,32 @@ int shl_rvv_clip_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_rvv_transpose_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_transpose_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_INT8) {
+    int tail = shl_rvv_transpose_get_tail(params->permute, params->permute_num);
+    if (input->dtype == CSINN_DTYPE_FLOAT32) {
         if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 1 &&
             params->permute[2] == 2 && params->permute[3] == 3) {
             return CSINN_OPT_INTRINSIC;
         } else if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 2 &&
                    params->permute[2] == 3 && params->permute[3] == 1) {
             return CSINN_OPT_INTRINSIC;
+        } else if (params->permute_num == 3 && params->permute[0] == 0 && params->permute[1] == 2 &&
+                   params->permute[2] == 1) {
+            return CSINN_OPT_INTRINSIC;
+        } else if (tail > 0) {
+            return CSINN_OPT_INTRINSIC;
+        }
+        return CSINN_OPT_C_REFERENCE;
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 1 &&
+            params->permute[2] == 2 && params->permute[3] == 3) {
+            return CSINN_OPT_INTRINSIC;
         } else if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 2 &&
-                   params->permute[2] == 1 && params->permute[3] == 3) {
+                   params->permute[2] == 3 && params->permute[3] == 1) {
             return CSINN_OPT_INTRINSIC;
         } else if (params->permute_num == 3 && params->permute[0] == 0 && params->permute[1] == 2 &&
                    params->permute[2] == 1) {
+            return CSINN_OPT_INTRINSIC;
+        } else if (tail > 0) {
             return CSINN_OPT_INTRINSIC;
         }
         return CSINN_OPT_C_REFERENCE;
@@ -625,11 +633,10 @@ int shl_rvv_transpose_cap(struct csinn_tensor *input, struct csinn_tensor *outpu
         } else if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 2 &&
                    params->permute[2] == 3 && params->permute[3] == 1) {
             return CSINN_OPT_INTRINSIC;
-        } else if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 2 &&
-                   params->permute[2] == 1 && params->permute[3] == 3) {
-            return CSINN_OPT_INTRINSIC;
         } else if (params->permute_num == 3 && params->permute[0] == 0 && params->permute[1] == 2 &&
                    params->permute[2] == 1) {
+            return CSINN_OPT_INTRINSIC;
+        } else if (tail > 0) {
             return CSINN_OPT_INTRINSIC;
         }
         return CSINN_OPT_C_REFERENCE;
@@ -650,6 +657,21 @@ int shl_rvv_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
         batches_a *= mat0->dim[i];
         batches_b *= mat1->dim[i];
     }
+
+    if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32 ||
+        mat0->dtype == CSINN_DTYPE_FLOAT16 &&
+            (mat1->dtype == CSINN_DTYPE_FLOAT16 || mat1->dtype == CSINN_DTYPE_INT8)) {
+        if (batches_a == batches_b) {
+            if (!params->trans_a && !params->trans_b) {
+                return CSINN_OPT_INTRINSIC;
+            }
+        } else if (batches_a > 1 && batches_b == 1) {
+            if (!params->trans_a && !params->trans_b) {
+                return CSINN_OPT_INTRINSIC;
+            }
+        }
+    }
+
     if (mat0->dtype == CSINN_DTYPE_INT8) {
         if (batches_a == batches_b) {
             return CSINN_OPT_INTRINSIC;

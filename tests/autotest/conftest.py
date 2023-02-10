@@ -19,15 +19,17 @@ import pytest
 
 
 
-board = ""
-accuracy = ""
-dtype = ""
+g_board = ""
+g_dtype = ""
+g_accuracy = ""
+g_flow = ""
+
 
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--board", action="store", default="c860", help="board option: c860|c906|c908|anole|x86_ref|c920"
+        "--board", action="store", default="c906", help="board option: c906|c908|anole|x86_ref|c920"
     )
     parser.addoption(
         "--accuracy", action="store", default="0.99", help="error measures accuracy"
@@ -35,15 +37,19 @@ def pytest_addoption(parser):
     parser.addoption(
         "--dtype", action="store", default="8", help="8|16|32"
     )
+    parser.addoption(
+        "--flow", action="store", default="", help=" Run case on Flow with id, Example: Flow_ID"
+    )
 
 
 def pytest_configure(config):
-    global board
-    global accuracy
-    global dtype
-    board = config.getoption("--board")
-    accuracy = config.getoption("--accuracy")
-    dtype = config.getoption("--dtype")
+    global g_board
+    global g_dtype
+    global g_accuracy, g_flow
+    g_board = config.getoption("--board")
+    g_dtype = config.getoption("--dtype")
+    g_accuracy = config.getoption("--accuracy")
+    g_flow = config.getoption("--flow")
 
 
 
@@ -54,3 +60,12 @@ def id_builder(arg):
 def custom_parametrize(*args, **kwargs):
     kwargs.setdefault('ids', id_builder)
     return pytest.mark.parametrize(*args, **kwargs)
+
+
+def pytest_collection_modifyitems(items):
+    # print('pytest cases: \n',items)
+    for item in items:
+        case_id = item.name
+        case_id = case_id.split("[")[-1].split("]")[0]
+        # if case_id.isdigit():
+        item.user_properties.append(("id", case_id))

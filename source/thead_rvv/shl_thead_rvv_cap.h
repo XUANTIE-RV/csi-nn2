@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_RVV_CAP_H_
 #define INCLUDE_SHL_RVV_CAP_H_
 
@@ -79,7 +77,7 @@ int shl_rvv_sigmoid_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_rvv_softmax_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_softmax_params *params);
 
-int shl_rvv_sum_stride_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_rvv_reduce_sum_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_reduce_params *params);
 
 int shl_rvv_prelu_cap(struct csinn_tensor *input, struct csinn_tensor *alpha,

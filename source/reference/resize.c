@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 static void shl_ref_resize_bilinear_nhwc_f32(struct csinn_tensor *input,

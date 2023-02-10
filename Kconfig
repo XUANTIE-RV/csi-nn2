@@ -116,11 +116,6 @@ config BUILD_RISCV_ELF_E907
 	help
 		Build E907 P extend static library
 
-config BUILD_RISCV_ELF_ASP
-    bool "ASP elf"
-    help
-        Build ASP static library
-
 endchoice
 
 choice
@@ -132,33 +127,6 @@ config BUILD_CSKY_OPENVX
 	bool "openvx"
 	help
 	    Build openvx library
-
-config BUILD_CSKY_C860
-    bool "C860"
-    help
-        Build C860 SIMD static library
-
-endchoice
-
-choice
-	prompt "C-SKY elf platform"
-    depends on BUILD_CSKY_ELF
-	default BUILD_CSKY_ELF_I805
-
-config BUILD_CSKY_ELF_I805_REF
-	bool "i805 ref"
-	help
-	    Build i805 reference library
-
-config BUILD_CSKY_ELF_I805
-	bool "i805 elf"
-	help
-	    Build i805 library
-
-config BUILD_CSKY_ELF_E804
-    bool "E804 share"
-    help
-        Build e804 library
 
 endchoice
 

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_squeeze(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -30,4 +28,10 @@ int shl_ref_squeeze(struct csinn_tensor *input, struct csinn_tensor *output,
         memcpy(output_data, input_data, size);
     }
     return CSINN_TRUE;
+}
+
+int shl_ref_squeeze_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_squeeze_params *params)
+{
+    shl_ref_siso_callback_base(input, output, params, shl_ref_squeeze);
 }

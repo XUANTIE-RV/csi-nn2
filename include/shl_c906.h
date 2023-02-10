@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #ifndef INCLUDE_SHL_C906_H_
 #define INCLUDE_SHL_C906_H_
 
@@ -125,6 +123,8 @@ int shl_c906_div_init_fp16(struct csinn_tensor *input0, struct csinn_tensor *inp
 int shl_c906_div_init_fp32(struct csinn_tensor *input0, struct csinn_tensor *input1,
                            struct csinn_tensor *output, struct csinn_diso_params *params);
 
+int shl_c906_matmul_init_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                              struct csinn_tensor *output, struct csinn_matmul_params *params);
 int shl_c906_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                               struct csinn_tensor *output, struct csinn_matmul_params *params);
 
@@ -430,6 +430,10 @@ int shl_c906_dwconv3x3s2_pack8_fp16(struct csinn_tensor *input, struct csinn_ten
                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                     struct csinn_conv2d_params *params);
 
+/* matmul */
+int shl_c906_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                         struct csinn_tensor *output, struct csinn_matmul_params *params);
+
 /* utils */
 void shl_c906_memcpy(void *dst, const void *src, size_t n);
 
@@ -453,9 +457,6 @@ int shl_c906_cache_matmul_init(struct csinn_tensor *input, struct csinn_tensor *
 int shl_c906_cache_matmul_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_tensor *weight, struct csinn_tensor *bias,
                                struct csinn_cache_matmul_params *params);
-
-int shl_c906_matmul_init(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
-                         struct csinn_tensor *output, struct csinn_matmul_params *params);
 
 int shl_c906_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                          struct csinn_tensor *output, struct csinn_matmul_params *params);
@@ -514,16 +515,28 @@ uint64_t shl_c906_get_l1_dcache_wmiss();
 
 struct shl_c906_hpm shl_c906_get_hw_perf();
 
-int shl_c906_sum_stride_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_c906_reduce_sum_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_reduce_params *params);
 
 void shl_c906_u8_to_f32(const uint8_t *input, float *output, int32_t offset, float *scale,
                         uint32_t length);
 void shl_c906_i8_to_f32(const int8_t *input, float *output, int32_t offset, float *scale,
                         uint32_t length);
+void shl_c906_f32_to_u8(const float *input, uint8_t *output, int32_t offset, float *scale,
+                        uint32_t length);
+void shl_c906_f32_to_i8(const float *input, int8_t *output, int32_t offset, float *scale,
+                        uint32_t length);
 
 struct csinn_callback *shl_cb_map_c906(int op, int dtype);
 int shl_c906_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init,
                     void *exec);
 int shl_c906_reg_op_est(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *est);
+
+struct shl_c906_option {
+    struct shl_rvv_option base;
+};
+
+int shl_c906_set_packn_layout(struct csinn_session *sess, bool packn_layout);
+struct shl_c906_option *shl_c906_get_graph_option(struct csinn_session *sess);
+
 #endif  // INCLUDE_SHL_C906_H_

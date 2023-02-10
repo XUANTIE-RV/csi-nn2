@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_mod(struct csinn_tensor *input0, struct csinn_tensor *input1,
                  struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    shl_gref_diso_op(input0, input1, output, CSINN_OP_ADD, params);
+    shl_gref_diso_op(input0, input1, output, CSINN_OP_MOD, params);
     return CSINN_TRUE;
 }
 

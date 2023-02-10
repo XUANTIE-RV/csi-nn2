@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
 #include "test_utils.h"
@@ -32,7 +30,7 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_pad_params *params = csinn_alloc_params(sizeof(struct csinn_pad_params), sess);
+    struct csinn_pad_params *params = (csinn_pad_params *)csinn_alloc_params(sizeof(struct csinn_pad_params), sess);
     int in_size = 0, out_size = 0;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -84,10 +82,16 @@ int main(int argc, char **argv)
 #if THEAD_RVV
     return 0
 #else
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_pad_init, csinn_pad, &difference);
-    test_unary_op(input, output, params, CSINN_QUANT_UINT8_ASYM, csinn_pad_init, csinn_pad,
+#if (DTYPE==32)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_pad_init, csinn_pad,
                   &difference);
-    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_pad_init, csinn_pad, &difference);
+#elif (DTYPE==16)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_pad_init, csinn_pad,
+                  &difference);
+#elif (DTYPE==8)
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_pad_init, csinn_pad,
+                  &difference);
+#endif
 #endif
 
         return done_testing();

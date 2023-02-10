@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
@@ -34,8 +32,8 @@ void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
         for (int i = 0; i < q_size; i++) {
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
-                int32_t input_val =
-                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                int32_t input_val = nearbyint(input_data[index] / output->qinfo[i].scale) +
+                                    output->qinfo[i].zero_point;
                 if (input_val < -8) {
                     input_val = -8;
                 } else if (input_val > 7) {
@@ -56,8 +54,8 @@ void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
         for (int i = 0; i < q_size; i++) {
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
-                int32_t input_val =
-                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
+                int32_t input_val = nearbyint(input_data[index] / output->qinfo[i].scale) +
+                                    output->qinfo[i].zero_point;
                 if (input_val < 0) {
                     input_val = 0;
                 } else if (input_val > 255) {
@@ -72,10 +70,10 @@ void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
         for (int i = 0; i < q_size; i++) {
             for (int j = 0; j < inner_size; j++) {
                 int index = i * inner_size + j;
-                int32_t input_val =
-                    round(input_data[index] / output->qinfo[i].scale) + output->qinfo[i].zero_point;
-                if (input_val < -127) {
-                    input_val = -127;
+                int32_t input_val = nearbyint(input_data[index] / output->qinfo[i].scale) +
+                                    output->qinfo[i].zero_point;
+                if (input_val < -128) {
+                    input_val = -128;
                 } else if (input_val > 127) {
                     input_val = 127;
                 }
@@ -210,7 +208,7 @@ static void *setup_cb_map()
     static struct csinn_callback cb_map[CSINN_OP_AND_UTILS_SIZE][CSINN_DTYPE_SIZE];
     memset(cb_map, 0, sizeof(struct csinn_callback) * CSINN_OP_AND_UTILS_SIZE * CSINN_DTYPE_SIZE);
 
-    for (int i = CSINN_DTYPE_INT4; i <= CSINN_DTYPE_BFLOAT16; i++) {
+    for (int i = CSINN_DTYPE_INT4; i <= CSINN_DTYPE_FLOAT32; i++) {
 #ifndef CONFIG_C_REFERENCE_ABS_DISABLED
         cb_map[CSINN_OP_ABS][i].exec = shl_ref_abs_quant;
 #endif
@@ -269,6 +267,8 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_C_REFERENCE_CONV1D_DISABLED
         cb_map[CSINN_OP_CONV1D][i].exec = shl_ref_conv1d_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV1D][i].exec = shl_ref_conv1d_quant;
+        cb_map[CSINN_OP_GROUP_CONV1D][i].exec = shl_ref_conv1d_quant;
 #endif
 #ifndef CONFIG_C_REFERENCE_CEIL_DISABLED
         cb_map[CSINN_OP_CEIL][i].exec = shl_ref_ceil_quant;
@@ -560,6 +560,12 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_SQRT_DISABLED
         cb_map[CSINN_OP_SQRT][i].exec = shl_ref_sqrt_quant;
 #endif
+#ifndef CONFIG_C_REFERENCE_SQUARE_DISABLED
+        cb_map[CSINN_OP_SQUARE][i].exec = shl_ref_square_quant;
+#endif
+#ifndef CONFIG_C_REFERENCE_SQUEEZE_DISABLED
+        cb_map[CSINN_OP_SQUEEZE][i].exec = shl_ref_squeeze_quant;
+#endif
 #ifndef CONFIG_C_REFERENCE_STACK_DISABLED
         cb_map[CSINN_OP_STACK][i].exec = shl_ref_stack_quant;
 #endif
@@ -634,6 +640,7 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_DECONVOLUTION_DISABLED
         cb_map[CSINN_OP_DECONV2D][i].exec = shl_ref_deconv2d_quant;
         cb_map[CSINN_OP_DEPTHWISE_DECONV2D][i].exec = shl_ref_depthwise_deconv2d_quant;
+        cb_map[CSINN_OP_GROUP_DECONV2D][i].exec = shl_ref_group_deconv2d_quant;
 #endif
 #ifndef CONFIG_C_REFERENCE_DECONVOLUTION3D_DISABLED
         cb_map[CSINN_OP_DECONV3D][i].exec = shl_ref_deconv3d_quant;
@@ -656,11 +663,8 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_WHERE_SOFTMAX_DISABLED
         cb_map[CSINN_OP_WHERE_SOFTMAX][i].exec = shl_ref_where_softmax_quant;
 #endif
-    }
-
-    for (int i = CSINN_DTYPE_UINT8; i <= CSINN_DTYPE_FLOAT64; i++) {
-#ifndef CONFIG_C_REFERENCE_SQUEEZE_DISABLED
-        cb_map[CSINN_OP_SQUEEZE][i].exec = shl_ref_squeeze;
+#ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
+        cb_map[CSINN_OP_INSTANCE_NORM][i].exec = shl_ref_instance_norm_quant;
 #endif
     }
 
@@ -669,6 +673,15 @@ static void *setup_cb_map()
         cb_map[CSINN_OP_DATA_CONVERT][i].exec = shl_ref_data_convert_quant;
 #endif
     }
+
+#ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
+        cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].exec = shl_ref_reshape;
+        cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].init = shl_ref_reshape_init;
+#endif
+
+#ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED
+    cb_map[CSINN_OP_CONCAT][CSINN_DTYPE_INT64].exec = shl_ref_concat_quant;
+#endif
 
 #ifndef CONFIG_C_REFERENCE_AND_DISABLED
     cb_map[CSINN_OP_AND][CSINN_DTYPE_UINT8].exec = shl_ref_and_u8;
@@ -706,447 +719,20 @@ static void *setup_cb_map()
     cb_map[CSINN_OP_XOR][CSINN_DTYPE_INT8].exec = shl_ref_xor_i8;
     cb_map[CSINN_OP_XOR][CSINN_DTYPE_UINT32].exec = shl_ref_xor_u32;
 #endif
-#ifndef CONFIG_C_REFERENCE_ABS_DISABLED
-    cb_map[CSINN_OP_ABS][CSINN_DTYPE_FLOAT32].exec = shl_ref_abs_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ACOS_DISABLED
-    cb_map[CSINN_OP_ACOS][CSINN_DTYPE_FLOAT32].exec = shl_ref_acos_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ACOSH_DISABLED
-    cb_map[CSINN_OP_ACOSH][CSINN_DTYPE_FLOAT32].exec = shl_ref_acosh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ADD_DISABLED
-    cb_map[CSINN_OP_ADD][CSINN_DTYPE_FLOAT32].exec = shl_ref_add_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ARANGE_DISABLED
-    cb_map[CSINN_OP_ARANGE][CSINN_DTYPE_FLOAT32].exec = shl_ref_arange_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ARGMAX_DISABLED
-    cb_map[CSINN_OP_ARGMAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_argmax_stride_i32_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ARGMIN_DISABLED
-    cb_map[CSINN_OP_ARGMIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_argmin_stride_i32_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ASIN_DISABLED
-    cb_map[CSINN_OP_ASIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_asin_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ASINH_DISABLED
-    cb_map[CSINN_OP_ASINH][CSINN_DTYPE_FLOAT32].exec = shl_ref_asinh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ATAN_DISABLED
-    cb_map[CSINN_OP_ATAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_atan_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ATANH_DISABLED
-    cb_map[CSINN_OP_ATANH][CSINN_DTYPE_FLOAT32].exec = shl_ref_atanh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_AVERAGEPOOL_DISABLED
-    cb_map[CSINN_OP_AVGPOOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_avgpool2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_AVERAGEPOOL3D_DISABLED
-    cb_map[CSINN_OP_AVGPOOL3D][CSINN_DTYPE_FLOAT32].exec = shl_ref_avgpool3d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_BATCH_NORMALIZATION_DISABLED
-    cb_map[CSINN_OP_BN][CSINN_DTYPE_FLOAT32].exec = shl_ref_batch_normalization_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_BATCH_TO_SPACE_DISABLED
-    cb_map[CSINN_OP_BATCH_TO_SPACE][CSINN_DTYPE_FLOAT32].exec = shl_ref_batch_to_space_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_BROADCAST_TO_DISABLED
-    cb_map[CSINN_OP_BROADCOST][CSINN_DTYPE_FLOAT32].exec = shl_ref_broadcast_to_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CACHE_MATMUL_DISABLED
-    cb_map[CSINN_OP_CACHE_MATMUL][CSINN_DTYPE_FLOAT32].exec = shl_ref_cache_matmul_f32;
-    cb_map[CSINN_OP_CACHE_MATMUL][CSINN_DTYPE_FLOAT32].init = shl_ref_cache_matmul_init;
-#endif
-#ifndef CONFIG_C_REFERENCE_CACHE_CONV1D_DISABLED
-    cb_map[CSINN_OP_CACHE_CONV1D][CSINN_DTYPE_FLOAT32].exec = shl_ref_cache_conv1d_f32;
-    cb_map[CSINN_OP_CACHE_CONV1D][CSINN_DTYPE_FLOAT32].init = shl_ref_cache_conv1d_init;
-#endif
-#ifndef CONFIG_C_REFERENCE_CEIL_DISABLED
-    cb_map[CSINN_OP_CEIL][CSINN_DTYPE_FLOAT32].exec = shl_ref_ceil_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CLIP_DISABLED
-    cb_map[CSINN_OP_CLIP][CSINN_DTYPE_FLOAT32].exec = shl_ref_clip_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED
-    cb_map[CSINN_OP_CONCAT][CSINN_DTYPE_FLOAT32].exec = shl_ref_concat_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CONV1D_DISABLED
-    cb_map[CSINN_OP_CONV1D][CSINN_DTYPE_FLOAT32].exec = shl_ref_conv1d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CONVOLUTION_DISABLED
-    cb_map[CSINN_OP_CONV2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_conv2d_f32;
-    cb_map[CSINN_OP_DEPTHWISE_CONV2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_depthwise_conv2d_f32;
-    cb_map[CSINN_OP_GROUP_CONV2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_group_conv2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CONVOLUTION3D_DISABLED
-    cb_map[CSINN_OP_CONV3D][CSINN_DTYPE_FLOAT32].exec = shl_ref_conv3d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_DECONVOLUTION_DISABLED
-    cb_map[CSINN_OP_DECONV2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_deconv2d_f32;
-    cb_map[CSINN_OP_DEPTHWISE_DECONV2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_depthwise_deconv2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_DECONVOLUTION3D_DISABLED
-    cb_map[CSINN_OP_DECONV3D][CSINN_DTYPE_FLOAT32].exec = shl_ref_deconv3d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_COS_DISABLED
-    cb_map[CSINN_OP_COS][CSINN_DTYPE_FLOAT32].exec = shl_ref_cos_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_COSH_DISABLED
-    cb_map[CSINN_OP_COSH][CSINN_DTYPE_FLOAT32].exec = shl_ref_cosh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CUMPROD_DISABLED
-    cb_map[CSINN_OP_CUMPROD][CSINN_DTYPE_FLOAT32].exec = shl_ref_cumprod_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_CUMSUM_DISABLED
-    cb_map[CSINN_OP_CUMSUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_cumsum_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_DEPTH_TO_SPACE_DISABLED
-    cb_map[CSINN_OP_DEPTH_TO_SPACE][CSINN_DTYPE_FLOAT32].exec = shl_ref_depth_to_space_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_DIV_DISABLED
-    cb_map[CSINN_OP_DIV][CSINN_DTYPE_FLOAT32].exec = shl_ref_div_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ELU_DISABLED
-    cb_map[CSINN_OP_ELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_elu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_EQUAL_DISABLED
-    cb_map[CSINN_OP_EQUANL][CSINN_DTYPE_FLOAT32].exec = shl_ref_equal_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ERF_DISABLED
-    cb_map[CSINN_OP_ERF][CSINN_DTYPE_FLOAT32].exec = shl_ref_erf_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_EXP_DISABLED
-    cb_map[CSINN_OP_EXP][CSINN_DTYPE_FLOAT32].exec = shl_ref_exp_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_EXPAND_DIMS_DISABLED
-    cb_map[CSINN_OP_EXPAND_DIMS][CSINN_DTYPE_FLOAT32].exec = shl_ref_expand_dims_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_EXPM1_DISABLED
-    cb_map[CSINN_OP_EXPM1][CSINN_DTYPE_FLOAT32].exec = shl_ref_expm1_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_FLATTEN_DISABLED
-    cb_map[CSINN_OP_FLATTEN][CSINN_DTYPE_FLOAT32].exec = shl_ref_flatten;
-    cb_map[CSINN_OP_FLATTEN][CSINN_DTYPE_FLOAT32].init = shl_ref_flatten_init;
-#endif
-#ifndef CONFIG_C_REFERENCE_FLOOR_DIVIDE_DISABLED
-    cb_map[CSINN_OP_FLOOR_DIVIDE][CSINN_DTYPE_FLOAT32].exec = shl_ref_floor_divide_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_FLOOR_MOD_DISABLED
-    cb_map[CSINN_OP_FLOOR_MOD][CSINN_DTYPE_FLOAT32].exec = shl_ref_floor_mod_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_FLOOR_DISABLED
-    cb_map[CSINN_OP_FLOOR][CSINN_DTYPE_FLOAT32].exec = shl_ref_floor_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_FSMN_DISABLED
-    cb_map[CSINN_OP_FSMN][CSINN_DTYPE_FLOAT32].exec = shl_ref_fsmn_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_FULLYCONNECTED_DISABLED
-    cb_map[CSINN_OP_FULLYCONNECTED][CSINN_DTYPE_FLOAT32].exec = shl_ref_fullyconnected_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_GATHER_ND_DISABLED
-    cb_map[CSINN_OP_GATHER_ND][CSINN_DTYPE_FLOAT32].exec = shl_ref_gather_nd_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_GATHER_DISABLED
-    cb_map[CSINN_OP_GATHER][CSINN_DTYPE_FLOAT32].exec = shl_ref_gather_f32;
-#if __riscv
-    cb_map[CSINN_OP_GATHER][CSINN_DTYPE_FLOAT16].exec = shl_ref_gather_f16;
-#endif  // __riscv
-    cb_map[CSINN_OP_GATHER][CSINN_DTYPE_INT8].exec = shl_ref_gather_int8;
-#endif
 
-#ifndef CONFIG_C_REFERENCE_GLOBAL_AVERAGEPOOL_DISABLED
-    cb_map[CSINN_OP_GLOBAL_AVGPOOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_global_avgpool2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_GLOBAL_MAXPOOL_DISABLED
-    cb_map[CSINN_OP_GLOBAL_MAXPOOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_global_maxpool2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_GREATER_EQUAL_DISABLED
-    cb_map[CSINN_OP_GREATHER_EQUAL][CSINN_DTYPE_FLOAT32].exec = shl_ref_greater_equal_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_GREATER_DISABLED
-    cb_map[CSINN_OP_GREATHER][CSINN_DTYPE_FLOAT32].exec = shl_ref_greater_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_HARD_SIGMOID_DISABLED
-    cb_map[CSINN_OP_HARD_SIGMOID][CSINN_DTYPE_FLOAT32].exec = shl_ref_hard_sigmoid_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_IM2COL_DISABLED
-    cb_map[CSINN_OP_IM2COL][CSINN_DTYPE_FLOAT32].exec = shl_ref_im2col_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_L2_NORMALIZATION_DISABLED
-    cb_map[CSINN_OP_L2N][CSINN_DTYPE_FLOAT32].exec = shl_ref_l2_normalization_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LAYER_NORM_DISABLED
-    cb_map[CSINN_OP_LAYER_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_layer_norm_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LEAKY_RELU_DISABLED
-    cb_map[CSINN_OP_LEAKY_RELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_leaky_relu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LESS_EQUAL_DISABLED
-    cb_map[CSINN_OP_LESS_EQUAL][CSINN_DTYPE_FLOAT32].exec = shl_ref_less_equal_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LESS_DISABLED
-    cb_map[CSINN_OP_LESS][CSINN_DTYPE_FLOAT32].exec = shl_ref_less_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOG_SOFTMAX_DISABLED
-    cb_map[CSINN_OP_LOG_SOFTMAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_log_softmax_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOG_DISABLED
-    cb_map[CSINN_OP_LOG][CSINN_DTYPE_FLOAT32].exec = shl_ref_log_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOG1P_DISABLED
-    cb_map[CSINN_OP_LOG1P][CSINN_DTYPE_FLOAT32].exec = shl_ref_log1p_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOGICAL_AND_DISABLED
-    cb_map[CSINN_OP_LOGICAL_AND][CSINN_DTYPE_FLOAT32].exec = shl_ref_logical_and_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOGICAL_NOT_DISABLED
-    cb_map[CSINN_OP_LOGICAL_NOT][CSINN_DTYPE_FLOAT32].exec = shl_ref_logical_not_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOGICAL_OR_DISABLED
-    cb_map[CSINN_OP_LOGICAL_OR][CSINN_DTYPE_FLOAT32].exec = shl_ref_logical_or_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LOGICAL_XOR_DISABLED
-    cb_map[CSINN_OP_LOGICAL_XOR][CSINN_DTYPE_FLOAT32].exec = shl_ref_logical_xor_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_LRN_DISABLED
-    cb_map[CSINN_OP_LRN][CSINN_DTYPE_FLOAT32].exec = shl_ref_lrn_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MATMUL_DISABLED
-    cb_map[CSINN_OP_MATMUL][CSINN_DTYPE_FLOAT32].exec = shl_ref_matmul_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MAX_DISABLED
-    cb_map[CSINN_OP_MAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_max_stride_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MAXIMUM_DISABLED
-    cb_map[CSINN_OP_MAXIMUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_maximum_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MAXPOOL_DISABLED
-    cb_map[CSINN_OP_MAXPOOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_maxpool2d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MAXPOOL2D_LOCAT_DISABLED
-    cb_map[CSINN_OP_MAXPOOL2D_LOCAT][CSINN_DTYPE_FLOAT32].exec = shl_ref_maxpool2d_locat_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MAXPOOL3D_DISABLED
-    cb_map[CSINN_OP_MAXPOOL3D][CSINN_DTYPE_FLOAT32].exec = shl_ref_maxpool3d_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MEAN_DISABLED
-    cb_map[CSINN_OP_MEAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_mean_stride_f32;
-    cb_map[CSINN_OP_MEAN_STRIDE][CSINN_DTYPE_FLOAT32].exec = shl_ref_mean_stride_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MIN_DISABLED
-    cb_map[CSINN_OP_MIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_min_stride_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MINIMUM_DISABLED
-    cb_map[CSINN_OP_MINIMUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_minimum_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MOD_DISABLED
-    cb_map[CSINN_OP_MOD][CSINN_DTYPE_FLOAT32].exec = shl_ref_mod_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_MUL_DISABLED
-    cb_map[CSINN_OP_MUL][CSINN_DTYPE_FLOAT32].exec = shl_ref_mul_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_NEGATIVE_DISABLED
-    cb_map[CSINN_OP_NEGATIVE][CSINN_DTYPE_FLOAT32].exec = shl_ref_negative_f32;
-#endif
 #ifndef CONFIG_C_REFERENCE_NON_MAX_SUPPRESSION_DISABLED
     cb_map[CSINN_OP_NON_MAX_SUPPRESSION][CSINN_DTYPE_FLOAT32].exec =
         shl_ref_non_max_suppression_std;
 #endif
-#ifndef CONFIG_C_REFERENCE_NOT_EQUAL_DISABLED
-    cb_map[CSINN_OP_NOT_EQUAL][CSINN_DTYPE_FLOAT32].exec = shl_ref_not_equal_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_PAD_DISABLED
-    cb_map[CSINN_OP_PAD][CSINN_DTYPE_FLOAT32].exec = shl_ref_pad_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_POWER_DISABLED
-    cb_map[CSINN_OP_POWER][CSINN_DTYPE_FLOAT32].exec = shl_ref_power_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_PRELU_DISABLED
-    cb_map[CSINN_OP_PRELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_prelu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_PROD_DISABLED
-    cb_map[CSINN_OP_PROD][CSINN_DTYPE_FLOAT32].exec = shl_ref_prod_stride_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_PROPOSAL_DISABLED
-    cb_map[CSINN_OP_PROPOSAL][CSINN_DTYPE_FLOAT32].exec = shl_ref_proposal_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_PSROIPOOLING_DISABLED
-    cb_map[CSINN_OP_PSROIPOOLING][CSINN_DTYPE_FLOAT32].exec = shl_ref_psroipooling_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_LOGSUMEXP_DISABLED
-    cb_map[CSINN_OP_REDUCE_LOGSUMEXP][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_logsumexp_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_MAX_DISABLED
-    cb_map[CSINN_OP_REDUCE_MAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_max_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_MEAN_DISABLED
-    cb_map[CSINN_OP_REDUCE_MEAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_mean_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_MIN_DISABLED
-    cb_map[CSINN_OP_REDUCE_MIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_min_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_PROD_DISABLED
-    cb_map[CSINN_OP_REDUCE_PROD][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_prod_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_REDUCE_SUM_DISABLED
-    cb_map[CSINN_OP_REDUCE_SUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_reduce_sum_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RELU_DISABLED
-    cb_map[CSINN_OP_RELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_relu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RELU1_DISABLED
-    cb_map[CSINN_OP_RELU1][CSINN_DTYPE_FLOAT32].exec = shl_ref_relu1_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RELU6_DISABLED
-    cb_map[CSINN_OP_RELU6][CSINN_DTYPE_FLOAT32].exec = shl_ref_relu6_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RELUN_DISABLED
-    cb_map[CSINN_OP_RELUN][CSINN_DTYPE_FLOAT32].exec = shl_ref_relun_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
-    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_FLOAT32].exec = shl_ref_reshape;
-    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_FLOAT32].init = shl_ref_reshape_init;
-#endif
-#ifndef CONFIG_C_REFERENCE_RESIZE_DISABLED
-    cb_map[CSINN_OP_RESIZE][CSINN_DTYPE_FLOAT32].exec = shl_ref_resize_f32;
-#if __riscv
-    cb_map[CSINN_OP_RESIZE][CSINN_DTYPE_FLOAT16].exec = shl_ref_resize_f16;
-#endif  // __riscv
-    cb_map[CSINN_OP_RESIZE][CSINN_DTYPE_INT8].exec = shl_ref_resize_i8;
-#endif
-#ifndef CONFIG_C_REFERENCE_REVERSE_DISABLED
-    cb_map[CSINN_OP_REVERSE][CSINN_DTYPE_FLOAT32].exec = shl_ref_reverse_f32;
-#endif
+
 #ifndef CONFIG_C_REFERENCE_ROIALIGN_DISABLED
     cb_map[CSINN_OP_ROIALIGN][CSINN_DTYPE_FLOAT32].exec = shl_ref_roi_align_f32;
 #endif
-#ifndef CONFIG_C_REFERENCE_ROIPOOL_DISABLED
-    cb_map[CSINN_OP_ROIPOOL][CSINN_DTYPE_FLOAT32].exec = shl_ref_roipool_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_ROUND_DISABLED
-    cb_map[CSINN_OP_ROUND][CSINN_DTYPE_FLOAT32].exec = shl_ref_round_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_RSQRT_DISABLED
-    cb_map[CSINN_OP_RSQRT][CSINN_DTYPE_FLOAT32].exec = shl_ref_rsqrt_f32;
-#endif
+
 #ifndef CONFIG_C_REFERENCE_SCATTER_DISABLED
     cb_map[CSINN_OP_SCATTER_ND][CSINN_DTYPE_FLOAT32].exec = shl_ref_scatter_nd_f32;
 #endif
-#ifndef CONFIG_C_REFERENCE_SEGMENT_MAX_DISABLED
-    cb_map[CSINN_OP_SEGMENT_MAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_segment_max_f32;
-    cb_map[CSINN_OP_UNSORTED_SEGMENT_MAX][CSINN_DTYPE_FLOAT32].exec =
-        shl_ref_unsorted_segment_max_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SEGMENT_MEAN_DISABLED
-    cb_map[CSINN_OP_SEGMENT_MEAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_segment_mean_f32;
-    cb_map[CSINN_OP_UNSORTED_SEGMENT_MEAN][CSINN_DTYPE_FLOAT32].exec =
-        shl_ref_unsorted_segment_mean_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SEGMENT_MIN_DISABLED
-    cb_map[CSINN_OP_SEGMENT_MIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_segment_min_f32;
-    cb_map[CSINN_OP_UNSORTED_SEGMENT_MIN][CSINN_DTYPE_FLOAT32].exec =
-        shl_ref_unsorted_segment_min_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SEGMENT_PROD_DISABLED
-    cb_map[CSINN_OP_SEGMENT_PROD][CSINN_DTYPE_FLOAT32].exec = shl_ref_segment_prod_f32;
-    cb_map[CSINN_OP_UNSORTED_SEGMENT_PROD][CSINN_DTYPE_FLOAT32].exec =
-        shl_ref_unsorted_segment_prod_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SEGMENT_SUM_DISABLED
-    cb_map[CSINN_OP_SEGMENT_SUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_segment_sum_f32;
-    cb_map[CSINN_OP_UNSORTED_SEGMENT_SUM][CSINN_DTYPE_FLOAT32].exec =
-        shl_ref_unsorted_segment_sum_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SHUFFLE_CHANNEL_DISABLED
-    cb_map[CSINN_OP_SHUFFLE_CHANNEL][CSINN_DTYPE_FLOAT32].exec = shl_ref_shuffle_channel_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SIGMOID_DISABLED
-    cb_map[CSINN_OP_SIGMOID][CSINN_DTYPE_FLOAT32].exec = shl_ref_sigmoid_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SIGN_DISABLED
-    cb_map[CSINN_OP_SIGN][CSINN_DTYPE_FLOAT32].exec = shl_ref_sign_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SIN_DISABLED
-    cb_map[CSINN_OP_SIN][CSINN_DTYPE_FLOAT32].exec = shl_ref_sin_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SINH_DISABLED
-    cb_map[CSINN_OP_SINH][CSINN_DTYPE_FLOAT32].exec = shl_ref_sinh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SLICE_DISABLED
-    cb_map[CSINN_OP_SLICE][CSINN_DTYPE_FLOAT32].exec = shl_ref_slice_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SOFTMAX_DISABLED
-    cb_map[CSINN_OP_SOFTMAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_softmax_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SOFTPLUS_DISABLED
-    cb_map[CSINN_OP_SOFTPLUS][CSINN_DTYPE_FLOAT32].exec = shl_ref_softplus_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SOFTRELU_DISABLED
-    cb_map[CSINN_OP_SOFTRELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_softrelu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SOFTSIGN_DISABLED
-    cb_map[CSINN_OP_SOFTSIGN][CSINN_DTYPE_FLOAT32].exec = shl_ref_softsign_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SPACE_TO_BATCH_DISABLED
-    cb_map[CSINN_OP_SPACE_TO_BATCH][CSINN_DTYPE_FLOAT32].exec = shl_ref_space_to_batch_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SPACE_TO_DEPTH_DISABLED
-    cb_map[CSINN_OP_SPACE_TO_DEPTH][CSINN_DTYPE_FLOAT32].exec = shl_ref_space_to_depth_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SPLIT_DISABLED
-    cb_map[CSINN_OP_SPLIT][CSINN_DTYPE_FLOAT32].exec = shl_ref_split_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SQRT_DISABLED
-    cb_map[CSINN_OP_SQRT][CSINN_DTYPE_FLOAT32].exec = shl_ref_sqrt_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SQUARE_DISABLED
-    cb_map[CSINN_OP_SQUARE][CSINN_DTYPE_FLOAT32].exec = shl_ref_square_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_STACK_DISABLED
-    cb_map[CSINN_OP_STACK][CSINN_DTYPE_FLOAT32].exec = shl_ref_stack_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_STRIDED_SLICE_DISABLED
-    cb_map[CSINN_OP_STRIDED_SLICE][CSINN_DTYPE_FLOAT32].exec = shl_ref_strided_slice_f32;
-#if __riscv
-    cb_map[CSINN_OP_STRIDED_SLICE][CSINN_DTYPE_FLOAT16].exec = shl_ref_strided_slice_f16;
-#endif  // __riscv
-//     cb_map[CSINN_OP_STRIDED_SLICE][CSINN_DTYPE_INT8].exec = shl_ref_strided_slice_i8;
-#endif
-#ifndef CONFIG_C_REFERENCE_SUB_DISABLED
-    cb_map[CSINN_OP_SUB][CSINN_DTYPE_FLOAT32].exec = shl_ref_sub_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_SUM_DISABLED
-    cb_map[CSINN_OP_SUM][CSINN_DTYPE_FLOAT32].exec = shl_ref_sum_stride_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_TAN_DISABLED
-    cb_map[CSINN_OP_TAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_tan_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_TANH_DISABLED
-    cb_map[CSINN_OP_TANH][CSINN_DTYPE_FLOAT32].exec = shl_ref_tanh_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_THRESHOLD_RELU_DISABLED
-    cb_map[CSINN_OP_THRESHOLD_RELU][CSINN_DTYPE_FLOAT32].exec = shl_ref_threshold_relu_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_TILE_DISABLED
-    cb_map[CSINN_OP_TILE][CSINN_DTYPE_FLOAT32].exec = shl_ref_tile_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_TOPK_DISABLED
-    cb_map[CSINN_OP_TOPK][CSINN_DTYPE_FLOAT32].exec = shl_ref_topk_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_TRANSPOSE_DISABLED
-    cb_map[CSINN_OP_TRANSPOSE][CSINN_DTYPE_FLOAT32].exec = shl_ref_transpose;
-    cb_map[CSINN_OP_TRANSPOSE][CSINN_DTYPE_FLOAT32].init = shl_ref_transpose_init;
-#endif
-#ifndef CONFIG_C_REFERENCE_TRUNC_DISABLED
-    cb_map[CSINN_OP_TRUNC][CSINN_DTYPE_FLOAT32].exec = shl_ref_trunc_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_UNPOOLING_DISABLED
-    cb_map[CSINN_OP_UNPOOLING][CSINN_DTYPE_FLOAT32].exec = shl_ref_unpooling_f32;
-#endif
-#ifndef CONFIG_C_REFERENCE_YUV_RGB_SCALE_DISABLED
-    cb_map[CSINN_OP_YUV_RGB_SCALE][CSINN_DTYPE_FLOAT32].exec = shl_ref_yuv_rgb_scale_f32;
-#endif
+
 #ifndef CONFIG_C_REFERENCE_COL2IM_DISABLED
     cb_map[CSINN_OP_COL2IM][CSINN_DTYPE_FLOAT32].exec = shl_ref_col2im_f32;
 #endif
@@ -1157,21 +743,23 @@ static void *setup_cb_map()
     cb_map[CSINN_OP_L2POOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_l2pool_f32;
 #endif
 
-#ifndef CONFIG_C_REFERENCE_ONE_HOT_DISABLED
-    cb_map[CSINN_OP_ONE_HOT][CSINN_DTYPE_FLOAT32].exec = shl_ref_one_hot_f32;
-#endif
-
 #ifndef CONFIG_C_REFERENCE_WHERE_DISABLED
-    cb_map[CSINN_OP_WHERE][CSINN_DTYPE_FLOAT32].exec = shl_ref_where_f32;
     cb_map[CSINN_OP_WHERE][CSINN_DTYPE_BOOL].exec = shl_ref_where_quant;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_WHERE_SOFTMAX_DISABLED
-    cb_map[CSINN_OP_WHERE_SOFTMAX][CSINN_DTYPE_FLOAT32].exec = shl_ref_where_softmax_f32;
     cb_map[CSINN_OP_WHERE_SOFTMAX][CSINN_DTYPE_BOOL].exec = shl_ref_where_softmax_quant;
 #endif
 
+#ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
+    cb_map[CSINN_OP_INSTANCE_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_instance_norm_f32;
+#endif
+
 #ifndef CONFIG_C_REFERENCE_CAST_DISABLED
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_UINT8].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT8].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT32].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT16].exec = shl_ref_cast_quant;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT32].exec = shl_ref_cast_f32;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_BOOL].exec = shl_ref_cast_bool;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT64].exec = shl_ref_cast_i64;
@@ -1570,6 +1158,8 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION1D_DISABLED
         cb_map[CSINN_OP_CONV1D][i].est = shl_gref_conv1d;
+        cb_map[CSINN_OP_DEPTHWISE_CONV1D][i].est = shl_gref_conv1d;
+        cb_map[CSINN_OP_GROUP_CONV1D][i].est = shl_gref_conv1d;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_CONVOLUTION_DISABLED
         cb_map[CSINN_OP_CONV2D][i].est = shl_gref_conv2d;
@@ -1586,6 +1176,7 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION_DISABLED
         cb_map[CSINN_OP_DECONV2D][i].est = shl_gref_deconv2d;
         cb_map[CSINN_OP_DEPTHWISE_DECONV2D][i].est = shl_gref_depthwise_deconv2d;
+        cb_map[CSINN_OP_GROUP_DECONV2D][i].est = shl_gref_group_deconv2d;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_DECONVOLUTION3D_DISABLED
         cb_map[CSINN_OP_DECONV3D][i].est = shl_gref_deconv3d;
@@ -1607,6 +1198,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_WHERE_SOFTMAX_DISABLED
         cb_map[CSINN_OP_WHERE_SOFTMAX][i].est = shl_gref_where_softmax;
+#endif
+#ifndef CONFIG_GRAPH__REFERENCE_INSTANCE_NORM_DISABLED
+        cb_map[CSINN_OP_INSTANCE_NORM][i].est = shl_gref_instance_norm;
 #endif
     }
 #endif

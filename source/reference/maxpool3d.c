@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_ref.h"
 
 int shl_ref_maxpool3d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -56,7 +54,6 @@ int shl_ref_maxpool3d_f32(struct csinn_tensor *input, struct csinn_tensor *outpu
                             shl_ref_min_internal_s32(params->filter_width, in_width - in_w_origin);
 
                         float max = -FLT_MAX;
-                        int filter_cnt = 0;
                         for (int filter_d = filter_d_begin; filter_d < filter_d_end; ++filter_d) {
                             for (int filter_h = filter_h_begin; filter_h < filter_h_end;
                                  ++filter_h) {
@@ -68,13 +65,8 @@ int shl_ref_maxpool3d_f32(struct csinn_tensor *input, struct csinn_tensor *outpu
                                     max = fmax(max,
                                                input_data[shl_ref_get_index_5(
                                                    input->dim, in_ch, out_ch, in_d, in_h, in_w)]);
-                                    filter_cnt++;
                                 }
                             }
-                        }
-                        if (filter_cnt !=
-                            params->filter_depth * params->filter_height * params->filter_width) {
-                            max = fmax(max, 0);
                         }
                         output_data[shl_ref_get_index_5(output->dim, in_ch, out_ch, out_d, out_h,
                                                         out_w)] = max;

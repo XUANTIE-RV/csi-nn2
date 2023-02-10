@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "shl_gref.h"
 
 int shl_gref_matmul(struct csinn_tensor *mat0, struct csinn_tensor *mat1,

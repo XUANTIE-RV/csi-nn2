@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-/* SHL version 2.1.x */
-
 #include "csi_nn.h"
 #include "shl_utils.h"
 
@@ -31,9 +29,12 @@ int csinn_deconv2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
 {
     if (params->group == 1) {
         shl_op_callback_map(&params->base, CSINN_OP_DECONV2D, input->dtype);
+    } else if ((params->group == input->dim[1] && params->base.layout == CSINN_LAYOUT_NCHW) ||
+               (params->group == input->dim[3] && params->base.layout == CSINN_LAYOUT_NHWC)) {
+        shl_op_callback_map(&params->base, CSINN_OP_DEPTHWISE_DECONV2D, input->dtype);
     } else if ((params->group == output->dim[1] && params->base.layout == CSINN_LAYOUT_NCHW) ||
                (params->group == output->dim[3] && params->base.layout == CSINN_LAYOUT_NHWC)) {
-        shl_op_callback_map(&params->base, CSINN_OP_DEPTHWISE_DECONV2D, input->dtype);
+        shl_op_callback_map(&params->base, CSINN_OP_GROUP_DECONV2D, input->dtype);
     } else {
         return CSINN_FALSE;
     }
