@@ -132,39 +132,6 @@ if(BUILD_RISCV)
     target_compile_options(c906_share PRIVATE ${C906_BUILD_FLAGS})
 
     install(TARGETS c906_share DESTINATION lib)
-
-    # build c908 a
-    LIST(APPEND C908_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C908_SRCS})
-    add_library(c908_static STATIC ${C908_LST})
-    SET_TARGET_PROPERTIES(c908_static PROPERTIES OUTPUT_NAME "shl_c908")
-    set(C908_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadv -mabi=lp64d -DSHL_BUILD_C908 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
-    target_compile_options(c908_static PRIVATE ${C908_BUILD_FLAGS})
-
-    install(TARGETS c908_static DESTINATION lib)
-
-    # build pnna so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "shl_pnna")
-    set(PNNA_BUILD_FLAGS -DSHL_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "shl_hlight")
-    set(HLIGHT_BUILD_FLAGS -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS hlight_share DESTINATION lib)
 endif()
 
 if(BUILD_RISCV_ELF)
