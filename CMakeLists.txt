@@ -82,30 +82,6 @@ if(BUILD_X86)
     target_compile_options(x86_static PRIVATE ${X86_BUILD_FLAGS})
 
     install(TARGETS x86_static DESTINATION lib)
-
-    # build pnna x86 simulate so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "shl_pnna_x86")
-    set(PNNA_BUILD_FLAGS -DSHL_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna x86 simulate so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "shl_hlight_x86")
-    set(HLIGHT_BUILD_FLAGS -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS hlight_share DESTINATION lib)
 endif()
 
 if(BUILD_RISCV)
