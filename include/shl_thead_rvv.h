@@ -30,9 +30,9 @@
 #define RVV_0_7_1
 #endif
 
-#ifdef __riscv_xtheadv
+#ifdef __riscv_xtheadvdot
 #define XTHEADV
-#endif  // __riscv_xtheadv
+#endif  // __riscv_xtheadvdot
 
 #endif  // __riscv_vector
 
