@@ -137,7 +137,7 @@ if(BUILD_RISCV)
     LIST(APPEND C908_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C908_SRCS})
     add_library(c908_static STATIC ${C908_LST})
     SET_TARGET_PROPERTIES(c908_static PROPERTIES OUTPUT_NAME "shl_c908")
-    set(C908_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadv -mabi=lp64d -DSHL_BUILD_C908 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
+    set(C908_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d -DSHL_BUILD_C908 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
     target_compile_options(c908_static PRIVATE ${C908_BUILD_FLAGS})
 
     install(TARGETS c908_static DESTINATION lib)
