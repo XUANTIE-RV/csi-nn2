@@ -28,7 +28,7 @@ def convolution_f32(test_dtype, test_vlen, test_type):
     dilation_y  = int(np.random.randint(1, high=2, size=1))
 
     packn = int(getpackn(test_dtype, test_vlen))
-    n = int(np.random.randint(1, high=2, size=1))
+    n = int(np.random.randint(2, high=4, size=1))
 
     print(packn)
 
@@ -47,7 +47,7 @@ def convolution_f32(test_dtype, test_vlen, test_type):
             stride_y    = 1
             kernel_x    = 1
             kernel_y    = 1
-            out_channel = 8 + 4 + 2 + 1
+            out_channel = 12 + 8 + 4 + 2 + 1
             in_size_x = 7
             in_size_y = 9
 

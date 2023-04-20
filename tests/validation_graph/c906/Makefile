@@ -51,8 +51,6 @@ test_objs += transpose.o
 
 
 utils_objs =
-
-utils_objs += ../../utils/math_snr.o
 utils_objs += ../../utils/test_utils.o
 
 
@@ -66,8 +64,8 @@ $(utils_objs): %.o: %.c
 $(test_objs): %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
 	$(CC) -c $(CFLAGS) $(INCLUDE) ../$< -o ../$@
-	$(CC) $@ ../$@ $(CFLAGS) $(BOARD) $(utils_objs) -L../../../riscv_build/ \
-	../../../riscv_build/libshl_c906.a -lpthread -lc -lm -lstdc++ -o $@.elf
+	$(CC) $@ ../$@ $(CFLAGS) $(BOARD) $(utils_objs) -L../../../c906_static_build/ \
+	../../../c906_static_build/libshl_c906.a -lpthread -lc -lm -lstdc++ -o $@.elf
 
 clean:
 	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.bin *.asm

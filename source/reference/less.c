@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -26,13 +26,16 @@ int shl_ref_less_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
     float *input0_data = input0->data;
     float *input1_data = input1->data;
     float *output_data = output->data;
-    int size = 1;
-    for (int i = 0; i < input0->dim_count; i++) {
-        size = size * input0->dim[i];
-    }
 
-    for (int i = 0; i < size; i++) {
-        output_data[i] = input0_data[i] < input1_data[i];
+    int in0_size = csinn_tensor_size(input0);
+    int in1_size = csinn_tensor_size(input1);
+    int max_size = (in0_size > in1_size) ? in0_size : in1_size;
+
+    float lhs_value, rhs_value;
+    for (int i = 0; i < max_size; i++) {
+        lhs_value = (in0_size == 1) ? input0_data[0] : input0_data[i];
+        rhs_value = (in1_size == 1) ? input1_data[0] : input1_data[i];
+        output_data[i] = lhs_value < rhs_value;
     }
     return CSINN_TRUE;
 }

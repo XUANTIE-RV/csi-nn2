@@ -54,9 +54,9 @@ def avgpool2d_f32(test_dtype, test_vlen, test_type):
         kernel_h    =  kernel_w   = 2
         pad_left  = pad_top = 0
         pad_down  = pad_right = 0
-        in_height = 2 * in_height
-        in_width = 2 * in_width
-        c_model = True
+        in_height = 2 * in_height + 1
+        in_width = 2 * in_width + 1
+        c_model = False
         if test_type == "packn_2x2s2p0":
             channel    = int(n*packn)
         elif test_type == "pack1_2x2s2p0":

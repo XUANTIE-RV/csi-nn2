@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
-#include "math_snr.h"
 #include "test_utils.h"
 
 int main(int argc, char **argv)
@@ -71,7 +70,7 @@ int main(int argc, char **argv)
 
     struct csinn_tensor *input_tensor = convert_input(input, test_dtype);
     input->dtype = sess->base_dtype;
-    /* light: unsupport negative now*/
+    /* th1520: unsupport negative now*/
     if (csinn_negative_init(input, output, params) != CSINN_TRUE) {
         printf("negative init fail.\n\t");
         return -1;

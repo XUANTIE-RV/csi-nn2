@@ -147,7 +147,6 @@ test_objs += averagepool_nchw_f32.o
 
 utils_objs =
 
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 
 all: csi

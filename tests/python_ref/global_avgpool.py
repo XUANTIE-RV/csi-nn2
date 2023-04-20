@@ -23,7 +23,7 @@ def global_avgpool2d_f32():
 
     src_in = np.random.normal(zero_point, std, (batch, in_channel, in_size_y, in_size_x))
 
-    t_src_in  = tensor(src_in)   
+    t_src_in  = tensor(src_in)
     gmp = AdaptiveAvgPool2d((out_height, out_width))
     t_src_out = gmp(t_src_in).numpy()
 
@@ -52,7 +52,7 @@ def global_avgpool2d_f32():
     print(para)
 
 
-    with open("global_avgpool_data_f32_.bin", "wb") as fp:
+    with open("global_avgpool_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
         fp.write(data)
         data = struct.pack(('%df' % len(src_in_1)), *src_in_1)

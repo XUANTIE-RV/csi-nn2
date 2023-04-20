@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -25,5 +25,13 @@ int shl_gref_proposal(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_p
                       struct csinn_proposal_params *params)
 {
     shl_debug_error("shl_gref_proposal unsupport\n");
+    return CSINN_FALSE;
+}
+
+int shl_gref_proposal_infer_shape(struct csinn_tensor *cls_prob, struct csinn_tensor *bbox_pred,
+                                  struct csinn_tensor *im_info, struct csinn_tensor *output,
+                                  struct csinn_proposal_params *params)
+{
+    shl_debug_error("shl_gref_proposal_infer_shape unsupport\n");
     return CSINN_FALSE;
 }

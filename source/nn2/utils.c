@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include <time.h>
 
@@ -219,6 +219,10 @@ void shl_show_top5(struct csinn_tensor *output, struct csinn_session *sess)
     }
 }
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 int csinn_tensor_size(struct csinn_tensor *tensor)
 {
     if (tensor->dim_count == 0) {
@@ -238,7 +242,14 @@ int csinn_tensor_size(struct csinn_tensor *tensor)
     }
     return size;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 int csinn_tensor_byte_size(struct csinn_tensor *tensor)
 {
     int size = csinn_tensor_size(tensor);
@@ -258,6 +269,7 @@ int csinn_tensor_byte_size(struct csinn_tensor *tensor)
         case CSINN_DTYPE_FLOAT32:
             size *= 4;
             break;
+        case CSINN_DTYPE_INT64:
         case CSINN_DTYPE_FLOAT64:
             size *= 8;
             break;
@@ -266,7 +278,14 @@ int csinn_tensor_byte_size(struct csinn_tensor *tensor)
     }
     return size;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 struct csinn_tensor *csinn_alloc_tensor(struct csinn_session *session)
 {
     struct csinn_tensor *ret = shl_mem_alloc(sizeof(struct csinn_tensor));
@@ -279,14 +298,28 @@ struct csinn_tensor *csinn_alloc_tensor(struct csinn_session *session)
     ret->qinfo = shl_mem_alloc(sizeof(struct csinn_quant_info));
     return ret;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 void csinn_realloc_quant_info(struct csinn_tensor *tensor, int quant_info_num)
 {
     tensor->quant_channel = quant_info_num;
-    tensor->qinfo =
-        shl_mem_realloc(tensor->qinfo, quant_info_num * sizeof(struct csinn_quant_info));
+    tensor->qinfo = shl_mem_realloc(tensor->qinfo, quant_info_num * sizeof(struct csinn_quant_info),
+                                    quant_info_num * sizeof(struct csinn_quant_info));
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 void csinn_tensor_copy(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
     dest->data = src->data;
@@ -302,7 +335,14 @@ void csinn_tensor_copy(struct csinn_tensor *dest, struct csinn_tensor *src)
     dest->sess = src->sess;
     dest->is_const = src->is_const;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 void csinn_free_tensor(struct csinn_tensor *tensor)
 {
     if (tensor->qinfo != NULL) {
@@ -310,20 +350,45 @@ void csinn_free_tensor(struct csinn_tensor *tensor)
     }
     shl_mem_free(tensor);
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup OP
+ * @{
+ */
 void *csinn_alloc_params(int params_size, struct csinn_session *session)
 {
     struct csinn_params_base *params = shl_mem_alloc(params_size);
     if (session != NULL) {
         params->api = session->base_api;
         params->layout = session->base_layout;
+        params->quant_type = session->base_quant_type;
         params->sess = session;
     }
     params->cb = shl_mem_alloc(sizeof(struct csinn_callback));
     return params;
 }
+/**
+ * @}
+ */
 
-void csinn_free_params(void *params) { shl_mem_free(params); }
+/**
+ * @addtogroup OP
+ * @{
+ */
+void csinn_free_params(void *params)
+{
+    struct csinn_params_base *p = params;
+    if (p->cb) {
+        shl_mem_free(p->cb);
+    }
+    shl_mem_free(params);
+}
+/**
+ * @}
+ */
 
 static float int4_to_float_base(int8_t i, struct csinn_tensor *t, int index)
 {
@@ -421,7 +486,7 @@ static int16_t float32_to_float16_base(float value)
 static float float16_to_float32_base(int16_t value)
 {
     float ret;
-    if (value == 0 || value == 0x8000) {
+    if (value == 0 || value == (int16_t)0x8000) {
         return 0;
     }
     int32_t ret_format = 0;
@@ -793,6 +858,12 @@ static void csinn_f16_to_float(struct csinn_tensor *dest, struct csinn_tensor *s
     for (int j = 0; j < size; j++) {
         dest_data[j] = float16_to_float32_base(src_data[j]);
     }
+    // dequantize
+    if (fabs(src->qinfo->scale - 1) > FLT_EPSILON) {
+        for (int j = 0; j < size; j++) {
+            dest_data[j] *= src->qinfo->scale;
+        }
+    }
 }
 
 static void csinn_float_to_f16(struct csinn_tensor *dest, struct csinn_tensor *src)
@@ -800,6 +871,12 @@ static void csinn_float_to_f16(struct csinn_tensor *dest, struct csinn_tensor *s
     float *src_data = src->data;
     int16_t *dest_data = dest->data;
     int32_t size = csinn_tensor_size(src);
+    // quantize
+    if (fabs(dest->qinfo->scale - 1) > FLT_EPSILON) {
+        for (int j = 0; j < size; j++) {
+            src_data[j] *= (1 / dest->qinfo->scale);
+        }
+    }
     for (int i = 0; i < size; i++) {
         dest_data[i] = float32_to_float16_base(src_data[i]);
     }
@@ -812,6 +889,46 @@ static void bf16_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
     int32_t size = csinn_tensor_size(src);
     for (int j = 0; j < size; j++) {
         dest_data[j] = bfloat16_to_float32_base(src_data[j]);
+    }
+}
+
+static void bool_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    uint8_t *src_data = src->data;
+    float *dest_data = dest->data;
+    int32_t size = csinn_tensor_size(src);
+    for (int j = 0; j < size; j++) {
+        dest_data[j] = src_data[j] == 0 ? 0.0 : 1.0;
+    }
+}
+
+static void float_to_bool(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    uint8_t *dest_data = dest->data;
+    int32_t size = csinn_tensor_size(src);
+    for (int j = 0; j < size; j++) {
+        dest_data[j] = src_data[j] == 0.0 ? 0 : 1;
+    }
+}
+
+static void int64_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    int64_t *src_data = src->data;
+    float *dest_data = dest->data;
+    int32_t size = csinn_tensor_size(src);
+    for (int j = 0; j < size; j++) {
+        dest_data[j] = src_data[j];
+    }
+}
+
+static void float_to_int64(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    int64_t *dest_data = dest->data;
+    int32_t size = csinn_tensor_size(src);
+    for (int j = 0; j < size; j++) {
+        dest_data[j] = src_data[j];
     }
 }
 
@@ -1061,7 +1178,8 @@ int tensor_data_convert_activation(struct csinn_tensor *dest, struct csinn_tenso
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT8) {
         for (int n = 0; n < src->dim[0]; n++) {
-            if (src->layout >= CSINN_LAYOUT_N && src->layout <= CSINN_LAYOUT_NCDHW) {
+            if (src->layout >= CSINN_LAYOUT_N && src->layout <= CSINN_LAYOUT_NCDHW ||
+                src->layout == CSINN_LAYOUT_NC1HWC0) {
                 nchw_int8_to_float(dest, src, n, inner_size);
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_int8_to_float(dest, src, n, inner_size);
@@ -1107,6 +1225,14 @@ int tensor_data_convert_activation(struct csinn_tensor *dest, struct csinn_tenso
         float_to_bf16(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_BFLOAT16) {
         bf16_to_float(dest, src);
+    } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_BOOL) {
+        bool_to_float(dest, src);
+    } else if (dest->dtype == CSINN_DTYPE_BOOL && src->dtype == CSINN_DTYPE_FLOAT32) {
+        float_to_bool(dest, src);
+    } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT64) {
+        int64_to_float(dest, src);
+    } else if (dest->dtype == CSINN_DTYPE_INT64 && src->dtype == CSINN_DTYPE_FLOAT32) {
+        float_to_int64(dest, src);
     } else if (dest->dtype == src->dtype) {
         memcpy(dest->data, src->data, csinn_tensor_byte_size(src));
     } else {
@@ -1115,6 +1241,10 @@ int tensor_data_convert_activation(struct csinn_tensor *dest, struct csinn_tenso
     return CSINN_TRUE;
 }
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
     if (src->layout != dest->layout) return CSINN_FALSE;
@@ -1130,6 +1260,7 @@ int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *sr
         case CSINN_LAYOUT_NWC:
         case CSINN_LAYOUT_NCDHW:
         case CSINN_LAYOUT_NDHWC:
+        case CSINN_LAYOUT_NC1HWC0:
             return tensor_data_convert_activation(dest, src);
         case CSINN_LAYOUT_O:
         case CSINN_LAYOUT_OI:
@@ -1146,6 +1277,9 @@ int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *sr
             return CSINN_FALSE;
     }
 }
+/**
+ * @}
+ */
 
 static int layout_1HWO_to_1HW32O32(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
@@ -1206,6 +1340,7 @@ static int layout_OI_to_O32I32(struct csinn_tensor *dest, struct csinn_tensor *s
             dest_addr[dest_idx] = src_addr[src_idx];
         }
     }
+    return CSINN_TRUE;
 }
 
 static int layout_OHWI_to_O32HWI32(struct csinn_tensor *dest, struct csinn_tensor *src)
@@ -1242,8 +1377,13 @@ static int layout_OHWI_to_O32HWI32(struct csinn_tensor *dest, struct csinn_tenso
             dest_addr[dest_idx] = src_addr[src_idx];
         }
     }
+    return CSINN_TRUE;
 }
 
+/**
+ * @addtogroup TENSOR
+ * @{
+ */
 int csinn_tensor_layout_convert(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
     int ret = CSINN_FALSE;
@@ -1257,6 +1397,9 @@ int csinn_tensor_layout_convert(struct csinn_tensor *dest, struct csinn_tensor *
 
     return ret;
 }
+/**
+ * @}
+ */
 
 enum csinn_rmode_enum shl_get_run_mode(struct csinn_params_base *base)
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -25,4 +25,44 @@ int shl_gref_sequence_mask(struct csinn_tensor *input0, struct csinn_tensor *inp
 {
     shl_gref_diso_op(input0, input1, output, CSINN_OP_SEQUENCE_MASK, params);
     return CSINN_TRUE;
+}
+
+int shl_gref_sequence_mask_infer_shape(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                                       struct csinn_tensor *output,
+                                       struct csinn_sequence_mask_params *params)
+{
+    int maxlen = 0;
+    if (input1->dim_count > 0) {
+        int32_t *input1_data = (int32_t *)input1->data;
+        maxlen = input1_data[0];
+    } else {
+        int in_size = 1;
+        for (int i = 0; i < input0->dim_count; i++) {
+            in_size *= input0->dim[i];
+        }
+        int32_t *lengths = (int32_t *)input0->data;
+        for (int i = 0; i < in_size; i++) {
+            maxlen = lengths[i] > maxlen ? lengths[i] : maxlen;
+        }
+    }
+
+    output->dim_count = input1->dim_count + 1;
+    if (params->axis == -1) {
+        for (int i = 0; i < input1->dim_count; i++) {
+            output->dim[i] = input1->dim[i];
+        }
+        output->dim[output->dim_count - 1] = maxlen;
+    } else {
+        for (int i = 0; i < output->dim_count; i++) {
+            if (i < params->axis) {
+                output->dim[i] = input1->dim[i];
+            } else if (i == params->axis) {
+                output->dim[i] = maxlen;
+            } else {
+                output->dim[i] = input1->dim[i - 1];
+            }
+        }
+    }
+
+    return CSINN_FALSE;
 }

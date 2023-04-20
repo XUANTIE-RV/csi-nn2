@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "./valid_data/softmax_data.dat"
 #include "csi_nn.h"
-#include "math_snr.h"
 #include "test_utils.h"
 
 static void verify_softmax_q15(void *input_data, void *ref_data, int32_t size, float difference)

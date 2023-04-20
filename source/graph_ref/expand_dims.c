@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,28 @@ int shl_gref_expand_dims(struct csinn_tensor *input, struct csinn_tensor *output
                          struct csinn_expand_dims_params *params)
 {
     shl_gref_siso_op(input, output, CSINN_OP_EXPAND_DIMS, params);
+    return CSINN_TRUE;
+}
+
+int shl_gref_expand_dims_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_expand_dims_params *params)
+{
+    output->dim_count = input->dim_count + 1;
+    if (params->axis == -1) {
+        for (int i = 0; i < input->dim_count; i++) {
+            output->dim[i] = input->dim[i];
+        }
+        output->dim[output->dim_count - 1] = 1;
+    } else {
+        for (int i = 0; i < output->dim_count; i++) {
+            if (i < params->axis) {
+                output->dim[i] = input->dim[i];
+            } else if (i == params->axis) {
+                output->dim[i] = 1;
+            } else {
+                output->dim[i] = input->dim[i - 1];
+            }
+        }
+    }
     return CSINN_TRUE;
 }

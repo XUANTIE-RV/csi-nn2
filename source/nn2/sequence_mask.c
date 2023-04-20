@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,17 +16,28 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
 
+/**
+ * @addtogroup INIT
+ * @{
+ */
 int csinn_sequence_mask_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
                              struct csinn_tensor *output, struct csinn_sequence_mask_params *params)
 {
     return CSINN_FALSE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup NN
+ * @{
+ */
 int csinn_sequence_mask(struct csinn_tensor *input0, struct csinn_tensor *input1,
                         struct csinn_tensor *output, struct csinn_sequence_mask_params *params)
 {
@@ -39,3 +50,6 @@ int csinn_sequence_mask(struct csinn_tensor *input0, struct csinn_tensor *input1
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -76,6 +76,7 @@ int shl_ref_cache_conv1d_f32(struct csinn_tensor *input, struct csinn_tensor *ou
             output_data[out_pos] = output_from_buffer[i * shape[1] + j];
         }
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_cache_conv1d_quant(struct csinn_tensor *input, struct csinn_tensor *output,

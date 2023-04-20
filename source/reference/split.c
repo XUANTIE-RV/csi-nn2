@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -25,6 +25,7 @@ int shl_ref_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
 {
     int32_t inner_size = 1;
     int32_t out_size = 1;
+    int32_t avg_dim = (input->dim[params->axis] + params->output_num - 1) / params->output_num;
     float *input_data = input->data;
 
     for (int i = 0; i < params->axis; i++) {
@@ -38,17 +39,27 @@ int shl_ref_split_f32(struct csinn_tensor *input, struct csinn_tensor **output,
     for (int i = 0; i < params->output_num; i++) {
         int p_size = 0;
         int s_index;
-        if (i == params->output_num - 1) {
-            p_size = inner_size * (input->dim[params->axis] - params->split_index[i - 1]);
-            s_index = params->split_index[i - 1];
-        } else if (i == 0) {
-            p_size = inner_size * params->split_index[0];
-            s_index = 0;
+        if (params->split_index != NULL) {
+            if (i == params->output_num - 1) {
+                p_size = inner_size * (input->dim[params->axis] - params->split_index[i - 1]);
+                s_index = params->split_index[i - 1];
+            } else if (i == 0) {
+                p_size = inner_size * params->split_index[0];
+                s_index = 0;
+            } else {
+                p_size = inner_size * (params->split_index[i] - params->split_index[i - 1]);
+                s_index = params->split_index[i - 1];
+            }
         } else {
-            p_size = inner_size * (params->split_index[i] - params->split_index[i - 1]);
-            s_index = params->split_index[i - 1];
+            // tail: If the tensor is not evenly splittable into num_outputs, the last chunk will be
+            // smaller
+            if (i == params->output_num - 1) {
+                p_size = inner_size * (input->dim[params->axis] - i * avg_dim);
+            } else {
+                p_size = inner_size * avg_dim;
+            }
+            s_index = i * avg_dim;
         }
-
         float *output_i_data = output[i]->data;
 
         for (int out = 0; out < out_size; out++) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "../valid_data/convolution_u8.dat"
 
 #include "csi_nn.h"
-#include "math_snr.h"
 #include "test_utils.h"
 
 void verify_conv2d_u8(float *input_data, float *kernel_data, float *bias_data, float *ref_data,

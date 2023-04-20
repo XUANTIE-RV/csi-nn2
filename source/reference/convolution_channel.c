@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -53,6 +53,7 @@ static int channel_kernel_to_common(struct csinn_tensor *float_kernel,
             }
         }
     }
+    return CSINN_TRUE;
 }
 
 static void channel_bias_to_common(struct csinn_tensor *float_bias, struct csinn_tensor *bias,
@@ -310,6 +311,7 @@ int shl_ref_conv2d_channel_quant(struct csinn_tensor *input, struct csinn_tensor
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_conv2d_channel_relu_quant(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -351,6 +353,7 @@ int shl_ref_depthwise_conv2d_channel_quant(struct csinn_tensor *input, struct cs
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_depthwise_conv2d_channel_relu_quant(struct csinn_tensor *input,
@@ -364,6 +367,7 @@ int shl_ref_depthwise_conv2d_channel_relu_quant(struct csinn_tensor *input,
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
     csinn_relu_init(output, output, rp);
     csinn_relu(output, output, rp);
+    return CSINN_TRUE;
 }
 
 int shl_ref_depthwise_conv2d_channel_relu6_quant(struct csinn_tensor *input,
@@ -377,6 +381,7 @@ int shl_ref_depthwise_conv2d_channel_relu6_quant(struct csinn_tensor *input,
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
     csinn_relu6_init(output, output, rp);
     csinn_relu6(output, output, rp);
+    return CSINN_TRUE;
 }
 
 int shl_ref_group_conv2d_channel_quant(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -388,6 +393,7 @@ int shl_ref_group_conv2d_channel_quant(struct csinn_tensor *input, struct csinn_
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_group_conv2d_channel_relu_quant(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -399,4 +405,5 @@ int shl_ref_group_conv2d_channel_relu_quant(struct csinn_tensor *input, struct c
     memcpy(&(rp->base), &(params->base), sizeof(struct csinn_params_base));
     csinn_relu_init(output, output, rp);
     csinn_relu(output, output, rp);
+    return CSINN_TRUE;
 }

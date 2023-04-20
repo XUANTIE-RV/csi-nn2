@@ -1,4 +1,4 @@
-LIB_DIR = ../../riscv_build
+LIB_DIR = ../../c906_static_build
 INCLUDE = -I../../include -I../utils -I./layer
 CFLAGS = -O0 -g3 -static
 CFLAGS += -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d
@@ -172,8 +172,6 @@ test_objs += unstack.o
 
 
 utils_objs =
-
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 utils_objs += ./layer/common.o
 

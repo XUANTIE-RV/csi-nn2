@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,13 +16,12 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "test_utils.h"
 
 #include "float.h"
 #include "math.h"
-#include "math_snr.h"
 #include "stdint.h"
 #include "stdio.h"
 
@@ -482,7 +481,7 @@ void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
     find_min_max(tensor->data, &max, &min, size);
 
     if (qtype == CSINN_QUANT_INT8_SYM) {
-        if (api == CSINN_LIGHT) {
+        if (api == CSINN_TH1520) {
             get_scale_and_zp_power2_i8(max, min, &scale, &zp);
             if (min >= 0 && max > 0) {
                 min = -max;
@@ -497,7 +496,7 @@ void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
     } else if (qtype == CSINN_QUANT_INT8_ASYM) {
         get_scale_and_zp_i8_asym(max, min, &scale, &zp);
     } else if (qtype == CSINN_QUANT_INT16_SYM) {
-        if (api == CSINN_LIGHT) {
+        if (api == CSINN_TH1520) {
             get_scale_and_zp_power2_i16(max, min, &scale, &zp);
             if (min >= 0 && max > 0) {
                 min = -max;
@@ -535,7 +534,7 @@ void get_quant_info(struct csinn_tensor *tensor)
     }
     int size = csinn_tensor_size(tensor);
     find_min_max(tensor->data, &max, &min, size);
-    if ((tensor->sess != NULL) && (tensor->sess->base_api == CSINN_LIGHT)) {
+    if ((tensor->sess != NULL) && (tensor->sess->base_api == CSINN_TH1520)) {
         get_scale_and_zp_power2_i8(max, min, &scale, &zp);
         tensor->qinfo->max = max;
         if (min >= 0 && max > 0) {

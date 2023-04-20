@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -34,8 +34,24 @@ int csrr_vlenb()
     return a;
 }
 
+/********************* for fp16 quantization *********************/
+void shl_rvv_sidcso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_tensor *kernel)
+{
+}
+
+/* linear calculations ops, such as relu, leaky_relu, prelu, etc. */
+void shl_rvv_siso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output)
+{
+}
+
+void shl_rvv_diso_op_requantize_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                                     struct csinn_tensor *output)
+{
+}
+
 /********************* for int8 quantization *********************/
-// add output_zeropint
+// add output_zeropoint
 void shl_rvv_saturated_int8(int32_t *src, int8_t *dst, int32_t out_zp, int size)
 {
     while (size > 0) {
@@ -76,6 +92,22 @@ void shl_rvv_requantize(int32_t *src, int32_t multiplier, int32_t shift, int cha
 
 // 反量化 int32 -> float32  int8 -> float32
 void shl_rvv_dequantize() { ; }
+
+// 反量化 int8 -> float16
+void shl_rvv_dequantize_i8_to_f16(int8_t *src, __fp16 *dst, int size, int32_t zp, float scale)
+{
+    while (size > 0) {
+        int vl = vsetvl_e8m1(size);
+        vint8m1_t _in = vle8_v_i8m1(src, vl);
+        vint16m2_t _in_w = vwsub_vx_i16m2(_in, zp, vl);
+        vfloat16m2_t _in_f = vfcvt_f_x_v_f16m2(_in_w, vl);
+        _in_f = vfmul_vf_f16m2(_in_f, scale, vl);
+        vse16_v_f16m2(dst, _in_f, vl);
+        src += vl;
+        dst += vl;
+        size -= vl;
+    }
+}
 
 /********************* int4 easter eggs *********************/
 void shl_rvv_pad_input_int4_trans_int8(const int8_t *input, int8_t *input_padded, int inc, int inh,
@@ -198,9 +230,9 @@ void shl_rvv_int4_trans_int8(int8_t *src, int8_t *dst, int size)
     }
 }
 
+#ifdef XTHEADVDOT
 void shl_rvv_saturated_int4(int32_t *src, int8_t *dst, int32_t out_zp, int size)
 {
-#ifdef XTHEADV
     while (size > 0) {
         int vl = vsetvl_e32m8(size);
         vint32m8_t _tmp = vle32_v_i32m8(src, vl);
@@ -215,5 +247,76 @@ void shl_rvv_saturated_int4(int32_t *src, int8_t *dst, int32_t out_zp, int size)
         dst += vl / 2;
         size -= vl;
     }
+}
 #endif
+
+static void shl_rvv_avgpool_get_pad(enum avgpool_loc_enum loc, int *pad_h, int *pad_w, int pad_top,
+                                    int pad_down, int pad_left, int pad_right)
+{
+    switch (loc) {
+        case AVGPOOL_LEFT_TOP:
+            *pad_h = pad_top;
+            *pad_w = pad_left;
+            break;
+        case AVGPOOL_RIGHT_TOP:
+            *pad_h = pad_top;
+            *pad_w = pad_right;
+            break;
+        case AVGPOOL_LEFT_BOTTOM:
+            *pad_h = pad_down;
+            *pad_w = pad_left;
+            break;
+        case AVGPOOL_RIGHT_BOTTOM:
+            *pad_h = pad_down;
+            *pad_w = pad_right;
+            break;
+        case AVGPOOL_LEFT:
+            *pad_h = 0;
+            *pad_w = pad_left;
+            break;
+        case AVGPOOL_RIGHT:
+            *pad_h = 0;
+            *pad_w = pad_right;
+            break;
+        case AVGPOOL_TOP:
+            *pad_h = pad_top;
+            *pad_w = 0;
+            break;
+        case AVGPOOL_BOTTOM:
+            *pad_h = pad_down;
+            *pad_w = 0;
+            break;
+        case AVGPOOL_CENTER:
+            *pad_h = 0;
+            *pad_w = 0;
+            break;
+        default:
+            *pad_h = 0;
+            *pad_w = 0;
+            break;
+    }
+}
+
+int shl_rvv_avgpool_get_window_size(struct csinn_pool_params *params, int idx_h_start,
+                                    int idx_h_end, int idx_w_start, int idx_w_end,
+                                    enum avgpool_loc_enum loc)
+{
+    int kernel_h = params->filter_height;
+    int kernel_w = params->filter_width;
+    int pad_left = params->pad_left;
+    int pad_right = params->pad_right;
+    int pad_top = params->pad_top;
+    int pad_down = params->pad_down;
+
+    int valid_h = idx_h_end - idx_h_start;
+    int valid_w = idx_w_end - idx_w_start;
+    int valid_size = valid_h * valid_w;
+
+    int pad_h, pad_w;
+    shl_rvv_avgpool_get_pad(loc, &pad_h, &pad_w, pad_top, pad_down, pad_left, pad_right);
+    int real_kernel_h = (valid_h + pad_h < kernel_h) ? valid_h + pad_h : kernel_h;
+    int real_kernel_w = (valid_w + pad_w < kernel_w) ? valid_w + pad_w : kernel_w;
+    int window_size =
+        (params->count_include_pad == 1) ? (real_kernel_h * real_kernel_w) : valid_size;
+    return window_size;
 }

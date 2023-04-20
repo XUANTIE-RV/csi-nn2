@@ -53,7 +53,7 @@ def maxpool2d_f32(test_dtype, test_vlen, test_type):
         pad_down  = pad_right = 0
         in_height = 2 * in_height + 1
         in_width = 2 * in_width + 1
-        c_model = True
+        c_model = False
         if test_type == "packn_2x2s2p0":
             channel    = int(n*packn)
         elif test_type == "pack1_2x2s2p0":
@@ -92,7 +92,7 @@ def maxpool2d_f32(test_dtype, test_vlen, test_type):
         pad_down  = pad_right = 0
         in_height = 2 * in_height
         in_width = 2 * in_width
-        c_model = True
+        c_model = False
         if test_type == "packn_3x3s2p0":
             channel    = int(n*packn)
         elif test_type == "pack1_3x3s2p0":

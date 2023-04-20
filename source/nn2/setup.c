@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
@@ -32,6 +32,9 @@ void shl_target_init_ref_i805();
 void shl_target_init_c908();
 void shl_target_init_asp();
 void shl_target_init_rvv();
+void shl_target_init_rvm();
+void shl_target_init_e907();
+void shl_target_init_c920();
 
 static int __shl_has_init;
 
@@ -70,8 +73,21 @@ void shl_init()
 #ifdef SHL_BUILD_RVV
     shl_target_init_rvv();
 #endif
+#ifdef SHL_BUILD_RVM
+    shl_target_init_rvm();
+#endif
+#ifdef SHL_BUILD_E907
+    shl_target_init_e907();
+#endif
+#ifdef SHL_BUILD_C920
+    shl_target_init_c920();
+#endif
 }
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 struct csinn_session *csinn_alloc_session()
 {
     if (__shl_has_init == 0) {
@@ -80,8 +96,18 @@ struct csinn_session *csinn_alloc_session()
     }
     return shl_mem_alloc(sizeof(struct csinn_session));
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 void csinn_free_session(struct csinn_session *sess) { shl_mem_free(sess); }
+/**
+ * @}
+ */
 
 static void *shl_cb_func_table[CSINN_API_SIZE];
 void shl_register_op_callback(int api, void *cb) { shl_cb_func_table[api] = cb; }
@@ -130,6 +156,10 @@ void *shl_get_runtime_callback(struct csinn_session *sess, int op)
     }
 }
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 void csinn_session_init(struct csinn_session *sess)
 {
     shl_debug_set_level(sess->debug_level);
@@ -139,7 +169,14 @@ void csinn_session_init(struct csinn_session *sess)
         func(sess);
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 void csinn_session_deinit(struct csinn_session *sess)
 {
     void *(*func)();
@@ -148,7 +185,14 @@ void csinn_session_deinit(struct csinn_session *sess)
         func(sess);
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 void csinn_set_output_number(int number, struct csinn_session *sess)
 {
     sess->output_num = number;
@@ -159,7 +203,14 @@ void csinn_set_output_number(int number, struct csinn_session *sess)
         func(number, sess);
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 void csinn_set_input_number(int number, struct csinn_session *sess)
 {
     sess->input_num = number;
@@ -170,7 +221,14 @@ void csinn_set_input_number(int number, struct csinn_session *sess)
         func(number, sess);
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_get_output_number(struct csinn_session *sess)
 {
     int (*func)();
@@ -181,7 +239,14 @@ int csinn_get_output_number(struct csinn_session *sess)
         return sess->output_num;
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_get_input_number(struct csinn_session *sess)
 {
     int (*func)();
@@ -192,7 +257,14 @@ int csinn_get_input_number(struct csinn_session *sess)
         return sess->input_num;
     }
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_set_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
     sess->output[index] = output;
@@ -203,7 +275,14 @@ int csinn_set_output(int index, struct csinn_tensor *output, struct csinn_sessio
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_set_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
     sess->input[index] = input;
@@ -214,7 +293,14 @@ int csinn_set_input(int index, struct csinn_tensor *input, struct csinn_session 
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_get_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
     csinn_tensor_copy(output, sess->output[index]);
@@ -225,7 +311,14 @@ int csinn_get_output(int index, struct csinn_tensor *output, struct csinn_sessio
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_get_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
     csinn_tensor_copy(input, sess->input[index]);
@@ -236,15 +329,26 @@ int csinn_get_input(int index, struct csinn_tensor *input, struct csinn_session 
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
     sess->input[index]->data = input->data;
+    if (sess->dynamic_shape) {
+        memcpy(sess->input[index]->dim, input->dim, sizeof(int32_t) * MAX_DIM);
+        sess->input[index]->dim_count = input->dim_count;
+    }
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_UPDATE_INPUT);
     if (func != NULL) {
         int ret = CSINN_FALSE;
-        if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
+        if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(index, input, sess);
             uint64_t end = shl_get_timespec();
@@ -256,7 +360,14 @@ int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_sessi
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_update_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
     sess->output[index]->data = output->data;
@@ -267,14 +378,21 @@ int csinn_update_output(int index, struct csinn_tensor *output, struct csinn_ses
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 int csinn_session_setup(struct csinn_session *sess)
 {
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SESSION_SETUP);
     if (func != NULL) {
         int ret = CSINN_FALSE;
-        if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
+        if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
             uint64_t end = shl_get_timespec();
@@ -286,14 +404,21 @@ int csinn_session_setup(struct csinn_session *sess)
     }
     return CSINN_FALSE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 int csinn_session_run(struct csinn_session *sess)
 {
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SESSION_RUN);
     if (func != NULL) {
         int ret = CSINN_FALSE;
-        if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
+        if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
             uint64_t end = shl_get_timespec();
@@ -305,7 +430,14 @@ int csinn_session_run(struct csinn_session *sess)
     }
     return CSINN_FALSE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup IO
+ * @{
+ */
 int csinn_set_tensor_entry(struct csinn_tensor *t, struct csinn_session *sess)
 {
     int (*func)();
@@ -315,14 +447,21 @@ int csinn_set_tensor_entry(struct csinn_tensor *t, struct csinn_session *sess)
     }
     return CSINN_FALSE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup SESSION
+ * @{
+ */
 int csinn_load_binary_model(struct csinn_session *sess)
 {
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_LOAD_BG);
     if (func != NULL) {
         int ret = CSINN_FALSE;
-        if (sess->profiler_level == CSI_PROFILER_LEVEL_TIMER) {
+        if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
             uint64_t end = shl_get_timespec();
@@ -334,3 +473,6 @@ int csinn_load_binary_model(struct csinn_session *sess)
     }
     return CSINN_FALSE;
 }
+/**
+ * @}
+ */

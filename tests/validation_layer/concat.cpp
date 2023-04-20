@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
-#include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
 
@@ -32,7 +31,7 @@ int main(int argc, char **argv)
     int *buffer = read_input_data_f32(argv[1]);
     struct csinn_session *sess = csinn_alloc_session();
     sess->base_run_mode = CSINN_RM_LAYER;
-    struct csinn_concat_params *params = csinn_alloc_params(sizeof(struct csinn_concat_params), sess);
+    struct csinn_concat_params *params = (csinn_concat_params *)csinn_alloc_params(sizeof(struct csinn_concat_params), sess);
 
     params->inputs_count = buffer[4];
 
@@ -79,18 +78,13 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if THEAD_RVV
+#if (DTYPE==32)
     test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT32,
-                   csinn_concat_init, shl_rvv_concat_fp32, &difference);
+                   csinn_concat_init, csinn_concat, &difference);
+#elif (DTYPE==16)
     test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT16,
-                   csinn_concat_init, shl_rvv_concat_fp16, &difference);
-    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_INT8_SYM,
-                   csinn_concat_init, shl_rvv_concat_int8, &difference);
-#else
-    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_FLOAT32,
                    csinn_concat_init, csinn_concat, &difference);
-    test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_UINT8_ASYM,
-                   csinn_concat_init, csinn_concat, &difference);
+#elif (DTYPE==8)
     test_concat_op((struct csinn_tensor **)input, output, params, CSINN_QUANT_INT8_SYM,
                    csinn_concat_init, csinn_concat, &difference);
 #endif

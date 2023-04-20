@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
-#include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
 
@@ -35,7 +34,7 @@ int main(int argc, char** argv)
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
     struct csinn_tensor *kernel = csinn_alloc_tensor(sess);
     struct csinn_tensor *bias = csinn_alloc_tensor(sess);
-    struct csinn_conv2d_params *params = csinn_alloc_params(sizeof(struct csinn_conv2d_params), sess);
+    struct csinn_conv2d_params *params = (csinn_conv2d_params *)csinn_alloc_params(sizeof(struct csinn_conv2d_params), sess);
     int in_size, out_size, weight_size;
 
 
@@ -110,12 +109,16 @@ int main(int argc, char** argv)
     output->data    = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
+#if (DTYPE==32)
     test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT32,
                    csinn_conv2d_init, csinn_conv2d, &difference);
+#elif (DTYPE==16)
     test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16,
                    csinn_conv2d_init, csinn_conv2d, &difference);
-    // test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_INT8_ASYM,
-    //                csinn_conv2d_init, csinn_conv2d, &difference);
+#elif (DTYPE==8)
+    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_INT8_SYM,
+                   csinn_conv2d_init, csinn_conv2d, &difference);
+#endif
 
     return done_testing();
 }

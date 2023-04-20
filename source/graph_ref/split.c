@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -36,5 +36,36 @@ int shl_gref_split(struct csinn_tensor *input, struct csinn_tensor **output,
     }
     struct shl_ref_graph *graph = shl_gref_get_graph(input->sess);
     shl_gref_graph_insert(layer, graph);
-    return CSINN_FALSE;
+    return CSINN_TRUE;
+}
+
+/* TODO: support onnx split, both refer and opt implementations */
+int shl_gref_split_infer_shape(struct csinn_tensor *input, struct csinn_tensor **output,
+                               struct csinn_split_params *params)
+{
+    int32_t axis = params->axis;
+    int32_t out_num = params->output_num;
+    int32_t *split_index = params->split_index;
+
+    for (int i = 0; i < out_num; i++) {
+        output[i]->dim_count = input->dim_count;
+        for (int j = 0; j < input->dim_count; j++) {
+            output[i]->dim[j] = input->dim[j];
+        }
+    }
+    if (split_index != NULL) {
+        // recover output->dim[axis]
+        output[0]->dim[axis] = split_index[0];
+        for (int i = 1; i < out_num - 1; i++) {
+            output[i]->dim[axis] = split_index[i] - split_index[i - 1];
+        }
+        output[out_num - 1]->dim[axis] = input->dim[axis] - split_index[out_num - 2];
+    } else {
+        int avg_dim = (input->dim[axis] + out_num - 1) / out_num;
+        for (int i = 0; i < out_num - 1; i++) {
+            output[i]->dim[axis] = avg_dim;
+        }
+        output[out_num - 1]->dim[axis] = input->dim[axis] - avg_dim * (out_num - 1);
+    }
+    return CSINN_TRUE;
 }

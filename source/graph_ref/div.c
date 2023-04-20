@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -25,4 +25,10 @@ int shl_gref_div(struct csinn_tensor *input0, struct csinn_tensor *input1,
 {
     shl_gref_diso_op(input0, input1, output, CSINN_OP_DIV, params);
     return CSINN_TRUE;
+}
+
+int shl_gref_div_infer_shape(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                             struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    return shl_gref_diso_infer_shape(input0, input1, output, params);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -43,4 +43,13 @@ int shl_gref_fsmn(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
     struct shl_ref_graph *graph = shl_gref_get_graph(frame->sess);
     shl_gref_graph_insert(layer, graph);
     return CSINN_TRUE;
+}
+
+int shl_gref_fsmn_infer_shape(struct csinn_tensor *frame, struct csinn_tensor *l_filter,
+                              struct csinn_tensor *r_filter, struct csinn_tensor *frame_sequence,
+                              struct csinn_tensor *frame_counter, struct csinn_tensor *output,
+                              struct csinn_fsmn_params *params)
+{
+    shl_debug_error("shl_gref_all_infer_shape unsupport\n");
+    return CSINN_FALSE;
 }

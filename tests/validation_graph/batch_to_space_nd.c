@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
-#include "math_snr.h"
 #include "test_utils.h"
 
 int main(int argc, char **argv)
@@ -46,7 +45,7 @@ int main(int argc, char **argv)
     enum csinn_dtype_enum test_dtype = CSINN_TEST_DTYPE;
     /* session configuration */
     struct csinn_session *sess = csinn_alloc_session();
-    sess->base_api = CSINN_LIGHT;
+    sess->base_api = CSINN_TH1520;
     csinn_session_init(sess);
     csinn_set_input_number(1, sess);
     csinn_set_output_number(1, sess);

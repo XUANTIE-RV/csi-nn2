@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,18 @@ int shl_gref_matmul(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                     struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     shl_gref_diso_op(mat0, mat1, output, CSINN_OP_MATMUL, params);
+    return CSINN_TRUE;
+}
+
+/* TODO: support onnx/numpy matmul */
+int shl_gref_matmul_infer_shape(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                                struct csinn_tensor *output, struct csinn_matmul_params *params)
+{
+    output->dim_count = mat0->dim_count;
+    for (int i = 0; i < output->dim_count - 2; i++) {
+        output->dim[i] = mat0->dim[i];
+    }
+    output->dim[output->dim_count - 2] = mat0->dim[mat0->dim_count - (params->trans_a ? 1 : 2)];
+    output->dim[output->dim_count - 1] = mat1->dim[mat1->dim_count - (params->trans_b ? 2 : 1)];
     return CSINN_TRUE;
 }
