@@ -49,13 +49,14 @@ export PATH=${PWD}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH
 Download source code
 
 ```
-git clone https://github.com/T-head-Semi/csi-nn2.git
+git clone -b 2.2 https://github.com/T-head-Semi/csi-nn2.git
+cd csi-nn2
+git submodule update --init --recursive
 ```
 
 compile c906
 
 ```
-cd csi-nn2
 make nn2_c906
 ```
 
