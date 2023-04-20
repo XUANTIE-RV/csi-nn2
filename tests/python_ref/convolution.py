@@ -23,7 +23,7 @@ def convolution_f32():
     kernel_x_t  = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     kernel_y_t  = kernel_y + (kernel_y - 1) * (dilation_y - 1)
     pad_left   = pad_right = pad_top = pad_down = 0
-  
+
 
     pad_x      = (in_size_x - kernel_x_t) -  int((in_size_x - kernel_x_t) / stride_x) * stride_x
     if(pad_x !=0):

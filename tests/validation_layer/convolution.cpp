@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_thead_rvv.h"
-#include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
 
@@ -120,7 +119,7 @@ int main(int argc, char** argv)
 
 #endif
 
-    // if (params->base.api != CSINN_RVV && params->base.api != CSINN_C906 && params->base.api != CSINN_C910) {
+    // if (params->base.api != CSINN_RVV && params->base.api != CSINN_C906 && params->base.api != CSINN_C920) {
     //     test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_INT8_ASYM,
     //                   csinn_conv2d_init, csinn_conv2d, &difference);
     // }

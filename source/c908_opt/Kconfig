@@ -1,0 +1,164 @@
+
+menu "C908 optimization"
+
+config C908_SOURCE
+	bool "SHL C908 optimization code"
+	default y
+	help
+		Select SHL build C908 optimization
+
+config C908_AVERAGEPOOL_FP32
+	depends on C908_SOURCE
+	bool "Layer avgpool fp32"
+	default y
+	help
+		Select SHL build v extension optimized avgpool
+
+config C908_AVERAGEPOOL_FP16
+	depends on C908_SOURCE
+	bool "Layer avgpool fp16"
+	default y
+	help
+		Select SHL build v extension optimized avgpool
+
+config C908_AVERAGEPOOL_INT8
+	depends on C908_SOURCE
+	bool "Layer avgpool int8"
+	default y
+	help
+		Select SHL build v extension optimized avgpool
+
+config C908_CONVOLUTION_FP32
+	depends on C908_SOURCE
+	bool "Layer convolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C908_CONVOLUTION_FP16
+	depends on C908_SOURCE
+	bool "Layer convolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C908_CONVOLUTION_INT8
+	depends on C908_SOURCE
+	bool "Layer convolution int8"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C908_CONVOLUTION_INT4
+	depends on C908_SOURCE
+	bool "Layer convolution int4"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C908_DEPTHWISE_CONVOLUTION_FP32
+	depends on C908_SOURCE
+	bool "Layer depthwise convolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized depthwise convolution
+
+config C908_DEPTHWISE_CONVOLUTION_FP16
+	depends on C908_SOURCE
+	bool "Layer depthwise convolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized depthwise convolution
+
+config C908_DEPTHWISE_CONVOLUTION_INT8
+	depends on C908_SOURCE
+	bool "Layer depthwise convolution int8"
+	default y
+	help
+		Select SHL build v extension optimized depthwise convolution
+
+config C908_DEPTHWISE_CONVOLUTION_INT4
+	depends on C908_SOURCE
+	bool "Layer depthwise convolution int4"
+	default y
+	help
+		Select SHL build v extension optimized depthwise convolution
+
+config C908_FULLYCONNECTED_FP32
+	depends on C908_SOURCE
+	bool "Layer fullyconnected fp32"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C908_FULLYCONNECTED_FP16
+	depends on C908_SOURCE
+	bool "Layer fullyconnected fp16"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C908_FULLYCONNECTED_INT8
+	depends on C908_SOURCE
+	bool "Layer fullyconnected int8"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C908_FULLYCONNECTED_INT4
+	depends on C908_SOURCE
+	bool "Layer fullyconnected int4"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C908_GEMM_FP32
+	depends on C908_SOURCE
+	bool "Layer GEMM fp32"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C908_GEMM_FP16
+	depends on C908_SOURCE
+	bool "Layer GEMM fp16"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C908_GEMM_INT8
+	depends on C908_SOURCE
+	bool "Layer GEMM int8"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C908_GEMM_INT4
+	depends on C908_SOURCE
+	bool "Layer GEMM int4"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C908_MAXPOOL_FP32
+	depends on C908_SOURCE
+	bool "Layer maxpool fp32"
+	default y
+	help
+		Select SHL build v extension optimized maxpool
+
+config C908_MAXPOOL_FP16
+	depends on C908_SOURCE
+	bool "Layer maxpool fp16"
+	default y
+	help
+		Select SHL build v extension optimized maxpool
+
+config C908_MAXPOOL_INT8
+	depends on C908_SOURCE
+	bool "Layer maxpool int8"
+	default y
+	help
+		Select SHL build v extension optimized maxpool
+
+endmenu

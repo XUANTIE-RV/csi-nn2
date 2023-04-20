@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -52,10 +52,10 @@ static int shl_ref_pad_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor 
                         if (params->pad_mode == CSINN_PAD_CONSTANT) {
                             *out_ptr = params->pad_value;
                             out_ptr++;
-                        } else if (params->pad_mode = CSINN_PAD_EDGE) {
+                        } else if (params->pad_mode == CSINN_PAD_EDGE) {
                             /* TODO */
                             assert(0);
-                        } else if (params->pad_mode = CSINN_PAD_REFLECT) {
+                        } else if (params->pad_mode == CSINN_PAD_REFLECT) {
                             /* TODO */
                             assert(0);
                         }
@@ -103,10 +103,10 @@ static int shl_ref_pad_nchw_f32(struct csinn_tensor *input, struct csinn_tensor 
                         if (params->pad_mode == CSINN_PAD_CONSTANT) {
                             *out_ptr = params->pad_value;
                             out_ptr++;
-                        } else if (params->pad_mode = CSINN_PAD_EDGE) {
+                        } else if (params->pad_mode == CSINN_PAD_EDGE) {
                             /* TODO */
                             assert(0);
-                        } else if (params->pad_mode = CSINN_PAD_REFLECT) {
+                        } else if (params->pad_mode == CSINN_PAD_REFLECT) {
                             /* TODO */
                             assert(0);
                         }
@@ -132,6 +132,7 @@ int shl_ref_pad_f32(struct csinn_tensor *input, struct csinn_tensor *output,
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_pad_quant(struct csinn_tensor *input, struct csinn_tensor *output,

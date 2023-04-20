@@ -19,14 +19,14 @@ def global_maxpool2d_f32(test_dtype, test_vlen, test_type):
     para = []
     # init the input data and parameters
     batch      = int(np.random.randint(1, high=2, size=1))
-    in_size_x  = int(np.random.randint(64, high=128, size=1))
-    in_size_y  = int(np.random.randint(64, high=128, size=1))
-    in_channel = int(np.random.randint(1, high=64, size=1))
+    in_size_x  = int(np.random.randint(16, high=32, size=1))
+    in_size_y  = int(np.random.randint(16, high=32, size=1))
+    in_channel = int(np.random.randint(1, high=16, size=1))
 
     out_height  = int(np.random.randint(1, high=2, size=1))
     out_width  = int(np.random.randint(1, high=2, size=1))
 
-    zero_point = int(np.random.randint(-600, high=600, size=1))
+    zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
     packn = int(getpackn(test_dtype, test_vlen))
@@ -49,7 +49,7 @@ def global_maxpool2d_f32(test_dtype, test_vlen, test_type):
         t_src_out = t_src_out.reshape([batch, math.ceil(in_channel/packn), packn, out_height, out_width]).transpose([0, 1, 3, 4, 2])
 
 
-    src_in_1  = src_in.flatten()
+    src_in_1  = t_src_in.flatten()
     src_out_1 = t_src_out.flatten()
 
     total_size = (len(src_in_1) + len(src_out_1)) + 6

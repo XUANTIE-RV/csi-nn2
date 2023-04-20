@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_UTILS_H_
 #define INCLUDE_SHL_UTILS_H_
@@ -32,10 +32,28 @@
 #include <omp.h>
 #endif
 #include "csinn_data_structure.h"
+#ifdef SHL_MCONF_CONFIG
+#include "mconf_config.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct shl_ref_graph {
+    struct shl_node **input;
+    struct shl_node **output;
+    int input_num;
+    int output_num;
+    struct shl_node **layer;
+    int layer_size;
+    int layer_index;
+};
+
+struct shl_gref_target_data {
+    struct shl_ref_graph *graph;
+    int is_hybrid_quantization_type;
+};
 
 void shl_get_top5(float *buf, uint32_t size, float *prob, uint32_t *cls);
 void shl_show_top5(struct csinn_tensor *output, struct csinn_session *sess);
@@ -53,6 +71,11 @@ void *shl_get_p0_cb(struct csinn_params_base *base);
 void *shl_get_init_cb(struct csinn_params_base *base);
 
 enum csinn_rmode_enum shl_get_run_mode(struct csinn_params_base *base);
+
+struct shl_cb_table {
+    int shl_cb_key;
+    struct csinn_callback shl_cb_value;
+};
 
 struct shl_cb_op_list {
     struct shl_cb_op_list *next;
@@ -87,8 +110,10 @@ char *shl_bm_header_str();
 
 void shl_dump_bm_header(FILE *f);
 void shl_dump_bm_section_info(FILE *f, struct shl_binary_model_section_info *info);
-void shl_dump_bm_graph_info_section(FILE *f, struct csinn_session *sess);
+int shl_dump_bm_graph_info_section(FILE *f, struct csinn_session *sess);
 void shl_bm_session_load(struct csinn_session *dest, struct csinn_session *src);
+int shl_dump_bm_graph_struct_section(FILE *f, struct shl_ref_graph *graph);
+void shl_bm_graph_struct_load(struct shl_ref_graph *dest, struct shl_ref_graph *src);
 
 #ifdef __cplusplus
 }

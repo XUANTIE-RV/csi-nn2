@@ -1,0 +1,60 @@
+
+menu "E907 Optimization"
+
+config E907_OPT_SOURCE
+	depends on BUILD_RISCV_ELF_E907
+	bool "SHL Optimization for E907"
+	default y
+	help
+		Select SHL build E907 Optimization
+
+config E907_OPT_CONVOLUTION
+	depends on E907_OPT_SOURCE
+	bool "Layer conv2d"
+	default y
+	help
+		Select SHL build e907 opt conv2d
+
+config E907_OPT_CONCAT
+	depends on E907_OPT_SOURCE
+	bool "Layer concat"
+	default y
+	help
+		Select SHL build e907 opt concat
+
+config E907_OPT_RELU
+	depends on E907_OPT_SOURCE
+	bool "Layer relu"
+	default y
+	help
+		Select SHL build e907 opt relu
+
+config E907_OPT_FC
+	depends on E907_OPT_SOURCE
+	bool "Layer fc"
+	default y
+	help
+		Select SHL build e907 opt fc
+
+config E907_OPT_MUL
+	depends on E907_OPT_SOURCE
+	bool "Layer mul"
+	default y
+	help
+		Select SHL build e907 opt mul
+
+config E907_OPT_SUM
+	depends on E907_OPT_SOURCE
+	bool "Layer sum"
+	default y
+	help
+		Select SHL build e907 opt sum
+
+config E907_OPT_SOFTMAX
+	depends on E907_OPT_SOURCE
+	bool "Layer softmax"
+	default y
+	help
+		Select SHL build e907 opt softmax
+
+endmenu

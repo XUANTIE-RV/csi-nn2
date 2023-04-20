@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,33 @@ int shl_gref_space_to_depth(struct csinn_tensor *input, struct csinn_tensor *out
                             struct csinn_space_to_depth_params *params)
 {
     shl_gref_siso_op(input, output, CSINN_OP_SPACE_TO_DEPTH, params);
+    return CSINN_TRUE;
+}
+
+/* Only support NCHW/NHWC layout */
+int shl_gref_space_to_depth_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                        struct csinn_space_to_depth_params *params)
+{
+    int h, w, c;
+    if (output->layout == CSINN_LAYOUT_NCHW) {
+        c = 1;
+        h = 2;
+        w = 3;
+    } else if (output->layout == CSINN_LAYOUT_NHWC) {
+        h = 1;
+        w = 2;
+        c = 3;
+    } else {
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+
+    int32_t block_size = params->block_size;
+
+    output->dim_count = input->dim_count;
+    output->dim[0] = input->dim[0];
+    output->dim[c] = input->dim[c] * block_size * block_size;
+    output->dim[h] = input->dim[h] / block_size;
+    output->dim[w] = input->dim[w] / block_size;
+
     return CSINN_TRUE;
 }

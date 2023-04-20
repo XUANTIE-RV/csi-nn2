@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -73,8 +73,9 @@ static void shl_ref_resize_bilinear_nhwc_f32(struct csinn_tensor *input,
 /*reference
  * https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/reference/resize_nearest_neighbor.h
  */
-static void shl_ref_resize_nearest_neighbor_f32(struct csinn_tensor *input,
-                                                struct csinn_tensor *output, bool align_corners)
+static void shl_ref_resize_nearest_neighbor_nhwc_f32(struct csinn_tensor *input,
+                                                     struct csinn_tensor *output,
+                                                     bool align_corners)
 {
     float *input_data = input->data;
     float *output_data = output->data;
@@ -124,15 +125,279 @@ static void shl_ref_resize_nearest_neighbor_f32(struct csinn_tensor *input,
     }
 }
 
-static void shl_ref_resize_nearest_neighbor_nchw_f32(struct csinn_tensor *o_input,
-                                                     struct csinn_tensor *o_output,
+static void shl_ref_resize_nearest_neighbor_nchw_f32(struct csinn_tensor *input,
+                                                     struct csinn_tensor *output,
                                                      bool align_corners)
 {
-    struct csinn_tensor *input = shl_ref_nchw_to_nhwc_f32(o_input);
-    struct csinn_tensor *output = shl_ref_nchw_to_nhwc_f32(o_output);
-    shl_ref_resize_nearest_neighbor_f32(input, output, align_corners);
-    shl_ref_nhwc_to_nchw_f32(o_output, output);
-    shl_ref_free_float_tensor(input);
+    float *input_data = input->data;
+    float *output_data = output->data;
+    int32_t batches = input->dim[0];
+    int32_t depth = input->dim[1];
+    int32_t input_height = input->dim[2];
+    int32_t input_width = input->dim[3];
+
+    int32_t output_height = output->dim[2];
+    int32_t output_width = output->dim[3];
+
+    float height_scale = 0;
+    float width_scale = 0;
+
+    if (align_corners) {
+        height_scale = (float)(input_height - 1) / (output_height - 1);
+        width_scale = (float)(input_width - 1) / (output_width - 1);
+    } else {
+        height_scale = (float)(input_height) / output_height;
+        width_scale = (float)(input_width) / output_width;
+    }
+
+    const int col_offset = input->dim[3];
+    const int row_offset = input->dim[2] * col_offset;
+    const int batch_offset = input->dim[1] * row_offset;
+
+    const float *input_ptr = input_data;
+    float *output_ptr = output_data;
+    for (int b = 0; b < batches; ++b) {
+        for (int c = 0; c < depth; ++c) {
+            const float *c_input_ptr = input_ptr + c * row_offset;
+            float *c_output_ptr = output_ptr + c * output_height * output_width;
+            for (int y = 0; y < output_height; ++y) {
+                int32_t in_y =
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                                                           : (int32_t)(floor(y * height_scale)),
+                                             input_height - 1);
+                const float *y_input_ptr = c_input_ptr + in_y * col_offset;
+                float *y_output_ptr = c_output_ptr + y * output_width;
+                for (int x = 0; x < output_width; ++x) {
+                    int32_t in_x =
+                        shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                                                               : (int32_t)(floor(x * width_scale)),
+                                                 input_width - 1);
+                    const float *x_input_ptr = y_input_ptr + in_x;
+                    *(y_output_ptr + x) = *(y_input_ptr + in_x);
+                }
+            }
+        }
+        input_ptr += batch_offset;
+        output_ptr += batch_offset;
+    }
+}
+
+#if __riscv
+static void shl_ref_resize_nearest_neighbor_nhwc_f16(struct csinn_tensor *input,
+                                                     struct csinn_tensor *output,
+                                                     bool align_corners)
+{
+    __fp16 *input_data = input->data;
+    __fp16 *output_data = output->data;
+    int32_t batches = input->dim[0];
+    int32_t input_height = input->dim[1];
+    int32_t input_width = input->dim[2];
+    int32_t depth = input->dim[3];
+
+    int32_t output_height = output->dim[1];
+    int32_t output_width = output->dim[2];
+
+    float height_scale = 0;
+    float width_scale = 0;
+
+    if (align_corners) {
+        height_scale = (float)(input_height - 1) / (output_height - 1);
+        width_scale = (float)(input_width - 1) / (output_width - 1);
+    } else {
+        height_scale = (float)(input_height) / output_height;
+        width_scale = (float)(input_width) / output_width;
+    }
+
+    const int col_offset = input->dim[3];
+    const int row_offset = input->dim[2] * col_offset;
+    const int batch_offset = input->dim[1] * row_offset;
+
+    const __fp16 *input_ptr = input_data;
+    __fp16 *output_ptr = output_data;
+    for (int b = 0; b < batches; ++b) {
+        for (int y = 0; y < output_height; ++y) {
+            int32_t in_y =
+                shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                                                       : (int32_t)(floor(y * height_scale)),
+                                         input_height - 1);
+            const __fp16 *y_input_ptr = input_ptr + in_y * row_offset;
+            for (int x = 0; x < output_width; ++x) {
+                int32_t in_x =
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                                                           : (int32_t)(floor(x * width_scale)),
+                                             input_width - 1);
+                const __fp16 *x_input_ptr = y_input_ptr + in_x * col_offset;
+                memcpy(output_ptr, x_input_ptr, depth * sizeof(__fp16));
+                output_ptr += depth;
+            }
+        }
+        input_ptr += batch_offset;
+    }
+}
+
+static void shl_ref_resize_nearest_neighbor_nchw_f16(struct csinn_tensor *input,
+                                                     struct csinn_tensor *output,
+                                                     bool align_corners)
+{
+    __fp16 *input_data = input->data;
+    __fp16 *output_data = output->data;
+    int32_t batches = input->dim[0];
+    int32_t depth = input->dim[1];
+    int32_t input_height = input->dim[2];
+    int32_t input_width = input->dim[3];
+
+    int32_t output_height = output->dim[2];
+    int32_t output_width = output->dim[3];
+
+    float height_scale = 0;
+    float width_scale = 0;
+
+    if (align_corners) {
+        height_scale = (float)(input_height - 1) / (output_height - 1);
+        width_scale = (float)(input_width - 1) / (output_width - 1);
+    } else {
+        height_scale = (float)(input_height) / output_height;
+        width_scale = (float)(input_width) / output_width;
+    }
+
+    const int col_offset = input->dim[3];
+    const int row_offset = input->dim[2] * col_offset;
+    const int batch_offset = input->dim[1] * row_offset;
+
+    const __fp16 *input_ptr = input_data;
+    __fp16 *output_ptr = output_data;
+    for (int b = 0; b < batches; ++b) {
+        for (int c = 0; c < depth; ++c) {
+            const __fp16 *c_input_ptr = input_ptr + c * row_offset;
+            __fp16 *c_output_ptr = output_ptr + c * output_height * output_width;
+            for (int y = 0; y < output_height; ++y) {
+                int32_t in_y =
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                                                           : (int32_t)(floor(y * height_scale)),
+                                             input_height - 1);
+                const __fp16 *y_input_ptr = c_input_ptr + in_y * col_offset;
+                __fp16 *y_output_ptr = c_output_ptr + y * output_width;
+                for (int x = 0; x < output_width; ++x) {
+                    int32_t in_x =
+                        shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                                                               : (int32_t)(floor(x * width_scale)),
+                                                 input_width - 1);
+                    const __fp16 *x_input_ptr = y_input_ptr + in_x;
+                    *(y_output_ptr + x) = *(y_input_ptr + in_x);
+                }
+            }
+        }
+        input_ptr += batch_offset;
+        output_ptr += batch_offset;
+    }
+}
+#endif  // __riscv
+
+static void shl_ref_resize_nearest_neighbor_nhwc_i8(struct csinn_tensor *input,
+                                                    struct csinn_tensor *output, bool align_corners)
+{
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    int32_t batches = input->dim[0];
+    int32_t input_height = input->dim[1];
+    int32_t input_width = input->dim[2];
+    int32_t depth = input->dim[3];
+
+    int32_t output_height = output->dim[1];
+    int32_t output_width = output->dim[2];
+
+    float height_scale = 0;
+    float width_scale = 0;
+
+    if (align_corners) {
+        height_scale = (float)(input_height - 1) / (output_height - 1);
+        width_scale = (float)(input_width - 1) / (output_width - 1);
+    } else {
+        height_scale = (float)(input_height) / output_height;
+        width_scale = (float)(input_width) / output_width;
+    }
+
+    const int col_offset = input->dim[3];
+    const int row_offset = input->dim[2] * col_offset;
+    const int batch_offset = input->dim[1] * row_offset;
+
+    const int8_t *input_ptr = input_data;
+    int8_t *output_ptr = output_data;
+    for (int b = 0; b < batches; ++b) {
+        for (int y = 0; y < output_height; ++y) {
+            int32_t in_y =
+                shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                                                       : (int32_t)(floor(y * height_scale)),
+                                         input_height - 1);
+            const int8_t *y_input_ptr = input_ptr + in_y * row_offset;
+            for (int x = 0; x < output_width; ++x) {
+                int32_t in_x =
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                                                           : (int32_t)(floor(x * width_scale)),
+                                             input_width - 1);
+                const int8_t *x_input_ptr = y_input_ptr + in_x * col_offset;
+                memcpy(output_ptr, x_input_ptr, depth * sizeof(int8_t));
+                output_ptr += depth;
+            }
+        }
+        input_ptr += batch_offset;
+    }
+}
+
+static void shl_ref_resize_nearest_neighbor_nchw_i8(struct csinn_tensor *input,
+                                                    struct csinn_tensor *output, bool align_corners)
+{
+    int8_t *input_data = input->data;
+    int8_t *output_data = output->data;
+    int32_t batches = input->dim[0];
+    int32_t depth = input->dim[1];
+    int32_t input_height = input->dim[2];
+    int32_t input_width = input->dim[3];
+
+    int32_t output_height = output->dim[2];
+    int32_t output_width = output->dim[3];
+
+    float height_scale = 0;
+    float width_scale = 0;
+
+    if (align_corners) {
+        height_scale = (float)(input_height - 1) / (output_height - 1);
+        width_scale = (float)(input_width - 1) / (output_width - 1);
+    } else {
+        height_scale = (float)(input_height) / output_height;
+        width_scale = (float)(input_width) / output_width;
+    }
+
+    const int col_offset = input->dim[3];
+    const int row_offset = input->dim[2] * col_offset;
+    const int batch_offset = input->dim[1] * row_offset;
+
+    const int8_t *input_ptr = input_data;
+    int8_t *output_ptr = output_data;
+    for (int b = 0; b < batches; ++b) {
+        for (int c = 0; c < depth; ++c) {
+            const int8_t *c_input_ptr = input_ptr + c * row_offset;
+            int8_t *c_output_ptr = output_ptr + c * output_height * output_width;
+            for (int y = 0; y < output_height; ++y) {
+                int32_t in_y =
+                    shl_ref_min_internal_s32(align_corners ? (int32_t)(round(y * height_scale))
+                                                           : (int32_t)(floor(y * height_scale)),
+                                             input_height - 1);
+                const int8_t *y_input_ptr = c_input_ptr + in_y * col_offset;
+                int8_t *y_output_ptr = c_output_ptr + y * output_width;
+                for (int x = 0; x < output_width; ++x) {
+                    int32_t in_x =
+                        shl_ref_min_internal_s32(align_corners ? (int32_t)(round(x * width_scale))
+                                                               : (int32_t)(floor(x * width_scale)),
+                                                 input_width - 1);
+                    const int8_t *x_input_ptr = y_input_ptr + in_x;
+                    *(y_output_ptr + x) = *(y_input_ptr + in_x);
+                }
+            }
+        }
+        input_ptr += batch_offset;
+        output_ptr += batch_offset;
+    }
 }
 
 static void shl_ref_resize_bilinear_nchw_f32(struct csinn_tensor *o_input,
@@ -158,7 +423,39 @@ int shl_ref_resize_f32(struct csinn_tensor *input, struct csinn_tensor *output,
         if (params->base.layout == CSINN_LAYOUT_NCHW) {
             shl_ref_resize_nearest_neighbor_nchw_f32(input, output, params->align_corners);
         } else {
-            shl_ref_resize_nearest_neighbor_f32(input, output, params->align_corners);
+            shl_ref_resize_nearest_neighbor_nhwc_f32(input, output, params->align_corners);
+        }
+    } else {
+        return CSINN_FALSE;
+    }
+    return CSINN_TRUE;
+}
+
+#if __riscv
+int shl_ref_resize_f16(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_resize_params *params)
+{
+    if (params->resize_mode == CSINN_RESIZE_NEAREST_NEIGHBOR) {
+        if (params->base.layout == CSINN_LAYOUT_NCHW) {
+            shl_ref_resize_nearest_neighbor_nchw_f16(input, output, params->align_corners);
+        } else {
+            shl_ref_resize_nearest_neighbor_nhwc_f16(input, output, params->align_corners);
+        }
+    } else {
+        return CSINN_FALSE;
+    }
+    return CSINN_TRUE;
+}
+#endif  // __riscv
+
+int shl_ref_resize_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_resize_params *params)
+{
+    if (params->resize_mode == CSINN_RESIZE_NEAREST_NEIGHBOR) {
+        if (params->base.layout == CSINN_LAYOUT_NCHW) {
+            shl_ref_resize_nearest_neighbor_nchw_i8(input, output, params->align_corners);
+        } else {
+            shl_ref_resize_nearest_neighbor_nhwc_i8(input, output, params->align_corners);
         }
     } else {
         return CSINN_FALSE;

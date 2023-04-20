@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #include <unistd.h>
 
 #include "csi_nn.h"
@@ -62,11 +62,16 @@ static int shl_mem_map_insert(void *ptr, uint64_t size)
     shl_mem_alloc_debug_map.element[index].size = size;
     shl_mem_alloc_debug_map.element[index].is_free = 0;
     shl_mem_alloc_debug_map.index++;
+    return 0;
 }
 
 void *shl_mem_alloc(int64_t size)
 {
     void *ret;
+    if (size == 0) {
+        shl_debug_info("alloc 0 byte\n");
+        return NULL;
+    }
 #ifdef SHL_MEM_DEBUG_VALID_WRITE
     ret = calloc(1, size + 8);
     int8_t *check_ptr = ret + size;
@@ -100,13 +105,20 @@ void *shl_mem_alloc(int64_t size)
 
 void *shl_mem_calloc(size_t nmemb, size_t size) { return shl_mem_alloc(nmemb * size); }
 
-void *shl_mem_realloc(void *ptr, size_t size)
+void *shl_mem_realloc(void *ptr, size_t size, size_t orig_size)
 {
     void *ret = shl_mem_alloc(size);
     if (!ptr) {
         return ret;
     }
-    memcpy(ret, ptr, size);
+    if (orig_size == 0) {
+        shl_debug_warning(
+            "New size(instead of original size) will be applied into memcpy, which may cause "
+            "problems.\n");
+        memcpy(ret, ptr, size);
+    } else {
+        memcpy(ret, ptr, orig_size);
+    }
     shl_mem_free(ptr);
     return ret;
 }
@@ -117,8 +129,13 @@ void *shl_mem_alloc_aligned(int64_t size, int aligned_bytes)
 #ifdef SHL_BUILD_RTOS
     size_t real_size = size + aligned_bytes;
     void *tptr = shl_mem_alloc(real_size);
+#ifdef SHL_BUILD_C906
+    long mask = ~(aligned_bytes - 1);
+    long addr = ((long)tptr + aligned_bytes) & mask;
+#else
     int mask = ~(aligned_bytes - 1);
     int addr = ((int)tptr + aligned_bytes) & mask;
+#endif
     ptr = (void *)addr;
 #else
     if (aligned_bytes == 0) {

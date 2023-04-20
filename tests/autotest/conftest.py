@@ -18,25 +18,33 @@
 import pytest
 
 
+
+board = ""
+accuracy = ""
+dtype = ""
+
+
+
 def pytest_addoption(parser):
     parser.addoption(
-        "--board", action="store", default="c860", help="board option: c860|c906|c908|anole|x86_ref|c910"
+        "--board", action="store", default="c860", help="board option: c860|c906|c908|anole|x86_ref|c920"
     )
     parser.addoption(
         "--accuracy", action="store", default="0.99", help="error measures accuracy"
     )
     parser.addoption(
-        "--vlen", action="store", default="8", help="8|16|32"
+        "--dtype", action="store", default="8", help="8|16|32"
     )
 
 
-@pytest.fixture(scope='module')
-def cmdopt(request):
-    config_param = {}
-    config_param["board"] = request.config.getoption("--board")
-    config_param["accuracy"] = request.config.getoption("--accuracy")
-    config_param["vlen"] = request.config.getoption("--vlen")
-    return dict(config_param)
+def pytest_configure(config):
+    global board
+    global accuracy
+    global dtype
+    board = config.getoption("--board")
+    accuracy = config.getoption("--accuracy")
+    dtype = config.getoption("--dtype")
+
 
 
 def id_builder(arg):

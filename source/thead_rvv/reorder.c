@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
 
@@ -70,27 +70,26 @@ void shl_rvv_reorder_input_pack1ton_fp16(const __fp16 *src, __fp16 *dst, int inc
     }
 }
 
-// XXX: 需要适配 vector 0.7.1, mf2 不支持
 void shl_rvv_reorder_input_pack1ton_int8(const int8_t *src, int8_t *dst, int inc, int inh, int inw)
 {
-#ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    const int vl = vsetvl_e8mf2(packn);
+    int vl = vsetvl_e8m1(packn);
     const int in_size = inh * inw;  // per-channel size
 
-    int c = 0;
-    for (; c + packn - 1 < inc; c += packn) {
-        int8_t *in_ptr = (int8_t *)src + c * in_size;
+    while (inc > 0) {
+        vl = vsetvl_e8m1(inc > packn ? packn : inc);
+        int8_t *in_ptr = (int8_t *)src;
         for (int i = 0; i < inh; i++) {
             for (int j = 0; j < inw; j++) {
-                vint8mf2_t _tmp = vlse8_v_i8mf2(in_ptr, in_size * sizeof(int8_t), vl);
+                vint8m1_t _tmp = vlse8_v_i8m1(in_ptr, in_size * sizeof(int8_t), vl);
                 in_ptr++;
-                vse8_v_i8mf2(dst, _tmp, vl);
-                dst += packn;
+                vse8_v_i8m1(dst, _tmp, vl);
+                dst += vl;
             }
         }
+        src += in_size * vl;
+        inc -= vl;
     }
-#endif
 }
 
 // constrains: inc % packn = 0 (tail)
@@ -140,26 +139,24 @@ void shl_rvv_reorder_input_packnto1_fp16(const __fp16 *src, __fp16 *dst, int inc
 
 void shl_rvv_reorder_input_packnto1_int8(const int8_t *src, int8_t *dst, int inc, int inh, int inw)
 {
-#ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-    int vl = vsetvl_e8mf2(packn);
+    int vl = vsetvl_e8m1(packn);
     const int in_size = inh * inw;  // per-channel size
 
     while (inc > 0) {
-        vl = vsetvl_e8mf2(inc);
+        vl = vsetvl_e8m1(inc > packn ? packn : inc);
         int8_t *out_ptr = dst;
         for (int i = 0; i < inh; i++) {
             for (int j = 0; j < inw; j++) {
-                vint8mf2_t _tmp = vle8_v_i8mf2(src, vl);
+                vint8m1_t _tmp = vle8_v_i8m1(src, vl);
                 src += vl;
-                vsse8_v_i8mf2(out_ptr, in_size * sizeof(int8_t), _tmp, vl);
+                vsse8_v_i8m1(out_ptr, in_size * sizeof(int8_t), _tmp, vl);
                 out_ptr++;
             }
         }
         dst += in_size * vl;
         inc -= vl;
     }
-#endif
 }
 
 /************************************************************************
@@ -236,7 +233,42 @@ void shl_rvv_reorder_kernel_n8_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx
     }
 }
 
-void shl_rvv_reorder_kernel_n8_int8(int8_t *a, int8_t *sa, int m, int k, int ldx)
+void shl_rvv_reorder_kernel_n8_fp16_w_int8(int8_t *a, int8_t *sa, int m, int k, int ldx)
+{
+    int i = 0;
+    for (; i + 7 < m; i += 8) {
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = a + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), 8);
+            vse8_v_i8m1(sa, _input, 8);
+            sa += 8;
+        }
+        a += 8 * k;
+    }
+    for (; i + 3 < m; i += 4) {
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = a + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), 4);
+            vse8_v_i8m1(sa, _input, 4);
+            sa += 4;
+        }
+        a += 4 * k;
+    }
+    for (; i + 1 < m; i += 2) {
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = a + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), 2);
+            vse8_v_i8m1(sa, _input, 2);
+            sa += 2;
+        }
+        a += 2 * k;
+    }
+    for (; i < m; i++) {
+        memcpy(sa, a, k * sizeof(int8_t));
+    }
+}
+
+void shl_rvv_reorder_kernel_n8_int8_dot(int8_t *a, int8_t *sa, int m, int k, int ldx)
 {
     int i = 0;
     for (; i + 7 < m; i += 8) {
@@ -303,6 +335,33 @@ void shl_rvv_reorder_kernel_n8_int8(int8_t *a, int8_t *sa, int m, int k, int ldx
                 vse8_v_i8m1(sa, _input, k & 3);
                 sa += 4;
             }
+        }
+        a += 2 * k;
+    }
+    for (; i < m; i++) {
+        memcpy(sa, a, k * sizeof(int8_t));
+    }
+}
+
+// n4 n2 n1
+void shl_rvv_reorder_kernel_n4_int8_v128(int8_t *a, int8_t *sa, int m, int k, int ldx)
+{
+    int i = 0;
+    for (; i + 3 < m; i += 4) {
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = a + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), 4);
+            vse8_v_i8m1(sa, _input, 4);
+            sa += 4;
+        }
+        a += 4 * k;
+    }
+    for (; i + 1 < m; i += 2) {
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = a + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), 2);
+            vse8_v_i8m1(sa, _input, 2);
+            sa += 2;
         }
         a += 2 * k;
     }
@@ -415,6 +474,22 @@ void shl_rvv_reorder_kernel_packn_fp16(__fp16 *a, __fp16 *sa, int m, int k, int 
     }
 }
 
+void shl_rvv_reorder_kernel_int8(int8_t *b, int8_t *sb, int n, int k)
+{
+    int i = 0;
+    while (i < n) {
+        int vl = vsetvl_e8m1(n - i);
+        for (int j = 0; j < k; j++) {
+            int8_t *in_ptr = b + j;
+            vint8m1_t _input = vlse8_v_i8m1(in_ptr, k * sizeof(int8_t), vl);
+            vse8_v_i8m1(sb, _input, vl);
+            sb += vl;
+        }
+        b += vl * k;
+        i += vl;
+    }
+}
+
 /************************************************************************
  * reorder input matrix
  ***********************************************************************/
@@ -508,7 +583,7 @@ void shl_rvv_reorder_input_z16_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx
 /**************************************************************
  * Data arrangement: Z8 Z4 | | |
  **************************************************************/
-void shl_rvv_reorder_input_z8_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
+void shl_rvv_reorder_input_z8_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx)
 {
     int vl = vsetvl_e8m1(8);
     int i = 0;
@@ -595,6 +670,47 @@ void shl_rvv_reorder_input_z8_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
             vint8m1_t _tmp = vlse8_v_i8m1(b0, ldx * sizeof(int8_t), vl);
             vse8_v_i8m1(sb, _tmp, vl);
             sb += ((k & 15) / 4 + 1) * 4;
+        }
+    }
+}
+
+/**************************************************************
+ * Data arrangement: Z16 Z8 Z8_tail
+ **************************************************************/
+void shl_rvv_reorder_input_z16_int8_v128(int8_t *b, int8_t *sb, int k, int n, int ldx)
+{
+    int vl = vsetvl_e8m1(16);
+    int8_t *b0 = NULL;
+    int i = 0;
+    for (; i + 15 < n; i += 16) {
+        b0 = b + i;
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
+            b0 += ldx;
+            vse8_v_i8m1(sb, _tmp, vl);
+            sb += 16;
+        }
+    }
+
+    for (; i + 7 < n; i += 8) {
+        vl = vsetvl_e8m1(8);
+        b0 = b + i;
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
+            b0 += ldx;
+            vse8_v_i8m1(sb, _tmp, vl);
+            sb += 8;
+        }
+    }
+    // tail
+    if (i < n) {
+        vl = vsetvl_e8m1(n - i);
+        b0 = b + i;
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _tmp = vle8_v_i8m1(b0, vl);
+            b0 += ldx;
+            vse8_v_i8m1(sb, _tmp, vl);
+            sb += vl;
         }
     }
 }
@@ -1018,11 +1134,69 @@ void shl_rvv_reorder_input_z12_pack1ton_fp16(__fp16 *b, __fp16 *sb, int inc, int
     }
 }
 
+void shl_rvv_reorder_input_z4_pack1ton_int8(int8_t *b, int8_t *sb, int inc, int maxk, int n,
+                                            int ldx)
+{
+    const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int vl = vsetvl_e8m1(packn);
+
+    int t = 0;
+    for (; t + 3 < n; t += 4) {
+        const int8_t *tm1 = b + t * vl;
+        int loop_c = inc;
+        while (loop_c > 0) {
+            int avl = vsetvl_e8m1(loop_c > packn ? packn : loop_c);
+            tm1 += t * (avl - vl);
+            for (int i = 0; i < maxk; i++) {
+                vint8m1_t _tmp0 = vle8_v_i8m1(tm1, avl);
+                vint8m1_t _tmp1 = vle8_v_i8m1(tm1 + avl * 1, avl);
+                vint8m1_t _tmp2 = vle8_v_i8m1(tm1 + avl * 2, avl);
+                vint8m1_t _tmp3 = vle8_v_i8m1(tm1 + avl * 3, avl);
+                vsseg4e8_v_i8m1(sb, _tmp0, _tmp1, _tmp2, _tmp3, avl);
+                tm1 += n * avl;
+                sb += 4 * avl;
+            }
+            loop_c -= avl;
+        }
+    }
+    for (; t + 1 < n; t += 2) {
+        const int8_t *tm1 = b + t * vl;
+        int loop_c = inc;
+        while (loop_c > 0) {
+            int avl = vsetvl_e8m1(loop_c > packn ? packn : loop_c);
+            tm1 += t * (avl - vl);
+            for (int i = 0; i < maxk; i++) {
+                vint8m1_t _tmp0 = vle8_v_i8m1(tm1, avl);
+                vint8m1_t _tmp1 = vle8_v_i8m1(tm1 + avl * 1, avl);
+                vsseg2e8_v_i8m1(sb, _tmp0, _tmp1, avl);
+                tm1 += n * avl;
+                sb += 2 * avl;
+            }
+            loop_c -= avl;
+        }
+    }
+    for (; t < n; t++) {
+        const int8_t *tm1 = b + t * vl;
+        int loop_c = inc;
+        while (loop_c > 0) {
+            int avl = vsetvl_e8m1(loop_c > packn ? packn : loop_c);
+            tm1 += t * (avl - vl);
+            for (int i = 0; i < maxk; i++) {
+                vint8m1_t _tmp0 = vle8_v_i8m1(tm1, avl);
+                vse8_v_i8m1(sb, _tmp0, avl);
+                tm1 += n * avl;
+                sb += 1 * avl;
+            }
+            loop_c -= avl;
+        }
+    }
+}
+
 /**************************************************************
  * inc % 4 = 0
  **************************************************************/
-void shl_rvv_reorder_input_z12_pack1ton_int8(int8_t *b, int8_t *sb, int inc, int maxk, int n,
-                                             int ldx)
+void shl_rvv_reorder_input_z12_pack1ton_int8_dot(int8_t *b, int8_t *sb, int inc, int maxk, int n,
+                                                 int ldx)
 {
 #ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
@@ -1350,7 +1524,7 @@ void shl_rvv_reorder_input_z8_packn_fp16(__fp16 *b, __fp16 *sb, int k, int n, in
     }
 }
 
-void shl_rvv_reorder_input_z8_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
+void shl_rvv_reorder_input_z8_packn_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx)
 {
 #ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
@@ -1747,7 +1921,46 @@ void shl_rvv_reorder_input_z12_packn_fp16(__fp16 *b, __fp16 *sb, int k, int n, i
     }
 }
 
-void shl_rvv_reorder_input_z12_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
+void shl_rvv_reorder_input_z4_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx)
+{
+    const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    const int vl = vsetvl_e8m1(packn);
+
+    int t = 0;
+    for (; t + 3 < n; t += 4) {
+        const int8_t *tm1 = b + t * packn;
+        for (int q = 0; q < k / packn; q++) {
+            vint8m1_t _tmp0 = vle8_v_i8m1(tm1, vl);
+            vint8m1_t _tmp1 = vle8_v_i8m1(tm1 + packn * 1, vl);
+            vint8m1_t _tmp2 = vle8_v_i8m1(tm1 + packn * 2, vl);
+            vint8m1_t _tmp3 = vle8_v_i8m1(tm1 + packn * 3, vl);
+            vsseg4e8_v_i8m1(sb, _tmp0, _tmp1, _tmp2, _tmp3, vl);
+            tm1 += n * packn;
+            sb += 4 * packn;
+        }
+    }
+    for (; t + 1 < n; t += 2) {
+        const int8_t *tm1 = b + t * packn;
+        for (int q = 0; q < k / packn; q++) {
+            vint8m1_t _tmp0 = vle8_v_i8m1(tm1, vl);
+            vint8m1_t _tmp1 = vle8_v_i8m1(tm1 + packn * 1, vl);
+            vsseg2e8_v_i8m1(sb, _tmp0, _tmp1, vl);
+            tm1 += n * packn;
+            sb += 2 * packn;
+        }
+    }
+    for (; t < n; t++) {
+        const int8_t *tm1 = b + t * packn;
+        for (int q = 0; q < k / packn; q++) {
+            vint8m1_t _tmp0 = vle8_v_i8m1(tm1, vl);
+            vse8_v_i8m1(sb, _tmp0, vl);
+            tm1 += n * packn;
+            sb += 1 * packn;
+        }
+    }
+}
+
+void shl_rvv_reorder_input_z12_packn_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx)
 {
 #ifdef RVV_1_0_0
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
@@ -1973,4 +2186,29 @@ void shl_rvv_reorder_input_z12_packn_int4(int8_t *b, int8_t *sb, int k, int n, i
         }
     }
 #endif
+}
+
+// m4 m2 m1
+void shl_rvv_reorder_input_m4_int8(int8_t *a, int8_t *sa, int m, int k)
+{
+    int i = 0;
+    for (; i + 3 < m; i += 4) {
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _input = vlse8_v_i8m1(a + j, k * sizeof(int8_t), 4);
+            vse8_v_i8m1(sa, _input, 4);
+            sa += 4;
+        }
+        a += 4 * k;
+    }
+    for (; i + 1 < m; i += 2) {
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _input = vlse8_v_i8m1(a + j, k * sizeof(int8_t), 2);
+            vse8_v_i8m1(sa, _input, 2);
+            sa += 2;
+        }
+        a += 2 * k;
+    }
+    for (; i < m; i++) {
+        memcpy(sa, a, k * sizeof(int8_t));
+    }
 }

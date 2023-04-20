@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
-#include "math_snr.h"
 #include "test_utils.h"
 #include "testutil.h"
 
@@ -32,7 +31,7 @@ int main(int argc, char** argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_sigmoid_params *params = csinn_alloc_params(sizeof(struct csinn_sigmoid_params), sess);
+    struct csinn_sigmoid_params *params = (csinn_sigmoid_params *)csinn_alloc_params(sizeof(struct csinn_sigmoid_params), sess);
     int in_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -65,13 +64,16 @@ int main(int argc, char** argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 
+#if (DTYPE==32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_sigmoid_init,
                    csinn_sigmoid, &difference);
+#elif (DTYPE==16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_sigmoid_init,
                    csinn_sigmoid, &difference);
+#elif (DTYPE==8)
     test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_sigmoid_init,
                    csinn_sigmoid, &difference);
-
+#endif
 
     return done_testing();
 }

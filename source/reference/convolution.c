@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 #ifdef SHL_AVX_OPT
@@ -267,6 +267,7 @@ static int shl_ref_depthwise_conv2d_nchw_f32(struct csinn_tensor *input,
             }
         }
     }
+    return CSINN_TRUE;
 }
 
 static int shl_ref_group_conv2d_nhwc_f32(struct csinn_tensor *o_input,
@@ -358,6 +359,7 @@ int shl_ref_conv2d_f32(struct csinn_tensor *input, struct csinn_tensor *output,
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_conv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -403,6 +405,7 @@ int shl_ref_depthwise_conv2d_f32(struct csinn_tensor *input, struct csinn_tensor
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_depthwise_conv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -462,6 +465,7 @@ int shl_ref_group_conv2d_f32(struct csinn_tensor *input, struct csinn_tensor *ou
     } else {
         return CSINN_UNSUPPORT_LAYOUT;
     }
+    return CSINN_TRUE;
 }
 
 int shl_ref_group_conv2d_quant(struct csinn_tensor *input, struct csinn_tensor *output,

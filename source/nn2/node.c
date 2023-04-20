@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_memory.h"
 #include "shl_node.h"
@@ -63,6 +63,16 @@ int shl_node_free(struct shl_node *node)
 int shl_node_add_in(struct shl_node *node, struct shl_node *in, int index)
 {
     node->in[index] = in;
+    if (in->type == CSINN_TENSOR) {
+        if (in->out_num == 1 && !in->out[0]) {
+            in->out[0] = node;
+        } else {
+            in->out = shl_mem_realloc(in->out, (in->out_num + 1) * sizeof(struct shl_node *),
+                                      in->out_num * sizeof(struct shl_node *));
+            in->out[in->out_num] = node;
+            in->out_num++;
+        }
+    }
     return CSINN_TRUE;
 }
 
@@ -100,7 +110,8 @@ struct shl_node *shl_node_get_out(struct shl_node *node, int index) { return nod
 int shl_node_restrict_map_insert(int value, struct shl_node *node)
 {
     node->restricted_map =
-        shl_mem_realloc(node->restricted_map, (node->restricted_map_num + 1) * sizeof(int));
+        shl_mem_realloc(node->restricted_map, (node->restricted_map_num + 1) * sizeof(int),
+                        node->restricted_map_num * sizeof(int));
     node->restricted_map[node->restricted_map_num] = value;
     node->restricted_map_num++;
     return CSINN_TRUE;

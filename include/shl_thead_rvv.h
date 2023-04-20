@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_RVV_H_
 #define INCLUDE_SHL_RVV_H_
@@ -31,7 +31,9 @@
 #endif
 
 #ifdef __riscv_xtheadvdot
-#define XTHEADV
+#define XTHEADVDOT
+#define SHL_USE_DOT_INT8  // default: support int8 dot
+// #define SHL_USE_DOT_INT4     // easter eggs
 #endif  // __riscv_xtheadvdot
 
 #endif  // __riscv_vector
@@ -54,9 +56,10 @@ int shl_rvv_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
 int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                              struct csinn_conv2d_params *params);
-int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+
+int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                             struct csinn_conv2d_params *params);
+                             struct csinn_conv1d_params *params);
 
 int shl_rvv_depthwise_conv2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -77,10 +80,12 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_pool_params *params);
 int shl_rvv_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_pool_params *params);
-int shl_rvv_avgpool2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-int shl_rvv_global_avgpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
 
 int shl_rvv_maxpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_pool_params *params);
@@ -88,14 +93,25 @@ int shl_rvv_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_pool_params *params);
 int shl_rvv_maxpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_pool_params *params);
-int shl_rvv_maxpool2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-int shl_rvv_global_maxpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_pool_params *params);
 
-int shl_rvv_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                struct csinn_fc_params *params);
+int shl_rvv_global_maxpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_maxpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+
+int shl_rvv_fullyconnected_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                     struct csinn_fc_params *params);
+
+int shl_rvv_fullyconnected_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                     struct csinn_fc_params *params);
+
+int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                     struct csinn_fc_params *params);
 
 int shl_rvv_data_convert_init(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_siso_params *params);
@@ -108,8 +124,6 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
                                                   struct csinn_conv2d_params *params);
 void shl_rvv_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
                                                   struct csinn_conv2d_params *params);
-void shl_rvv_conv_im2col_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
-                                                  struct csinn_conv2d_params *params);
 
 int shl_rvv_conv_im2col_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -120,17 +134,12 @@ int shl_rvv_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tenso
 int shl_rvv_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                   struct csinn_conv2d_params *params);
-int shl_rvv_conv_im2col_gemm_int4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                  struct csinn_conv2d_params *params);
 
 void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp32(struct csinn_tensor *kernel,
                                                         struct csinn_conv2d_params *params);
 void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp16(struct csinn_tensor *kernel,
                                                         struct csinn_conv2d_params *params);
 void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(struct csinn_tensor *kernel,
-                                                        struct csinn_conv2d_params *params);
-void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int4(struct csinn_tensor *kernel,
                                                         struct csinn_conv2d_params *params);
 
 int shl_rvv_conv_im2col_gemm_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -140,9 +149,6 @@ int shl_rvv_conv_im2col_gemm_packn_fp16(struct csinn_tensor *input, struct csinn
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                         struct csinn_conv2d_params *params);
 int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                        struct csinn_conv2d_params *params);
-int shl_rvv_conv_im2col_gemm_packn_int4(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                         struct csinn_conv2d_params *params);
 
@@ -187,8 +193,6 @@ void shl_rvv_conv1x1s1_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
                                                 struct csinn_conv2d_params *params);
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
                                                 struct csinn_conv2d_params *params);
-void shl_rvv_conv1x1s1_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
-                                                struct csinn_conv2d_params *params);
 
 int shl_rvv_conv1x1s1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -199,17 +203,12 @@ int shl_rvv_conv1x1s1_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor 
 int shl_rvv_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                 struct csinn_conv2d_params *params);
-int shl_rvv_conv1x1s1_gemm_int4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                struct csinn_conv2d_params *params);
 
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_fp32(struct csinn_tensor *kernel,
                                                       struct csinn_conv2d_params *params);
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_fp16(struct csinn_tensor *kernel,
                                                       struct csinn_conv2d_params *params);
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_int8(struct csinn_tensor *kernel,
-                                                      struct csinn_conv2d_params *params);
-void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_int4(struct csinn_tensor *kernel,
                                                       struct csinn_conv2d_params *params);
 
 int shl_rvv_conv1x1s1_gemm_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -219,9 +218,6 @@ int shl_rvv_conv1x1s1_gemm_packn_fp16(struct csinn_tensor *input, struct csinn_t
                                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                       struct csinn_conv2d_params *params);
 int shl_rvv_conv1x1s1_gemm_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                      struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                      struct csinn_conv2d_params *params);
-int shl_rvv_conv1x1s1_gemm_packn_int4(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                       struct csinn_conv2d_params *params);
 
@@ -341,6 +337,26 @@ int shl_rvv_dwconv3x3s2_packn_int8(struct csinn_tensor *input, struct csinn_tens
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params);
 
+int shl_rvv_dwconv_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                              struct csinn_conv2d_params *params);
+int shl_rvv_dwconv_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                              struct csinn_conv2d_params *params);
+int shl_rvv_dwconv_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                              struct csinn_conv2d_params *params);
+
+int shl_rvv_dwconv_nhwc_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params);
+int shl_rvv_dwconv_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params);
+int shl_rvv_dwconv_nhwc_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params);
+
 /*************************************** gemm *************************************/
 void shl_rvv_reorder_kernel_n8_fp32(float *a, float *sa, int m, int k, int ldx);
 void shl_rvv_reorder_input_z8_fp32(float *b, float *sb, int k, int n, int ldx);
@@ -361,21 +377,35 @@ void shl_rvv256_reorder_input_z16_fp16(__fp16 *b, __fp16 *sb, int k, int n, int 
 void shl_rvv256_gemm_16x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
                                 int m, int k, int n, int ldc);
 
-void shl_rvv_reorder_kernel_n8_int8(int8_t *a, int8_t *sa, int m, int k, int ldx);
-void shl_rvv_reorder_input_z8_int8(int8_t *b, int8_t *sb, int k, int n, int ldx);
+void shl_rvv_reorder_kernel_n8_int8_dot(int8_t *a, int8_t *sa, int m, int k, int ldx);
+void shl_rvv_reorder_input_z8_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx);
 void shl_rvv_gemm_8x8_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias, int m,
                             int k, int n, int ldc);
-void shl_rvv_gemm_8x8_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias, int m,
-                           int k, int n, int ldc, int32_t out_zp, int32_t *mult, int32_t *shift);
+void shl_rvv_gemm_8x8_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias,
+                               int m, int k, int n, int ldc, int32_t out_zp, int32_t *mult,
+                               int32_t *shift);
+
+void shl_rvv_reorder_kernel_n4_int8_v128(int8_t *a, int8_t *sa, int m, int k, int ldx);
+void shl_rvv_reorder_input_z16_int8_v128(int8_t *b, int8_t *sb, int k, int n, int ldx);
+void shl_rvv_gemm_4x16_int8_v128(int8_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias,
+                                 int m, int k, int n, int ldc, int32_t out_zp, int32_t *mult,
+                                 int32_t *shift);
 
 void shl_rvv256_reorder_input_z16_int8(int8_t *b, int8_t *sb, int k, int n, int ldx);
 void shl_rvv256_gemm_8x16_int32(int32_t *dst, const int8_t *sa, const int8_t *sb, int32_t *bias,
                                 int m, int k, int n, int ldc);
 
-void shl_rvv_reorder_input_n8_int4(int8_t *a, int8_t *sa, int m, int k, int ldx);
+void shl_rvv_reorder_input_n8_int4_dot(int8_t *a, int8_t *sa, int m, int k, int ldx);
 void shl_rvv_reorder_kernel_n8_int4(int8_t *b, int8_t *sb, int n, int k, int ldx);
-void shl_rvv_gemm_8x8_int4(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k, int n,
-                           int ldc, int32_t *bias, int32_t out_zp, int32_t *mult, int32_t *shift);
+void shl_rvv_gemm_8x8_int4_dot(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k, int n,
+                               int ldc, int32_t *bias, int32_t out_zp, int32_t *mult,
+                               int32_t *shift);
+
+void shl_rvv_reorder_input_m4_int8(int8_t *a, int8_t *sa, int m, int k);
+void shl_rvv_reorder_kernel_int8(int8_t *b, int8_t *sb, int n, int k);
+void shl_rvv_gemm_4xn_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, const int32_t *bias,
+                           int m, int k, int n, int ldc, int32_t out_zp, int32_t *mult,
+                           int32_t *shift);
 
 /************************************ gemm ncxhwx *********************************/
 void shl_rvv_reorder_kernel_packn_fp32(float *a, float *sa, int m, int k, int ldx);
@@ -394,14 +424,14 @@ void shl_rvv_reorder_input_z12_packn_fp16(__fp16 *b, __fp16 *sb, int k, int n, i
 void shl_rvv_ncxhwx_gemm_12xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
                                         __fp16 *bias, int m, int k, int n, int ldc);
 
-void shl_rvv_reorder_input_z8_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx);
-void shl_rvv_ncxhwx_gemm_8xpackn_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                      int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
-                                      int32_t *mult, int32_t *shift);
-void shl_rvv_reorder_input_z12_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx);
-void shl_rvv_ncxhwx_gemm_12xpackn_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                       int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
-                                       int32_t *mult, int32_t *shift);
+void shl_rvv_reorder_input_z8_packn_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx);
+void shl_rvv_ncxhwx_gemm_8xpackn_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
+                                          int32_t *bias, int m, int k, int n, int ldc,
+                                          int32_t out_zp, int32_t *mult, int32_t *shift);
+void shl_rvv_reorder_input_z12_packn_int8_dot(int8_t *b, int8_t *sb, int k, int n, int ldx);
+void shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
+                                           int32_t *bias, int m, int k, int n, int ldc,
+                                           int32_t out_zp, int32_t *mult, int32_t *shift);
 
 void shl_rvv_reorder_input_z8_packn_int4(int8_t *b, int8_t *sb, int k, int n, int ldx);
 void shl_rvv_ncxhwx_gemm_8xpackn_int4(int8_t *dst, const int8_t *sa, const int8_t *sb,
@@ -417,8 +447,15 @@ void shl_rvv_reorder_input_z12_pack1ton_fp32(float *b, float *sb, int inc, int m
                                              int ldx);
 void shl_rvv_reorder_input_z12_pack1ton_fp16(__fp16 *b, __fp16 *sb, int inc, int maxk, int n,
                                              int ldx);
-void shl_rvv_reorder_input_z12_pack1ton_int8(int8_t *b, int8_t *sb, int inc, int maxk, int n,
-                                             int ldx);
+void shl_rvv_reorder_input_z4_pack1ton_int8(int8_t *b, int8_t *sb, int inc, int maxk, int n,
+                                            int ldx);
+void shl_rvv_reorder_input_z12_pack1ton_int8_dot(int8_t *b, int8_t *sb, int inc, int maxk, int n,
+                                                 int ldx);
+
+void shl_rvv_reorder_input_z4_packn_int8(int8_t *b, int8_t *sb, int k, int n, int ldx);
+void shl_rvv_ncxhwx_gemm_4xpack2n_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
+                                       int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
+                                       int32_t *mult, int32_t *shift);
 
 /************************************ pooling *********************************/
 int shl_rvv_avgpool2x2s2_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -506,6 +543,8 @@ int shl_rvv_avgpool2x2s2_packn_fp32(struct csinn_tensor *input, struct csinn_ten
                                     struct csinn_pool_params *params);
 int shl_rvv_avgpool2x2s2_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params);
+int shl_rvv_avgpool2x2s2_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_pool_params *params);
 int shl_rvv_avgpool3x3s2_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params);
 int shl_rvv_avgpool3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -513,6 +552,10 @@ int shl_rvv_avgpool3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_ten
 int shl_rvv_avgpool3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params);
 int shl_rvv_avgpool3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_pool_params *params);
+int shl_rvv_avgpool3x3s2_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                    struct csinn_pool_params *params);
+int shl_rvv_avgpool3x3s1_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_pool_params *params);
 
 int shl_rvv_global_maxpool2d_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -528,10 +571,52 @@ int shl_rvv_global_avgpool2d_packn_fp16(struct csinn_tensor *input, struct csinn
 int shl_rvv_global_avgpool2d_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_pool_params *params);
 
+int shl_rvv_maxpool_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+int shl_rvv_maxpool_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+int shl_rvv_maxpool_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+
+int shl_rvv_avgpool_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+int shl_rvv_avgpool_packn_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+int shl_rvv_avgpool_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                               struct csinn_pool_params *params);
+
+int shl_rvv_maxpool_nhwc_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+int shl_rvv_maxpool_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+int shl_rvv_maxpool_nhwc_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+
+int shl_rvv_avgpool_nhwc_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+int shl_rvv_avgpool_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+int shl_rvv_avgpool_nhwc_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_pool_params *params);
+
+int shl_rvv_global_maxpool2d_nhwc_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_maxpool2d_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_maxpool2d_nhwc_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_nhwc_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+int shl_rvv_global_avgpool2d_nhwc_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_pool_params *params);
+
 /************************************ fullyconnected *********************************/
 void shl_rvv_fc_gemv_transform_weight_fp32(struct csinn_tensor *weights);
 void shl_rvv_fc_gemv_transform_weight_fp16(struct csinn_tensor *weights);
 void shl_rvv_fc_gemv_transform_weight_int8(struct csinn_tensor *weights);
+void shl_rvv_fc_gemm_transform_weight_int8(struct csinn_tensor *weights);
 
 int shl_rvv_fullyconnected_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
@@ -542,16 +627,9 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
 int shl_rvv_fullyconnected_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
                                       struct csinn_fc_params *params);
-
-void shl_rvv_fc_gemv_transform_weight_int8_dot(struct csinn_tensor *weights);
-void shl_rvv_fc_gemv_transform_weight_int4_dot(struct csinn_tensor *weights);
-
-int shl_rvv_fullyconnected_packn_int8_dot(struct csinn_tensor *input, struct csinn_tensor *output,
-                                          struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                          struct csinn_fc_params *params);
-int shl_rvv_fullyconnected_packn_int4_dot(struct csinn_tensor *input, struct csinn_tensor *output,
-                                          struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                          struct csinn_fc_params *params);
+int shl_rvv_fullyconnected_gemm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                     struct csinn_fc_params *params);
 
 /************************************ activation *********************************/
 int shl_rvv_relu_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -565,8 +643,6 @@ int shl_rvv_relu6_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_relu_params *params);
 int shl_rvv_relu6_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_relu_params *params);
-int shl_rvv_relu6_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                       struct csinn_relu_params *params);
 
 int shl_rvv_leaky_relu_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_relu_params *params);
@@ -578,8 +654,24 @@ int shl_rvv_leaky_relu_int8(struct csinn_tensor *input, struct csinn_tensor *out
 int shl_rvv_sigmoid_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_sigmoid_params *params);
 
+int shl_rvv_softmax_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_softmax_params *params);
 int shl_rvv_softmax_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_softmax_params *params);
+
+int shl_rvv_prelu_fp32(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                       struct csinn_tensor *output, struct csinn_prelu_params *params);
+int shl_rvv_prelu_fp16(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                       struct csinn_tensor *output, struct csinn_prelu_params *params);
+int shl_rvv_prelu_int8(struct csinn_tensor *input, struct csinn_tensor *alpha,
+                       struct csinn_tensor *output, struct csinn_prelu_params *params);
+
+int shl_rvv_clip_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_clip_params *params);
+int shl_rvv_clip_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_clip_params *params);
+int shl_rvv_clip_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_clip_params *params);
 
 /************************************ layout/memory transform *********************************/
 int shl_rvv_concat_fp32(struct csinn_tensor **input, struct csinn_tensor *output,
@@ -588,6 +680,16 @@ int shl_rvv_concat_fp16(struct csinn_tensor **input, struct csinn_tensor *output
                         struct csinn_concat_params *params);
 int shl_rvv_concat_int8(struct csinn_tensor **input, struct csinn_tensor *output,
                         struct csinn_concat_params *params);
+
+int shl_rvv_reshape_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_reshape_params *params);
+int shl_rvv_reshape_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_reshape_params *params);
+int shl_rvv_reshape_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_reshape_params *params);
+
+int shl_rvv_gather_int8(struct csinn_tensor *input, struct csinn_tensor *indices,
+                        struct csinn_tensor *output, struct csinn_gather_params *params);
 
 /************************************ basic math *********************************/
 int shl_rvv_add_fp32(struct csinn_tensor *input0, struct csinn_tensor *input1,
@@ -606,6 +708,26 @@ int shl_rvv_mul_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
 
 int shl_rvv_sum_stride_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_reduce_params *params);
+
+int shl_rvv_transpose_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_transpose_params *params);
+int shl_rvv_transpose_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_transpose_params *params);
+
+/******************************** normalization *****************************/
+int shl_rvv_layer_norm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                            struct csinn_layer_norm_params *params);
+int shl_rvv_layer_norm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                            struct csinn_layer_norm_params *params);
+int shl_rvv_layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                            struct csinn_layer_norm_params *params);
+
+/******************************** linear algebra ****************************/
+int shl_rvv_matmul_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                        struct csinn_tensor *output, struct csinn_matmul_params *params);
 
 /************************************ utils *********************************/
 void shl_rvv_pad_input_fp32(const float *input, float *input_padded, int inc, int inh, int inw,
@@ -634,6 +756,14 @@ void shl_rvv_pad_input_pack1ton_int8(const int8_t *input, int8_t *input_padded, 
                                      int inw, int padded_h, int padded_w, int pad_top, int pad_left,
                                      int8_t pad_value);
 
+void shl_rvv_pad_input_nhwc_fp32(const float *input, float *input_padded, int inh, int inw, int inc,
+                                 int padded_h, int padded_w, int pad_top, int pad_left);
+void shl_rvv_pad_input_nhwc_fp16(const __fp16 *input, __fp16 *input_padded, int inh, int inw,
+                                 int inc, int padded_h, int padded_w, int pad_top, int pad_left);
+void shl_rvv_pad_input_nhwc_int8(const int8_t *input, int8_t *input_padded, int inh, int inw,
+                                 int inc, int padded_h, int padded_w, int pad_top, int pad_left,
+                                 int8_t pad_value);
+
 void shl_rvv_reorder_input_pack1ton_fp32(const float *src, float *dst, int inc, int inh, int inw);
 void shl_rvv_reorder_input_pack1ton_fp16(const __fp16 *src, __fp16 *dst, int inc, int inh, int inw);
 void shl_rvv_reorder_input_pack1ton_int8(const int8_t *src, int8_t *dst, int inc, int inh, int inw);
@@ -643,7 +773,17 @@ void shl_rvv_reorder_input_packnto1_int8(const int8_t *src, int8_t *dst, int inc
 
 void shl_rvv_saturated_int8(int32_t *src, int8_t *dst, int32_t out_zp, int size);
 
+void shl_rvv_sidcso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                       struct csinn_tensor *kernel);
+void shl_rvv_siso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output);
+void shl_rvv_diso_op_requantize_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                                     struct csinn_tensor *output);
+
 void shl_rvv_requantize(int32_t *src, int32_t multiplier, int32_t shift, int channel_size);
+
+void shl_rvv_dequantize_i8_to_f16(int8_t *src, __fp16 *dst, int size, int32_t zp, float scale);
+
+void shl_rvv_reorder_kernel_n8_fp16_w_int8(int8_t *a, int8_t *sa, int m, int k, int ldx);
 
 void shl_rvv_pad_input_int4_trans_int8(const int8_t *input, int8_t *input_padded, int inc, int inh,
                                        int inw, int padded_h, int padded_w, int pad_top,
@@ -658,8 +798,68 @@ int shl_rvv_data_convert_int8_to_int4(struct csinn_tensor *input, struct csinn_t
 int shl_rvv_data_convert_int4_to_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_siso_params *params);
 
+struct csinn_callback *shl_cb_map_rvv(int op, int dtype);
+void shl_rvv_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init, void *exec,
+                    void *est, void *cap);
+
 int csrr_vl();
 int csrr_vlenb();
+
+enum avgpool_loc_enum {
+    AVGPOOL_LEFT_TOP = 0,
+    AVGPOOL_RIGHT_TOP,
+    AVGPOOL_LEFT_BOTTOM,
+    AVGPOOL_RIGHT_BOTTOM,
+    AVGPOOL_LEFT,
+    AVGPOOL_RIGHT,
+    AVGPOOL_TOP,
+    AVGPOOL_BOTTOM,
+    AVGPOOL_CENTER,
+};
+
+int shl_rvv_avgpool_get_window_size(struct csinn_pool_params *params, int idx_h_start,
+                                    int idx_h_end, int idx_w_start, int idx_w_end,
+                                    enum avgpool_loc_enum loc);
+
+void shl_rvv_conv1d_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
+                                             struct csinn_conv1d_params *params);
+int shl_rvv_conv1d_gemm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv1d_params *params);
+
+int shl_rvv_dwconv1d_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                          struct csinn_conv1d_params *params);
+
+#ifdef SHL_USE_DOT_INT4
+int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                             struct csinn_conv2d_params *params);
+void shl_rvv_conv_im2col_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
+                                                  struct csinn_conv2d_params *params);
+int shl_rvv_conv_im2col_gemm_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                  struct csinn_conv2d_params *params);
+void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int4(struct csinn_tensor *kernel,
+                                                        struct csinn_conv2d_params *params);
+int shl_rvv_conv_im2col_gemm_packn_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                        struct csinn_conv2d_params *params);
+void shl_rvv_conv1x1s1_gemm_reorder_kernel_int4(struct csinn_tensor *kernel,
+                                                struct csinn_conv2d_params *params);
+int shl_rvv_conv1x1s1_gemm_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                struct csinn_conv2d_params *params);
+void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_int4(struct csinn_tensor *kernel,
+                                                      struct csinn_conv2d_params *params);
+int shl_rvv_conv1x1s1_gemm_packn_int4(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                      struct csinn_conv2d_params *params);
+void shl_rvv_fc_gemv_transform_weight_int4_dot(struct csinn_tensor *weights);
+int shl_rvv_fullyconnected_packn_int4_dot(struct csinn_tensor *input, struct csinn_tensor *output,
+                                          struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                          struct csinn_fc_params *params);
+#endif
 
 #ifdef __cplusplus
 }

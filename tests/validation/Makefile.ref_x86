@@ -156,8 +156,6 @@ test_objs += erf_u8.o
 #test_objs += dequantize_f32.o
 
 utils_objs =
-
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 
 all: csi

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,11 +16,15 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "csi_nn.h"
 #include "shl_utils.h"
 
+/**
+ * @addtogroup INIT
+ * @{
+ */
 int csinn_segment_mean_init(struct csinn_tensor *input0, struct csinn_tensor *input1,
                             struct csinn_tensor *output, struct csinn_segment_params *params)
 {
@@ -29,14 +33,20 @@ int csinn_segment_mean_init(struct csinn_tensor *input0, struct csinn_tensor *in
     } else {
         shl_op_callback_map(&params->base, CSINN_OP_SEGMENT_MEAN, input0->dtype);
     }
-    struct csinn_callback *cb = params->base.cb;
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
         func(input0, input1, output, params);
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */
 
+/**
+ * @addtogroup NN
+ * @{
+ */
 int csinn_segment_mean(struct csinn_tensor *input0, struct csinn_tensor *input1,
                        struct csinn_tensor *output, struct csinn_segment_params *params)
 {
@@ -49,3 +59,6 @@ int csinn_segment_mean(struct csinn_tensor *input0, struct csinn_tensor *input1,
     }
     return CSINN_TRUE;
 }
+/**
+ * @}
+ */

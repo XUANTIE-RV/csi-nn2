@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #ifndef INCLUDE_SHL_REF_H_
 #define INCLUDE_SHL_REF_H_
@@ -446,6 +446,12 @@ int shl_ref_gather_nd_quant(struct csinn_tensor *input, struct csinn_tensor *ind
 int shl_ref_gather_f32(struct csinn_tensor *input, struct csinn_tensor *indices,
                        struct csinn_tensor *output, struct csinn_gather_params *params);
 
+int shl_ref_gather_f16(struct csinn_tensor *input, struct csinn_tensor *indices,
+                       struct csinn_tensor *output, struct csinn_gather_params *params);
+
+int shl_ref_gather_int8(struct csinn_tensor *input, struct csinn_tensor *indices,
+                        struct csinn_tensor *output, struct csinn_gather_params *params);
+
 int shl_ref_gather_quant(struct csinn_tensor *input, struct csinn_tensor *indices,
                          struct csinn_tensor *output, struct csinn_gather_params *params);
 
@@ -794,6 +800,12 @@ int shl_ref_reshape_quant(struct csinn_tensor *input, struct csinn_tensor *outpu
 int shl_ref_resize_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_resize_params *params);
 
+int shl_ref_resize_f16(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_resize_params *params);
+
+int shl_ref_resize_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_resize_params *params);
+
 int shl_ref_resize_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_resize_params *params);
 
@@ -1021,8 +1033,17 @@ int shl_ref_stack_f32(struct csinn_tensor **input, struct csinn_tensor *output,
 int shl_ref_stack_quant(struct csinn_tensor **input, struct csinn_tensor *output,
                         struct csinn_stack_params *params);
 
+int shl_ref_strided_slice(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_strided_slice_params *params);
+
 int shl_ref_strided_slice_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_strided_slice_params *params);
+
+int shl_ref_strided_slice_f16(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_strided_slice_params *params);
+
+int shl_ref_strided_slice_i8(struct csinn_tensor *input, struct csinn_tensor *output,
+                             struct csinn_strided_slice_params *params);
 
 int shl_ref_strided_slice_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_strided_slice_params *params);
@@ -1110,6 +1131,35 @@ int shl_ref_yuv_rgb_scale_f32(struct csinn_tensor *input, struct csinn_tensor *o
 
 int shl_ref_yuv_rgb_scale_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_siso_params *params);
+
+int shl_ref_one_hot_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_one_hot_params *params);
+
+int shl_ref_one_hot_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_one_hot_params *params);
+
+int shl_ref_where_f32(struct csinn_tensor *condition, struct csinn_tensor *x,
+                      struct csinn_tensor *y, struct csinn_tensor *output,
+                      struct csinn_where_params *params);
+
+int shl_ref_where_quant(struct csinn_tensor *condition, struct csinn_tensor *x,
+                        struct csinn_tensor *y, struct csinn_tensor *output,
+                        struct csinn_where_params *params);
+
+int shl_ref_where_softmax_f32(struct csinn_tensor *condition, struct csinn_tensor *y,
+                              struct csinn_tensor *output, struct csinn_where_softmax_params *params);
+
+int shl_ref_where_softmax_quant(struct csinn_tensor *condition, struct csinn_tensor *y,
+                                struct csinn_tensor *output, struct csinn_where_softmax_params *params);
+
+int shl_ref_cast_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_cast_params *params);
+
+int shl_ref_cast_bool(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_cast_params *params);
+
+int shl_ref_cast_i64(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_cast_params *params);
 
 int32_t shl_ref_max_internal_s32(int32_t a, int32_t b);
 int32_t shl_ref_min_internal_s32(int32_t a, int32_t b);

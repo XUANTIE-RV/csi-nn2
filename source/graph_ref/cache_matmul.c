@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -25,5 +25,16 @@ int shl_gref_cache_matmul(struct csinn_tensor *input, struct csinn_tensor *outpu
                           struct csinn_cache_matmul_params *params)
 {
     shl_gref_sidcso_op(input, output, weight, bias, CSINN_OP_CACHE_MATMUL, params);
+    return CSINN_TRUE;
+}
+
+/* Only support 2D tensor for input and output */
+int shl_gref_cache_matmul_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weight, struct csinn_tensor *bias,
+                                      struct csinn_cache_matmul_params *params)
+{
+    output->dim_count = 2;
+    output->dim[0] = input->dim[1];
+    output->dim[1] = weight->dim[1];
     return CSINN_TRUE;
 }

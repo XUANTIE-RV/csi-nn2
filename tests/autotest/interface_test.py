@@ -21,6 +21,7 @@ import pytest
 import numpy as np
 import shutil
 import conftest
+import subprocess
 
 # TOPDIR is the tests directory
 TOPDIR = os.path.dirname(__file__) + "/../"
@@ -65,6 +66,8 @@ def numberOffile(dirname, suffix):
     return dirPATH
 
 
+
+
 def run_base(
         cmd_execute,
         elf_data,
@@ -72,66 +75,45 @@ def run_base(
         test_accuracy,
         python_cmd,
 ):
-    hhb_cmd = (
+    cmd = (
         f"{cmd_execute} "
         f"{elf_data} "
         f"{python_data} "
         f"{test_accuracy} "
 
     )
-    print(hhb_cmd)
+    if python_cmd != "":
+        print(cmd)
+        ret = subprocess.run(python_cmd, shell=True, timeout=10, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        p_out = ret.stdout.decode("utf-8")
+        assert ret.returncode == 0
+    else:
+        p_out = "" 
 
-    ret = os.system(hhb_cmd)
-    pytest.assume(ret == 0, f"{hhb_cmd}\n{python_cmd}")
+    ret = subprocess.run(cmd, shell=True, timeout=10, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    out = ret.stdout.decode("utf-8")
+    err = ret.stderr.decode("utf-8")
+    out = out + err
+    # print(out.append(err))
+    # out = '\n'.join(out)
+    pytest.assume(ret.returncode == 0, f"\nexecute cmd:\n{cmd}\ngenerate python:\n{python_cmd}\n{p_out}out:\n{out}")
 
-
-@pytest.fixture(scope='module')
-def compile_execute(cmdopt):
-    board = cmdopt["board"]
-    accuracy = cmdopt["accuracy"]
-    vlen = cmdopt["vlen"]
-    if board == "c860":
-        qemu = "qemu-cskyv2 -cpu ck860v"
-    elif board == "c906":
-        qemu = "qemu-riscv64 -cpu c906fdv"
-    elif board == "c910":
-        qemu = "qemu-riscv64 -cpu c910v"
-    elif board == "c908":
-        qemu = "qemu-riscv64 -cpu c908v"
-    mkdir(valid_dir)
-    return qemu, accuracy, vlen
-
-
-####TODO rm ###########
-# def get_testtype(op_type):
-#     if "averagepool" in op_type or "maxpool" in op_type:
-#         test_type = ["random","2x2s2","2x2s2_p1","3x3s2","3x3s2_p1","3x3s1_p1"]
-#     elif op_type == "convolution":
-#         test_type = ["random","gemm_conv1x1s1","conv3x3s1_im2col_sgemm","conv3x3s1_winograd64","conv3x3s1_winograd64","conv3x3s1_winograd64_pack","gemm_random"]
-#     elif op_type == "depthwise_convolution":
-#         test_type = ["random","3x3s1","3x3s2"]
-#     elif op_type == "group_convolution":
-#         test_type = ["random", "conv3x3s1d1"]
-#     elif op_type == "relu":
-#         test_type = ["random", "16x3_8_4_2_1"]
-#     elif op_type == "add":
-#         test_type = ["", "vector", "size1", "flag0"]
-#     else:
-#         test_type =[]
-#     return test_type
 
 import itertools
-def get_testvlen(op_type, vlen):
+def get_testvlen(op_type, vlen, qemu_info):
     list_dtype = [int(vlen)]
-    list_vlen = [128, 256, 512]
+    if "c908" in qemu_info:
+        list_vlen = [128, 256, 512]
+    else:
+        list_vlen = [128]
     if op_type == "convolution":
         list_type = ["pack1_com", "pack1_gemm", "packnto1", "packnto1_conv1x1s1", "pack1ton", "pack1ton_conv1x1s1", "packn_com", "packn_conv1x1s1", "packn_conv3x3s1", "packn_conv3x3s1_linput"]
         test_type = list(itertools.product(list_dtype, list_vlen, list_type))
     elif op_type == "group_convolution":
-        list_type = ["pack1ton_conv1x1s1"]
+        list_type = ["packn_conv3x3s1d1"]
         test_type = list(itertools.product(list_dtype, list_vlen, list_type))
     elif op_type == "depthwise_convolution":
-        list_type = ["pack1_common", "pack1_conv3x3s2", "pack1_conv3x3s1", "packnto1", "pack1ton", "packn_com", "packn_conv3x3s2", "packn_conv3x3s1"]
+        list_type = ["pack1_common", "pack1_conv3x3s2", "pack1_conv3x3s1", "packn_com", "packn_conv3x3s2", "packn_conv3x3s1"]
         test_type = list(itertools.product(list_dtype, list_vlen, list_type))
     elif op_type == "global_avgpool" or op_type == "global_maxpool":
         list_type = ["packn", "pack1"]
@@ -144,11 +126,29 @@ def get_testvlen(op_type, vlen):
     return test_type
 
 
+class Test_CSINN_Base:
+    def setup_class(self):        
 
-@pytest.mark.usefixtures("compile_execute")
-class TestCSINN:
+        board = conftest.board
+        self.accuracy = conftest.accuracy
+        self.dtype = conftest.dtype
+        if board == "c860":
+            qemu = "qemu-cskyv2 -cpu ck860v"
+        elif board == "c906":
+            qemu = "qemu-riscv64 -cpu c906fdv"
+        elif board == "c920":
+            qemu = "qemu-riscv64 -cpu c920"
+        elif board == "c908":
+            qemu = "qemu-riscv64 -cpu c908v"
+        
+        self.qemu = qemu
+
+
+
+class TestCSINN(Test_CSINN_Base):
+    #####TODO rm###########
     @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
-    def test_layer(self,elf_data,compile_execute):
+    def test_layer(self,elf_data):
         flag = 0
         data = elf_data.split("/")[-1].split(".")[0]
         if "argmax" in data or "argmin" in data:
@@ -161,93 +161,58 @@ class TestCSINN:
             path = os.path.join(python_path, data + ".py")
             flag = 1
 
+        mkdir(valid_dir)
         os.chdir(valid_dir)
         if "roipool" in data:
             cmd = f'docker run --rm -v {valid_dir}:mnt tvm_caffe:rfcn sh -c "cd mnt && python3 {path}"'
         else:
             cmd = f"python3 {path}"
-        ret = os.system(cmd)
-        assert ret == 0
         if flag == 1:
-            run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_data_f32.bin", compile_execute[1], cmd)
+            run_base(self.qemu, elf_data, valid_dir + "/" + data + "_data_f32.bin", self.accuracy, cmd)
         else:
             if "argmax" in data or "argmin" in data:
-                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_stride_data_f32.bin", compile_execute[1], cmd)
+                run_base(self.qemu, elf_data, valid_dir + "/" + data + "_stride_data_f32.bin", self.accuracy, cmd)
             else:
-                run_base(compile_execute[0], elf_data, valid_dir + "/" + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+                run_base(self.qemu, elf_data, valid_dir + "/" + data + "_nchw_data_f32.bin", self.accuracy, cmd)
 
-
+    
     @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
-    def test_rvv_layer(self,elf_data,compile_execute):
+    def test_rvv_layer(self,elf_data):
         flag = 0
         data = elf_data.split("/")[-1].split(".")[0]
-        test_type = get_testtype(data)
+        test_type = get_testvlen(data, self.dtype, self.qemu)
+        compile_option = self.qemu
         path = os.path.join(python_path, data + "_nchw.py")
         if not os.path.exists(path):
             path = os.path.join(python_path, data + ".py")
             flag = 1
-        if test_type != []:
-            for i in test_type:
-                cmd = f"python3 {path} {i}"
-                print(cmd)
-                ret = os.system(cmd)
-                assert ret == 0
-                if flag == 1:
-                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
-                else:
-                    run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
-        else:
-            cmd = f"python3 {path}"
-            ret = os.system(cmd)
-            assert ret == 0
-            if flag == 1:
-                run_base(compile_execute[0], elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
-            else:
-                run_base(compile_execute[0], elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
-
-
-    @pytest.mark.parametrize('elf_data', numberOffile(elf_path, "elf"))
-    def test_c908_layer(self,elf_data,compile_execute):
-        flag = 0
-        data = elf_data.split("/")[-1].split(".")[0]
-        test_type = get_testvlen(data, compile_execute[2])
-        compile_option = compile_execute[0]
-        path = os.path.join(python_path, data + "_nchw.py")
-        if not os.path.exists(path):
-            path = os.path.join(python_path, data + ".py")
-            flag = 1
-        elif "convolution" in path or "averagepool" in path or "maxpool" in path:
+        elif "convolution" in path or "pool" in path:
             path = os.path.join(python_path, data + "_vlen.py")
         if test_type != []:
             for i in test_type:
                 cmd = f"python3 {path} {i[0]} {i[1]} {i[2]}"
-                print(cmd)
-                ret = os.system(cmd)
-                pytest.assume(ret == 0)
                 if str(i[1]) == "256":
                     compile_option = "qemu-riscv64  -cpu rv64,x-v=true,vext_spec=v1.0,vlen=256,x-thead=true"
                 elif str(i[1]) == "512":
                     compile_option = "qemu-riscv64  -cpu rv64,x-v=true,vext_spec=v1.0,vlen=512,x-thead=true"
 
                 if flag == 1:
-                    run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
+                    run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", self.accuracy, cmd)
                 else:
-                    run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+                    run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", self.accuracy, cmd)
         else:
             cmd = f"python3 {path}"
-            ret = os.system(cmd)
-            pytest.assume(ret == 0)
             if flag == 1:
-                run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", compile_execute[1], cmd)
+                run_base(compile_option, elf_data, TOPDIR + data + "_data_f32.bin", self.accuracy, cmd)
             else:
-                run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", compile_execute[1], cmd)
+                run_base(compile_option, elf_data, TOPDIR + data + "_nchw_data_f32.bin", self.accuracy, cmd)
 
 
 
 
     @pytest.mark.parametrize('unit_test_elf_data', numberOffile(unit_test_elf_path, "elf"))
-    def test_opt_interface(self, unit_test_elf_data, compile_execute):
-        run_base(compile_execute[0], unit_test_elf_data, "", compile_execute[1], "")
+    def test_opt_interface(self, unit_test_elf_data):
+        run_base(self.qemu, unit_test_elf_data, "", self.accuracy, "")
 
 
 class TestHeterogeneous:
@@ -262,4 +227,18 @@ class TestHeterogeneous:
         exec_cmd = f"./run.sh"
         ret = os.system(exec_cmd)
         assert ret == 0, "Execute subgraph fusion test fails"
+
+
+class TestTVMGen:
+    def test_tvmgen(self):
+        tvmgen_test_dir = os.path.join(TOPDIR, "validation_graph", "tvmgen")
+        compile_cmd = f"make -C {tvmgen_test_dir}"
+
+        ret = os.system(compile_cmd)
+        assert ret == 0, "Compiling tvmgen tests fails."
+
+        os.chdir(tvmgen_test_dir)
+        exec_cmd = f"./run.sh"
+        ret = os.system(exec_cmd)
+        assert ret == 0, "Execute tvmgen tests fails"
 

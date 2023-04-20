@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_thead_rvv.h"
-#ifdef XTHEADV
+#ifdef XTHEADVDOT
 int shl_rvv_data_convert_init(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_siso_params *params)
 {

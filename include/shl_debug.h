@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #ifndef INCLUDE_SHL_DEBUG_H_
 #define INCLUDE_SHL_DEBUG_H_
 #include "csi_nn.h"
@@ -52,6 +52,7 @@ int shl_debug_get_level();
 void shl_debug_set_level(int level);
 int shl_benchmark_layer(struct shl_node *node, uint64_t start_time, uint64_t end_time,
                         int layer_idx);
+int shl_dump_output_tensor(struct shl_node *node);
 
 int shl_conv2d_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -289,5 +290,12 @@ int shl_unstack_debug_info(struct csinn_tensor *input, struct csinn_tensor **out
 int shl_where_debug_info(struct csinn_tensor *condition, struct csinn_tensor *x,
                          struct csinn_tensor *y, struct csinn_tensor *output,
                          struct csinn_where_params *params, const char *name);
+
+int shl_where_softmax_debug_info(struct csinn_tensor *condition, struct csinn_tensor *y,
+                                 struct csinn_tensor *output,
+                                 struct csinn_where_softmax_params *params, const char *name);
+
+int shl_cast_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_cast_params *params, const char *name);
 
 #endif  // INCLUDE_SHL_DEBUG_H_

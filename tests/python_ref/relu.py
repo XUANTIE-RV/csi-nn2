@@ -7,19 +7,15 @@ import numpy as np
 import tensorflow as tf
 
 
-def relu_f32(test_type):
+def relu_f32():
     para = []
     # init the input data and parameters
-    if test_type == "random":
-        batch       = int(np.random.randint(1, high=4, size=1))
-        in_size_x   = int(np.random.randint(32, high=64, size=1))
-        in_size_y   = int(np.random.randint(32, high=64, size=1))
-        in_channel  = int(np.random.randint(1, high=64, size=1))
-    elif test_type == "16x3_8_4_2_1":
-        batch       = 1
-        in_size_x   = 3
-        in_size_y   = 3
-        in_channel  = 7
+
+    batch       = int(np.random.randint(1, high=4, size=1))
+    in_size_x   = int(np.random.randint(32, high=64, size=1))
+    in_size_y   = int(np.random.randint(32, high=64, size=1))
+    in_channel  = int(np.random.randint(1, high=64, size=1))
+
     zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
@@ -57,6 +53,5 @@ def relu_f32(test_type):
 
 
 if __name__ == '__main__':
-    test_type = sys.argv[1]
-    relu_f32(test_type)
+    relu_f32()
     print("end")

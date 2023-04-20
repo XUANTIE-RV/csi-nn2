@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,30 @@ int shl_gref_space_to_batch_nd(struct csinn_tensor *input, struct csinn_tensor *
                                struct csinn_space_to_batch_nd_params *params)
 {
     shl_gref_siso_op(input, output, CSINN_OP_SPACE_TO_BATCH_ND, params);
+    return CSINN_TRUE;
+}
+
+/* input_shape = [batch] + spatial_shape + remaining_shape */
+int shl_gref_space_to_batch_nd_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                           struct csinn_space_to_batch_nd_params *params)
+{
+    int32_t block_size = 1;
+    for (int i = 0; i < params->spatial_dim_cnt; i++) {
+        block_size *= params->block_shape[i];
+    }
+
+    output->dim_count = input->dim_count;
+    output->dim[0] = input->dim[0] * block_size;
+    for (int i = 1; i < output->dim_count; i++) {
+        int32_t *paddings = params->paddings + i - 1;
+        if (i <= params->spatial_dim_cnt) {
+            output->dim[i] = (input->dim[i] + params->paddings[(i - 1) * 2] +
+                              params->paddings[(i - 1) * 2 + 1]) /
+                             params->block_shape[i - 1];
+        } else {
+            output->dim[i] = input->dim[i];
+        }
+    }
+
     return CSINN_TRUE;
 }

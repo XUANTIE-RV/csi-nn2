@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -39,7 +39,7 @@ int shl_ref_space_to_batch_f32(struct csinn_tensor *input, struct csinn_tensor *
     int out_batch = output->dim[0];    // out_batch = in_batch * block_size * block_size;
     int out_channel = output->dim[1];  // out_channel = in_channel;
     int out_height = output->dim[2];   // out_height = (in_height) / block_size;
-    int out_width = output->dim[3];    // out_width = (in_width = params->) / block_size;
+    int out_width = output->dim[3];    // out_width = (in_width) / block_size;
 
     for (int in_b = 0; in_b < batch; ++in_b) {
         for (int out_h = 0; out_h < out_height * block_size; out_h = out_h + block_size) {

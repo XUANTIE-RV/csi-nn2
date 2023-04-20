@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -24,45 +24,47 @@ int shl_ref_layer_norm_f32(struct csinn_tensor *input, struct csinn_tensor *outp
                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
                            struct csinn_layer_norm_params *params)
 {
-    int flatten_size = 0;
-    flatten_size *= input->dim[0] * input->dim[1] * input->dim[2];
+    float *input_data = (float *)input->data;
+    float *output_data = (float *)output->data;
+    float *gamma_data = (float *)gamma->data;
+    float *beta_data = (float *)beta->data;
 
-    float *sum = (float *)calloc(input->dim[1], sizeof(float));
-    float *sum2 = (float *)calloc(input->dim[1], sizeof(float));
-    float *input_data = input->data;
-    float *output_data = output->data;
-    float *gamma_data = gamma->data;
-    float *beta_data = beta->data;
+    /* support negative axis */
+    int axis = params->axis >= 0 ? params->axis : (params->axis + input->dim_count);
 
-    for (int i = 0; i < input->dim[1]; i++) {
-        for (int j = 0; j < input->dim[2]; j++) {
-            sum[i] += input_data[j + i * input->dim[2]];
-        }
-        sum[i] /= input->dim[2];
+    int32_t batches = 1;
+    for (int i = 0; i < axis; i++) {
+        batches *= input->dim[i];
+    }
+    int32_t norm_size = 1;
+    for (int i = axis; i < input->dim_count; i++) {
+        norm_size *= input->dim[i];
     }
 
-    for (int i = 0; i < input->dim[1]; i++) {
-        for (int j = 0; j < input->dim[2]; j++) {
-            input_data[j + i * input->dim[2]] -= sum[i];
-            output_data[j + i * input->dim[2]] = input_data[j + i * input->dim[2]];
+    for (int b = 0; b < batches; b++) {
+        float *input_ptr = input_data + b * norm_size;
+        float *output_ptr = output_data + b * norm_size;
+        float *tmp = (float *)shl_mem_alloc(norm_size * sizeof(float));
 
-            input_data[j + i * input->dim[2]] =
-                input_data[j + i * input->dim[2]] * input_data[j + i * input->dim[2]];
-            sum2[i] += input_data[j + i * input->dim[2]];
+        float mean = 0.0f;
+        for (int i = 0; i < norm_size; i++) {
+            mean += input_ptr[i];
         }
-        sum2[i] /= input->dim[2];
-        sum2[i] = sqrtf(sum2[i]);
-    }
+        mean /= norm_size;
 
-    for (int i = 0; i < input->dim[1]; i++) {
-        for (int j = 0; j < input->dim[2]; j++) {
-            output_data[j + i * input->dim[2]] =
-                output_data[j + i * input->dim[2]] / sum2[i] * gamma_data[j] + beta_data[j];
+        float sum = 0.0f;
+        for (int i = 0; i < norm_size; i++) {
+            tmp[i] = input_ptr[i] - mean;
+            sum += tmp[i] * tmp[i];
         }
-    }
+        float var = sum / norm_size;
+        float std = sqrt(var + params->epsilon);
 
-    free(sum);
-    free(sum2);
+        for (int i = 0; i < norm_size; i++) {
+            output_ptr[i] = tmp[i] / std * gamma_data[i] + beta_data[i];
+        }
+        shl_mem_free(tmp);
+    }
 
     return CSINN_TRUE;
 }

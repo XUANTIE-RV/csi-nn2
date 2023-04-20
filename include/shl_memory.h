@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 #ifndef INCLUDE_SHL_MEMORY_H_
 #define INCLUDE_SHL_MEMORY_H_
 
@@ -27,7 +27,7 @@ void shl_mem_print_map();
 void *shl_mem_alloc(int64_t size);
 void *shl_mem_alloc_aligned(int64_t size, int aligned_bytes);
 void *shl_mem_calloc(size_t nmemb, size_t size);
-void *shl_mem_realloc(void *ptr, size_t size);
+void *shl_mem_realloc(void *ptr, size_t size, size_t orig_size);
 void shl_mem_free(void *ptr);
 
 #endif  // INCLUDE_SHL_MEMORY_H_

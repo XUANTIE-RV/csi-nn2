@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,15 @@ int shl_gref_tile(struct csinn_tensor *input, struct csinn_tensor *output,
                   struct csinn_tile_params *params)
 {
     shl_gref_siso_op(input, output, CSINN_OP_TILE, params);
+    return CSINN_TRUE;
+}
+
+int shl_gref_tile_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_tile_params *params)
+{
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < params->reps_num; i++) {
+        output->dim[i] = input->dim[i] * params->reps[i];
+    }
     return CSINN_TRUE;
 }

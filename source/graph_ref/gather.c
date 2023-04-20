@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -24,5 +24,31 @@ int shl_gref_gather(struct csinn_tensor *input, struct csinn_tensor *indices,
                     struct csinn_tensor *output, struct csinn_gather_params *params)
 {
     shl_gref_diso_op(input, indices, output, CSINN_OP_GATHER, params);
+    return CSINN_TRUE;
+}
+
+int shl_gref_gather_infer_shape(struct csinn_tensor *input, struct csinn_tensor *indices,
+                                struct csinn_tensor *output, struct csinn_gather_params *params)
+{
+    int32_t axis = params->axis;
+    int32_t indices_dim_count = indices->dim_count;
+    // if indices is a single number
+    if (indices_dim_count == 1 && indices->dim[0] == 1) {
+        indices_dim_count = 0;
+    }
+    output->dim_count = input->dim_count + indices_dim_count - 1;
+    int j = 0;
+    for (int i = 0; i < axis; i++) {
+        output->dim[j] = input->dim[i];
+        j++;
+    }
+    for (int i = 0; i < indices_dim_count; i++) {
+        output->dim[j] = indices->dim[i];
+        j++;
+    }
+    for (int i = axis + 1; i < input->dim_count; i++) {
+        output->dim[j] = input->dim[i];
+        j++;
+    }
     return CSINN_TRUE;
 }

@@ -1,80 +1,27 @@
 cmake_minimum_required(VERSION 3.3)
-project(CSI-NN2)
+project(SHL)
 
 enable_language(ASM)
 
-option(USE_SHL_DEBUG "option for debug" ON)
-
-option(BUILD_X86 "build x86" OFF)
-option(BUILD_RISCV "build riscv" OFF)
-option(BUILD_RISCV_ELF "build riscv elf" OFF)
-option(BUILD_CSKY "build csky" OFF)
-option(BUILD_CSKY_ELF "build csky elf" OFF)
-
-if (NOT USE_COMPILER_PATH)
-
-# riscv linux compiler
-if (BUILD_RISCV)
-    set(CMAKE_C_COMPILER riscv64-unknown-linux-gnu-gcc)
-    set(CMAKE_CXX_COMPILER riscv64-unknown-linux-gnu-g++)
-    set(CMAKE_ASM_COMPILER riscv64-unknown-linux-gnu-gcc)
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
+  include(${CMAKE_CURRENT_BINARY_DIR}/config.cmake)
+else()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+    include(${CMAKE_CURRENT_SOURCE_DIR}/config.cmake)
+  endif()
 endif()
 
-# riscv elf compiler
-if (BUILD_RISCV_ELF)
-    set(CMAKE_ASM_COMPILER riscv64-unknown-elf-gcc)
-    set(CMAKE_C_COMPILER riscv64-unknown-elf-gcc)
+if (CONFIG_CUSTOM_SOURCE_SELECT)
+    add_definitions(-DSHL_MCONF_CONFIG)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
-# csky linux compiler
-if (BUILD_CSKY)
-    set(CMAKE_C_COMPILER csky-abiv2-linux-gcc)
-    set(CMAKE_ASM_COMPILER csky-abiv2-linux-gcc)
-endif()
-
-# csky elf compiler
-if (BUILD_CSKY_ELF)
-    set(CMAKE_C_COMPILER csky-abiv2-elf-gcc)
-    set(CMAKE_ASM_COMPILER csky-abiv2-elf-gcc)
-endif()
-
-endif()
-
-# SHL debug module
-if(USE_SHL_DEBUG)
-    add_definitions(-D SHL_DEBUG)
-endif()
-
-# reduce elf size
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -Wl,--gc-sections")
-
-# set warning as error
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
-
-file(GLOB_RECURSE NN2_SRCS source/nn2/*.c source/utils/*.c)
-file(GLOB_RECURSE REF_SRCS source/reference/*.c)
-file(GLOB_RECURSE GREF_SRCS source/graph_ref/*.c)
-file(GLOB_RECURSE OPENVX_SRCS source/openvx/*.c)
-file(GLOB_RECURSE PNNA_SRCS source/pnna/*.c source/pnna/*.cpp)
-file(GLOB_RECURSE C906_SRCS source/c906_opt/*.c source/c906_opt/*.S)
-file(GLOB_RECURSE C908_SRCS source/c908_opt/*.c source/c908_opt/gemm_kernel/*.S)
-file(GLOB_RECURSE THEAD_RVV_SRCS source/thead_rvv/*.c)
-file(GLOB_RECURSE C860_SRCS source/c860_opt/*.S)
-file(GLOB_RECURSE I805_REF_SRCS source/i805_ref/*.c)
-file(GLOB_RECURSE I805_SRCS source/i805_opt/*.c source/i805_opt/*.S)
-file(GLOB_RECURSE E804_SRCS source/e804_opt/*.c source/e804_opt/*.S)
-file(GLOB_RECURSE ASP_SRCS source/asp/*.c)
-
-include_directories(include)
-
-option(SHL_LAYER_BENCHMARK "Layer information and performance" OFF)
-if(SHL_LAYER_BENCHMARK)
-    add_definitions(-DSHL_LAYER_BENCHMARK)
-    message(STATUS "Print the execution time of each layer - ON")
-endif()
-
-if(BUILD_X86)
+if(CONFIG_BUILD_X86_REF)
     # build x86_ref so
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/x86_ref.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND X86_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS})
     add_library(x86_static STATIC ${X86_LST})
     SET_TARGET_PROPERTIES(x86_static PROPERTIES OUTPUT_NAME "shl_ref_x86")
@@ -82,58 +29,74 @@ if(BUILD_X86)
     target_compile_options(x86_static PRIVATE ${X86_BUILD_FLAGS})
 
     install(TARGETS x86_static DESTINATION lib)
-
-    # build pnna x86 simulate so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "shl_pnna_x86")
-    set(PNNA_BUILD_FLAGS -DSHL_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna x86 simulate so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "shl_hlight_x86")
-    set(HLIGHT_BUILD_FLAGS -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/x86/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn_csim -lnnasession_csim)
-
-    install(TARGETS hlight_share DESTINATION lib)
 endif()
 
-if(BUILD_RISCV)
+if(CONFIG_BUILD_RISCV_RVV)
     # build rvv a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/rvv.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND RVV_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS})
     add_library(rvv_static STATIC ${RVV_LST})
     SET_TARGET_PROPERTIES(rvv_static PROPERTIES OUTPUT_NAME "shl_rvv")
-    set(RVV_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -DSHL_BUILD_RVV -DSHL_BUILD_REF -DSHL_BUILD_GREF)
+    set(RVV_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d -DSHL_BUILD_RVV -DSHL_BUILD_REF -DSHL_BUILD_GREF)
     target_compile_options(rvv_static PRIVATE ${RVV_BUILD_FLAGS})
 
     install(TARGETS rvv_static DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_RISCV_C906_STATIC)
     # build c906 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c906_static.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND C906_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C906_SRCS})
     add_library(c906_static STATIC ${C906_LST})
     SET_TARGET_PROPERTIES(c906_static PROPERTIES OUTPUT_NAME "shl_c906")
     set(C906_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -DSHL_BUILD_C906 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
     target_compile_options(c906_static PRIVATE ${C906_BUILD_FLAGS})
+    target_include_directories(c906_static PRIVATE module/dlpack/include/)
 
     install(TARGETS c906_static DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_RISCV_C906_SHARE)
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c906_share.cmake)
+    endif()
+    include(cmake/rules.cmake)
+    LIST(APPEND C906_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C906_SRCS})
     add_library(c906_share SHARED ${C906_LST})
     SET_TARGET_PROPERTIES(c906_share PROPERTIES OUTPUT_NAME "shl_c906")
+    set(C906_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -DSHL_BUILD_C906 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
     target_compile_options(c906_share PRIVATE ${C906_BUILD_FLAGS})
 
     install(TARGETS c906_share DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_RISCV_RVM)
+    # build rvm a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/rvm.cmake)
+    endif()
+    include(cmake/rules.cmake)
+    LIST(APPEND RVM_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${THEAD_MATRIX_SRCS} ${RVM_SRCS})
+    add_library(rvm_static STATIC ${RVM_LST})
+    SET_TARGET_PROPERTIES(rvm_static PROPERTIES OUTPUT_NAME "shl_rvm")
+    set(RVM_BUILD_FLAGS -march=rv64gcv_zfh_xtheadc_xtheadvdot_xtheadmatrix -mabi=lp64d -DSHL_BUILD_RVM -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
+    target_compile_options(rvm_static PRIVATE ${RVM_BUILD_FLAGS})
+
+    install(TARGETS rvm_static DESTINATION lib)
+endif()
+
+if(CONFIG_BUILD_RISCV_C908)
     # build c908 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c908.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND C908_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C908_SRCS})
     add_library(c908_static STATIC ${C908_LST})
     SET_TARGET_PROPERTIES(c908_static PROPERTIES OUTPUT_NAME "shl_c908")
@@ -141,67 +104,61 @@ if(BUILD_RISCV)
     target_compile_options(c908_static PRIVATE ${C908_BUILD_FLAGS})
 
     install(TARGETS c908_static DESTINATION lib)
-
-    # build pnna so
-    LIST(APPEND PNNA_LST ${NN2_SRCS} ${REF_SRCS} ${PNNA_SRCS})
-    add_library(pnna_share SHARED ${PNNA_LST})
-    SET_TARGET_PROPERTIES(pnna_share PROPERTIES OUTPUT_NAME "shl_pnna")
-    set(PNNA_BUILD_FLAGS -DSHL_BUILD_PNNA)
-    target_compile_options(pnna_share PRIVATE ${PNNA_BUILD_FLAGS})
-    target_include_directories(pnna_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(pnna_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS pnna_share DESTINATION lib)
-
-    # build heterogeneous pnna so
-    LIST(APPEND HLIGHT_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${PNNA_SRCS})
-    add_library(hlight_share SHARED ${HLIGHT_LST})
-    SET_TARGET_PROPERTIES(hlight_share PROPERTIES OUTPUT_NAME "shl_hlight")
-    set(HLIGHT_BUILD_FLAGS -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_PNNA)
-    target_compile_options(hlight_share PRIVATE ${HLIGHT_BUILD_FLAGS})
-    target_include_directories(hlight_share PRIVATE module/nna_ddk_install/include/)
-    set(PNNA_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/nna_ddk_install/light/)
-    target_link_libraries(hlight_share PRIVATE -L${PNNA_LINK_DIR} -limgdnn -lnnasession)
-
-    install(TARGETS hlight_share DESTINATION lib)
 endif()
 
-if(BUILD_RISCV_ELF)
+if(CONFIG_BUILD_RISCV_C920)
+    # build c920 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c920.cmake)
+    endif()
+    include(cmake/rules.cmake)
+    LIST(APPEND C920_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C920_SRCS})
+    add_library(c920_static STATIC ${C920_LST})
+    SET_TARGET_PROPERTIES(c920_static PROPERTIES OUTPUT_NAME "shl_c920")
+    set(C920_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -DSHL_BUILD_C920 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
+    target_compile_options(c920_static PRIVATE ${C920_BUILD_FLAGS})
+    target_include_directories(c920_static PRIVATE module/dlpack/include/)
+
+    install(TARGETS c920_static DESTINATION lib)
+endif()
+
+if(CONFIG_BUILD_RISCV_ELF_C906)
     # build c906 elf a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c906_elf.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND C906_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C906_SRCS})
     add_library(c906_elf_static STATIC ${C906_LST})
     SET_TARGET_PROPERTIES(c906_elf_static PROPERTIES OUTPUT_NAME "shl_c906_rtos")
-    set(C906_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -mcmodel=medany -DSHL_BUILD_C906 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RTOS)
+    set(C906_BUILD_FLAGS -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -mcmodel=medany -DSHL_BUILD_C906 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RTOS -DSHL_BUILD_RVV)
     target_compile_options(c906_elf_static PRIVATE ${C906_BUILD_FLAGS})
 
     install(TARGETS c906_elf_static DESTINATION lib)
-
-    # build ASP elf a
-    LIST(APPEND ASP_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${ASP_SRCS})
-    add_library(asp_elf_static STATIC ${ASP_LST})
-    SET_TARGET_PROPERTIES(asp_elf_static PROPERTIES OUTPUT_NAME "shl_asp")
-    set(ASP_BUILD_FLAGS -march=rv32imafdcp -mabi=ilp32d -DSHL_BUILD_ASP -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_USE_ATAT_MALLOC -DSHL_BUILD_RTOS)
-    target_compile_options(asp_elf_static PRIVATE ${ASP_BUILD_FLAGS})
-
-    install(TARGETS asp_elf_static DESTINATION lib)
 endif()
 
-if(BUILD_CSKY)
-    # build openvx so
-    LIST(APPEND OPENVX_LST ${NN2_SRCS} ${OPENVX_SRCS})
-    add_library(openvx_share SHARED ${OPENVX_LST})
-    SET_TARGET_PROPERTIES(openvx_share PROPERTIES OUTPUT_NAME "shl_openvx")
-    set(OPENVX_BUILD_FLAGS -mcpu=c860v -fPIC -DSHL_BUILD_OPENVX -mhard-float)
-    target_compile_options(openvx_share PRIVATE ${OPENVX_BUILD_FLAGS})
-    set(OPENVX_LINK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/acuity-driver/driver/build/sdk/drivers)
-    target_link_libraries(openvx_share PRIVATE -mcpu=c860v -fPIC -mhard-float -L${OPENVX_LINK_DIR} -lArchModelSw -lNNArchPerf -lOpenVX -lOpenVXU -lCLC -lVSC -lGAL -lNNGPUBinary -lovxlib -lOvx12VXCBinary)
-    target_include_directories(openvx_share PRIVATE module/acuity-driver/lib/acuity-ovxlib-dev/include/)
-    target_include_directories(openvx_share PRIVATE module/acuity-driver/driver/build/sdk/include/)
+if(CONFIG_BUILD_RISCV_ELF_E907)
+    # build e907/e906 elf a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/e907.cmake)
+    endif()
+    include(cmake/rules.cmake)
+    LIST(APPEND E907_LST ${NN2_SRCS} ${REF_SRCS} ${E907_SRCS} ${GREF_SRCS})
+    add_library(e907_elf_static STATIC ${E907_LST})
+    SET_TARGET_PROPERTIES(e907_elf_static PROPERTIES OUTPUT_NAME "shl_e907")
+    set(E907_BUILD_FLAGS -march=rv32imafcpzpsfoperand_xtheade -mabi=ilp32f -mcmodel=medlow -g2 -Os -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_E907 -DSHL_BUILD_RTOS)
+    target_compile_options(e907_elf_static PRIVATE ${E907_BUILD_FLAGS})
+    target_include_directories(e907_elf_static PRIVATE module/)
 
-    install(TARGETS openvx_share DESTINATION lib)
+    install(TARGETS e907_elf_static DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_CSKY_C860)
     # build c860 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c860.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND C860_LST ${NN2_SRCS} ${REF_SRCS} ${C860_SRCS})
     add_library(c860_static STATIC ${C860_LST})
     SET_TARGET_PROPERTIES(c860_static PROPERTIES OUTPUT_NAME "shl_c860")
@@ -211,8 +168,12 @@ if(BUILD_CSKY)
     install(TARGETS c860_static DESTINATION lib)
 endif()
 
-if(BUILD_CSKY_ELF)
+if(CONFIG_BUILD_CSKY_ELF_I805_REF)
     # build i805 ref a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/i805_ref.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND I805_REF_LST ${NN2_SRCS} ${REF_SRCS} ${I805_REF_SRCS})
     add_library(i805_ref_static STATIC ${I805_REF_LST})
     SET_TARGET_PROPERTIES(i805_ref_static PROPERTIES OUTPUT_NAME "shl_ref_i805")
@@ -221,8 +182,14 @@ if(BUILD_CSKY_ELF)
     target_include_directories(i805_ref_static PRIVATE source/i805_ref)
 
     install(TARGETS i805_ref_static DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_CSKY_ELF_I805)
     # build i805 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/i805.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND I805_LST ${NN2_SRCS} ${REF_SRCS} ${I805_SRCS})
     add_library(i805_static STATIC ${I805_LST})
     SET_TARGET_PROPERTIES(i805_static PROPERTIES OUTPUT_NAME "shl_i805")
@@ -231,8 +198,14 @@ if(BUILD_CSKY_ELF)
     target_include_directories(i805_static PRIVATE source/i805_opt)
 
     install(TARGETS i805_static DESTINATION lib)
+endif()
 
+if(CONFIG_BUILD_CSKY_ELF_E804)
     # build e804 a
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/e804.cmake)
+    endif()
+    include(cmake/rules.cmake)
     LIST(APPEND E804_LST ${NN2_SRCS} ${REF_SRCS} ${E804_SRCS})
     add_library(e804_static STATIC ${E804_LST})
     SET_TARGET_PROPERTIES(e804_static PROPERTIES OUTPUT_NAME "shl_e804")

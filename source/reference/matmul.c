@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_ref.h"
 
@@ -27,11 +27,13 @@ int shl_ref_matmul_f32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
     float *mat1_data = mat1->data;
     float *output_data = output->data;
     const int dims_count = mat0->dim_count;
-    int batches = 1;
+    int batches_a = 1;
+    int batches_b = 1;
 
     /* compute the outer size */
     for (int i = 0; i < dims_count - 2; i++) {
-        batches *= mat0->dim[i];
+        batches_a *= mat0->dim[i];
+        batches_b *= mat1->dim[i];
     }
 
     const int dim_i = mat0->dim[dims_count - (params->trans_a ? 1 : 2)];
@@ -41,62 +43,87 @@ int shl_ref_matmul_f32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
     const int mat1_offset = dim_k * dim_j;
     const int out_offset = dim_i * dim_j;
 
-    if (!params->trans_a && !params->trans_b) {
-        for (int b = 0; b < batches; ++b) {
-            for (int i = 0; i < dim_i; ++i) {
-                for (int j = 0; j < dim_j; ++j) {
-                    float total = 0.f;
-                    for (int k = 0; k < dim_k; ++k) {
-                        int offset0 = mat0_offset * b + i * dim_k + k;
-                        int offset1 = mat1_offset * b + k * dim_j + j;
-                        total += mat0_data[offset0] * mat1_data[offset1];
+    if (batches_a == batches_b) {
+        if (!params->trans_a && !params->trans_b) {
+            for (int b = 0; b < batches_a; ++b) {
+                for (int i = 0; i < dim_i; ++i) {
+                    for (int j = 0; j < dim_j; ++j) {
+                        float total = 0.f;
+                        for (int k = 0; k < dim_k; ++k) {
+                            int offset0 = mat0_offset * b + i * dim_k + k;
+                            int offset1 = mat1_offset * b + k * dim_j + j;
+                            total += mat0_data[offset0] * mat1_data[offset1];
+                        }
+                        output_data[b * out_offset + i * dim_j + j] = total;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = total;
+                }
+            }
+        } else if (!params->trans_a && params->trans_b) {
+            for (int b = 0; b < batches_a; ++b) {
+                for (int i = 0; i < dim_i; ++i) {
+                    for (int j = 0; j < dim_j; ++j) {
+                        float total = 0.f;
+                        for (int k = 0; k < dim_k; ++k) {
+                            int offset0 = mat0_offset * b + i * dim_k + k;
+                            int offset1 = mat1_offset * b + j * dim_k + k;
+                            total += mat0_data[offset0] * mat1_data[offset1];
+                        }
+                        output_data[b * out_offset + i * dim_j + j] = total;
+                    }
+                }
+            }
+        } else if (params->trans_a && !params->trans_b) {
+            for (int b = 0; b < batches_a; ++b) {
+                for (int i = 0; i < dim_i; ++i) {
+                    for (int j = 0; j < dim_j; ++j) {
+                        float total = 0.f;
+                        for (int k = 0; k < dim_k; ++k) {
+                            int offset0 = mat0_offset * b + k * dim_i + i;
+                            int offset1 = mat1_offset * b + k * dim_j + j;
+                            total += mat0_data[offset0] * mat1_data[offset1];
+                        }
+                        output_data[b * out_offset + i * dim_j + j] = total;
+                    }
+                }
+            }
+        } else {
+            for (int b = 0; b < batches_a; ++b) {
+                for (int i = 0; i < dim_i; ++i) {
+                    for (int j = 0; j < dim_j; ++j) {
+                        float total = 0.f;
+                        for (int k = 0; k < dim_k; ++k) {
+                            int offset0 = mat0_offset * b + k * dim_i + i;
+                            int offset1 = mat1_offset * b + j * dim_k + k;
+                            total += mat0_data[offset0] * mat1_data[offset1];
+                        }
+                        output_data[b * out_offset + i * dim_j + j] = total;
+                    }
                 }
             }
         }
-    } else if (!params->trans_a && params->trans_b) {
-        for (int b = 0; b < batches; ++b) {
-            for (int i = 0; i < dim_i; ++i) {
-                for (int j = 0; j < dim_j; ++j) {
-                    float total = 0.f;
-                    for (int k = 0; k < dim_k; ++k) {
-                        int offset0 = mat0_offset * b + i * dim_k + k;
-                        int offset1 = mat1_offset * b + j * dim_k + k;
-                        total += mat0_data[offset0] * mat1_data[offset1];
+    } else if (batches_a > 1 && batches_b == 1) {
+        /* same with dense */
+        if (!params->trans_a && !params->trans_b) {
+            for (int b = 0; b < batches_a; ++b) {
+                for (int i = 0; i < dim_i; ++i) {
+                    for (int j = 0; j < dim_j; ++j) {
+                        float total = 0.f;
+                        for (int k = 0; k < dim_k; ++k) {
+                            int offset0 = mat0_offset * b + i * dim_k + k;
+                            int offset1 = k * dim_j + j;
+                            total += mat0_data[offset0] * mat1_data[offset1];
+                        }
+                        output_data[b * out_offset + i * dim_j + j] = total;
                     }
-                    output_data[b * out_offset + i * dim_j + j] = total;
                 }
             }
-        }
-    } else if (params->trans_a && !params->trans_b) {
-        for (int b = 0; b < batches; ++b) {
-            for (int i = 0; i < dim_i; ++i) {
-                for (int j = 0; j < dim_j; ++j) {
-                    float total = 0.f;
-                    for (int k = 0; k < dim_k; ++k) {
-                        int offset0 = mat0_offset * b + k * dim_i + i;
-                        int offset1 = mat1_offset * b + k * dim_j + j;
-                        total += mat0_data[offset0] * mat1_data[offset1];
-                    }
-                    output_data[b * out_offset + i * dim_j + j] = total;
-                }
-            }
+        } else {
+            shl_debug_error("matmul unsupport this broadcast\n");
+            return CSINN_FALSE;
         }
     } else {
-        for (int b = 0; b < batches; ++b) {
-            for (int i = 0; i < dim_i; ++i) {
-                for (int j = 0; j < dim_j; ++j) {
-                    float total = 0.f;
-                    for (int k = 0; k < dim_k; ++k) {
-                        int offset0 = mat0_offset * b + k * dim_i + i;
-                        int offset1 = mat1_offset * b + j * dim_k + k;
-                        total += mat0_data[offset0] * mat1_data[offset1];
-                    }
-                    output_data[b * out_offset + i * dim_j + j] = total;
-                }
-            }
-        }
+        shl_debug_error("matmul unsupport this broadcast\n");
+        return CSINN_FALSE;
     }
 
     return CSINN_TRUE;

@@ -47,14 +47,6 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
             kernel_x    = 3
             kernel_y    = 3
 
-    elif test_type == "packnto1":
-        in_channel  = packn * n
-        out_channel = packn * n + 1
-
-    elif "pack1ton" in test_type:
-        in_channel  = packn * n + 1
-        out_channel = packn * n
-
     elif "packn_" in test_type:
         in_channel  = packn * n
         out_channel = packn * n

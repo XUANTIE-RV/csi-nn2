@@ -1,0 +1,395 @@
+
+menu "C906 optimization"
+
+config C906_SOURCE
+	bool "SHL C906 optimization code"
+	default y
+	help
+		Select SHL build C906 optimization
+
+config C906_ABS_FP32
+	depends on C906_SOURCE
+	bool "Layer abs fp32"
+	default y
+	help
+		Select SHL build v extension optimized abs
+
+config C906_ABS_FP16
+	depends on C906_SOURCE
+	bool "Layer abs fp16"
+	default y
+	help
+		Select SHL build v extension optimized abs
+
+config C906_ADD_FP32
+	depends on C906_SOURCE
+	bool "Layer add fp32"
+	default y
+	help
+		Select SHL build v extension optimized add
+
+config C906_ADD_FP16
+	depends on C906_SOURCE
+	bool "Layer add fp16"
+	default y
+	help
+		Select SHL build v extension optimized add
+
+config C906_AVERAGEPOOL_FP32
+	depends on C906_SOURCE
+	bool "Layer averagepool fp32"
+	default y
+	help
+		Select SHL build v extension optimized averagepool
+
+config C906_AVERAGEPOOL_FP16
+	depends on C906_SOURCE
+	bool "Layer averagepool fp16"
+	default y
+	help
+		Select SHL build v extension optimized averagepool
+
+config C906_CLIP_FP32
+	depends on C906_SOURCE
+	bool "Layer clip fp32"
+	default y
+	help
+		Select SHL build v extension optimized clip
+
+config C906_CLIP_FP16
+	depends on C906_SOURCE
+	bool "Layer clip fp16"
+	default y
+	help
+		Select SHL build v extension optimized clip
+
+config C906_CACHE_CONV1D_FP16
+	depends on C906_SOURCE
+	bool "Layer cache conv1d fp16"
+	default y
+	help
+		Select SHL build v extension optimized cache conv1d
+
+config C906_CACHE_MATMUL_FP16
+	depends on C906_SOURCE
+	bool "Layer cache matmul fp16"
+	default y
+	help
+		Select SHL build v extension optimized cache matmul
+
+config C906_CONCAT_FP32
+	depends on C906_SOURCE
+	bool "Layer concat fp32"
+	default y
+	help
+		Select SHL build v extension optimized concat
+
+config C906_CONCAT_FP16
+	depends on C906_SOURCE
+	bool "Layer concat fp16"
+	default y
+	help
+		Select SHL build v extension optimized concat
+
+config C906_CONVOLUTION_FP32
+	depends on C906_SOURCE
+	bool "Layer convolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C906_CONVOLUTION_FP16
+	depends on C906_SOURCE
+	bool "Layer convolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C906_DEPTHWISE_CONVOLUTION_FP32
+	depends on C906_SOURCE
+	bool "Layer depthwise convolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C906_DEPTHWISE_CONVOLUTION_FP16
+	depends on C906_SOURCE
+	bool "Layer depthwise convolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C906_CONVOLUTION1D_FP32
+	depends on C906_SOURCE
+	bool "Layer convolution1d fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config C906_CONVOLUTION1D_FP16
+	depends on C906_SOURCE
+	bool "Layer convolution1d fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config C906_DEPTHWISE_CONVOLUTION1D_FP16
+	depends on C906_SOURCE
+	bool "Layer depthwise convolution1d fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config C906_DIV_FP32
+	depends on C906_SOURCE
+	bool "Layer div fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config C906_DIV_FP16
+	depends on C906_SOURCE
+	bool "Layer div fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config C906_FULLYCONNECTED_FP16
+	depends on C906_SOURCE
+	bool "Layer fullyconnected fp16"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C906_GEMM_FP32
+	depends on C906_SOURCE
+	bool "Layer GEMM fp32"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C906_GEMM_FP16
+	depends on C906_SOURCE
+	bool "Layer GEMM fp16"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C906_GEMV_FP16
+	depends on C906_SOURCE
+	bool "Layer GEMV fp16"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C906_GLOBAL_AVERAGEPOOL_FP32
+	depends on C906_SOURCE
+	bool "Layer global_averagepool fp32"
+	default y
+	help
+		Select SHL build v extension optimized global_averagepool
+
+config C906_GLOBAL_AVERAGEPOOL_FP16
+	depends on C906_SOURCE
+	bool "Layer global_averagepool fp16"
+	default y
+	help
+		Select SHL build v extension optimized global_averagepool
+
+config C906_GLOBAL_MAXPOOL_FP32
+	depends on C906_SOURCE
+	bool "Layer global_maxpool fp32"
+	default y
+	help
+		Select SHL build v extension optimized global_maxpool
+
+config C906_GLOBAL_MAXPOOL_FP16
+	depends on C906_SOURCE
+	bool "Layer global_maxpool fp16"
+	default y
+	help
+		Select SHL build v extension optimized global_maxpool
+
+config C906_LEAKY_RELU_FP32
+	depends on C906_SOURCE
+	bool "Layer leaky_relu fp32"
+	default y
+	help
+		Select SHL build v extension optimized leaky_relu
+
+config C906_LEAKY_RELU_FP16
+	depends on C906_SOURCE
+	bool "Layer leaky_relu fp16"
+	default y
+	help
+		Select SHL build v extension optimized leaky_relu
+
+config C906_LRN_FP16
+	depends on C906_SOURCE
+	bool "Layer lRN fp16"
+	default y
+	help
+		Select SHL build v extension optimized LRN
+
+config C906_MATMUL_FP16
+	depends on C906_SOURCE
+	bool "Layer matmul fp16"
+	default y
+	help
+		Select SHL build v extension optimized matmul
+
+config C906_MAXPOOL_FP32
+	depends on C906_SOURCE
+	bool "Layer maxpool fp32"
+	default y
+	help
+		Select SHL build v extension optimized maxpool
+
+config C906_MAXPOOL_FP16
+	depends on C906_SOURCE
+	bool "Layer maxpool fp16"
+	default y
+	help
+		Select SHL build v extension optimized maxpool
+
+config C906_MINIMUM_FP32
+	depends on C906_SOURCE
+	bool "Layer minimum fp32"
+	default y
+	help
+		Select SHL build v extension optimized minimum
+
+config C906_MINIMUM_FP16
+	depends on C906_SOURCE
+	bool "Layer minimum fp16"
+	default y
+	help
+		Select SHL build v extension optimized minimum
+
+config C906_MUL_FP32
+	depends on C906_SOURCE
+	bool "Layer mul fp32"
+	default y
+	help
+		Select SHL build v extension optimized mul
+
+config C906_MUL_FP16
+	depends on C906_SOURCE
+	bool "Layer mul fp16"
+	default y
+	help
+		Select SHL build v extension optimized mul
+
+config C906_PAD_FP32
+	depends on C906_SOURCE
+	bool "Layer pad fp32"
+	default y
+	help
+		Select SHL build v extension optimized pad
+
+config C906_PAD_FP16
+	depends on C906_SOURCE
+	bool "Layer pad fp16"
+	default y
+	help
+		Select SHL build v extension optimized pad
+
+config C906_PRELU_FP32
+	depends on C906_SOURCE
+	bool "Layer prelu fp32"
+	default y
+	help
+		Select SHL build v extension optimized prelu
+
+config C906_PRELU_FP16
+	depends on C906_SOURCE
+	bool "Layer prelu fp16"
+	default y
+	help
+		Select SHL build v extension optimized prelu
+
+config C906_RELU_FP32
+	depends on C906_SOURCE
+	bool "Layer relu fp32"
+	default y
+	help
+		Select SHL build v extension optimized relu
+
+config C906_RELU_FP16
+	depends on C906_SOURCE
+	bool "Layer relu fp16"
+	default y
+	help
+		Select SHL build v extension optimized relu
+
+config C906_RELU1_FP32
+	depends on C906_SOURCE
+	bool "Layer relu1 fp32"
+	default y
+	help
+		Select SHL build v extension optimized relu
+
+config C906_RELU1_FP16
+	depends on C906_SOURCE
+	bool "Layer relu1 fp16"
+	default y
+	help
+		Select SHL build v extension optimized relu
+
+config C906_RELU6_FP32
+	depends on C906_SOURCE
+	bool "Layer relu6 fp32"
+	default y
+	help
+		Select SHL build v extension optimized relu6
+
+config C906_RELU6_FP16
+	depends on C906_SOURCE
+	bool "Layer relu6 fp16"
+	default y
+	help
+		Select SHL build v extension optimized relu6
+
+config C906_RESHAPE_FP16
+	depends on C906_SOURCE
+	bool "Layer reshape fp16"
+	default y
+	help
+		Select SHL build v extension optimized reshape
+
+config C906_SPLIT_FP32
+	depends on C906_SOURCE
+	bool "Layer split fp32"
+	default y
+	help
+		Select SHL build v extension optimized split
+
+config C906_SPLIT_FP16
+	depends on C906_SOURCE
+	bool "Layer split fp16"
+	default y
+	help
+		Select SHL build v extension optimized split
+
+config C906_SUM_FP16
+	depends on C906_SOURCE
+	bool "Layer sum fp16"
+	default y
+	help
+		Select SHL build v extension optimized fp16
+
+config C906_SUB_FP32
+	depends on C906_SOURCE
+	bool "Layer sub fp32"
+	default y
+	help
+		Select SHL build v extension optimized sub
+
+config C906_SUB_FP16
+	depends on C906_SOURCE
+	bool "Layer sub fp16"
+	default y
+	help
+		Select SHL build v extension optimized sub
+
+endmenu

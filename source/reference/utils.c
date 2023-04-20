@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include <time.h>
 
@@ -105,12 +105,12 @@ int shl_ref_diso_broadcast_base(struct csinn_tensor *input0, struct csinn_tensor
 
     if (shl_ref_broadcast_to_shape(input0, b_input0, output->dim, output->dim_count) ==
         CSINN_FALSE) {
-        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input0 failed.", __func__));
+        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input0 failed.\n", __func__));
         return CSINN_FALSE;
     };
     if (shl_ref_broadcast_to_shape(input1, b_input1, output->dim, output->dim_count) ==
         CSINN_FALSE) {
-        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input1 failed.", __func__));
+        SHL_DEBUG_CALL(shl_debug_info("%s: broadcast input1 failed.\n", __func__));
         return CSINN_FALSE;
     };
 
@@ -413,7 +413,7 @@ int16_t shl_ref_float32_to_float16(float value)
 float shl_ref_float16_to_float32(int16_t value)
 {
     float ret;
-    if (value == 0 || value == 0x8000) {
+    if (value == 0) {
         return 0;
     }
     int32_t ret_format = 0;
@@ -504,7 +504,11 @@ struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
     if (ret->dim_count == 0) {
         return ret;
     }
-    ret->data = shl_mem_alloc(csinn_tensor_size(input) * 4);
+    int input_size = csinn_tensor_size(input);
+    if (input_size == 0) {
+        return ret;
+    }
+    ret->data = shl_mem_alloc(input_size * 4);
     if (csinn_tensor_data_convert(ret, input) == CSINN_TRUE) {
         return ret;
     }
@@ -513,7 +517,10 @@ struct csinn_tensor *shl_ref_tensor_transform_f32(struct csinn_tensor *input)
 
 int shl_ref_tensor_transform_free_f32(struct csinn_tensor *input)
 {
-    shl_mem_free(input->data);
+    int size = csinn_tensor_size(input);
+    if (size != 0) {
+        shl_mem_free(input->data);
+    }
     csinn_free_tensor(input);
     return CSINN_TRUE;
 }
@@ -615,6 +622,13 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
             return CSINN_FALSE;
         }
     }
+    int data_size = csinn_tensor_size(input);
+    int out_size = csinn_tensor_size(output);
+
+    if (data_size == out_size) {
+        memcpy(output_data, input_data, data_size * 4);
+        return CSINN_TRUE;
+    }
 
     // full in_shape
     int32_t new_shape[target_shape_rank];
@@ -630,8 +644,6 @@ int shl_ref_broadcast_to_shape_f32(struct csinn_tensor *input, struct csinn_tens
     }
     in_shape = new_shape;
 
-    int data_size = csinn_tensor_size(input);
-    int out_size = csinn_tensor_size(output);
     float *output_data_t = shl_mem_alloc(out_size * 4);
     memcpy(output_data_t, input_data, data_size * 4);
     memcpy(output_data, input_data, data_size * 4);

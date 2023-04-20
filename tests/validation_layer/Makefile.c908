@@ -1,7 +1,7 @@
-LIB_DIR = ../../riscv_build
+LIB_DIR = ../../c908_build
 INCLUDE = -I../../include -I../utils -I./layer
 CFLAGS = -O0 -g3 -static
-CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadv -mabi=lp64d
+CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
 CFLAGS += -DCSINN_API=12
 LIB_NAME = shl_c908
@@ -15,17 +15,19 @@ test_objs =
 
 test_objs += averagepool.o
 test_objs += convolution.o
+test_objs += convolution_nhwc.o
 test_objs += depthwise_convolution.o
+test_objs += depthwise_convolution_nhwc.o
 test_objs += fullyconnected.o
 test_objs += global_avgpool.o
 test_objs += global_maxpool.o
 test_objs += maxpool.o
+test_objs += prelu.o
+test_objs += group_convolution.o
 
 
 
 utils_objs =
-
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 # template_objs += ./layer/common.o
 

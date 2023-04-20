@@ -57,8 +57,6 @@ test_objs += ./u8_testcases/reshape_u8.o
 
 
 utils_objs =
-
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 utils_objs += verify_avgpool_q7.o
 utils_objs += verify_maxpool_q7.o

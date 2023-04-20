@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2022 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-/* CSI-NN2 version 2.0.x */
+/* SHL version 2.1.x */
 
 #include "shl_gref.h"
 
@@ -42,5 +42,27 @@ int shl_gref_concat(struct csinn_tensor **input, struct csinn_tensor *output,
     struct shl_ref_graph *graph = shl_gref_get_graph(input[0]->sess);
     shl_gref_graph_insert(layer, graph);
 
+    return CSINN_TRUE;
+}
+
+int shl_gref_concat_infer_shape(struct csinn_tensor **input, struct csinn_tensor *output,
+                                struct csinn_concat_params *params)
+{
+    for (int i = 1; i < params->inputs_count; i++) {
+        if (input[i]->dim_count != input[0]->dim_count) {
+            shl_debug_error("all inputs must have same shape size!\n");
+        }
+    }
+    output->dim_count = input[0]->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        if (i == params->axis) {
+            output->dim[i] = 0;
+            for (int j = 0; j < params->inputs_count; j++) {
+                output->dim[i] += input[j]->dim[i];
+            }
+        } else {
+            output->dim[i] = input[0]->dim[i];
+        }
+    }
     return CSINN_TRUE;
 }

@@ -1,7 +1,7 @@
-LIB_DIR = ../../riscv_build
+LIB_DIR = ../../rvv_build
 INCLUDE = -I../../include -I../utils
 CFLAGS = -O0 -g3 -static
-CFLAGS += -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d
+CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
 CFLAGS += -DCSINN_API=15
 LIB_NAME = shl_rvv
@@ -27,7 +27,6 @@ test_objs += conv2d_winograd.o
 
 utils_objs =
 
-utils_objs += ../utils/math_snr.o
 utils_objs += ../utils/test_utils.o
 
 all: csi
