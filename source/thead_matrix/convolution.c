@@ -35,7 +35,7 @@ int shl_rvm_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t dalition_h = params->dilation_height;
     int32_t dalition_w = params->dilation_width;
     int32_t group = params->group;
-    const int mcols = csrr_xmlenb() / 2;
+    const int mcols = csrr_xrlenb() / 2;
     struct csinn_callback *cb = params->base.cb;
     bool has_reordered = false;
 

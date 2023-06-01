@@ -64,8 +64,8 @@ int shl_rvm_conv1x1s1_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor 
     int32_t k = in_c;
 
     // k_align = 8 and n_align = 8 for MLEN = 128
-    int32_t k_align = ((k - 1) & -(csrr_xmlenb() / 2)) + csrr_xmlenb() / 2;
-    // int32_t n_align = ((n - 1) & -(csrr_xmlenb() / 2)) + csrr_xmlenb() / 2;
+    int32_t k_align = ((k - 1) & -(csrr_xrlenb() / 2)) + csrr_xrlenb() / 2;
+    // int32_t n_align = ((n - 1) & -(csrr_xrlenb() / 2)) + csrr_xrlenb() / 2;
 
     __fp16 *input_align_buf = input_data;
     if (k_align != k) {
@@ -76,6 +76,8 @@ int shl_rvm_conv1x1s1_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor 
         __fp16 *in_ptr = input_align_buf;
         if (k_align != k) {
             align_input_channel_fp16(input_align_buf, input_data, m, k, k_align);
+        } else {
+            in_ptr = input_data;
         }
         __fp16 *out_ptr = output_data;
         __fp16 *bias_ptr = bias_data ? bias_data : NULL;

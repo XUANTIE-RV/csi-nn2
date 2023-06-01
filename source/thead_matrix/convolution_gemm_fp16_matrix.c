@@ -23,7 +23,7 @@
 static void im2col_gemm_reorder_kernel_nhwc_per_group_fp16(__fp16 *src, __fp16 *dst, int out_c,
                                                            int in_c, int maxk)
 {
-    int m2rows = csrr_xmlenb() / 2;
+    int m2rows = csrr_xrlenb() / 2;
     int cols = m2rows;
     int K = maxk * in_c;
     int oc = 0;
@@ -84,8 +84,8 @@ void shl_rvm_conv_im2col_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
     int in_c = kernel->dim[3];
     int maxk = kernel->dim[1] * kernel->dim[2];
 
-    int oc_per_group_align = ((out_cp - 1) & -(csrr_xmlenb() / 2)) + csrr_xmlenb() / 2;
-    int k_align = ((in_c * maxk - 1) & -(csrr_xmlenb() / 2)) + csrr_xmlenb() / 2;
+    int oc_per_group_align = ((out_cp - 1) & -(csrr_xrlenb() / 2)) + csrr_xrlenb() / 2;
+    int k_align = ((in_c * maxk - 1) & -(csrr_xrlenb() / 2)) + csrr_xrlenb() / 2;
 
     params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
     params->conv_extra.kernel_tm->data =
@@ -129,7 +129,7 @@ int shl_rvm_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tenso
     int32_t maxk = ksize_h * ksize_w;
     int32_t n = out_c;
     int32_t k = in_c * maxk;
-    int32_t k_align = ((k - 1) & -(csrr_xmlenb() / 2)) + csrr_xmlenb() / 2;
+    int32_t k_align = ((k - 1) & -(csrr_xrlenb() / 2)) + csrr_xrlenb() / 2;
 
     // padding
     int32_t padded_in_h = in_h + params->pad_top + params->pad_down;
@@ -149,6 +149,8 @@ int shl_rvm_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tenso
         if (flag_pad) {
             shl_rvv_pad_input_nhwc_fp16(input_data, input_pad_buf, in_h, in_w, in_c, padded_in_h,
                                         padded_in_w, params->pad_top, params->pad_left);
+        } else {
+            input_pad_buf = input_data;
         }
         // im2col
         for (int oh = 0; oh < out_h; oh++) {

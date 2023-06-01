@@ -84,9 +84,9 @@ void shl_target_init_rvm()
                    NULL, shl_gref_global_avgpool2d);
     shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_AVGPOOL2D, shl_rvm_global_avgpool2d_init, NULL,
                    shl_gref_global_avgpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvv_global_maxpool2d_init,
+    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvm_global_maxpool2d_init,
                    NULL, shl_gref_global_maxpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvv_global_maxpool2d_init, NULL,
+    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvm_global_maxpool2d_init, NULL,
                    shl_gref_global_maxpool2d);
 
     shl_register_op_callback(CSINN_RVM, shl_cb_map_rvm);

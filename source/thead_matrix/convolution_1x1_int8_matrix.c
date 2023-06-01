@@ -64,8 +64,8 @@ int shl_rvm_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor 
     int32_t n = out_ch;
 
     // k_align = 16 and n_align = 4 for MLEN = 128
-    int32_t k_align = ((k - 1) & -csrr_xmlenb()) + csrr_xmlenb();
-    int32_t n_align = ((n - 1) & -(csrr_xmlenb() / 4)) + csrr_xmlenb() / 4;
+    int32_t k_align = ((k - 1) & -csrr_xrlenb()) + csrr_xrlenb();
+    int32_t n_align = ((n - 1) & -(csrr_xrlenb() / 4)) + csrr_xrlenb() / 4;
 
     int32_t *multiplier = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
     int32_t *shift = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
@@ -91,6 +91,8 @@ int shl_rvm_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor 
         int8_t *in_ptr = input_align_buf;
         if (k_align != k) {
             align_input_channel_int8(input_align_buf, input_data, m, k, k_align);
+        } else {
+            in_ptr = input_data;
         }
         int8_t *out_ptr = output_data;
         int32_t *bias_ptr = bias_data;  // bias_data != NULL with fusing zp to bias

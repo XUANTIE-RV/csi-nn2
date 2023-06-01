@@ -227,7 +227,7 @@ gemm_fp16_rowxn_n:
 
     mcfgmi          zero, 1
     mldh            m0, t3, (a3)    // bias [1][n]
-    add             a3, a3, t0
+    add             a3, a3, t1
 
     mcfgm           zero, a4
     mmov.mv.i       m4, m0[0]
@@ -335,7 +335,7 @@ gemm_fp16_nhwc_matrix_row_tailxn:
     addi            sp, sp, -8
     sd              s0, 0(sp)
 
-    csrr            s0, xmlenb
+    csrr            s0, xrlenb
     srai            s0, s0, 2       // row
     slli            t0, s0, 1       // col
     slli            t1, t0, 1       // col * sizeof(__fp16)
@@ -354,7 +354,7 @@ gemm_fp16_row_tailxn_n:
 
     mcfgmi          zero, 1
     mldh            m0, t3, (a3)    // bias [1][n]
-    add             a3, a3, t0
+    add             a3, a3, t1
 
     mcfgm           zero, a4
     mmov.mv.i       m4, m0[0]

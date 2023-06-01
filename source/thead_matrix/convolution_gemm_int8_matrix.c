@@ -23,7 +23,7 @@
 static void im2col_gemm_reorder_kernel_per_group_int8_matrix(int8_t *src, int8_t *dst, int out_c,
                                                              int in_c, int maxk)
 {
-    const int col = csrr_xmlenb();
+    const int col = csrr_xrlenb();
     const int row = col / 4;
     int oc = 0;
     for (; oc + 2 * row <= out_c; oc += 2 * row) {
@@ -102,8 +102,8 @@ void shl_rvm_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
     int in_c = kernel->dim[3];
     int maxk = kernel->dim[1] * kernel->dim[2];
 
-    int oc_per_group_align = ((out_cp - 1) & -(csrr_xmlenb() / 4)) + csrr_xmlenb() / 4;
-    int k_align = ((in_c * maxk - 1) & -csrr_xmlenb()) + csrr_xmlenb();
+    int oc_per_group_align = ((out_cp - 1) & -(csrr_xrlenb() / 4)) + csrr_xrlenb() / 4;
+    int k_align = ((in_c * maxk - 1) & -csrr_xrlenb()) + csrr_xrlenb();
 
     params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
     params->conv_extra.kernel_tm->data =
@@ -147,7 +147,7 @@ int shl_rvm_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
     int32_t maxk = ksize_h * ksize_w;
     int32_t n = out_c;
     int32_t k = in_c * maxk;
-    int32_t k_align = ((k - 1) & -csrr_xmlenb()) + csrr_xmlenb();
+    int32_t k_align = ((k - 1) & -csrr_xrlenb()) + csrr_xrlenb();
 
     int32_t *multiplier = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
     int32_t *shift = (int32_t *)shl_mem_alloc(n * sizeof(int32_t));
@@ -171,6 +171,8 @@ int shl_rvm_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tenso
             shl_rvv_pad_input_nhwc_int8(input_data, input_pad_buf, in_h, in_w, in_c, padded_in_h,
                                         padded_in_w, params->pad_top, params->pad_left,
                                         input->qinfo->zero_point);
+        } else {
+            input_pad_buf = input_data;
         }
         // im2col
         int vl = vsetvl_e8m1(csrr_vlenb() / sizeof(int8_t));

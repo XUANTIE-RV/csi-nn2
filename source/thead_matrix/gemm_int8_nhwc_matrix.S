@@ -588,7 +588,7 @@ gemm_int8_nhwc_row_tailxn_matrix:
 
     mv              s0, a7      // s0 = out_zp
 
-    csrr            a7, xmlenb
+    csrr            a7, xrlenb
     srai            a7, a7, 2   // row
     slli            t4, a7, 1   // row * 2
     mv              t5, a6

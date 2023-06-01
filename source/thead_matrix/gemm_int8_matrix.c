@@ -71,7 +71,7 @@ void gemm_int8_nhwc_row_tailxn_matrix(int8_t *output, const int8_t *kernel, cons
 void shl_rvm_nhwc_gemm_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, const int32_t *bias,
                             int m, int k, int n, int32_t out_zp, int32_t *mult, int32_t *shift)
 {
-    const int mlenb = csrr_xmlenb();
+    const int mlenb = csrr_xrlenb();
     const int mregrows = mlenb / 4;
 
 #ifndef MATRIX_PW_I32

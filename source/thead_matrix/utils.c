@@ -20,9 +20,9 @@
 
 #include "shl_thead_rvm.h"
 
-int csrr_xmlenb()
+int csrr_xrlenb()
 {
     int a = 0;
-    asm volatile("csrr %0, xmlenb" : "=r"(a) : : "memory");
+    asm volatile("csrr %0, xrlenb" : "=r"(a) : : "memory");
     return a;
 }

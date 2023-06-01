@@ -32,7 +32,7 @@ void gemm_fp16_nhwc_matrix_row_tailxn(__fp16 *output, const __fp16 *kernel, cons
 void shl_rvm_nhwc_gemm_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, const __fp16 *bias,
                             int m, int k, int n)
 {
-    int mrows = csrr_xmlenb() / 4;
+    int mrows = csrr_xrlenb() / 4;
     int m2rows = mrows * 2;
 
     __fp16 *bias_shadow = NULL;

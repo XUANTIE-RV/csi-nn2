@@ -420,7 +420,7 @@ gemm_int8_to_int32_nhwc_row_tailxn_matrix:
 
     slli            s0, a6, 2   // n * 4
 
-    csrr            a7, xmlenb
+    csrr            a7, xrlenb
     srai            a7, a7, 2   // row
     slli            t4, a7, 1   // row * 2
     mv              t5, a6      // t5 = n

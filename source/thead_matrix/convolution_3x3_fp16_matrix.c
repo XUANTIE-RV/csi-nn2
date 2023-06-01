@@ -196,10 +196,10 @@ void shl_rvm_wg_b4f3s1_trans_kernel_nhwc_fp16(struct csinn_tensor *src_kernel,
     shl_mem_free(kernel_tm_2);
 
     // reorder & align kernel
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
-    int n_align = ((out_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
+    int n_align = ((out_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
     __fp16 *kernel_reorder = (__fp16 *)shl_mem_alloc(36 * n_align * k_align * sizeof(__fp16));
-    const int mcols = csrr_xmlenb() / 2;
+    const int mcols = csrr_xrlenb() / 2;
     for (int a = 0; a < 36; a++) {
         const __fp16 *src = kernel_tm_3 + a * out_c * in_c;
         __fp16 *dst = kernel_reorder + a * n_align * k_align;
@@ -335,10 +335,10 @@ void shl_rvm_wg_b6f3s1_trans_kernel_nhwc_fp16(struct csinn_tensor *src_kernel,
     shl_mem_free(kernel_tm_2);
 
     // reorder & align kernel
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
-    int n_align = ((out_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
+    int n_align = ((out_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
     __fp16 *kernel_reorder = (__fp16 *)shl_mem_alloc(64 * n_align * k_align * sizeof(__fp16));
-    const int mcols = csrr_xmlenb() / 2;
+    const int mcols = csrr_xrlenb() / 2;
     for (int a = 0; a < 64; a++) {
         const __fp16 *src = kernel_tm_3 + a * out_c * in_c;
         __fp16 *dst = kernel_reorder + a * n_align * k_align;
@@ -360,7 +360,7 @@ static inline void wg_bxf3s1_batch_gemm_matrix_fp16(const __fp16 *input, const _
                                                     __fp16 *output, __fp16 *fake_bias, int k_align,
                                                     int out_c, int tiles, int area)
 {
-    int n_align = ((out_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int n_align = ((out_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
     for (int r = 0; r < area; r++) {
         const __fp16 *input_ptr = input + r * tiles * k_align;
         const __fp16 *kernel_ptr = kernel + r * n_align * k_align;
@@ -411,7 +411,7 @@ static inline void wg_b4f3s1_trans_input_nhwc_fp16(const __fp16 *src, __fp16 *ds
     int tiles = blk_h * blk_w;
     int vl = vsetvl_e16m1(in_c);
     __fp16 tmp[6][6][vl];
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
 
     for (int i = 0; i < blk_h; i++) {
         for (int j = 0; j < blk_w; j++) {
@@ -634,7 +634,7 @@ int shl_rvm_wg_b4f3s1_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor 
     int padded_in_hw = padded_in_h * padded_in_w;  // element size after padding per channel
 
     int tiles = block_h * block_w;
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
 
     for (int b = 0; b < batch; b++) {
         /****************************** pad input *****************************/
@@ -699,7 +699,7 @@ static inline void wg_b6f3s1_trans_input_nhwc_fp16(const __fp16 *src, __fp16 *ds
     int tiles = blk_h * blk_w;
     int vl = vsetvl_e16m1(in_c);
     __fp16 tmp[8][8][vl];
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
 
     for (int i = 0; i < blk_h; i++) {
         for (int j = 0; j < blk_w; j++) {
@@ -1002,7 +1002,7 @@ int shl_rvm_wg_b6f3s1_nhwc_fp16(struct csinn_tensor *input, struct csinn_tensor 
     int padded_in_hw = padded_in_h * padded_in_w;  // element size after padding per channel
 
     int tiles = block_h * block_w;
-    int k_align = ((in_c - 1) & -(csrr_xmlenb() / 2)) + (csrr_xmlenb() / 2);
+    int k_align = ((in_c - 1) & -(csrr_xrlenb() / 2)) + (csrr_xrlenb() / 2);
 
     for (int b = 0; b < batch; b++) {
         /****************************** pad input *****************************/
