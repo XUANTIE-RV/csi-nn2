@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 int shl_c908_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -46,6 +46,9 @@ int shl_c908_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn
             in_elempack = 1;
             out_elempack = 1;  // dwconv2d out_channel pack is same as in_channel
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        in_elempack = in_c % packn == 0 ? packn : 1;
+        out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {

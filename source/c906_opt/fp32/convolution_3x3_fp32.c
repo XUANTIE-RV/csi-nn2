@@ -24,7 +24,7 @@
     input_width <= 120
 */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 void shl_c906_conv3x3s1_winograd23_transform_kernel(struct csinn_tensor *o_kernel,
                                                     struct csinn_tensor *t_kernel)

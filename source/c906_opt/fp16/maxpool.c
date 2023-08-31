@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*
     pad_left = pad_top = 0

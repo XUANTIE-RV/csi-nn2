@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 static vint8m1_t requantize_4xn(vint32m4_t _src, int32_t *mult, int32_t *shift, int32_t out_zp,
                                 int vl)
 {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_relu_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                       struct csinn_relu_params *params)

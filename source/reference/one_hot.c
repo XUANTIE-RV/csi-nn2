@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 /* from tensorflow/lite/kernels/one_hot.cc */
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static int common_all_support(struct csinn_tensor *input, struct csinn_params_base *base)
 {
@@ -132,15 +132,27 @@ int shl_rvv_conv1d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 {
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_w = params->stride_width;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_w = params->dilation_width;
     int32_t group = params->group;
-    if (input->dtype == CSINN_DTYPE_FLOAT16) {
+    if (input->dtype == CSINN_DTYPE_FLOAT32) {
         if (group == 1) {
-            if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
+            return CSINN_OPT_INTRINSIC;
+        }
+        // dwconv1d
+        else if (group == input->dim[1] && kernel->dim[1] == 1) {
+            if (bias->data != NULL && bias->dim_count != 0) {
                 return CSINN_OPT_INTRINSIC;
             } else {
                 return CSINN_OPT_C_REFERENCE;
             }
+        }
+        // group conv1d
+        else {
+            return CSINN_OPT_C_REFERENCE;
+        }
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        if (group == 1) {
+            return CSINN_OPT_INTRINSIC;
         }
         // dwconv1d
         else if (group == input->dim[1] && kernel->dim[1] == 1) {
@@ -157,6 +169,19 @@ int shl_rvv_conv1d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
     }
 
     return CSINN_OPT_UNSUPPORTED;
+}
+
+int shl_rvv_deconv2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                         struct csinn_conv2d_params *params)
+{
+    if (input->dtype == CSINN_DTYPE_FLOAT32) {
+        return CSINN_OPT_INTRINSIC;
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        return CSINN_OPT_INTRINSIC;
+    } else {
+        return CSINN_OPT_UNSUPPORTED;
+    }
 }
 
 int shl_rvv_fullyconnected_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -408,103 +433,55 @@ int shl_rvv_avgpool2d_cap(struct csinn_tensor *input, struct csinn_tensor *outpu
     return CSINN_OPT_UNSUPPORTED;
 }
 
-static int c920_tail_coincide(struct csinn_tensor *input0, struct csinn_tensor *input1)
-{
-    int flag = 1;
-    int i = 0, j = 0;
-    for (i = input1->dim_count - 1, j = input0->dim_count - 1; i >= 0; i--, j--) {
-        if (input0->dim[j] != input1->dim[i]) {
-            flag = 0;
-            break;
-        }
-    }
-    flag = 1;
-    for (; i >= 0; i--) {
-        if (input1->dim[i] != 1) {
-            flag = 0;
-            break;
-        }
-    }
-    return flag;
-}
-
 int shl_rvv_add_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    int in_size0 = csinn_tensor_size(input0);
-    int in_size1 = csinn_tensor_size(input1);
     if (input0->dtype == CSINN_DTYPE_FLOAT16) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     } else if (input0->dtype == CSINN_DTYPE_INT8) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     }
+    return CSINN_OPT_UNSUPPORTED;
+}
 
+int shl_rvv_sub_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                    struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    if (input0->dtype == CSINN_DTYPE_FLOAT16) {
+        return CSINN_OPT_INTRINSIC;
+    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
+        return CSINN_OPT_INTRINSIC;
+    } else if (input0->dtype == CSINN_DTYPE_INT8) {
+        return CSINN_OPT_INTRINSIC;
+    }
     return CSINN_OPT_UNSUPPORTED;
 }
 
 int shl_rvv_mul_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
                     struct csinn_tensor *output, struct csinn_diso_params *params)
 {
-    int in_size0 = csinn_tensor_size(input0);
-    int in_size1 = csinn_tensor_size(input1);
     if (input0->dtype == CSINN_DTYPE_FLOAT16) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     } else if (input0->dtype == CSINN_DTYPE_INT8) {
-        if (in_size1 == 1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (in_size0 == in_size1) {
-            return CSINN_OPT_INTRINSIC;
-        } else if (c920_tail_coincide(input0, input1)) {
-            return CSINN_OPT_INTRINSIC;
-        } else {
-            return CSINN_OPT_C_REFERENCE;
-        }
+        return CSINN_OPT_INTRINSIC;
     }
+    return CSINN_OPT_UNSUPPORTED;
+}
 
+int shl_rvv_div_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                    struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    if (input0->dtype == CSINN_DTYPE_FLOAT16) {
+        return CSINN_OPT_INTRINSIC;
+    } else if (input0->dtype == CSINN_DTYPE_FLOAT32) {
+        return CSINN_OPT_INTRINSIC;
+    } else if (input0->dtype == CSINN_DTYPE_INT8) {
+        return CSINN_OPT_INTRINSIC;
+    }
     return CSINN_OPT_UNSUPPORTED;
 }
 
@@ -529,7 +506,7 @@ int shl_rvv_relu_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_rvv_relu6_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                       struct csinn_relu_params *params)
 {
-    return float_all_support(input, &(params->base));
+    return common_all_support(input, &(params->base));
 }
 
 int shl_rvv_global_avgpool2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -553,13 +530,13 @@ int shl_rvv_reshape_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_rvv_sigmoid_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_sigmoid_params *params)
 {
-    return float_all_support(input, &(params->base));
+    return common_all_support(input, &(params->base));
 }
 
 int shl_rvv_softmax_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_softmax_params *params)
 {
-    return float_all_support(input, &(params->base));
+    return common_all_support(input, &(params->base));
 }
 
 int shl_rvv_reduce_sum_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -585,7 +562,7 @@ int shl_rvv_layer_norm_cap(struct csinn_tensor *input, struct csinn_tensor *outp
     if (params->center == false || params->scale == false) {
         return CSINN_OPT_UNSUPPORTED;
     }
-    return float_all_support(input, &(params->base));
+    return common_all_support(input, &(params->base));
 }
 
 int shl_rvv_clip_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -648,25 +625,24 @@ int shl_rvv_transpose_cap(struct csinn_tensor *input, struct csinn_tensor *outpu
 int shl_rvv_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                        struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
-    const int dims_count = mat0->dim_count;
     int batches_a = 1;
     int batches_b = 1;
 
     /* compute the outer size */
-    for (int i = 0; i < dims_count - 2; i++) {
+    for (int i = 0; i < mat0->dim_count - 2; i++) {
         batches_a *= mat0->dim[i];
+    }
+    for (int i = 0; i < mat1->dim_count - 2; i++) {
         batches_b *= mat1->dim[i];
     }
 
     if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32 ||
         mat0->dtype == CSINN_DTYPE_FLOAT16 &&
             (mat1->dtype == CSINN_DTYPE_FLOAT16 || mat1->dtype == CSINN_DTYPE_INT8)) {
-        if (batches_a == batches_b) {
-            if (!params->trans_a && !params->trans_b) {
+        if (!params->trans_a && !params->trans_b) {
+            if (batches_a == batches_b) {
                 return CSINN_OPT_INTRINSIC;
-            }
-        } else if (batches_a > 1 && batches_b == 1) {
-            if (!params->trans_a && !params->trans_b) {
+            } else if (batches_a > 1 && batches_b == 1) {
                 return CSINN_OPT_INTRINSIC;
             }
         }
@@ -688,10 +664,18 @@ int shl_rvv_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
 int shl_rvv_gather_cap(struct csinn_tensor *input, struct csinn_tensor *indices,
                        struct csinn_tensor *output, struct csinn_gather_params *params)
 {
-    if (input->dtype == CSINN_DTYPE_INT8) {
-        if (input->dtype == CSINN_DTYPE_INT8 && output->dtype == CSINN_DTYPE_FLOAT16) {
+    if (input->dtype == CSINN_DTYPE_FLOAT32) {
+        if (indices->dtype == CSINN_DTYPE_INT64 && output->dtype == CSINN_DTYPE_FLOAT32) {
             return CSINN_OPT_INTRINSIC;
-        } else if (input->dtype == CSINN_DTYPE_INT8 && output->dtype == CSINN_DTYPE_INT8) {
+        }
+    } else if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        if (indices->dtype == CSINN_DTYPE_INT64 && output->dtype == CSINN_DTYPE_FLOAT16) {
+            return CSINN_OPT_INTRINSIC;
+        }
+    } else if (input->dtype == CSINN_DTYPE_INT8) {
+        if (indices->dtype == CSINN_DTYPE_INT64 && output->dtype == CSINN_DTYPE_FLOAT16) {
+            return CSINN_OPT_INTRINSIC;
+        } else if (indices->dtype == CSINN_DTYPE_INT64 && output->dtype == CSINN_DTYPE_INT8) {
             return CSINN_OPT_INTRINSIC;
         } else {
             return CSINN_OPT_C_REFERENCE;
@@ -699,4 +683,10 @@ int shl_rvv_gather_cap(struct csinn_tensor *input, struct csinn_tensor *indices,
     }
 
     return CSINN_OPT_UNSUPPORTED;
+}
+
+int shl_rvv_erf_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_clip_params *params)
+{
+    return common_all_support(input, &(params->base));
 }

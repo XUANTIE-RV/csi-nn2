@@ -662,6 +662,28 @@ static void nhwc_int4_to_float(struct csinn_tensor *dest, struct csinn_tensor *s
     }
 }
 
+static void int4_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    int8_t *src_data = src->data;
+    float *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        int in_index = i / 2;
+        int8_t src_tmp = 0;
+        float ret = 0;
+        /* int4 little endian */
+        if (i % 2) {
+            src_tmp = src_data[in_index] & 0xf0;
+            ret = int4_to_float_base(src_tmp >> 4, src, 0);
+        } else {
+            src_tmp = (src_data[in_index] & 0xf) << 4;
+            ret = int4_to_float_base(src_tmp >> 4, src, 0);
+        }
+        dest_data[i] = ret;
+    }
+}
+
 static void nchw_float_to_int4(struct csinn_tensor *dest, struct csinn_tensor *src, int n,
                                int inner_size)
 {
@@ -704,6 +726,24 @@ static void nhwc_float_to_int4(struct csinn_tensor *dest, struct csinn_tensor *s
     }
 }
 
+static void float_to_int4(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    int8_t *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        int input_val = float_to_int4_base(src_data[i], dest, 0);
+        int out_index = i / 2;
+        /* int4 little endian */
+        if (i % 2) {
+            dest_data[out_index] = (dest_data[out_index] & 0xf) | (input_val << 4);
+        } else {
+            dest_data[out_index] = (dest_data[out_index] & 0xf0) | input_val;
+        }
+    }
+}
+
 static void nchw_uint8_to_float(struct csinn_tensor *dest, struct csinn_tensor *src, int n,
                                 int inner_size)
 {
@@ -732,6 +772,17 @@ static void nhwc_uint8_to_float(struct csinn_tensor *dest, struct csinn_tensor *
     }
 }
 
+static void uint8_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    uint8_t *src_data = src->data;
+    float *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = uint8_to_float_base(src_data[i], src, 0);
+    }
+}
+
 static void nchw_float_to_uint8(struct csinn_tensor *dest, struct csinn_tensor *src, int n,
                                 int inner_size)
 {
@@ -756,6 +807,17 @@ static void nhwc_float_to_uint8(struct csinn_tensor *dest, struct csinn_tensor *
             int index = n * q_size * inner_size + j * q_size + i;
             dest_data[index] = float_to_uint8_base(src_data[index], dest, i);
         }
+    }
+}
+
+static void float_to_uint8(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    uint8_t *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = float_to_uint8_base(src_data[i], dest, 0);
     }
 }
 
@@ -808,6 +870,17 @@ static void nc1hwc0_int8_to_float(struct csinn_tensor *dest, struct csinn_tensor
     }
 }
 
+static void int8_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    int8_t *src_data = src->data;
+    float *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = int8_to_float_base(src_data[i], src, 0);
+    }
+}
+
 static void nchw_float_to_int8(struct csinn_tensor *dest, struct csinn_tensor *src, int n,
                                int inner_size)
 {
@@ -833,6 +906,17 @@ static void nhwc_float_to_int8(struct csinn_tensor *dest, struct csinn_tensor *s
             int index = n * q_size * inner_size + j * q_size + i;
             dest_data[index] = float_to_int8_base(src_data[index], dest, i);
         }
+    }
+}
+
+static void float_to_int8(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    int8_t *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = float_to_int8_base(src_data[i], dest, 0);
     }
 }
 
@@ -864,6 +948,17 @@ static void nhwc_int16_to_float(struct csinn_tensor *dest, struct csinn_tensor *
     }
 }
 
+static void int16_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    int16_t *src_data = src->data;
+    float *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = int16_to_float_base(src_data[i], src, 0);
+    }
+}
+
 static void nchw_float_to_int16(struct csinn_tensor *dest, struct csinn_tensor *src, int n,
                                 int inner_size)
 {
@@ -889,6 +984,17 @@ static void nhwc_float_to_int16(struct csinn_tensor *dest, struct csinn_tensor *
             int index = n * q_size * inner_size + j * q_size + i;
             dest_data[index] = float_to_int16_base(src_data[index], dest, i);
         }
+    }
+}
+
+static void float_to_int16(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    int16_t *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = float_to_int16_base(src_data[i], dest, 0);
     }
 }
 
@@ -948,7 +1054,29 @@ static void nhwc_int32_to_float(struct csinn_tensor *dest, struct csinn_tensor *
     }
 }
 
-static void csinn_f16_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+static void float_to_int32(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    float *src_data = src->data;
+    int32_t *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = float_to_int32_base(src_data[i], dest, 0);
+    }
+}
+
+static void int32_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
+{
+    int32_t *src_data = src->data;
+    float *dest_data = dest->data;
+
+    int32_t size = csinn_tensor_size(src);
+    for (int i = 0; i < size; i++) {
+        dest_data[i] = int32_to_float_base(src_data[i], src, 0);
+    }
+}
+
+static void f16_to_float(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
     int16_t *src_data = src->data;
     float *dest_data = dest->data;
@@ -964,7 +1092,7 @@ static void csinn_f16_to_float(struct csinn_tensor *dest, struct csinn_tensor *s
     }
 }
 
-static void csinn_float_to_f16(struct csinn_tensor *dest, struct csinn_tensor *src)
+static void float_to_f16(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
     float *src_data = src->data;
     int16_t *dest_data = dest->data;
@@ -1080,6 +1208,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1101,6 +1230,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1121,6 +1251,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1140,6 +1271,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1159,6 +1291,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1178,6 +1311,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1197,6 +1331,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1216,6 +1351,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1235,6 +1371,7 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
             case CSINN_LAYOUT_OI:
             case CSINN_LAYOUT_OIW:
             case CSINN_LAYOUT_OIHW:
+            case CSINN_LAYOUT_IOHW:
             case CSINN_LAYOUT_OIDHW:
             case CSINN_LAYOUT_O1HW:
             case CSINN_LAYOUT_OWI:
@@ -1249,9 +1386,9 @@ static int tensor_dtype_convert_weight(struct csinn_tensor *dest, struct csinn_t
                 break;
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT16 && src->dtype == CSINN_DTYPE_FLOAT32) {
-        csinn_float_to_f16(dest, src);
+        float_to_f16(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_FLOAT16) {
-        csinn_f16_to_float(dest, src);
+        f16_to_float(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_BFLOAT16 && src->dtype == CSINN_DTYPE_FLOAT32) {
         float_to_bf16(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_BFLOAT16) {
@@ -1283,7 +1420,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_int4_to_float(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                int4_to_float(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_INT4 && src->dtype == CSINN_DTYPE_FLOAT32) {
@@ -1293,7 +1430,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_float_to_int4(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                float_to_int4(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_UINT8) {
@@ -1303,7 +1440,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_uint8_to_float(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                uint8_to_float(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_UINT8 && src->dtype == CSINN_DTYPE_FLOAT32) {
@@ -1313,7 +1450,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_float_to_uint8(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                float_to_uint8(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT8) {
@@ -1324,6 +1461,8 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
                 nhwc_int8_to_float(dest, src, n, inner_size);
             } else if (src->layout >= CSINN_LAYOUT_NC1C0 && src->layout <= CSINN_LAYOUT_NC1DHWC0) {
                 nc1hwc0_int8_to_float(dest, src, n, inner_size);
+            } else {
+                int8_to_float(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_INT8 && src->dtype == CSINN_DTYPE_FLOAT32) {
@@ -1333,7 +1472,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_float_to_int8(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                float_to_int8(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT16) {
@@ -1343,7 +1482,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_int16_to_float(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                int16_to_float(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_INT16 && src->dtype == CSINN_DTYPE_FLOAT32) {
@@ -1353,7 +1492,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_float_to_int16(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                float_to_int16(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_INT32) {
@@ -1363,7 +1502,7 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_int32_to_float(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                int32_to_float(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_INT32 && src->dtype == CSINN_DTYPE_FLOAT32) {
@@ -1373,13 +1512,13 @@ static int tensor_dtype_convert_activation(struct csinn_tensor *dest, struct csi
             } else if (src->layout >= CSINN_LAYOUT_NWC && src->layout <= CSINN_LAYOUT_NDHWC) {
                 nhwc_float_to_int32(dest, src, n, inner_size);
             } else {
-                return CSINN_FALSE;
+                float_to_int32(dest, src);
             }
         }
     } else if (dest->dtype == CSINN_DTYPE_FLOAT16 && src->dtype == CSINN_DTYPE_FLOAT32) {
-        csinn_float_to_f16(dest, src);
+        float_to_f16(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_FLOAT16) {
-        csinn_f16_to_float(dest, src);
+        f16_to_float(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_BFLOAT16 && src->dtype == CSINN_DTYPE_FLOAT32) {
         float_to_bf16(dest, src);
     } else if (dest->dtype == CSINN_DTYPE_FLOAT32 && src->dtype == CSINN_DTYPE_BFLOAT16) {
@@ -1430,6 +1569,7 @@ static int csinn_tensor_dtype_convert(struct csinn_tensor *dest, struct csinn_te
         case CSINN_LAYOUT_OIW:
         case CSINN_LAYOUT_OWI:
         case CSINN_LAYOUT_OIHW:
+        case CSINN_LAYOUT_IOHW:
         case CSINN_LAYOUT_OHWI:
         case CSINN_LAYOUT_OIDHW:
         case CSINN_LAYOUT_ODHWI:

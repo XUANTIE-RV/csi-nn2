@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 int shl_c908_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,

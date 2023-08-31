@@ -109,6 +109,22 @@ if(CONFIG_BUILD_RISCV_C920)
     target_include_directories(${SHL_LIB_TARGET} PRIVATE module/dlpack/include/)
 endif()
 
+if(CONFIG_BUILD_RISCV_C920V2)
+    # build c920v2 lib
+    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
+        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c920v2.cmake)
+    endif()
+    include(cmake/rules.cmake)
+
+    set(SHL_LIB_TARGET "c920v2_lib")
+    set(SHL_LIB_NAME shl_c920v2)
+    LIST(APPEND SHL_BUILD_SRC_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C920V2_SRCS})
+    set(SHL_BUILD_C_FLAGS -ffp-contract=off -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d -DSHL_BUILD_C920V2 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RVV)
+    include(cmake/target_build.cmake)
+    target_include_directories(${SHL_LIB_TARGET} PRIVATE module/dlpack/include/)
+endif()
+
+
 if(CONFIG_BUILD_RISCV_ELF_C906)
     # build c906 elf a
     if (NOT CONFIG_CUSTOM_SOURCE_SELECT)

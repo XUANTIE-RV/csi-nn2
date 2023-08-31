@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 int shl_c906_concat_f32(struct csinn_tensor **input, struct csinn_tensor *output,
                         struct csinn_concat_params *params)

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 static void im2col_gemm_reorder_kernel_per_group_int8_matrix(int8_t *src, int8_t *dst, int out_c,
                                                              int in_c, int maxk)

@@ -30,16 +30,22 @@ int shl_gref_conv3d_infer_shape(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                 struct csinn_conv3d_params *params)
 {
-    int d, h, w;
-    if (output->layout == CSINN_LAYOUT_NCDHW) {
+    int c, d, h, w, kernel_oc;
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
+    if (input->layout == CSINN_LAYOUT_NCDHW) {
+        c = 1;
         d = 2;
         h = 3;
         w = 4;
-    } else if (output->layout == CSINN_LAYOUT_NDHWC) {
+        kernel_oc = kernel->dim[0];
+    } else if (input->layout == CSINN_LAYOUT_NDHWC) {
         d = 1;
         h = 2;
         w = 3;
+        c = 4;
+        kernel_oc = params->group == input->dim[c] ? kernel->dim[4] : kernel->dim[0];
     } else {
+        shl_debug_error("%s: Invalid input tensor layout!\n", __func__);
         return CSINN_UNSUPPORT_LAYOUT;
     }
 
@@ -59,7 +65,10 @@ int shl_gref_conv3d_infer_shape(struct csinn_tensor *input, struct csinn_tensor 
     int32_t dilation_h = params->dilation_height;
     int32_t dilation_w = params->dilation_width;
 
-    output->dim_count = input->dim_count;
+    output->layout = input->layout;
+    output->dim_count = 5;
+    output->dim[0] = input->dim[0];
+    output->dim[c] = kernel_oc;
     output->dim[d] = (in_d + padding_d - dilation_d * (kernel_d - 1) - 1) / stride_d + 1;
     output->dim[h] = (in_h + padding_h - dilation_h * (kernel_h - 1) - 1) / stride_h + 1;
     output->dim[w] = (in_w + padding_w - dilation_w * (kernel_w - 1) - 1) / stride_w + 1;

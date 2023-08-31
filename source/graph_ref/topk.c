@@ -28,6 +28,7 @@ int shl_gref_topk(struct csinn_tensor *input, struct csinn_tensor *output1,
 int shl_gref_topk_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output1,
                               struct csinn_tensor *output2, struct csinn_topk_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output1->dim_count = input->dim_count;
     output2->dim_count = input->dim_count;
     for (int i = 0; i < input->dim_count - 1; i++) {

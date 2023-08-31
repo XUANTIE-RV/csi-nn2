@@ -17,7 +17,7 @@
  */
 #include <unistd.h>
 
-#include "csi_nn.h"
+#include "shl_utils.h"
 
 // #define SHL_MEM_DEBUG
 // #define SHL_MEM_DEBUG_VALID_WRITE

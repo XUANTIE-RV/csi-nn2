@@ -16,12 +16,16 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static int shl_rvv_gather_in_i8_out_f16(struct csinn_tensor *input, struct csinn_tensor *indices,
                                         struct csinn_tensor *output,
                                         struct csinn_gather_params *params)
 {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
+
     int input_size = csinn_tensor_size(input);
     if (input_size == 0) {
         return CSINN_TRUE;
@@ -72,6 +76,9 @@ int shl_rvv_gather_int8(struct csinn_tensor *input, struct csinn_tensor *indices
     if (input->dtype == CSINN_DTYPE_INT8 && output->dtype == CSINN_DTYPE_FLOAT16) {
         return shl_rvv_gather_in_i8_out_f16(input, indices, output, params);
     } else if (input->dtype == CSINN_DTYPE_INT8 && output->dtype == CSINN_DTYPE_INT8) {
+        if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+            shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+        }
         return shl_ref_gather_int8(input, indices, output, params);
     } else {
         return shl_ref_gather_quant(input, indices, output, params);

@@ -17,8 +17,8 @@
  */
 
 #include "shl_gref.h"
-#include "shl_tvmgen.h"
 #include "shl_utils.h"
+#include "tvmgen/shl_tvmgen.h"
 
 void shl_gref_set_output_number(int number, struct csinn_session *sess)
 {
@@ -590,31 +590,46 @@ static void graph_match_session(struct shl_ref_graph *graph, struct csinn_sessio
     }
 }
 
+static int find_layer_index_by_name(char *name, struct shl_node **layers, int len)
+{
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < layers[i]->out_num; j++) {
+            if (strcmp(layers[i]->out[j]->name, name) == 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
 /* use tensor name to match same */
 static void merge_output(struct shl_ref_graph *ggraph, struct shl_ref_graph **sgraphs,
                          int subgraph_num)
 {
     for (int i = 0; i < subgraph_num; i++) {
         struct shl_ref_graph *sgraph = sgraphs[i];
-        /* sub graph last layer */
-        struct shl_node *snode = sgraph->layer[sgraph->layer_index - 2];
-        for (int j = 0; j < snode->out_num; j++) {
-            char *sname = snode->out[j]->name;
-            /* match layer input */
-            for (int k = 0; k < ggraph->layer_index; k++) {
-                struct shl_node *glayer = ggraph->layer[k];
-                /* TODO: free node in ggraph */
-                for (int m = 0; m < glayer->in_num; m++) {
-                    if (strcmp(glayer->in[m]->name, sname) == 0) {
-                        glayer->in[m] = snode->out[j];
+        for (int l = 0; l < sgraph->output_num; l++) {
+            int slayer_index = find_layer_index_by_name(sgraph->output[l]->name, sgraph->layer,
+                                                        sgraph->layer_index);
+            struct shl_node *slayer = sgraph->layer[slayer_index];
+            for (int j = 0; j < slayer->out_num; j++) {
+                char *sname = slayer->out[j]->name;
+                /* match layer input */
+                for (int k = 0; k < ggraph->layer_index; k++) {
+                    struct shl_node *glayer = ggraph->layer[k];
+                    /* TODO: free node in ggraph */
+                    for (int m = 0; m < glayer->in_num; m++) {
+                        if (strcmp(glayer->in[m]->name, sname) == 0) {
+                            glayer->in[m] = slayer->out[j];
+                        }
                     }
                 }
-            }
-            /* match graph output */
-            for (int n = 0; n < ggraph->output_num; n++) {
-                struct shl_node *gnode = ggraph->output[n];
-                if (strcmp(gnode->name, sname) == 0) {
-                    ggraph->output[n] = snode->out[j];
+                /* match graph output */
+                for (int n = 0; n < ggraph->output_num; n++) {
+                    struct shl_node *gnode = ggraph->output[n];
+                    if (strcmp(gnode->name, sname) == 0) {
+                        ggraph->output[n] = slayer->out[j];
+                    }
                 }
             }
         }
@@ -721,6 +736,8 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_RELU6:
             case CSINN_OP_SIGMOID:
             case CSINN_OP_SOFTMAX:
+            case CSINN_OP_SQRT:
+            case CSINN_OP_ERF:
                 shl_gref_siso_infer_shape(n->in[0]->data, n->out[0]->data, params);
                 break;
             case CSINN_OP_ADD:
@@ -791,7 +808,12 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
                 break;
             case CSINN_OP_GLOBAL_AVGPOOL2D:
             case CSINN_OP_GLOBAL_MAXPOOL2D:
-                shl_gref_global_pooling2d_infer_shape(n->in[0]->data, n->out[0]->data, (struct csinn_pool_params *)params);
+                shl_gref_global_pooling2d_infer_shape(n->in[0]->data, n->out[0]->data,
+                                                      (struct csinn_pool_params *)params);
+                break;
+            case CSINN_OP_MEAN:
+                shl_gref_mean_infer_shape(n->in[0]->data, n->out[0]->data,
+                                          (struct csinn_reduce_params *)params);
                 break;
             default:
                 shl_debug_error("[infer_shape]:unknown op %d\n", n->type);
@@ -866,6 +888,12 @@ int shl_gref_session_run(struct csinn_session *sess)
 #ifdef SHL_LAYER_BENCHMARK
                 if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER ||
                     sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
+                    // warm-up
+                    int warm_count = 3;
+                    for (int t = 0; t < warm_count; t++) {
+                        shl_subgraph_run(n);
+                    }
+
                     uint64_t start_time = shl_get_timespec();
                     shl_subgraph_run(n);
                     uint64_t end_time = shl_get_timespec();

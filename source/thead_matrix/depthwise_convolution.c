@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 int shl_rvm_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,

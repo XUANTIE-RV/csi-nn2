@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static int shl_ref_pad_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_pad_params *params)

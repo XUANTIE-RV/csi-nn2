@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "reference/ref.h"
 #include "shl_debug.h"
-#include "shl_ref.h"
 
 int shl_debug_level = SHL_DEBUG_LEVEL_WARNING;
 
@@ -897,8 +897,8 @@ int shl_where_debug_info(struct csinn_tensor *condition, struct csinn_tensor *x,
 }
 
 int shl_where_softmax_debug_info(struct csinn_tensor *condition, struct csinn_tensor *y,
-                                 struct csinn_tensor *output, struct csinn_where_softmax_params *params,
-                                 const char *name)
+                                 struct csinn_tensor *output,
+                                 struct csinn_where_softmax_params *params, const char *name)
 {
     shl_debug_print_diso_base(condition, y, output, &(params->base), name);
     shl_debug_info("axis=%d", params->axis);
@@ -983,6 +983,7 @@ char *op_strings[] = {
     [CSINN_OP_WHERE_SOFTMAX] = "where_softmax",
     [CSINN_OP_ERF] = "erf",
     [CSINN_OP_CAST] = "cast",
+    [CSINN_OP_DECONV2D] = "deconv2d",
 };
 
 // #define FREQ 50  // FPGA: 50MHz
@@ -1019,6 +1020,10 @@ int shl_benchmark_layer(struct shl_node *n, uint64_t start_time, uint64_t end_ti
             k_h = in1->dim[2];
             k_w = in1->dim[3];
             in_c = in1->dim[1];
+        } else if (in1->layout == CSINN_LAYOUT_IOHW) {
+            k_h = in1->dim[2];
+            k_w = in1->dim[3];
+            in_c = in1->dim[0];
         } else if (in1->layout == CSINN_LAYOUT_OHWI) {
             k_h = in1->dim[1];
             k_w = in1->dim[2];

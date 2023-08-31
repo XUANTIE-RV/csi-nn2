@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 #ifdef SHL_USE_DOT_INT4
 int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -31,8 +31,8 @@ int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t kernel_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-    int32_t dalition_h = params->dilation_height;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
 
     // xxx: only int4 support nhwc layout now
@@ -43,8 +43,8 @@ int shl_rvv_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *ou
         in_w = input->dim[2];
         kernel_h = kernel->dim[1];
         kernel_w = kernel->dim[2];
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
             if (input->dtype == CSINN_DTYPE_INT4) {
                 params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);

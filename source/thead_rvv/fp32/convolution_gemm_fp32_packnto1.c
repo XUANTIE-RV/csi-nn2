@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * packn = vlenb / sizeof(float)
@@ -111,9 +111,12 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_fp32(struct csinn_tensor *
     shl_mem_free(pa_reorder);
 }
 
-int shl_rvv_conv_im2col_gemm_packnto1_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_rvv_common_conv_gemm_packnto1_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                            struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                           struct csinn_conv2d_params *params)
+                                           struct csinn_conv2d_params *params,
+                                           void (*reorder_input)(float *, float *, int, int, int),
+                                           void (*gemm)(float *, const float *, const float *,
+                                                        float *, int, int, int, bool))
 {
     if (input->layout == CSINN_LAYOUT_NCHW) {
         shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp32(input);
@@ -189,14 +192,13 @@ int shl_rvv_conv_im2col_gemm_packnto1_fp32(struct csinn_tensor *input, struct cs
 
             // reorder(pack)
             float *reorder_buf = (float *)shl_mem_alloc(in_cp * maxk * n * sizeof(float));
-            shl_rvv_reorder_input_z12_packn_fp32(im2col_buf, reorder_buf, in_cp * maxk, n, n);
+            reorder_input(im2col_buf, reorder_buf, in_cp * maxk, n, n);
             shl_mem_free(im2col_buf);
 
             // gemm
             float *ker_ptr = kernel_data + g * m * maxk * in_cp;
             float *bias_ptr = bias_data ? (bias_data + g * m) : NULL;
-            shl_rvv_ncxhwx_gemm_12xpack2n_fp32(output_ncxhwx, ker_ptr, reorder_buf, bias_ptr, m,
-                                               in_cp * maxk, n, n);
+            gemm(output_ncxhwx, ker_ptr, reorder_buf, bias_ptr, m, in_cp * maxk, n, false);
             shl_rvv_reorder_input_packnto1_fp32(output_ncxhwx, output_data, m, out_h, out_w);
 
             shl_mem_free(reorder_buf);
@@ -207,4 +209,13 @@ int shl_rvv_conv_im2col_gemm_packnto1_fp32(struct csinn_tensor *input, struct cs
     }
     shl_mem_free(output_ncxhwx);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv_im2col_gemm_packnto1_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                           struct csinn_conv2d_params *params)
+{
+    return shl_rvv_common_conv_gemm_packnto1_fp32(input, output, kernel, bias, params,
+                                                  shl_rvv_reorder_input_z12_packn_fp32,
+                                                  shl_rvv_ncxhwx_gemm_12xpack2n_fp32);
 }

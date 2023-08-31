@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -30,8 +30,8 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t kernel_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-    int32_t dalition_h = params->dilation_height;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
 
     if (params->base.quant_type != CSINN_QUANT_INT8_ASYM_W_SYM) {
@@ -53,18 +53,21 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
         if (shl_is_first_layer_input(input, sess)) {
             in_elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        in_elempack = in_c % packn == 0 ? packn : 1;
+        out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
     // packn
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
             params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
             shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_int8(kernel, params);
             cb->exec = shl_rvv_conv1x1s1_gemm_packn_int8;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
-                   dalition_h == 1 && dalition_w == 1) {
+                   dilation_h == 1 && dilation_w == 1) {
             if (params->group > 1) {
                 params->conv_extra.conv_mode = CSINN_GEMM;
                 params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
@@ -89,8 +92,8 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     if (in_elempack % packn != 0 && out_elempack % packn == 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             shl_rvv_conv1x1s1_gemm_reorder_kernel_pack1ton_int8(kernel, params);
             cb->exec = shl_rvv_conv1x1s1_gemm_pack1ton_int8;
         } else {
@@ -103,8 +106,8 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     if (in_elempack % packn == 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_int8(kernel, params);
             cb->exec = shl_rvv_conv1x1s1_gemm_packnto1_int8;
         } else {
@@ -117,8 +120,8 @@ int shl_rvv_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     if (in_elempack % packn != 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
         params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             shl_rvv_conv1x1s1_gemm_reorder_kernel_int8(kernel, params);
             cb->exec = shl_rvv_conv1x1s1_gemm_int8;
         } else {

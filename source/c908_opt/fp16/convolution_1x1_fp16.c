@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void shl_c908_conv1x1s1_gemm_reorder_kernel_fp16(struct csinn_tensor *kernel,
                                                  struct csinn_conv2d_params *params)
@@ -39,52 +39,14 @@ int shl_c908_conv1x1s1_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor
                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                  struct csinn_conv2d_params *params)
 {
-    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
-        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
-    }
-    __fp16 *input_data = (__fp16 *)input->data;
-    __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
-    __fp16 *bias_data = (__fp16 *)bias->data;
-
-    int32_t group = params->group;
-    int32_t batch = input->dim[0];  // assert(batch == 1);
-    int32_t in_ch = input->dim[1];
-    int32_t out_ch = kernel->dim[0];
-    int32_t out_h = output->dim[2];
-    int32_t out_w = output->dim[3];
-
-    int32_t m = out_ch / group;
-    int32_t k = in_ch / group;
-    int32_t n = out_h * out_w;
-
-    __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
-
     const int vlen = csrr_vlenb() * 8;
-
-    for (int i = 0; i < batch; i++) {
-        for (int g = 0; g < group; g++) {
-            __fp16 *pa = kernel_data + g * m * k;
-            __fp16 *pb = pb_reorder;
-            __fp16 *pc = output_data;
-            if (vlen == 128) {
-                // pack
-                shl_c908_reorder_input_z24_fp16(input_data, pb, k, n, n);
-                // GEMM
-                shl_c908_gemm_8x24_fp16(pc, pa, pb, bias_data + g * m, m, k, n, n);
-            } else if (vlen >= 256) {
-                // pack
-                shl_c908_reorder_input_z32_fp16_v256(input_data, pb, k, n, n);
-                // GEMM
-                shl_c908_gemm_8x32_fp16_v256(pc, pa, pb, bias_data + g * m, m, k, n, n);
-            }
-
-            input_data += k * n;
-            output_data += m * n;
-        }
+    if (vlen == 128) {
+        return shl_rvv_common_conv1x1_gemm_fp16(input, output, kernel, bias, params,
+                                                shl_c908_reorder_input_z24_fp16,
+                                                shl_c908_gemm_8x24_fp16);
+    } else if (vlen >= 256) {
+        return shl_rvv_common_conv1x1_gemm_fp16(input, output, kernel, bias, params,
+                                                shl_c908_reorder_input_z32_fp16_v256,
+                                                shl_c908_gemm_8x32_fp16_v256);
     }
-    shl_mem_free(pb_reorder);
-    // requantize
-    shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
-    return CSINN_TRUE;
 }

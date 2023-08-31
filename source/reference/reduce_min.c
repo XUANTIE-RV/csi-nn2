@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_reduce_min_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_reduce_params *params)

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static float softrelu(float x, float y) { return log(1 + exp(fmax(fmin(x, y), y))); }
 

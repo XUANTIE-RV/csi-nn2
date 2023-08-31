@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*************************************************************************************
  * reorder kernel_data inplace, means the origin kernel_data be destoried.

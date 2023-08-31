@@ -28,6 +28,7 @@ int shl_gref_tile(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_tile_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_tile_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
     for (int i = 0; i < params->reps_num; i++) {
         output->dim[i] = input->dim[i] * params->reps[i];

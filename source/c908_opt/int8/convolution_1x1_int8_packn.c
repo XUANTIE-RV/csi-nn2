@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void shl_c908_conv1x1s1_gemm_reorder_kernel_packn_int8(struct csinn_tensor *kernel,
                                                        struct csinn_conv2d_params *params)
@@ -28,69 +28,13 @@ int shl_c908_conv1x1s1_gemm_packn_int8(struct csinn_tensor *input, struct csinn_
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                        struct csinn_conv2d_params *params)
 {
-    if (input->layout == CSINN_LAYOUT_NCHW) {
-        shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
-    }
-    if (output->layout == CSINN_LAYOUT_NCHW) {
-        const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
-        output->dim[1] /= packn;
-        output->dim[4] = packn;
-        output->dim_count = 5;
-        output->layout = CSINN_LAYOUT_NC1HWC0;
-    }
-    int8_t *input_data = (int8_t *)input->data;
-    int8_t *output_data = (int8_t *)output->data;
-    int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
-    int32_t *bias_data = (int32_t *)bias->data;
-
-    int32_t group = params->group;
-    int32_t batch = input->dim[0];
-    int32_t in_ch = input->dim[1] * input->dim[4];
-    int32_t out_ch = kernel->dim[0];
-    int32_t out_h = output->dim[2];
-    int32_t out_w = output->dim[3];
-
-    int32_t m = out_ch / group;
-    int32_t k = in_ch / group;
-    int32_t n = out_h * out_w;
-
-    int8_t *pb_reorder = (int8_t *)shl_mem_alloc(k * n * sizeof(int8_t));
-    int32_t *multiplier = (int32_t *)shl_mem_alloc(m * sizeof(int32_t));
-    int32_t *shift = (int32_t *)shl_mem_alloc(m * sizeof(int32_t));
-
-    for (int i = 0; i < batch; i++) {
-        for (int g = 0, j = 0; g < group; g++) {
-            int8_t *kernel_ptr = kernel_data + g * m * k;
-            int8_t *in_ptr = pb_reorder;
-            int8_t *out_ptr = output_data;
-            int32_t *bias_ptr = bias_data + g * m;  // bias_data != NULL with fusing zp to bias
-
-            if (kernel->quant_channel > 1) {
-                for (int c = 0; c < m; c++, j++) {
-                    multiplier[c] = kernel->qinfo[j].multiplier;
-                    shift[c] = kernel->qinfo[j].shift;
-                }
-            } else if (kernel->quant_channel == 1) {
-                for (int c = 0; c < m; c++) {
-                    multiplier[c] = kernel->qinfo[0].multiplier;
-                    shift[c] = kernel->qinfo[0].shift;
-                }
-            }
 #ifdef SHL_USE_DOT_INT8
-            shl_rvv_reorder_input_z12_packn_int8_dot(input_data, pb_reorder, k, n, n);
-            shl_c908_ncxhwx_gemm_12xpackn_int8_dot(out_ptr, kernel_ptr, in_ptr, bias_ptr, m, k, n,
-                                                   output->qinfo->zero_point, multiplier, shift);
+    return shl_rvv_common_conv1x1_gemm_packn_int8(input, output, kernel, bias, params,
+                                                  shl_rvv_reorder_input_z12_packn_int8_dot,
+                                                  shl_c908_ncxhwx_gemm_12xpackn_int8_dot);
 #else
-            shl_rvv_reorder_input_z4_packn_int8(input_data, pb_reorder, k, n, n);
-            shl_c908_ncxhwx_gemm_4xpack2n_int8(out_ptr, kernel_ptr, in_ptr, bias_ptr, m, k, n,
-                                               output->qinfo->zero_point, multiplier, shift);
+    return shl_rvv_common_conv1x1_gemm_packn_int8(input, output, kernel, bias, params,
+                                                  shl_rvv_reorder_input_z4_packn_int8,
+                                                  shl_c908_ncxhwx_gemm_4xpack2n_int8);
 #endif  // SHL_USE_DOT_INT8
-            input_data += k * n;
-            output_data += m * n;
-        }
-    }
-    shl_mem_free(pb_reorder);
-    shl_mem_free(multiplier);
-    shl_mem_free(shift);
-    return CSINN_TRUE;
 }

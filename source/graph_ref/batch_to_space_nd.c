@@ -29,6 +29,7 @@ int shl_gref_batch_to_space_nd(struct csinn_tensor *input, struct csinn_tensor *
 int shl_gref_batch_to_space_nd_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                            struct csinn_batch_to_space_nd_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     int32_t block_size = 1;
     for (int i = 0; i < params->spatial_dim_cnt; i++) {
         block_size *= params->block_shape[i];

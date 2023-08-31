@@ -119,6 +119,8 @@ pack2nx4_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, pack2nx4_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, pack2nx4_k2_end
 
 pack2nx4_k2:
     vsetvli         zero, a4, e8, m1
@@ -163,10 +165,53 @@ pack2nx4_k2:
     addi            s0, s0, -1
     bnez            s0, pack2nx4_k2
 
-pack2nx4_k1:
+pack2nx4_k2_end:
+    vsetvli         zero, a4, e8, m1
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 4(a2)
+    vwmul.vx        v8, v4, t2
+    vwmul.vx        v10, v4, t3
+    lb              s2, 5(a2)
+    vwmul.vx        v12, v4, t4
+
+    vsetvli         zero, a4, e16, m2
+    vwmacc.vx       v16, t0, v6
+    lb              s3, 6(a2)
+    vwmacc.vx       v20, t0, v8
+    vwmacc.vx       v24, t0, v10
+    lb              s4, 7(a2)
+    vwmacc.vx       v28, t0, v12
+    addi            a2, a2, 8   // input_data += 8
+
+    vsetvli         zero, a4, e8, m1
+
+    vwmul.vx        v6, v5, s1
+    vwmul.vx        v8, v5, s2
+    vwmul.vx        v10, v5, s3
+    vwmul.vx        v12, v5, s4
+
+    vsetvli         zero, a4, e16, m2
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+    vwmacc.vx       v24, t0, v10
+    vwmacc.vx       v28, t0, v12
+
     andi            s0, a5, 1   // k1
     beqz            s0, pack2nx4_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +pack2n
+    // pre-load input_data
+    lb              t1, 0(a2)
+    lb              t2, 1(a2)
+    lb              t3, 2(a2)
+    lb              t4, 3(a2)
+
+pack2nx4_k1:
     vsetvli         zero, a4, e8, m1
     vwmul.vx        v6, v4, t1
     vwmul.vx        v8, v4, t2
@@ -239,6 +284,8 @@ pack2nx2_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, pack2nx2_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, pack2nx2_k2_end
 
 pack2nx2_k2:
     vsetvli         zero, a4, e8, m1
@@ -269,10 +316,39 @@ pack2nx2_k2:
     addi            s0, s0, -1
     bnez            s0, pack2nx2_k2
 
-pack2nx2_k1:
+pack2nx2_k2_end:
+    vsetvli         zero, a4, e8, m1
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 2(a2)
+    vwmul.vx        v8, v4, t2
+    lb              s2, 3(a2)
+    vsetvli         zero, a4, e16, m2
+    addi            a2, a2, 4
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+
+    vsetvli         zero, a4, e8, m1
+
+    vwmul.vx        v6, v5, s1
+    vwmul.vx        v8, v5, s2
+    vsetvli         zero, a4, e16, m2
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+
     andi            s0, a5, 1   // k1
     beqz            s0, pack2nx2_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +pack2n
+    // pre-load input_data
+    lb              t1, 0(a2)
+    lb              t2, 1(a2)
+
+pack2nx2_k1:
     vsetvli         zero, a4, e8, m1
     vwmul.vx        v6, v4, t1
     vwmul.vx        v8, v4, t2
@@ -323,6 +399,8 @@ pack2nx1_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, pack2nx1_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, pack2nx1_k2_end
 
 pack2nx1_k2:
     vsetvli         zero, a4, e8, m1
@@ -347,10 +425,33 @@ pack2nx1_k2:
     addi            s0, s0, -1
     bnez            s0, pack2nx1_k2
 
-pack2nx1_k1:
+pack2nx1_k2_end:
+    vsetvli         zero, a4, e8, m1
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 1(a2)
+    vsetvli         zero, a4, e16, m2
+    addi            a2, a2, 2
+    vwmacc.vx       v16, t0, v6
+
+    vsetvli         zero, a4, e8, m1
+
+    vwmul.vx        v6, v5, s1
+    vsetvli         zero, a4, e16, m2
+    vwmacc.vx       v16, t0, v6
+
     andi            s0, a5, 1   // k1
     beqz            s0, pack2nx1_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +pack2n
+    // pre-load input_data
+    lb              t1, 0(a2)
+
+pack2nx1_k1:
     vsetvli         zero, a4, e8, m1
     vwmul.vx        v6, v4, t1
     addi            a2, a2, 1   // input_data += 1
@@ -486,6 +587,8 @@ packnx4_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, packnx4_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, packnx4_k2_end
 
 packnx4_k2:
     vsetvli         zero, a4, e8, mf2
@@ -530,10 +633,53 @@ packnx4_k2:
     addi            s0, s0, -1
     bnez            s0, packnx4_k2
 
-packnx4_k1:
+packnx4_k2_end:
+    vsetvli         zero, a4, e8, mf2
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 4(a2)
+    vwmul.vx        v8, v4, t2
+    vwmul.vx        v10, v4, t3
+    lb              s2, 5(a2)
+    vwmul.vx        v12, v4, t4
+
+    vsetvli         zero, a4, e16, m1
+    vwmacc.vx       v16, t0, v6
+    lb              s3, 6(a2)
+    vwmacc.vx       v20, t0, v8
+    vwmacc.vx       v24, t0, v10
+    lb              s4, 7(a2)
+    vwmacc.vx       v28, t0, v12
+    addi            a2, a2, 8   // input_data += 8
+
+    vsetvli         zero, a4, e8, mf2
+
+    vwmul.vx        v6, v5, s1
+    vwmul.vx        v8, v5, s2
+    vwmul.vx        v10, v5, s3
+    vwmul.vx        v12, v5, s4
+
+    vsetvli         zero, a4, e16, m1
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+    vwmacc.vx       v24, t0, v10
+    vwmacc.vx       v28, t0, v12
+
     andi            s0, a5, 1   // k1
     beqz            s0, packnx4_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +packn
+    // pre-load input_data
+    lb              t1, 0(a2)
+    lb              t2, 1(a2)
+    lb              t3, 2(a2)
+    lb              t4, 3(a2)
+
+packnx4_k1:
     vsetvli         zero, a4, e8, mf2
     vwmul.vx        v6, v4, t1
     vwmul.vx        v8, v4, t2
@@ -589,6 +735,8 @@ packnx2_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, packnx2_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, packnx2_k2_end
 
 packnx2_k2:
     vsetvli         zero, a4, e8, mf2
@@ -619,10 +767,39 @@ packnx2_k2:
     addi            s0, s0, -1
     bnez            s0, packnx2_k2
 
-packnx2_k1:
+packnx2_k2_end:
+    vsetvli         zero, a4, e8, mf2
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 2(a2)
+    vwmul.vx        v8, v4, t2
+    lb              s2, 3(a2)
+    vsetvli         zero, a4, e16, m1
+    addi            a2, a2, 4
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+
+    vsetvli         zero, a4, e8, mf2
+
+    vwmul.vx        v6, v5, s1
+    vwmul.vx        v8, v5, s2
+    vsetvli         zero, a4, e16, m1
+    vwmacc.vx       v16, t0, v6
+    vwmacc.vx       v20, t0, v8
+
     andi            s0, a5, 1   // k1
     beqz            s0, packnx2_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +packn
+    // pre-load input_data
+    lb              t1, 0(a2)
+    lb              t2, 1(a2)
+
+packnx2_k1:
     vsetvli         zero, a4, e8, mf2
     vwmul.vx        v6, v4, t1
     vwmul.vx        v8, v4, t2
@@ -662,6 +839,8 @@ packnx1_start:
 
     srai            s0, a5, 1   // k2
     beqz            s0, packnx1_k1
+    addi            s0, s0, -1  // k2_end
+    beqz            s0, packnx1_k2_end
 
 packnx1_k2:
     vsetvli         zero, a4, e8, mf2
@@ -686,10 +865,33 @@ packnx1_k2:
     addi            s0, s0, -1
     bnez            s0, packnx1_k2
 
-packnx1_k1:
+packnx1_k2_end:
+    vsetvli         zero, a4, e8, mf2
+    vle8.v          v5, (s9)
+    add             s9, s9, a4  // kernel_data += packn
+
+    vwmul.vx        v6, v4, t1
+    lb              s1, 1(a2)
+    vsetvli         zero, a4, e16, m1
+    addi            a2, a2, 2
+    vwmacc.vx       v16, t0, v6
+
+    vsetvli         zero, a4, e8, mf2
+
+    vwmul.vx        v6, v5, s1
+    vsetvli         zero, a4, e16, m1
+    vwmacc.vx       v16, t0, v6
+
     andi            s0, a5, 1   // k1
     beqz            s0, packnx1_post
 
+    // pre-load kernel_data
+    vle8.v          v4, (s9)
+    add             s9, s9, a4  // +packn
+    // pre-load input_data
+    lb              t1, 0(a2)
+
+packnx1_k1:
     vsetvli         zero, a4, e8, mf2
     vwmul.vx        v6, v4, t1
     addi            a2, a2, 1   // input_data += 1

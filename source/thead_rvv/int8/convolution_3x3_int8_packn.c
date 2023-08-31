@@ -14,7 +14,10 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */#include "shl_c908.h"
+ */
+
+#include "c908/c908.h"
+
 /*************************************************************
     note: VLEN = 128
 *************************************************************/

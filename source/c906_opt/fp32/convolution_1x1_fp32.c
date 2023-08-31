@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 void shl_c906_conv1x1s1_sgemm_transform_kernel(struct csinn_tensor *kernel,
                                                struct csinn_conv2d_params *params)

@@ -16,183 +16,204 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
-/************************************************************************************
- * [m, k] --> [k, m]
- ************************************************************************************/
-static inline void transpose_mat(int8_t *mat, int m, int k)
+/*************************************************************
+ * src: [m, k]
+ * dst: [m/4, k, 4]
+ ************************************************************/
+void shl_rvv_matmul_reorder_mat0_n4_int8(int8_t *src, int8_t *dst, int m, int k, int lda)
 {
-    int8_t *trans = (int8_t *)shl_mem_alloc(k * m * sizeof(int8_t));
-    for (int i = 0; i < k; i++) {
-        int j = 0;
-        while (j < m) {
-            int vl = vsetvl_e8m1(m - j);
-            vint8m1_t _src = vlse8_v_i8m1(mat + j * k + i, k, vl);
-            vse8_v_i8m1(trans + i * m + j, _src, vl);
-            j += vl;
+    int i = 0;
+    for (; i + 3 < m; i += 4) {
+        int8_t *s_ptr = src + i * lda;
+        int8_t *d_ptr = dst + i * k;
+        int stride = 4 * sizeof(int8_t);
+        int c = 0;
+        while (c < k) {
+            int vl = vsetvl_e8m4(k - c);
+            vint8m4_t _s0 = vle8_v_i8m4(s_ptr, vl);
+            vint8m4_t _s1 = vle8_v_i8m4(s_ptr + lda, vl);
+            vint8m4_t _s2 = vle8_v_i8m4(s_ptr + lda * 2, vl);
+            vint8m4_t _s3 = vle8_v_i8m4(s_ptr + lda * 3, vl);
+            vsse8_v_i8m4(d_ptr, stride, _s0, vl);
+            vsse8_v_i8m4(d_ptr + 1, stride, _s1, vl);
+            vsse8_v_i8m4(d_ptr + 2, stride, _s2, vl);
+            vsse8_v_i8m4(d_ptr + 3, stride, _s3, vl);
+            s_ptr += vl;
+            d_ptr += vl * 4;
+            c += vl;
         }
     }
-    memcpy(mat, trans, m * k * sizeof(int8_t));
-    shl_mem_free(trans);
-}
-
-/************************************************************************************
- * trans_a = 0
- * trans_b = 0
- * mat0:   [dim_i, dim_k]
- * mat1:   [dim_k, dim_j]
- * output: [dim_i, dim_j]
- ************************************************************************************/
-static void matmul_int8_axb(int8_t *output, const int8_t *mat0, const int8_t *mat1, int dim_i,
-                            int dim_k, int dim_j, int32_t z1, int32_t z2, int32_t z3, int32_t mult,
-                            int32_t shift)
-{
-    for (int i = 0; i < dim_i; i++) {
-        int j = 0;
-        while (j < dim_j) {
-            int vl = vsetvl_e8m1(dim_j - j);
-            const int8_t *m0_ptr = mat0;
-            const int8_t *m1_ptr = mat1 + j;
-            vint32m4_t _acc = vmv_v_x_i32m4(0, vl);
-
-            for (int k = 0; k < dim_k; k++) {
-                vint8m1_t _m1 = vle8_v_i8m1(m1_ptr, vl);
-                vint16m2_t _m1_w = vwsub_vx_i16m2(_m1, z2, vl);
-                int16_t m0_w = m0_ptr[0] - z1;
-                vint32m4_t _mul = vwmul_vx_i32m4(_m1_w, m0_w, vl);
-                _acc = vadd_vv_i32m4(_acc, _mul, vl);
-                m0_ptr += 1;
-                m1_ptr += dim_j;
-            }
-
-            vint32m4_t _mulh = vmulh_vx_i32m4(_acc, mult, vl);
-            if (shift < 0) {
-                _mulh = vssra_vx_i32m4(_mulh, -shift - 1, vl);
-            } else {
-                _mulh = vsll_vx_i32m4(_mulh, shift + 1, vl);
-            }
-            vint32m4_t _res0 = vadd_vx_i32m4(_mulh, z3, vl);
-            vint16m2_t _res1 = vnclip_wx_i16m2(_res0, 0, vl);
-            vint8m1_t _res2 = vnclip_wx_i8m1(_res1, 0, vl);
-            vse8_v_i8m1(output, _res2, vl);
-            output += vl;
-            j += vl;
+    for (; i + 1 < m; i += 2) {
+        int8_t *s_ptr = src + i * lda;
+        int8_t *d_ptr = dst + i * k;
+        int stride = 2 * sizeof(int8_t);
+        int c = 0;
+        while (c < k) {
+            int vl = vsetvl_e8m4(k - c);
+            vint8m4_t _s0 = vle8_v_i8m4(s_ptr, vl);
+            vint8m4_t _s1 = vle8_v_i8m4(s_ptr + lda, vl);
+            vsse8_v_i8m4(d_ptr, stride, _s0, vl);
+            vsse8_v_i8m4(d_ptr + 1, stride, _s1, vl);
+            s_ptr += vl;
+            d_ptr += vl * 2;
+            c += vl;
         }
-        mat0 += dim_k;
+    }
+    for (; i < m; i++) {
+        int8_t *s_ptr = src + i * lda;
+        int8_t *d_ptr = dst + i * k;
+        int c = 0;
+        while (c < k) {
+            int vl = vsetvl_e8m4(k - c);
+            vint8m4_t _src = vle8_v_i8m4(s_ptr, vl);
+            vse8_v_i8m4(d_ptr, _src, vl);
+            s_ptr += vl;
+            d_ptr += vl;
+            c += vl;
+        }
     }
 }
 
-/************************************************************************************
- * trans_a = 0
- * trans_b = 1
- * mat0:   [dim_i, dim_k]
- * mat1:   [dim_j, dim_k]
- * output: [dim_i, dim_j]
- ************************************************************************************/
-static void matmul_int8_axtb(int8_t *output, const int8_t *mat0, const int8_t *mat1, int dim_i,
-                             int dim_k, int dim_j, int32_t z1, int32_t z2, int32_t z3, int32_t mult,
-                             int32_t shift)
+/*************************************************************
+ * src: [k, n]
+ * dst: [n/packn, k, packn]
+ ************************************************************/
+void shl_rvv_matmul_reorder_mat1_zpackn_int8(int8_t *src, int8_t *dst, int k, int n, int ldb)
 {
-    for (int i = 0; i < dim_i; i++) {
-        const int8_t *m1_ptr = mat1;
-        int j = 0;
-        while (j < dim_j) {
-            int vl = vsetvl_e8m1(dim_j - j);
-            const int8_t *m0_ptr = mat0;
-            vint32m4_t _acc = vmv_v_x_i32m4(0, vl);
-
-            for (int k = 0; k < dim_k; k++) {
-                vint8m1_t _m1 = vlse8_v_i8m1(m1_ptr + j * dim_k + k, dim_k, vl);
-                vint16m2_t _m1_w = vwsub_vx_i16m2(_m1, z2, vl);
-                int16_t m0_w = m0_ptr[0] - z1;
-                vint32m4_t _mul = vwmul_vx_i32m4(_m1_w, m0_w, vl);
-                _acc = vadd_vv_i32m4(_acc, _mul, vl);
-                m0_ptr += 1;
-            }
-
-            vint32m4_t _mulh = vmulh_vx_i32m4(_acc, mult, vl);
-            if (shift < 0) {
-                _mulh = vssra_vx_i32m4(_mulh, -shift - 1, vl);
-            } else {
-                _mulh = vsll_vx_i32m4(_mulh, shift + 1, vl);
-            }
-            vint32m4_t _res0 = vadd_vx_i32m4(_mulh, z3, vl);
-            vint16m2_t _res1 = vnclip_wx_i16m2(_res0, 0, vl);
-            vint8m1_t _res2 = vnclip_wx_i8m1(_res1, 0, vl);
-            vse8_v_i8m1(output, _res2, vl);
-            output += vl;
-            j += vl;
+    int j = 0;
+    while (j < n) {
+        int vl = vsetvl_e8m1(n - j);
+        int8_t *s_ptr = src + j;
+        for (int c = 0; c < k; c++) {
+            vint8m1_t _src = vle8_v_i8m1(s_ptr, vl);
+            vse8_v_i8m1(dst, _src, vl);
+            s_ptr += ldb;
+            dst += vl;
         }
-        mat0 += dim_k;
+        j += vl;
     }
 }
 
-int shl_rvv_matmul_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
-                        struct csinn_tensor *output, struct csinn_matmul_params *params)
+static vint8m1_t requantize_m4(vint32m4_t _src, int32_t multiplier, int32_t shift, int32_t out_zp,
+                               int vl)
 {
-    int8_t *mat0_data = mat0->data;
-    int8_t *mat1_data = mat1->data;
-    int8_t *output_data = output->data;
-    const int dims_count = mat0->dim_count;
-    int batches_a = 1;
-    int batches_b = 1;
+    vint32m4_t _mulh = vmulh_vx_i32m4(_src, multiplier, vl);
+    _mulh = vssra_vx_i32m4(_mulh, -shift - 1, vl);
+    _mulh = vadd_vx_i32m4(_mulh, out_zp, vl);
+    vint16m2_t _tmp1 = vnclip_wx_i16m2(_mulh, 0, vl);
+    vint8m1_t _tmp2 = vnclip_wx_i8m1(_tmp1, 0, vl);
+    return _tmp2;
+}
 
-    /* compute the outer size */
-    for (int i = 0; i < dims_count - 2; i++) {
-        batches_a *= mat0->dim[i];
-        batches_b *= mat1->dim[i];
-    }
+/*************************************************************
+ * packn = vlenb / sizeof(int8_t)
+ * dst - output: [m, n]
+ * sa - mat0:    [m/4, k, 4]
+ * sb - mat1:    [n/packn, k, packn]
+ ************************************************************/
+void shl_rvv_matmul_4xpackn_int8(int8_t *dst, const int8_t *sa, const int8_t *sb, int m, int k,
+                                 int n, int ldc, int32_t z1, int32_t z2, int32_t z3, int32_t mult,
+                                 int32_t shift)
+{
+    const int8_t *kernel_data = sa;
+    const int8_t *input_data = sb;
+    int8_t *output_data = dst;
 
-    const int dim_i = mat0->dim[dims_count - (params->trans_a ? 1 : 2)];
-    const int dim_k = mat0->dim[dims_count - (params->trans_a ? 2 : 1)];
-    const int dim_j = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
+    const int packn = csrr_vlenb() / sizeof(int8_t);
+    int vl = vsetvl_e8m1(packn);
 
-    int32_t z1 = mat0->qinfo->zero_point;
-    int32_t z2 = mat1->qinfo->zero_point;
-    int32_t z3 = output->qinfo->zero_point;
-    int32_t multiplier;
-    int32_t shift;
-    float real_scale = mat0->qinfo->scale * mat1->qinfo->scale / output->qinfo->scale;
-    shl_quantize_multiplier(real_scale, &multiplier, &shift);
+    int i = 0;
+    for (; i + 3 < m; i += 4) {
+        const int8_t *kernel_ptr = kernel_data + i * k;
+        int j = 0;
+        while (j < n) {
+            vl = vsetvl_e8m1(n - j);
+            const int8_t *k_ptr = kernel_ptr;
+            const int8_t *in_ptr = input_data + j * k;
+            int8_t *out_ptr = output_data + i * ldc + j;
 
-    if (batches_a == batches_b) {
-        for (int b = 0; b < batches_a; b++) {
-            if (!params->trans_a && !params->trans_b) {
-                matmul_int8_axb(output_data, mat0_data, mat1_data, dim_i, dim_k, dim_j, z1, z2, z3,
-                                multiplier, shift);
-            } else if (!params->trans_a && params->trans_b) {
-                matmul_int8_axtb(output_data, mat0_data, mat1_data, dim_i, dim_k, dim_j, z1, z2, z3,
-                                 multiplier, shift);
-            } else if (params->trans_a && !params->trans_b) {
-                transpose_mat(mat0_data, dim_k, dim_i);
-                matmul_int8_axb(output_data, mat0_data, mat1_data, dim_i, dim_k, dim_j, z1, z2, z3,
-                                multiplier, shift);
-            } else {
-                matmul_int8_axb(output_data, mat1_data, mat0_data, dim_j, dim_k, dim_i, z2, z1, z3,
-                                multiplier, shift);
-                transpose_mat(output_data, dim_j, dim_i);
+            vint32m4_t _acc0 = vmv_v_x_i32m4(0, vl);
+            vint32m4_t _acc1 = vmv_v_x_i32m4(0, vl);
+            vint32m4_t _acc2 = vmv_v_x_i32m4(0, vl);
+            vint32m4_t _acc3 = vmv_v_x_i32m4(0, vl);
+
+            for (int c = 0; c < k; c++) {
+                vint8m1_t _in = vle8_v_i8m1(in_ptr, vl);
+                vint16m2_t _in_w = vwsub_vx_i16m2(_in, z2, vl);
+                in_ptr += vl;
+
+                _acc0 = vwmacc_vx_i32m4(_acc0, k_ptr[0] - z1, _in_w, vl);
+                _acc1 = vwmacc_vx_i32m4(_acc1, k_ptr[1] - z1, _in_w, vl);
+                _acc2 = vwmacc_vx_i32m4(_acc2, k_ptr[2] - z1, _in_w, vl);
+                _acc3 = vwmacc_vx_i32m4(_acc3, k_ptr[3] - z1, _in_w, vl);
+                k_ptr += 4;
             }
-            mat0_data += dim_i * dim_k;
-            mat1_data += dim_k * dim_j;
-            output_data += dim_i * dim_j;
-        }
-    } else if (batches_a > 1 && batches_b == 1) {
-        for (int b = 0; b < batches_a; b++) {
-            if (!params->trans_a && !params->trans_b) {
-                matmul_int8_axb(output_data, mat0_data, mat1_data, dim_i, dim_k, dim_j, z1, z2, z3,
-                                multiplier, shift);
-            } else {
-                shl_debug_error("matmul unsupport this broadcast\n");
-                return CSINN_FALSE;
-            }
-            mat0_data += dim_i * dim_k;
-            output_data += dim_i * dim_j;
-        }
-    } else {
-        shl_debug_error("matmul unsupport this broadcast\n");
-        return CSINN_FALSE;
-    }
 
-    return CSINN_TRUE;
+            vint8m1_t _res0 = requantize_m4(_acc0, mult, shift, z3, vl);
+            vint8m1_t _res1 = requantize_m4(_acc1, mult, shift, z3, vl);
+            vint8m1_t _res2 = requantize_m4(_acc2, mult, shift, z3, vl);
+            vint8m1_t _res3 = requantize_m4(_acc3, mult, shift, z3, vl);
+            vse8_v_i8m1(out_ptr, _res0, vl);
+            vse8_v_i8m1(out_ptr + ldc, _res1, vl);
+            vse8_v_i8m1(out_ptr + ldc * 2, _res2, vl);
+            vse8_v_i8m1(out_ptr + ldc * 3, _res3, vl);
+            j += vl;
+        }
+    }
+    for (; i + 1 < m; i += 2) {
+        const int8_t *kernel_ptr = kernel_data + i * k;
+        int j = 0;
+        while (j < n) {
+            vl = vsetvl_e8m1(n - j);
+            const int8_t *k_ptr = kernel_ptr;
+            const int8_t *in_ptr = input_data + j * k;
+            int8_t *out_ptr = output_data + i * ldc + j;
+
+            vint32m4_t _acc0 = vmv_v_x_i32m4(0, vl);
+            vint32m4_t _acc1 = vmv_v_x_i32m4(0, vl);
+
+            for (int c = 0; c < k; c++) {
+                vint8m1_t _in = vle8_v_i8m1(in_ptr, vl);
+                vint16m2_t _in_w = vwsub_vx_i16m2(_in, z2, vl);
+                in_ptr += vl;
+
+                _acc0 = vwmacc_vx_i32m4(_acc0, k_ptr[0] - z1, _in_w, vl);
+                _acc1 = vwmacc_vx_i32m4(_acc1, k_ptr[1] - z1, _in_w, vl);
+                k_ptr += 2;
+            }
+
+            vint8m1_t _res0 = requantize_m4(_acc0, mult, shift, z3, vl);
+            vint8m1_t _res1 = requantize_m4(_acc1, mult, shift, z3, vl);
+            vse8_v_i8m1(out_ptr, _res0, vl);
+            vse8_v_i8m1(out_ptr + ldc, _res1, vl);
+            j += vl;
+        }
+    }
+    for (; i < m; i++) {
+        const int8_t *kernel_ptr = kernel_data + i * k;
+        int j = 0;
+        while (j < n) {
+            vl = vsetvl_e8m1(n - j);
+            const int8_t *k_ptr = kernel_ptr;
+            const int8_t *in_ptr = input_data + j * k;
+            int8_t *out_ptr = output_data + i * ldc + j;
+
+            vint32m4_t _acc0 = vmv_v_x_i32m4(0, vl);
+
+            for (int c = 0; c < k; c++) {
+                vint8m1_t _in = vle8_v_i8m1(in_ptr, vl);
+                vint16m2_t _in_w = vwsub_vx_i16m2(_in, z2, vl);
+                in_ptr += vl;
+
+                _acc0 = vwmacc_vx_i32m4(_acc0, k_ptr[0] - z1, _in_w, vl);
+                k_ptr += 1;
+            }
+
+            vint8m1_t _res0 = requantize_m4(_acc0, mult, shift, z3, vl);
+            vse8_v_i8m1(out_ptr, _res0, vl);
+            j += vl;
+        }
+    }
 }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 #ifdef SHL_USE_DOT_INT4
 int shl_c908_depthwise_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,

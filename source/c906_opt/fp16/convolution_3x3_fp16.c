@@ -24,7 +24,7 @@
     input_width <= 120
 */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*
     padding input for winograd input transform , and change memory layout to [n c/8 h w 8]

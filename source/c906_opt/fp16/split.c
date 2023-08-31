@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /* XXX:量化信息传播，输入输出量化信息一致？ */
 int shl_c906_split_fp16(struct csinn_tensor *input, struct csinn_tensor **output,

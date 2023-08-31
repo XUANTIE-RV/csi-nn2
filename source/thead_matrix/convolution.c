@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 int shl_rvm_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -30,8 +30,8 @@ int shl_rvm_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-    int32_t dalition_h = params->dilation_height;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
     int32_t group = params->group;
     const int mcols = csrr_xrlenb() / 2;
     struct csinn_callback *cb = params->base.cb;
@@ -41,14 +41,14 @@ int shl_rvm_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
         has_reordered = true;
     }
 
-    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-        dalition_w == 1) {
+    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+        dilation_w == 1) {
         if (!has_reordered) {
             shl_rvm_conv1x1s1_gemm_reorder_kernel_fp16(kernel, params);
         }
         cb->exec = shl_rvm_conv1x1s1_gemm_fp16;
     } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
-               dalition_h == 1 && dalition_w == 1 && group == 1) {
+               dilation_h == 1 && dilation_w == 1 && group == 1) {
         params->conv_extra.conv_mode = CSINN_WINOGRAD;
         struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
         if ((in_h < 13) && (in_w < 13)) {
@@ -80,8 +80,8 @@ int shl_rvm_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-    int32_t dalition_h = params->dilation_height;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
     int32_t group = params->group;
     struct csinn_callback *cb = params->base.cb;
     bool has_reordered = false;
@@ -118,8 +118,8 @@ int shl_rvm_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
                                 &(kernel->qinfo[i].shift));
     }
 
-    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-        dalition_w == 1) {
+    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+        dilation_w == 1) {
         if (!has_reordered) {
             shl_rvm_conv1x1s1_gemm_reorder_kernel_int8(kernel, params);
         }

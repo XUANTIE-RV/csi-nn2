@@ -20,12 +20,12 @@
 #include "shl_gref.h"
 #include "shl_utils.h"
 
-char *shl_bm_header_str()
+void shl_bm_header_str(char *buffer)
 {
-    static char ret_str[4096] =
+    static char ret_str[96] =
         "Heterogeneous Honey Badger binary model\n\nbinary model version 2.0\n\nHHB_VERSION ";
-    csinn_version(ret_str + 79);
-    return ret_str;
+    memcpy(buffer, ret_str, 79);
+    csinn_version(buffer + 79);
 }
 
 float check_bm_version(char *header_str)
@@ -42,7 +42,9 @@ float check_bm_version(char *header_str)
 
 void shl_dump_bm_header(FILE *f)
 {
-    char *header = shl_bm_header_str();
+    /* make sure all memory is set to zero. */
+    char *header = shl_mem_calloc(4096, 1);
+    shl_bm_header_str(header);
     fwrite(header, 1, 4096, f);
 }
 
@@ -525,7 +527,8 @@ static char *layer_data_dump(struct shl_node *layer, int *size)
         int slice_size = stride_slice_params->slice_count * sizeof(int32_t);
         ret = shl_mem_realloc(ret, extend_size + slice_size * 3, extend_size);
 
-        struct csinn_strided_slice_params *ret_stride_slice_params = (struct csinn_strided_slice_params *)ret;
+        struct csinn_strided_slice_params *ret_stride_slice_params =
+            (struct csinn_strided_slice_params *)ret;
         ret_stride_slice_params->begin = (int32_t *)offset_to_ptr(extend_size);
         memcpy((char *)ret + extend_size, stride_slice_params->begin, slice_size);
         ret_stride_slice_params->end = (int32_t *)offset_to_ptr(extend_size + slice_size);
@@ -941,6 +944,333 @@ int shl_dump_bm_graph_struct_section(FILE *f, struct shl_ref_graph *ggraph)
     shl_mem_free(buf);
     return size;
 }
+
+#ifdef SHL_EXPORT_MODEL
+void shl_export_model_print(struct csinn_session *sess)
+{
+    static struct csinn_callback cb_map[CSINN_OP_AND_UTILS_SIZE];
+    memset(cb_map, 0, sizeof(struct csinn_callback) * CSINN_OP_AND_UTILS_SIZE);
+
+    cb_map[CSINN_OP_ADD].est = csinn_add;
+    cb_map[CSINN_OP_ARGMAX].est = csinn_argmax;
+    cb_map[CSINN_OP_AVGPOOL2D].est = csinn_avgpool2d;
+    cb_map[CSINN_OP_BN].est = csinn_batch_normalization;
+    cb_map[CSINN_OP_BATCH_TO_SPACE_ND].est = csinn_batch_to_space_nd;
+    cb_map[CSINN_OP_CONCAT].est = csinn_concat;
+    cb_map[CSINN_OP_CONV2D].est = csinn_conv2d;
+    cb_map[CSINN_OP_DEPTHWISE_CONV2D].est = csinn_depthwise_conv2d;
+    cb_map[CSINN_OP_GROUP_CONV2D].est = csinn_group_conv2d;
+    cb_map[CSINN_OP_CROP].est = csinn_crop;
+    cb_map[CSINN_OP_DECONV2D].est = csinn_deconv2d;
+    cb_map[CSINN_OP_DEPTH_TO_SPACE].est = csinn_depth_to_space;
+    cb_map[CSINN_OP_DIV].est = csinn_div;
+    cb_map[CSINN_OP_FLATTEN].est = csinn_flatten;
+    cb_map[CSINN_OP_FULLYCONNECTED].est = csinn_fullyconnected;
+    cb_map[CSINN_OP_GLOBAL_AVGPOOL2D].est = csinn_global_avgpool2d;
+    cb_map[CSINN_OP_GLOBAL_MAXPOOL2D].est = csinn_global_maxpool2d;
+    cb_map[CSINN_OP_L2N].est = csinn_l2_normalization;
+    cb_map[CSINN_OP_LEAKY_RELU].est = csinn_leaky_relu;
+    cb_map[CSINN_OP_LRN].est = csinn_lrn;
+    cb_map[CSINN_OP_MAXIMUM].est = csinn_maximum;
+    cb_map[CSINN_OP_MAXPOOL2D].est = csinn_maxpool2d;
+    cb_map[CSINN_OP_MEAN].est = csinn_mean;
+    cb_map[CSINN_OP_MINIMUM].est = csinn_minimum;
+    cb_map[CSINN_OP_MUL].est = csinn_mul;
+    cb_map[CSINN_OP_NEGATIVE].est = csinn_negative;
+    cb_map[CSINN_OP_PAD].est = csinn_pad;
+    cb_map[CSINN_OP_PRELU].est = csinn_prelu;
+    cb_map[CSINN_OP_RELU].est = csinn_relu;
+    cb_map[CSINN_OP_RELU1].est = csinn_relu1;
+    cb_map[CSINN_OP_RELU6].est = csinn_relu6;
+    cb_map[CSINN_OP_RESHAPE].est = csinn_reshape;
+    cb_map[CSINN_OP_RESIZE].est = csinn_resize;
+    cb_map[CSINN_OP_SIGMOID].est = csinn_sigmoid;
+    cb_map[CSINN_OP_SOFTMAX].est = csinn_softmax;
+    cb_map[CSINN_OP_SPACE_TO_BATCH_ND].est = csinn_space_to_batch_nd;
+    cb_map[CSINN_OP_SPACE_TO_DEPTH].est = csinn_space_to_depth;
+    cb_map[CSINN_OP_SPLIT].est = csinn_split;
+    cb_map[CSINN_OP_SQUEEZE].est = csinn_squeeze;
+    cb_map[CSINN_OP_STRIDED_SLICE].est = csinn_strided_slice;
+    cb_map[CSINN_OP_SUB].est = csinn_sub;
+    cb_map[CSINN_OP_TANH].est = csinn_tanh;
+    cb_map[CSINN_OP_TRANSPOSE].est = csinn_transpose;
+    cb_map[CSINN_OP_ROIPOOL].est = csinn_roipool;
+    cb_map[CSINN_OP_PROPOSAL].est = csinn_proposal;
+    cb_map[CSINN_OP_UNPOOLING].est = csinn_unpooling;
+    cb_map[CSINN_OP_MAXPOOL2D_LOCAT].est = csinn_maxpool2d_locat;
+    cb_map[CSINN_OP_SQRT].est = csinn_sqrt;
+    cb_map[CSINN_OP_MATMUL].est = csinn_matmul;
+    cb_map[CSINN_OP_DATA_CONVERT].est = csinn_data_convert;
+
+    // to print structure info
+    shl_debug_set_level(CSINN_DEBUG_LEVEL_INFO);
+
+    struct shl_ref_graph *g = shl_gref_get_graph(sess);
+    for (int i = 0; i < g->layer_index; i++) {
+        struct shl_node *node = g->layer[i];
+        if (node->type == CSINN_SUBGRAPH) {
+            shl_debug_info("There is a subgrah that is ignored temporarily(TODO)\n");
+        } else if (node->type >= 0 && node->type < CSINN_OP_SIZE) {
+            struct csinn_params_base *params = node->data;
+            struct csinn_callback *cb = params->cb;
+            int (*func)();
+            func = cb_map[node->type].est;
+
+            params->sess->base_run_mode = CSINN_RM_LAYER;
+            cb->exec = NULL;
+
+            struct csinn_tensor **inputs;
+            struct csinn_tensor **outputs;
+            switch (node->type) {
+                case CSINN_OP_ABS:
+                case CSINN_OP_ACOS:
+                case CSINN_OP_ACOSH:
+                case CSINN_OP_ANY:
+                case CSINN_OP_ARGMAX:
+                case CSINN_OP_ARGMIN:
+                case CSINN_OP_ASIN:
+                case CSINN_OP_ASINH:
+                case CSINN_OP_ATAN:
+                case CSINN_OP_ATANH:
+                case CSINN_OP_AVGPOOL2D:
+                case CSINN_OP_AVGPOOL3D:
+                case CSINN_OP_BATCH_TO_SPACE:
+                case CSINN_OP_BATCH_TO_SPACE_ND:
+                case CSINN_OP_BROADCOST:
+                case CSINN_OP_CEIL:
+                case CSINN_OP_CLIP:
+                case CSINN_OP_COL2IM:
+                case CSINN_OP_COS:
+                case CSINN_OP_COSH:
+                case CSINN_OP_CROP:
+                case CSINN_OP_CUMPROD:
+                case CSINN_OP_CUMSUM:
+                case CSINN_OP_DATA_CONVERT:
+                case CSINN_OP_DEPTH_TO_SPACE:
+                case CSINN_OP_ELU:
+                case CSINN_OP_ERF:
+                case CSINN_OP_EXP:
+                case CSINN_OP_EXPAND_DIMS:
+                case CSINN_OP_EXPM1:
+                case CSINN_OP_FLATTEN:
+                case CSINN_OP_FLOOR:
+                case CSINN_OP_GLOBAL_AVGPOOL2D:
+                case CSINN_OP_GLOBAL_MAXPOOL2D:
+                case CSINN_OP_HARD_SIGMOID:
+                case CSINN_OP_IM2COL:
+                case CSINN_OP_ISNAN:
+                case CSINN_OP_L2N:
+                case CSINN_OP_L2POOL2D:
+                case CSINN_OP_LEAKY_RELU:
+                case CSINN_OP_LOG_SOFTMAX:
+                case CSINN_OP_LOG:
+                case CSINN_OP_LOG1P:
+                case CSINN_OP_LOGICAL_NOT:
+                case CSINN_OP_LRN:
+                case CSINN_OP_MAX:
+                case CSINN_OP_MAXPOOL2D:
+                case CSINN_OP_MAXPOOL2D_LOCAT:
+                case CSINN_OP_MAXPOOL3D:
+                case CSINN_OP_MEAN:
+                case CSINN_OP_MEAN_STRIDE:
+                case CSINN_OP_MIN:
+                case CSINN_OP_NDARRAY_SIZE:
+                case CSINN_OP_NEGATIVE:
+                case CSINN_OP_NOT:
+                case CSINN_OP_ONE_HOT:
+                case CSINN_OP_PAD:
+                case CSINN_OP_PROD:
+                case CSINN_OP_REDUCE_LOGSUMEXP:
+                case CSINN_OP_REDUCE_MAX:
+                case CSINN_OP_REDUCE_MEAN:
+                case CSINN_OP_REDUCE_MIN:
+                case CSINN_OP_REDUCE_PROD:
+                case CSINN_OP_REDUCE_SUM:
+                case CSINN_OP_RELU:
+                case CSINN_OP_RELU1:
+                case CSINN_OP_RELU6:
+                case CSINN_OP_RELUN:
+                case CSINN_OP_REORG:
+                case CSINN_OP_RESHAPE:
+                case CSINN_OP_RESIZE:
+                case CSINN_OP_REVERSE:
+                case CSINN_OP_ROUND:
+                case CSINN_OP_RSQRT:
+                case CSINN_OP_SHAPE:
+                case CSINN_OP_SHUFFLE_CHANNEL:
+                case CSINN_OP_SIGMOID:
+                case CSINN_OP_SIGN:
+                case CSINN_OP_SIN:
+                case CSINN_OP_SINH:
+                case CSINN_OP_SLICE:
+                case CSINN_OP_SOFTMAX:
+                case CSINN_OP_SOFTPLUS:
+                case CSINN_OP_SOFTRELU:
+                case CSINN_OP_SOFTSIGN:
+                case CSINN_OP_SPACE_TO_BATCH:
+                case CSINN_OP_SPACE_TO_BATCH_ND:
+                case CSINN_OP_SPACE_TO_DEPTH:
+                case CSINN_OP_SQRT:
+                case CSINN_OP_SQUARE:
+                case CSINN_OP_SQUEEZE:
+                case CSINN_OP_STACK:
+                case CSINN_OP_STRIDED_SLICE:
+                case CSINN_OP_SUM:
+                case CSINN_OP_TAN:
+                case CSINN_OP_TANH:
+                case CSINN_OP_THRESHOLD_RELU:
+                case CSINN_OP_TILE:
+                case CSINN_OP_TRANSPOSE:
+                case CSINN_OP_TRUNC:
+                case CSINN_OP_UNPOOLING:
+                case CSINN_OP_UNSTACK:
+                case CSINN_OP_CAST:
+                case CSINN_OP_YUV_RGB_SCALE:
+                    func(node->in[0]->data, node->out[0]->data, params);
+                    break;
+                case CSINN_OP_ADD:
+                case CSINN_OP_AND:
+                case CSINN_OP_DIV:
+                case CSINN_OP_EQUANL:
+                case CSINN_OP_FLOOR_DIVIDE:
+                case CSINN_OP_FLOOR_MOD:
+                case CSINN_OP_GATHER_ND:
+                case CSINN_OP_GATHER:
+                case CSINN_OP_GREATHER_EQUAL:
+                case CSINN_OP_GREATHER:
+                case CSINN_OP_LESS_EQUAL:
+                case CSINN_OP_LESS:
+                case CSINN_OP_LOGICAL_AND:
+                case CSINN_OP_LOGICAL_OR:
+                case CSINN_OP_LOGICAL_XOR:
+                case CSINN_OP_MATMUL:
+                case CSINN_OP_MAXIMUM:
+                case CSINN_OP_MINIMUM:
+                case CSINN_OP_MOD:
+                case CSINN_OP_MUL:
+                case CSINN_OP_NON_MAX_SUPPRESSION:
+                case CSINN_OP_NOT_EQUAL:
+                case CSINN_OP_OR:
+                case CSINN_OP_POWER:
+                case CSINN_OP_PRELU:
+                case CSINN_OP_SEQUENCE_MASK:
+                case CSINN_OP_SEGMENT_MAX:
+                case CSINN_OP_UNSORTED_SEGMENT_MAX:
+                case CSINN_OP_SEGMENT_MEAN:
+                case CSINN_OP_UNSORTED_SEGMENT_MEAN:
+                case CSINN_OP_SEGMENT_MIN:
+                case CSINN_OP_UNSORTED_SEGMENT_MIN:
+                case CSINN_OP_SEGMENT_PROD:
+                case CSINN_OP_UNSORTED_SEGMENT_PROD:
+                case CSINN_OP_SEGMENT_SUM:
+                case CSINN_OP_UNSORTED_SEGMENT_SUM:
+                case CSINN_OP_SUB:
+                case CSINN_OP_XOR:
+                    func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
+                    break;
+                case CSINN_OP_CONV1D:
+                case CSINN_OP_CONV2D:
+                case CSINN_OP_CONV2D_RELU:
+                case CSINN_OP_CONV2D_RELU6:
+                case CSINN_OP_CONV2D_CHANNEL:
+                case CSINN_OP_CONV2D_CHANNEL_RELU:
+                case CSINN_OP_CONV2D_CHANNEL_RELU6:
+                case CSINN_OP_DEPTHWISE_CONV1D:
+                case CSINN_OP_DEPTHWISE_CONV2D:
+                case CSINN_OP_DEPTHWISE_CONV2D_RELU:
+                case CSINN_OP_DEPTHWISE_CONV2D_RELU6:
+                case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL:
+                case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU:
+                case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6:
+                case CSINN_OP_GROUP_CONV2D:
+                case CSINN_OP_GROUP_CONV2D_RELU:
+                case CSINN_OP_GROUP_CONV2D_RELU6:
+                case CSINN_OP_GROUP_CONV2D_CHANNEL:
+                case CSINN_OP_GROUP_CONV2D_CHANNEL_RELU:
+                case CSINN_OP_CONV3D:
+                case CSINN_OP_DECONV2D:
+                case CSINN_OP_DEPTHWISE_DECONV2D:
+                case CSINN_OP_GROUP_DECONV2D:
+                case CSINN_OP_DECONV3D:
+                case CSINN_OP_FULLYCONNECTED:
+                case CSINN_OP_LAYER_NORM:
+                case CSINN_OP_CACHE_MATMUL:
+                case CSINN_OP_CACHE_CONV1D:
+                    func(node->in[0]->data, node->out[0]->data, node->in[1]->data,
+                         node->in[2]->data, params);
+                    break;
+                case CSINN_OP_FSMN:
+                    func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->in[3]->data,
+                         node->in[4]->data, node->out[0]->data, params);
+                    break;
+                case CSINN_OP_CONCAT:
+                    inputs = shl_mem_alloc(sizeof(struct csinn_tensor *) *
+                                           ((struct csinn_concat_params *)params)->inputs_count);
+                    for (int i = 0; i < ((struct csinn_concat_params *)params)->inputs_count; i++) {
+                        inputs[i] = node->in[i]->data;
+                    }
+                    func(inputs, node->out[0]->data, params);
+                    shl_mem_free(inputs);
+                    break;
+                case CSINN_OP_SPLIT:
+                    outputs = shl_mem_alloc(sizeof(struct csinn_tensor *) *
+                                            ((struct csinn_split_params *)params)->output_num);
+                    for (int i = 0; i < ((struct csinn_split_params *)params)->output_num; i++) {
+                        outputs[i] = node->out[i]->data;
+                    }
+                    func(node->in[0]->data, outputs, params);
+                    shl_mem_free(outputs);
+                    break;
+                case CSINN_OP_WHERE:
+                    func(node->in[0]->data, node->in[1]->data, node->in[2]->data,
+                         node->out[0]->data, params);
+                    break;
+                case CSINN_OP_WHERE_SOFTMAX:
+                    func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
+                    break;
+                case CSINN_OP_ALL:
+                    shl_debug_error("unsupported CSINN_OP_ALL\n");
+                    break;
+                case CSINN_OP_ARANGE:
+                    shl_debug_error("unsupported CSINN_OP_ARANGE\n");
+                    break;
+                case CSINN_OP_BN:
+                    shl_debug_error("unsupported CSINN_OP_BN\n");
+                    break;
+                case CSINN_OP_MIN_STRIDE:
+                    shl_debug_error("unsupported CSINN_OP_MIN_STRIDE\n");
+                    break;
+                case CSINN_OP_PROPOSAL:
+                    shl_debug_error("unsupported CSINN_OP_PROPOSAL\n");
+                    break;
+                case CSINN_OP_PSROIPOOLING:
+                    shl_debug_error("unsupported CSINN_OP_PSROIPOOLING\n");
+                    break;
+                case CSINN_OP_ROIALIGN:
+                    shl_debug_error("unsupported CSINN_OP_ROIALIGN\n");
+                    break;
+                case CSINN_OP_ROIPOOL:
+                    shl_debug_error("unsupported CSINN_OP_ROIPOOL\n");
+                    break;
+                case CSINN_OP_SCATTER_ND:
+                    shl_debug_error("unsupported CSINN_OP_SCATTER_ND\n");
+                    break;
+                case CSINN_OP_SELECT:
+                    shl_debug_error("unsupported CSINN_OP_SELECT\n");
+                    break;
+                case CSINN_OP_TOPK:
+                    shl_debug_error("unsupported CSINN_OP_TOPK\n");
+                    break;
+                default:
+                    shl_debug_error("unknown op\n");
+            }
+        }
+    }
+
+    // restore debug level
+    shl_debug_set_level(sess->debug_level);
+}
+#endif
 
 /**
  * @addtogroup SESSION

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*
    only support layout:NCHW
@@ -37,8 +37,8 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
     int32_t kernel_w = kernel->dim[3];
     int32_t stride_h = params->stride_height;
     int32_t stride_w = params->stride_width;
-    int32_t dalition_h = params->dilation_height;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_h = params->dilation_height;
+    int32_t dilation_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
 
     if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
@@ -59,8 +59,8 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
 
     /* if recommend GEMM, all conv2d use GEMM */
     if (params->conv_extra.conv_mode == CSINN_GEMM) {
-        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-            dalition_w == 1) {
+        if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+            dilation_w == 1) {
             cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
         } else {
             cb->exec = shl_c906_conv_im2col_sgemm_fp16;
@@ -68,17 +68,25 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         return CSINN_TRUE;
     }
 
-    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dalition_h == 1 &&
-        dalition_w == 1) {
+    if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
+        dilation_w == 1) {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
+        if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+        } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
+        }
         cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
         // winograd convolution condition:
     } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
-               dalition_h == 1 && dalition_w == 1) {
-        if (params->group > 1) {
+               dilation_h == 1 && dilation_w == 1) {
+        if (params->group > 1 || (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8)) {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            }
             cb->exec = shl_c906_conv_im2col_sgemm_fp16;
             return CSINN_TRUE;
         }
@@ -91,12 +99,20 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
             cb->exec = shl_c906_conv3x3s1_winograd64_pack8_fp16;
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            }
             cb->exec = shl_c906_conv_im2col_sgemm_fp16;
         }
     } else {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+        if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+            shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+        } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+            shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+        }
         cb->exec = shl_c906_conv_im2col_sgemm_fp16;
     }
     return CSINN_TRUE;

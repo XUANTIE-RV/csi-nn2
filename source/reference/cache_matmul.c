@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 // asr data buffer
 void asr_buffer_init(struct csinn_asr_buffer_t *buffer, size_t buffer_size, size_t data_lenth)

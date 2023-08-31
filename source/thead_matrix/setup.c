@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 #define RVM_OP_PATTERN_MAX 60
 static struct shl_cb_table shl_rvm_cb_table[RVM_OP_PATTERN_MAX];

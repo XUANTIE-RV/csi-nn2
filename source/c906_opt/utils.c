@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 // constrains: The destination address and source address copy do not overlap
 // notice: riscv gnu compiler tool-chain c-library memcpy may not use vector inst
@@ -24,24 +24,21 @@
 void shl_c906_memcpy(void *dst, const void *src, size_t n)
 {
     asm volatile(
-                "1:\n\t"
-                "vsetvli    t0, %3, e8, m4\n\t"
-                "vle.v      v4, (%2)\n\t"
-                "add        %2, %2, t0\n\t"
-                "sub        %3, %3, t0\n\t"
-                "vse.v      v4, (%0)\n\t"
-                "add        %0, %0, t0\n\t"
-                "bnez       %3, 1b\n\t"
+        "1:\n\t"
+        "vsetvli    t0, %3, e8, m4\n\t"
+        "vle.v      v4, (%2)\n\t"
+        "add        %2, %2, t0\n\t"
+        "sub        %3, %3, t0\n\t"
+        "vse.v      v4, (%0)\n\t"
+        "add        %0, %0, t0\n\t"
+        "bnez       %3, 1b\n\t"
 
-                :"=r"(dst)  // %0
-                :"0"(dst),  // %1
-                "r"(src),   // %2
-                "r"(n)      // %3
-                : "t0", "v4", "v5", "v6", "v7"
-    );
+        : "=r"(dst)  // %0
+        : "0"(dst),  // %1
+          "r"(src),  // %2
+          "r"(n)     // %3
+        : "t0", "v4", "v5", "v6", "v7");
 }
-
-
 
 /*  params:
     input:          origin input data
@@ -61,109 +58,99 @@ void shl_c906_pad_input(const float *input, float *input_padded, int inc, int in
 
     float *pad_ptr = input_padded;
     float *inp_ptr = (float *)input;
-    int resi_h = padded_h - pad_top - inh;  // remain to pad on h (pad_down)
-    int resi_w = padded_w - pad_left - inw; // remain to pad on w (pad_right)
+    int resi_h = padded_h - pad_top - inh;   // remain to pad on h (pad_down)
+    int resi_w = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
 
 #if __riscv_vector == 128
 
     asm volatile(
         "vsetvli        zero, zero, e32, m2\n\t"
-        "vmv.v.x        v2, zero\n\t"       // clear v2
-        "mulw           t1, %6, %7\n\t"     // pad_top * padded_w
-        "mulw           t2, %6, %9\n\t"     // pad_down * padded_w
+        "vmv.v.x        v2, zero\n\t"    // clear v2
+        "mulw           t1, %6, %7\n\t"  // pad_top * padded_w
+        "mulw           t2, %6, %9\n\t"  // pad_down * padded_w
 
-    "1:\n\t"     // channel loop
-        "mv             t5, %3\n\t"         // t5 = in_h
-        "beqz           %7, 3f\n\t"         // if pad_top = 0
-        "mv             t3, t1\n\t"         // t3 = num to memset 0
+        "1:\n\t"                     // channel loop
+        "mv             t5, %3\n\t"  // t5 = in_h
+        "beqz           %7, 3f\n\t"  // if pad_top = 0
+        "mv             t3, t1\n\t"  // t3 = num to memset 0
 
-        "2:\n\t"    // pad h_top
-            "vsetvli        t0, t3, e32, m2\n\t"
-            "vsw.v          v2, (%1)\n\t"
-            "sub            t3, t3, t0\n\t"
-            "slli           t0, t0, 2\n\t"
-            "add            %1, %1, t0\n\t"
-            "bnez           t3, 2b\n\t"
+        "2:\n\t"  // pad h_top
+        "vsetvli        t0, t3, e32, m2\n\t"
+        "vsw.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 2\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 2b\n\t"
 
-        "3:\n\t"    // pad h_mid
+        "3:\n\t"  // pad h_mid
 
-            "mv             t4, %4\n\t"     // t4 = in_w
-            "beqz           %8, 5f\n\t"     // if pad_left = 0
-            "mv             t3, %8\n\t"     // t3 = pad_left
+        "mv             t4, %4\n\t"  // t4 = in_w
+        "beqz           %8, 5f\n\t"  // if pad_left = 0
+        "mv             t3, %8\n\t"  // t3 = pad_left
 
-            "4:\n\t"    // pad w_left
-                "vsetvli        t0, t3, e32, m2\n\t"
-                "vsw.v          v2, (%1)\n\t"
-                "sub            t3, t3, t0\n\t"
-                "slli           t0, t0, 2\n\t"
-                "add            %1, %1, t0\n\t"
-                "bnez           t3, 4b\n\t"
+        "4:\n\t"  // pad w_left
+        "vsetvli        t0, t3, e32, m2\n\t"
+        "vsw.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 2\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 4b\n\t"
 
-            "5:\n\t"    // pad w_mid
-                "vsetvli        t0, t4, e32, m2\n\t"
-                "vlw.v          v4, (%0)\n\t"   // load from input_data
-                "sub            t4, t4, t0\n\t"
-                "slli           t0, t0, 2\n\t"
-                "add            %0, %0, t0\n\t"
-                "vsw.v          v4, (%1)\n\t"   // store to padded_buf
-                "add            %1, %1, t0\n\t"
-                "bnez           t4, 5b\n\t"
+        "5:\n\t"  // pad w_mid
+        "vsetvli        t0, t4, e32, m2\n\t"
+        "vlw.v          v4, (%0)\n\t"  // load from input_data
+        "sub            t4, t4, t0\n\t"
+        "slli           t0, t0, 2\n\t"
+        "add            %0, %0, t0\n\t"
+        "vsw.v          v4, (%1)\n\t"  // store to padded_buf
+        "add            %1, %1, t0\n\t"
+        "bnez           t4, 5b\n\t"
 
-                "beqz           %10, 7f\n\t"    // if pad_right = 0
-                "mv             t3, %10\n\t"
+        "beqz           %10, 7f\n\t"  // if pad_right = 0
+        "mv             t3, %10\n\t"
 
-            "6:\n\t"    // pad w_right
-                "vsetvli        t0, t3, e32, m2\n\t"
-                "vsw.v          v2, (%1)\n\t"
-                "sub            t3, t3, t0\n\t"
-                "slli           t0, t0, 2\n\t"
-                "add            %1, %1, t0\n\t"
-                "bnez           t3, 6b\n\t"
+        "6:\n\t"  // pad w_right
+        "vsetvli        t0, t3, e32, m2\n\t"
+        "vsw.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 2\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 6b\n\t"
 
         "7:\n\t"
 
-            "addi           t5, t5, -1\n\t"
-            "bnez           t5, 3b\n\t"
+        "addi           t5, t5, -1\n\t"
+        "bnez           t5, 3b\n\t"
 
-        "beqz           %9, 9f\n\t"     // if pad_down = 0
-        "mv             t3, t2\n\t"     // t3 = num to memset 0
+        "beqz           %9, 9f\n\t"  // if pad_down = 0
+        "mv             t3, t2\n\t"  // t3 = num to memset 0
 
-        "8:\n\t"     // pad h_down
-            "vsetvli        t0, t3, e32, m2\n\t"
-            "vsw.v          v2, (%1)\n\t"
-            "sub            t3, t3, t0\n\t"
-            "slli           t0, t0, 2\n\t"
-            "add            %1, %1, t0\n\t"
-            "bnez           t3, 8b\n\t"
+        "8:\n\t"  // pad h_down
+        "vsetvli        t0, t3, e32, m2\n\t"
+        "vsw.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 2\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 8b\n\t"
 
-    "9:\n\t"
+        "9:\n\t"
         "addi           %2, %2, -1\n\t"
         "bnez           %2, 1b\n\t"
 
-        :"=r"(inp_ptr),     // %0
-        "=r"(pad_ptr),      // %1
-        "=r"(inc),          // %2
-        "=r"(inh),          // %3
-        "=r"(inw),          // %4
-        "=r"(padded_hw),    // %5
-        "=r"(padded_w),     // %6
-        "=r"(pad_top),      // %7
-        "=r"(pad_left),     // %8
-        "=r"(resi_h),       // %9
-        "=r"(resi_w)        // %10
-        :"0"(inp_ptr),
-        "1"(pad_ptr),
-        "2"(inc),
-        "3"(inh),
-        "4"(inw),
-        "5"(padded_hw),
-        "6"(padded_w),
-        "7"(pad_top),
-        "8"(pad_left),
-        "9"(resi_h),
-        "10"(resi_w)
-        :"cc", "memory", "v2", "v3", "v4", "v5",
-         "t0", "t1", "t2", "t3", "t4", "t5"
+        : "=r"(inp_ptr),    // %0
+          "=r"(pad_ptr),    // %1
+          "=r"(inc),        // %2
+          "=r"(inh),        // %3
+          "=r"(inw),        // %4
+          "=r"(padded_hw),  // %5
+          "=r"(padded_w),   // %6
+          "=r"(pad_top),    // %7
+          "=r"(pad_left),   // %8
+          "=r"(resi_h),     // %9
+          "=r"(resi_w)      // %10
+        : "0"(inp_ptr), "1"(pad_ptr), "2"(inc), "3"(inh), "4"(inw), "5"(padded_hw), "6"(padded_w),
+          "7"(pad_top), "8"(pad_left), "9"(resi_h), "10"(resi_w)
+        : "cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "t3", "t4", "t5"
 
     );
 #else
@@ -197,111 +184,100 @@ void shl_c906_pad_input_fp16(const __fp16 *input, __fp16 *input_padded, int inc,
 
     __fp16 *pad_ptr = input_padded;
     __fp16 *inp_ptr = (__fp16 *)input;
-    int resi_h = padded_h - pad_top - inh;  // remain to pad on h (pad_down)
-    int resi_w = padded_w - pad_left - inw; // remain to pad on w (pad_right)
+    int resi_h = padded_h - pad_top - inh;   // remain to pad on h (pad_down)
+    int resi_w = padded_w - pad_left - inw;  // remain to pad on w (pad_right)
 
     asm volatile(
         "vsetvli        zero, zero, e16, m2\n\t"
-        "vmv.v.x        v2, zero\n\t"       // clear v2
-        "mulw           t1, %6, %7\n\t"     // pad_top * padded_w
-        "mulw           t2, %6, %9\n\t"     // pad_down * padded_w
+        "vmv.v.x        v2, zero\n\t"    // clear v2
+        "mulw           t1, %6, %7\n\t"  // pad_top * padded_w
+        "mulw           t2, %6, %9\n\t"  // pad_down * padded_w
 
-    "1:\n\t"     // channel loop
-        "mv             t5, %3\n\t"         // t5 = in_h
-        "beqz           %7, 3f\n\t"         // if pad_top = 0
-        "mv             t3, t1\n\t"         // t3 = num to memset 0
+        "1:\n\t"                     // channel loop
+        "mv             t5, %3\n\t"  // t5 = in_h
+        "beqz           %7, 3f\n\t"  // if pad_top = 0
+        "mv             t3, t1\n\t"  // t3 = num to memset 0
 
-        "2:\n\t"    // pad h_top
-            "vsetvli        t0, t3, e16, m2\n\t"
-            "vse.v          v2, (%1)\n\t"
-            "sub            t3, t3, t0\n\t"
-            "slli           t0, t0, 1\n\t"
-            "add            %1, %1, t0\n\t"
-            "bnez           t3, 2b\n\t"
+        "2:\n\t"  // pad h_top
+        "vsetvli        t0, t3, e16, m2\n\t"
+        "vse.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 1\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 2b\n\t"
 
-        "3:\n\t"    // pad h_mid
+        "3:\n\t"  // pad h_mid
 
-            "mv             t4, %4\n\t"     // t4 = in_w
-            "beqz           %8, 5f\n\t"     // if pad_left = 0
-            "mv             t3, %8\n\t"     // t3 = pad_left
+        "mv             t4, %4\n\t"  // t4 = in_w
+        "beqz           %8, 5f\n\t"  // if pad_left = 0
+        "mv             t3, %8\n\t"  // t3 = pad_left
 
-            "4:\n\t"    // pad w_left
-                "vsetvli        t0, t3, e16, m2\n\t"
-                "vse.v          v2, (%1)\n\t"
-                "sub            t3, t3, t0\n\t"
-                "slli           t0, t0, 1\n\t"
-                "add            %1, %1, t0\n\t"
-                "bnez           t3, 4b\n\t"
+        "4:\n\t"  // pad w_left
+        "vsetvli        t0, t3, e16, m2\n\t"
+        "vse.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 1\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 4b\n\t"
 
-            "5:\n\t"    // pad w_mid
-                "vsetvli        t0, t4, e16, m2\n\t"
-                "vle.v          v4, (%0)\n\t"   // load from input_data
-                "sub            t4, t4, t0\n\t"
-                "slli           t0, t0, 1\n\t"
-                "add            %0, %0, t0\n\t"
-                "vse.v          v4, (%1)\n\t"   // store to padded_buf
-                "add            %1, %1, t0\n\t"
-                "bnez           t4, 5b\n\t"
+        "5:\n\t"  // pad w_mid
+        "vsetvli        t0, t4, e16, m2\n\t"
+        "vle.v          v4, (%0)\n\t"  // load from input_data
+        "sub            t4, t4, t0\n\t"
+        "slli           t0, t0, 1\n\t"
+        "add            %0, %0, t0\n\t"
+        "vse.v          v4, (%1)\n\t"  // store to padded_buf
+        "add            %1, %1, t0\n\t"
+        "bnez           t4, 5b\n\t"
 
-                "beqz           %10, 7f\n\t"    // if pad_right = 0
-                "mv             t3, %10\n\t"
+        "beqz           %10, 7f\n\t"  // if pad_right = 0
+        "mv             t3, %10\n\t"
 
-            "6:\n\t"    // pad w_right
-                "vsetvli        t0, t3, e16, m2\n\t"
-                "vse.v          v2, (%1)\n\t"
-                "sub            t3, t3, t0\n\t"
-                "slli           t0, t0, 1\n\t"
-                "add            %1, %1, t0\n\t"
-                "bnez           t3, 6b\n\t"
+        "6:\n\t"  // pad w_right
+        "vsetvli        t0, t3, e16, m2\n\t"
+        "vse.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 1\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 6b\n\t"
 
         "7:\n\t"
 
-            "addi           t5, t5, -1\n\t"
-            "bnez           t5, 3b\n\t"
+        "addi           t5, t5, -1\n\t"
+        "bnez           t5, 3b\n\t"
 
-        "beqz           %9, 9f\n\t"     // if pad_down = 0
-        "mv             t3, t2\n\t"     // t4 = num to memset 0
+        "beqz           %9, 9f\n\t"  // if pad_down = 0
+        "mv             t3, t2\n\t"  // t4 = num to memset 0
 
-        "8:\n\t"     // pad h_down
-            "vsetvli        t0, t3, e16, m2\n\t"
-            "vse.v          v2, (%1)\n\t"
-            "sub            t3, t3, t0\n\t"
-            "slli           t0, t0, 1\n\t"
-            "add            %1, %1, t0\n\t"
-            "bnez           t3, 8b\n\t"
+        "8:\n\t"  // pad h_down
+        "vsetvli        t0, t3, e16, m2\n\t"
+        "vse.v          v2, (%1)\n\t"
+        "sub            t3, t3, t0\n\t"
+        "slli           t0, t0, 1\n\t"
+        "add            %1, %1, t0\n\t"
+        "bnez           t3, 8b\n\t"
 
-    "9:\n\t"
+        "9:\n\t"
         "addi           %2, %2, -1\n\t"
         "bnez           %2, 1b\n\t"
 
-        :"=r"(inp_ptr),     // %0
-        "=r"(pad_ptr),      // %1
-        "=r"(inc),          // %2
-        "=r"(inh),          // %3
-        "=r"(inw),          // %4
-        "=r"(padded_hw),    // %5
-        "=r"(padded_w),     // %6
-        "=r"(pad_top),      // %7
-        "=r"(pad_left),     // %8
-        "=r"(resi_h),       // %9
-        "=r"(resi_w)        // %10
-        :"0"(inp_ptr),
-        "1"(pad_ptr),
-        "2"(inc),
-        "3"(inh),
-        "4"(inw),
-        "5"(padded_hw),
-        "6"(padded_w),
-        "7"(pad_top),
-        "8"(pad_left),
-        "9"(resi_h),
-        "10"(resi_w)
-        :"cc", "memory", "v2", "v3", "v4", "v5",
-         "t0", "t1", "t2", "t3", "t4", "t5"
+        : "=r"(inp_ptr),    // %0
+          "=r"(pad_ptr),    // %1
+          "=r"(inc),        // %2
+          "=r"(inh),        // %3
+          "=r"(inw),        // %4
+          "=r"(padded_hw),  // %5
+          "=r"(padded_w),   // %6
+          "=r"(pad_top),    // %7
+          "=r"(pad_left),   // %8
+          "=r"(resi_h),     // %9
+          "=r"(resi_w)      // %10
+        : "0"(inp_ptr), "1"(pad_ptr), "2"(inc), "3"(inh), "4"(inw), "5"(padded_hw), "6"(padded_w),
+          "7"(pad_top), "8"(pad_left), "9"(resi_h), "10"(resi_w)
+        : "cc", "memory", "v2", "v3", "v4", "v5", "t0", "t1", "t2", "t3", "t4", "t5"
 
     );
 }
-
 
 /*  params:
     output_trans:   transflorm output after dot
@@ -318,11 +294,10 @@ void shl_c906_crop_output(float *output_trans, float *output, int out_c, int out
     int resi_h = wino_h - out_h;
     int resi_w = wino_w - out_w;
     float *out_ptr = output;
-    for(int c = 0; c < out_c; c++) {
-
+    for (int c = 0; c < out_c; c++) {
         float *crop_ptr = output_trans + c * wino_h * wino_w;
 
-        for(int h = 0; h < out_h; h++) {
+        for (int h = 0; h < out_h; h++) {
             memcpy(out_ptr, crop_ptr, out_w * sizeof(float));
             out_ptr += out_w;
             crop_ptr += wino_w;
@@ -336,18 +311,16 @@ void shl_c906_crop_output_fp16(__fp16 *output_trans, __fp16 *output, int out_c, 
     int resi_h = wino_h - out_h;
     int resi_w = wino_w - out_w;
     __fp16 *out_ptr = output;
-    for(int c = 0; c < out_c; c++) {
-
+    for (int c = 0; c < out_c; c++) {
         __fp16 *crop_ptr = output_trans + c * wino_h * wino_w;
 
-        for(int h = 0; h < out_h; h++) {
+        for (int h = 0; h < out_h; h++) {
             memcpy(out_ptr, crop_ptr, out_w * sizeof(__fp16));
             out_ptr += out_w;
             crop_ptr += wino_w;
         }
     }
 }
-
 
 /*
     fcsr: float control status register
@@ -372,12 +345,10 @@ void shl_c906_reset_fcsr() { asm volatile("csrrw x0, fcsr, zero\n\t" : : : "memo
 int shl_c906_get_fcsr()
 {
     int f_flag = 0;
-    asm volatile(
-        "csrrs %0, fcsr, zero\n\t"
+    asm volatile("csrrs %0, fcsr, zero\n\t"
 
-        :"=r"(f_flag)
-        :
-        :"memory"
-    );
+                 : "=r"(f_flag)
+                 :
+                 : "memory");
     return f_flag;
 }

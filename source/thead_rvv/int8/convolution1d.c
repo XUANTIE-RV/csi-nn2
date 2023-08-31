@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 // TODO: support nwc layout
 int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -27,7 +27,7 @@ int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t in_c = kernel->dim[1];
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_w = params->stride_width;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_w = params->dilation_width;
     int32_t group = params->group;
     struct csinn_callback *cb = params->base.cb;
 
@@ -37,7 +37,7 @@ int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     if (group == 1) {
-        if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
+        if (kernel_w == 1 && stride_w == 1 && dilation_w == 1) {
             // enable fuse zeropoint to bias for gemm
             if (CSINN_TRUE) {
                 int32_t *bias_data = (int32_t *)bias->data;

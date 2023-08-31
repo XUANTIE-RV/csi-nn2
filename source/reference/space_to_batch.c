@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 // tf.nn.space_to_batch:the input mast a  4-D Tensor with shape [batch, height, width, depth].
 

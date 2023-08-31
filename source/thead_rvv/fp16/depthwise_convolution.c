@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -46,13 +46,20 @@ int shl_rvv_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_
             in_elempack = 1;
             out_elempack = 1;  // dwconv2d out_channel pack is same as in_channel
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        in_elempack = in_c % packn == 0 ? packn : 1;
+        out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
     bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
 
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
         if (!binary_model_op_init) {
-            shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
+            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                shl_rvv_dwconv_reorder_kernel_packn_fp16_w_int8(kernel, params);
+            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                shl_rvv_dwconv_reorder_kernel_packn_fp16(kernel, params);
+            }
         }
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_packn_fp16;

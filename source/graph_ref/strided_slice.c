@@ -28,6 +28,7 @@ int shl_gref_strided_slice(struct csinn_tensor *input, struct csinn_tensor *outp
 int shl_gref_strided_slice_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_strided_slice_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     for (int i = 0; i < params->slice_count; i++) {
         if (params->begin[i] < -input->dim[i]) params->begin[i] = -input->dim[i];
         if (params->begin[i] < 0) params->begin[i] += input->dim[i];

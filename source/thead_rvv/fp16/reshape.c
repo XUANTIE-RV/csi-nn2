@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_reshape_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_reshape_params *params)
@@ -25,7 +25,7 @@ int shl_rvv_reshape_fp16(struct csinn_tensor *input, struct csinn_tensor *output
     __fp16 *output_data = (__fp16 *)output->data;
 
     shl_gref_reshape_infer_shape(input, output, params);
-    if (input->layout >= CSINN_LAYOUT_NC1WC0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
         const int packn = csrr_vlenb() / sizeof(__fp16);
         const int vl = vsetvl_e16m1(packn);
         int outer_size = input->dim[0] * input->dim[1];  // batch fuse to outer

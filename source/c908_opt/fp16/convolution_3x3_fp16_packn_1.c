@@ -17,7 +17,7 @@
  */
 // #ifdef NNN
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 /*************************************************************
  * note: support flexible vlen

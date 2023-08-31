@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static int shl_ref_unpooling_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *mask,
                                       struct csinn_tensor *output,

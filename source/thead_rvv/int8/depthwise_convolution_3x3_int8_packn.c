@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 #ifdef RVV_1_0_0
 static vint8mf2_t requantize_m2_s(vint32m2_t _src, vint32m2_t _multiplier, vint32m2_t _shift,

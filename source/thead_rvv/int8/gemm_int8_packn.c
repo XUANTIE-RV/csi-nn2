@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * note: VLEN = 128/256 ... flexible vlen
@@ -40,8 +40,9 @@ static vint8m1_t requantize_m4_s(vint32m4_t _src, vint32m4_t _multiplier, vint32
  * sa - kernel:  [m/packn, k, packn]
  * sb - input:   [n/4, k, 4]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_4xpack2n_int8(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                       int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
+                                       int32_t *bias, int m, int k, int n, int32_t out_zp,
                                        int32_t *mult, int32_t *shift)
 {
     int8_t *kernel_data = (int8_t *)sa;

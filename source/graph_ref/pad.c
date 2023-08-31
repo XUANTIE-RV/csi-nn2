@@ -29,16 +29,7 @@ int shl_gref_pad_infer_shape(struct csinn_tensor *input, struct csinn_tensor *ou
                              struct csinn_pad_params *params)
 {
     int h, w;
-    if (output->layout == CSINN_LAYOUT_NCHW) {
-        h = 2;
-        w = 3;
-    } else if (output->layout == CSINN_LAYOUT_NHWC) {
-        h = 1;
-        w = 2;
-    } else {
-        return CSINN_UNSUPPORT_LAYOUT;
-    }
-
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
     for (int i = 0; i < output->dim_count; i++) {
         output->dim[i] = input->dim[i] + params->pad_before[i] + params->pad_after[i];

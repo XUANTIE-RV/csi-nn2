@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int csrr_vl()
 {
@@ -387,20 +387,52 @@ void shl_rvv_tensor_nc1xc0_to_ndarray_inplace_int8(struct csinn_tensor *t)
 }
 
 /********************* for fp16 quantization *********************/
+// for requantization, different scales are also suitable for quantization
+void shl_rvv_requantize_fp16(__fp16 *src, __fp16 scale, int size)
+{
+    while (size > 0) {
+        int vl = vsetvl_e16m4(size);
+        vfloat16m4_t _val = vle16_v_f16m4(src, vl);
+        _val = vfmul_vf_f16m4(_val, scale, vl);
+        vse16_v_f16m4(src, _val, vl);
+        src += vl;
+        size -= vl;
+    }
+}
 
 void shl_rvv_sidcso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_tensor *kernel)
 {
+    float s1 = input->qinfo->scale;
+    float s2 = kernel->qinfo->scale;
+    float s3 = output->qinfo->scale;
+
+    if (fabs(s1 - 1) > FLT_EPSILON || fabs(s2 - 1) > FLT_EPSILON || fabs(s3 - 1) > FLT_EPSILON) {
+        shl_debug_info("fp16 quantization of sidcso op\n");
+        shl_rvv_requantize_fp16(output->data, s1 * s2 / s3, csinn_tensor_size(output));
+    }
 }
 
 /* linear calculations ops, such as relu, leaky_relu, prelu, etc. */
 void shl_rvv_siso_op_requantize_fp16(struct csinn_tensor *input, struct csinn_tensor *output)
 {
+    float s1 = input->qinfo->scale;
+    float s2 = output->qinfo->scale;
+    if (fabs(s1 - s2) > FLT_EPSILON) {
+        shl_debug_info("fp16 quantization of siso op\n");
+        shl_rvv_requantize_fp16(output->data, s1 / s2, csinn_tensor_size(output));
+    }
 }
 
 void shl_rvv_diso_op_requantize_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                      struct csinn_tensor *output)
 {
+    float s1 = input0->qinfo->scale;
+    float s2 = input1->qinfo->scale;
+    float s3 = output->qinfo->scale;
+    if (fabs(s1 - 1) > FLT_EPSILON || fabs(s2 - 1) > FLT_EPSILON || fabs(s3 - 1) > FLT_EPSILON) {
+        shl_debug_error("unsupport fp16 quantization of diso op\n");
+    }
 }
 
 /********************* for int8 quantization *********************/
@@ -460,6 +492,14 @@ void shl_rvv_dequantize_i8_to_f16(int8_t *src, __fp16 *dst, int size, int32_t zp
         dst += vl;
         size -= vl;
     }
+}
+
+vfloat16m2_t shl_rvv_vdeq_vv_f16m2(vint8m1_t _i8, vint8m1_t _z, vfloat16m2_t _s, int vl)
+{
+    vint16m2_t _i16 = vwsub_vv_i16m2(_i8, _z, vl);
+    vfloat16m2_t _f16 = vfcvt_f_x_v_f16m2(_i16, vl);
+    _f16 = vfmul_vv_f16m2(_f16, _s, vl);
+    return _f16;
 }
 
 /********************* int4 easter eggs *********************/
@@ -674,19 +714,380 @@ int shl_rvv_avgpool_get_window_size(struct csinn_pool_params *params, int idx_h_
     return window_size;
 }
 
+/*********************************************************************
+ * (q16 - z2) * s2 = (q8 - z1) * s1
+ * q16 = s1/s2 * (q8 - z1) + z2
+ ********************************************************************/
+void shl_rvv_u8_to_i16(const uint8_t *input, int16_t *output, int32_t z1, float *s1, int32_t z2,
+                       float *s2, uint32_t length)
+{
+#ifdef RVV_1_0_0
+    asm volatile(
+        "beqz           %6, 2f\n\t"
+        "flw            ft0, (%4)\n\t"
+        "flw            ft1, (%5)\n\t"
+        "fdiv.s         ft0, ft0, ft1\n\t"  // s1/s2
+        "fcvt.h.s       fa0, ft0\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %6, e8, m2\n\t"
+        "slli           t1, t0, 1\n\t"
+        "vle8.v         v0, (%0)\n\t"
+        "add            %0, %0, t0\n\t"
+
+        "vwaddu.vx      v4, v0, zero\n\t"  // u8 -> u16
+        "vsetvli        t0, %6, e16, m4\n\t"
+        "vsub.vx        v4, v4, %2\n\t"   // -= z1
+        "vfcvt.f.x.v    v8, v4\n\t"       // i16 -> f16
+        "vfmul.vf       v8, v8, fa0\n\t"  // *= s1/s2
+        "vfcvt.x.f.v    v4, v8\n\t"       // f16 -> i16
+        "vadd.vx        v4, v4, %3\n\t"   // += z2
+
+        "vse16.v        v4, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+        "sub            %6, %6, t0\n\t"
+        "bgtz           %6, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(z1),      // %2
+          "=r"(z2),      // %3
+          "=r"(s1),      // %4
+          "=r"(s2),      // %5
+          "=r"(length)   // %6
+        : "0"(input), "1"(output), "2"(z1), "3"(z2), "4"(s1), "5"(s2), "6"(length)
+        : "v0", "v1", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "t0", "t1", "t2", "ft0",
+          "ft1", "fa0");
+#elif defined RVV_0_7_1
+    asm volatile(
+        "beqz           %6, 2f\n\t"
+        "flw            ft0, (%4)\n\t"
+        "flw            ft1, (%5)\n\t"
+        "fdiv.s         ft0, ft0, ft1\n\t"  // s1/s2
+        "fcvt.h.s       fa0, ft0\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %6, e8, m2\n\t"
+        "slli           t1, t0, 1\n\t"
+        "vle.v          v0, (%0)\n\t"
+        "add            %0, %0, t0\n\t"
+
+        "vwaddu.vx      v4, v0, zero\n\t"  // u8->u16
+        "vsetvli        t0, %6, e16, m4\n\t"
+        "vsub.vx        v4, v4, %2\n\t"   // -= z1
+        "vfcvt.f.x.v    v8, v4\n\t"       // i16 -> f16
+        "vfmul.vf       v8, v8, fa0\n\t"  // *= s1/s2
+        "vfcvt.x.f.v    v4, v8\n\t"       // f16 -> i16
+        "vadd.vx        v4, v4, %3\n\t"   // += z2
+
+        "vse.v          v4, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+        "sub            %6, %6, t0\n\t"
+        "bgtz           %6, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(z1),      // %2
+          "=r"(z2),      // %3
+          "=r"(s1),      // %4
+          "=r"(s2),      // %5
+          "=r"(length)   // %6
+        : "0"(input), "1"(output), "2"(z1), "3"(z2), "4"(s1), "5"(s2), "6"(length)
+        : "v0", "v1", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "t0", "t1", "t2", "ft0",
+          "ft1", "fa0");
+#endif
+}
+
+/*********************************************************************
+ * (q8 - z2) * s2 = (q16 - z1) * s1
+ * q(8) = s1/s2 * (q16 - z1) + z2
+ ********************************************************************/
+void shl_rvv_i16_to_u8(const int16_t *input, uint8_t *output, int32_t z1, float *s1, int32_t z2,
+                       float *s2, uint32_t length)
+{
+#ifdef RVV_1_0_0
+    asm volatile(
+        "beqz           %6, 2f\n\t"
+        "flw            ft0, (%4)\n\t"
+        "flw            ft1, (%5)\n\t"
+        "fdiv.s         ft0, ft0, ft1\n\t"  // s1/s2
+        "fcvt.h.s       fa0, ft0\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %6, e16, m4\n\t"
+        "slli           t1, t0, 1\n\t"
+        "vle16.v        v4, (%0)\n\t"
+        "add            %0, %0, t1\n\t"
+
+        "vsub.vx        v4, v4, %2\n\t"   // -= z1
+        "vfcvt.f.x.v    v8, v4\n\t"       // i16 -> f16
+        "vfmul.vf       v8, v8, fa0\n\t"  // *= s1/s2
+        "vfcvt.x.f.v    v4, v8\n\t"       // f16 -> i16
+        "vadd.vx        v4, v4, %3\n\t"   // += z2
+        "vmax.vx        v4, v4, zero\n\t"
+        "vsetvli        t0, %6, e8, m2\n\t"
+        "vnclipu.wi     v0, v4, 0\n\t"  // i16 -> u8
+
+        "vse8.v         v0, (%1)\n\t"
+        "add            %1, %1, t0\n\t"
+        "sub            %6, %6, t0\n\t"
+        "bgtz           %6, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(z1),      // %2
+          "=r"(z2),      // %3
+          "=r"(s1),      // %4
+          "=r"(s2),      // %5
+          "=r"(length)   // %6
+        : "0"(input), "1"(output), "2"(z1), "3"(z2), "4"(s1), "5"(s2), "6"(length)
+        : "v0", "v1", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "t0", "t1", "t2", "ft0",
+          "ft1", "fa0");
+#elif defined RVV_0_7_1
+    asm volatile(
+        "beqz           %6, 2f\n\t"
+        "flw            ft0, (%4)\n\t"
+        "flw            ft1, (%5)\n\t"
+        "fdiv.s         ft0, ft0, ft1\n\t"  // s1/s2
+        "fcvt.h.s       fa0, ft0\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %6, e16, m4\n\t"
+        "slli           t1, t0, 1\n\t"
+        "vle.v          v4, (%0)\n\t"
+        "add            %0, %0, t1\n\t"
+
+        "vsub.vx        v4, v4, %2\n\t"   // -= z1
+        "vfcvt.f.x.v    v8, v4\n\t"       // i16 -> f16
+        "vfmul.vf       v8, v8, fa0\n\t"  // *= s1/s2
+        "vfcvt.x.f.v    v4, v8\n\t"       // f16 -> i16
+        "vadd.vx        v4, v4, %3\n\t"   // += z2
+        "vmax.vx        v4, v4, zero\n\t"
+        "vsetvli        t0, %6, e8, m2\n\t"
+        "vnclipu.vi     v0, v4, 0\n\t"  // u16(i16)->u8
+
+        "vse.v          v0, (%1)\n\t"
+        "add            %1, %1, t0\n\t"
+        "sub            %6, %6, t0\n\t"
+        "bgtz           %6, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(z1),      // %2
+          "=r"(z2),      // %3
+          "=r"(s1),      // %4
+          "=r"(s2),      // %5
+          "=r"(length)   // %6
+        : "0"(input), "1"(output), "2"(z1), "3"(z2), "4"(s1), "5"(s2), "6"(length)
+        : "v0", "v1", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "t0", "t1", "t2", "ft0",
+          "ft1", "fa0");
+#endif
+}
+
+/*********************************************************************
+ * r = (q - z) * s
+ ********************************************************************/
+void shl_rvv_u8_to_f32(const uint8_t *input, float *output, int32_t offset, float *scale,
+                       uint32_t length)
+{
+#ifdef RVV_1_0_0
+    asm volatile(
+        "beqz           %4, 2f\n\t"
+        "flw            fa0, (%3)\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %4, e8, m1\n\t"
+        "slli           t1, t0, 2\n\t"
+        "vle8.v         v0, (%0)\n\t"
+        "add            %0, %0, t0\n\t"
+
+        "vwaddu.vx      v2, v0, zero\n\t"  // u8 -> u16
+        "vsetvli        t0, %4, e16, m2\n\t"
+        "vwsub.vx       v4, v2, %2\n\t"  // i16(u16) - z -> i32
+        "vsetvli        t0, %4, e32, m4\n\t"
+        "vfcvt.f.x.v    v8, v4\n\t"       // i32 -> f32
+        "vfmul.vf       v4, v8, fa0\n\t"  // *= scale
+        "vse32.v        v4, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+
+        "sub            %4, %4, t0\n\t"
+        "bgtz           %4, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(offset),  // %2
+          "=r"(scale),   // %3
+          "=r"(length)   // %4
+        : "0"(input), "1"(output), "2"(offset), "3"(scale), "4"(length)
+        : "v0", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "fa0", "t0", "t1");
+#elif defined RVV_0_7_1
+    asm volatile(
+        "beqz           %4, 2f\n\t"
+        "flw            fa0, (%3)\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %4, e8, m1\n\t"
+        "slli           t1, t0, 2\n\t"
+        "vle.v          v0, (%0)\n\t"
+        "add            %0, %0, t0\n\t"
+
+        "vwaddu.vx      v2, v0, zero\n\t"  // u8 -> u16
+        "vsetvli        t0, %4, e16, m2\n\t"
+        "vwsub.vx       v4, v2, %2\n\t"  // i16(u16) - z -> i32
+        "vsetvli        t0, %4, e32, m4\n\t"
+        "vfcvt.f.x.v    v8, v4\n\t"       // i32 -> f32
+        "vfmul.vf       v4, v8, fa0\n\t"  // *= scale
+        "vse.v          v4, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+
+        "sub            %4, %4, t0\n\t"
+        "bgtz           %4, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(offset),  // %2
+          "=r"(scale),   // %3
+          "=r"(length)   // %4
+        : "0"(input), "1"(output), "2"(offset), "3"(scale), "4"(length)
+        : "v0", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "fa0", "t0", "t1");
+#endif
+}
+
+/*********************************************************************
+ * q = nearbyint(r/s) + z
+ ********************************************************************/
+void shl_rvv_f32_to_u8(const float *input, uint8_t *output, int32_t offset, float *scale,
+                       uint32_t length)
+{
+#ifdef RVV_1_0_0
+    asm volatile(
+        "beqz           %4, 2f\n\t"
+        "flw            fa0, (%3)\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %4, e32, m4\n\t"
+        "slli           t1, t0, 2\n\t"
+        "vle32.v        v0, (%0)\n\t"
+        "add            %0, %0, t1\n\t"
+
+        "vfdiv.vf       v4, v0, fa0\n\t"  // /= scale
+        "vfcvt.x.f.v    v8, v4\n\t"       // f32 -> i32
+        "vadd.vx        v8, v8, %2\n\t"   // += z
+        "vmax.vx        v8, v8, zero\n\t"
+        "vsetvli        t0, %4, e16, m2\n\t"
+        "vnclipu.wi     v2, v8, 0\n\t"  // u32(i32) -> u16
+        "vsetvli        t0, %4, e8, m1\n\t"
+        "vnclipu.wi     v0, v2, 0\n\t"  // u16 -> u8
+
+        "vse8.v         v0, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+        "sub            %4, %4, t0\n\t"
+        "bgtz           %4, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(offset),  // %2
+          "=r"(scale),   // %3
+          "=r"(length)   // %4
+        : "0"(input), "1"(output), "2"(offset), "3"(scale), "4"(length)
+        : "v0", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "fa0", "t0", "t1");
+#elif defined RVV_0_7_1
+    asm volatile(
+        "beqz           %4, 2f\n\t"
+        "flw            fa0, (%3)\n\t"
+
+        "1:\n\t"
+        "vsetvli        t0, %4, e32, m4\n\t"
+        "slli           t1, t0, 2\n\t"
+        "vle.v          v0, (%0)\n\t"
+        "add            %0, %0, t1\n\t"
+
+        "vfdiv.vf       v4, v0, fa0\n\t"  // /= scale
+        "vfcvt.x.f.v    v8, v4\n\t"       // f32 -> i32
+        "vadd.vx        v8, v8, %2\n\t"   // += z
+        "vmax.vx        v8, v8, zero\n\t"
+        "vsetvli        t0, %4, e16, m2\n\t"
+        "vnclipu.vi     v2, v8, 0\n\t"  // u32(i32) -> u16
+        "vsetvli        t0, %4, e8, m1\n\t"
+        "vnclipu.vi     v0, v2, 0\n\t"  // u16 -> u8
+
+        "vse.v          v0, (%1)\n\t"
+        "add            %1, %1, t1\n\t"
+        "sub            %4, %4, t0\n\t"
+        "bgtz           %4, 1b\n\t"
+
+        "2:\n\t"
+
+        : "=r"(input),   // %0
+          "=r"(output),  // %1
+          "=r"(offset),  // %2
+          "=r"(scale),   // %3
+          "=r"(length)   // %4
+        : "0"(input), "1"(output), "2"(offset), "3"(scale), "4"(length)
+        : "v0", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "fa0", "t0", "t1");
+#endif
+}
+
+void shl_rvv_i8_to_f32(const int8_t *input, float *output, int32_t offset, float *scale,
+                       uint32_t length)
+{
+    while (length > 0) {
+        int vl = vsetvl_e8m1(length);
+        vint8m1_t _i8 = vle8_v_i8m1(input, vl);
+        input += vl;
+        vint16m2_t _i16 = vwadd_vx_i16m2(_i8, 0, vl);
+        vint32m4_t _i32 = vwsub_vx_i32m4(_i16, offset, vl);
+        vfloat32m4_t _f32 = vfcvt_f_x_v_f32m4(_i32, vl);
+        _f32 = vfmul_vf_f32m4(_f32, *scale, vl);
+        vse32_v_f32m4(output, _f32, vl);
+        output += vl;
+        length -= vl;
+    }
+}
+
+void shl_rvv_f32_to_i8(const float *input, int8_t *output, int32_t offset, float *scale,
+                       uint32_t length)
+{
+    float _1_s = 1 / *scale;
+    while (length > 0) {
+        int vl = vsetvl_e32m4(length);
+        vfloat32m4_t _in = vle32_v_f32m4(input, vl);
+        input += vl;
+        vfloat32m4_t _f32 = vfmul_vf_f32m4(_in, _1_s, vl);
+        vint32m4_t _i32 = vfcvt_x_f_v_i32m4(_f32, vl);
+        _i32 = vadd_vx_i32m4(_i32, offset, vl);
+        vint16m2_t _i16 = vnclip_wx_i16m2(_i32, 0, vl);
+        vint8m1_t _i8 = vnclip_wx_i8m1(_i16, 0, vl);
+        vse8_v_i8m1(output, _i8, vl);
+        output += vl;
+        length -= vl;
+    }
+}
+
 void shl_rvv_i16_to_f32(const int16_t *input, float *output, int32_t offset, float *scale,
                         uint32_t length)
 {
-    int vl = vsetvl_e32m4(length);
-    vint16m2_t _z = vmv_v_x_i16m2(offset, vl);
-    vfloat32m4_t _s = vfmv_v_f_f32m4(*scale, vl);
     while (length > 0) {
-        vl = vsetvl_e16m2(length);
+        int vl = vsetvl_e16m2(length);
         vint16m2_t _in = vle16_v_i16m2(input, vl);
         input += vl;
-        vint32m4_t _i32 = vwsub_vv_i32m4(_in, _z, vl);
+        vint32m4_t _i32 = vwsub_vx_i32m4(_in, offset, vl);
         vfloat32m4_t _f32 = vfcvt_f_x_v_f32m4(_i32, vl);
-        _f32 = vfmul_vv_f32m4(_f32, _s, vl);
+        _f32 = vfmul_vf_f32m4(_f32, *scale, vl);
         vse32_v_f32m4(output, _f32, vl);
         output += vl;
         length -= vl;
@@ -696,16 +1097,14 @@ void shl_rvv_i16_to_f32(const int16_t *input, float *output, int32_t offset, flo
 void shl_rvv_f32_to_i16(const float *input, int16_t *output, int32_t offset, float *scale,
                         uint32_t length)
 {
-    int vl = vsetvl_e32m4(length);
-    vint32m4_t _z = vmv_v_x_i32m4(offset, vl);
-    vfloat32m4_t _1_s = vfmv_v_f_f32m4(1 / *scale, vl);
+    float _1_s = 1 / *scale;
     while (length > 0) {
-        vl = vsetvl_e16m2(length);
+        int vl = vsetvl_e16m2(length);
         vfloat32m4_t _in = vle32_v_f32m4(input, vl);
         input += vl;
-        vfloat32m4_t _f32 = vfmul_vv_f32m4(_in, _1_s, vl);
+        vfloat32m4_t _f32 = vfmul_vf_f32m4(_in, _1_s, vl);
         vint32m4_t _i32 = vfcvt_x_f_v_i32m4(_f32, vl);
-        _i32 = vadd_vv_i32m4(_i32, _z, vl);
+        _i32 = vadd_vx_i32m4(_i32, offset, vl);
         vint16m2_t _i16 = vnclip_wx_i16m2(_i32, 0, vl);
         vse16_v_i16m2(output, _i16, vl);
         output += vl;
@@ -774,23 +1173,21 @@ void shl_rvv_f32_to_i64(const float *input, int64_t *output, uint32_t length)
 
 void shl_rvv_f16_to_f32(const __fp16 *input, float *output, float *scale, uint32_t length)
 {
-    int vl = vsetvl_e32m4(length);
     if (fabs(*scale - 1) > FLT_EPSILON) {
-        vfloat32m4_t _s = vfmv_v_f_f32m4(*scale, vl);
         while (length > 0) {
-            vl = vsetvl_e16m2(length);
+            int vl = vsetvl_e16m2(length);
             vfloat16m2_t _f16 = vle16_v_f16m2(input, vl);
             input += vl;
             vfloat32m4_t _f32 = vfwcvt_f_f_v_f32m4(_f16, vl);
             // dequantize
-            _f32 = vfmul_vv_f32m4(_f32, _s, vl);
+            _f32 = vfmul_vf_f32m4(_f32, *scale, vl);
             vse32_v_f32m4(output, _f32, vl);
             output += vl;
             length -= vl;
         }
     } else {
         while (length > 0) {
-            vl = vsetvl_e16m2(length);
+            int vl = vsetvl_e16m2(length);
             vfloat16m2_t _f16 = vle16_v_f16m2(input, vl);
             input += vl;
             vfloat32m4_t _f32 = vfwcvt_f_f_v_f32m4(_f16, vl);
@@ -803,15 +1200,14 @@ void shl_rvv_f16_to_f32(const __fp16 *input, float *output, float *scale, uint32
 
 void shl_rvv_f32_to_f16(const float *input, __fp16 *output, float *scale, uint32_t length)
 {
-    int vl = vsetvl_e32m4(length);
     if (fabs(*scale - 1) > FLT_EPSILON) {
-        vfloat32m4_t _1_s = vfmv_v_f_f32m4(1 / *scale, vl);
+        float _1_s = 1 / *scale;
         while (length > 0) {
-            vl = vsetvl_e32m4(length);
+            int vl = vsetvl_e32m4(length);
             vfloat32m4_t _f32 = vle32_v_f32m4(input, vl);
             input += vl;
             // quantize
-            _f32 = vfmul_vv_f32m4(_f32, _1_s, vl);
+            _f32 = vfmul_vf_f32m4(_f32, _1_s, vl);
             vfloat16m2_t _f16 = vfncvt_f_f_w_f16m2(_f32, vl);
             vse16_v_f16m2(output, _f16, vl);
             output += vl;
@@ -819,7 +1215,7 @@ void shl_rvv_f32_to_f16(const float *input, __fp16 *output, float *scale, uint32
         }
     } else {
         while (length > 0) {
-            vl = vsetvl_e32m4(length);
+            int vl = vsetvl_e32m4(length);
             vfloat32m4_t _f32 = vle32_v_f32m4(input, vl);
             input += vl;
             vfloat16m2_t _f16 = vfncvt_f_f_w_f16m2(_f32, vl);
@@ -915,4 +1311,573 @@ int shl_rvv_transpose_get_out_index(int32_t *dim, int32_t *idx, int32_t *permute
         res = res * dim[i] + idx[permute[i]];
     }
     return res;
+}
+
+static int rvv_tensor_dtype_convert(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    if (dst->quant_channel > 1 || src->quant_channel > 1) {
+        shl_debug_error("Unsupported channel quantization!\n");
+        return CSINN_FALSE;
+    }
+
+    if (src->dtype == CSINN_DTYPE_FLOAT32 && dst->dtype == CSINN_DTYPE_UINT8) {
+        memcpy(dst->data, src->data, csinn_tensor_byte_size(dst));
+        return CSINN_TRUE;
+    }
+
+    uint32_t size = csinn_tensor_size(dst);
+    if (dst->dtype == CSINN_DTYPE_FLOAT32) {
+        float scale = src->qinfo->scale;
+        int32_t zero_point = src->qinfo->zero_point;
+        if (src->dtype == CSINN_DTYPE_UINT8) {
+            shl_rvv_u8_to_f32(src->data, dst->data, zero_point, &scale, size);
+        } else if (src->dtype == CSINN_DTYPE_INT8) {
+            shl_rvv_i8_to_f32(src->data, dst->data, zero_point, &scale, size);
+        } else if (src->dtype == CSINN_DTYPE_INT16) {
+            shl_rvv_i16_to_f32(src->data, dst->data, zero_point, &scale, size);
+        } else if (src->dtype == CSINN_DTYPE_INT32) {
+            shl_rvv_i32_to_f32(src->data, dst->data, zero_point, &scale, size);
+        } else if (src->dtype == CSINN_DTYPE_INT64) {
+            shl_rvv_i64_to_f32(src->data, dst->data, size);
+        } else if (src->dtype == CSINN_DTYPE_FLOAT16) {
+            shl_rvv_f16_to_f32(src->data, dst->data, &scale, size);
+        } else {
+            shl_debug_error("Unsupported convert dtype from %d to %d\n", src->dtype, dst->dtype);
+            return CSINN_UNSUPPORT_DTYPE;
+        }
+    } else if (src->dtype == CSINN_DTYPE_FLOAT32) {
+        float scale = dst->qinfo->scale;
+        int32_t zero_point = dst->qinfo->zero_point;
+        if (dst->dtype == CSINN_DTYPE_UINT8) {
+            shl_rvv_f32_to_u8(src->data, dst->data, zero_point, &scale, size);
+        } else if (dst->dtype == CSINN_DTYPE_INT8) {
+            shl_rvv_f32_to_i8(src->data, dst->data, zero_point, &scale, size);
+        } else if (dst->dtype == CSINN_DTYPE_INT16) {
+            shl_rvv_f32_to_i16(src->data, dst->data, zero_point, &scale, size);
+        } else if (dst->dtype == CSINN_DTYPE_INT32) {
+            shl_rvv_f32_to_i32(src->data, dst->data, zero_point, &scale, size);
+        } else if (dst->dtype == CSINN_DTYPE_INT64) {
+            shl_rvv_f32_to_i64(src->data, dst->data, size);
+        } else if (dst->dtype == CSINN_DTYPE_FLOAT16) {
+            shl_rvv_f32_to_f16(src->data, dst->data, &scale, size);
+        } else {
+            shl_debug_error("Unsupported convert dtype from %d to %d\n", src->dtype, dst->dtype);
+            return CSINN_UNSUPPORT_DTYPE;
+        }
+    } else if (src->dtype == CSINN_DTYPE_UINT8 && dst->dtype == CSINN_DTYPE_INT16) {
+        shl_rvv_u8_to_i16(src->data, dst->data, src->qinfo->zero_point, &src->qinfo->scale,
+                          dst->qinfo->zero_point, &dst->qinfo->scale, size);
+    } else if (src->dtype == CSINN_DTYPE_INT16 && dst->dtype == CSINN_DTYPE_UINT8) {
+        shl_rvv_i16_to_u8(src->data, dst->data, src->qinfo->zero_point, &src->qinfo->scale,
+                          dst->qinfo->zero_point, &dst->qinfo->scale, size);
+    } else {
+        shl_debug_error("Unsupported convert dtype from %d to %d\n", src->dtype, dst->dtype);
+        return CSINN_UNSUPPORT_DTYPE;
+    }
+
+    return CSINN_TRUE;
+}
+
+static void rvv_ncx_to_nc1xc0_fp32(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count; i++) {
+        inner_size *= src->dim[i];
+    }
+
+    float *src_data = src->data;
+    float *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(float);
+    int vl = vsetvl_e32m1(packn);
+    int batch_size = in_c * inner_size;
+
+    float *out_ptr = dst_data;
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c + packn - 1 < in_c; c += packn) {
+            float *in_ptr = src_data + b * batch_size + c * inner_size;
+            for (int i = 0; i < inner_size; i++) {
+                vfloat32m1_t _tmp = vlse32_v_f32m1(in_ptr, inner_size * sizeof(float), vl);
+                in_ptr++;
+                vse32_v_f32m1(out_ptr, _tmp, vl);
+                out_ptr += vl;
+            }
+        }
+    }
+}
+
+static void rvv_ncx_to_nc1xc0_fp16(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count; i++) {
+        inner_size *= src->dim[i];
+    }
+
+    __fp16 *src_data = src->data;
+    __fp16 *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    int vl = vsetvl_e16m1(packn);
+    int batch_size = in_c * inner_size;
+
+    __fp16 *out_ptr = dst_data;
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c + packn - 1 < in_c; c += packn) {
+            __fp16 *in_ptr = src_data + b * batch_size + c * inner_size;
+            for (int i = 0; i < inner_size; i++) {
+                vfloat16m1_t _tmp = vlse16_v_f16m1(in_ptr, inner_size * sizeof(__fp16), vl);
+                in_ptr++;
+                vse16_v_f16m1(out_ptr, _tmp, vl);
+                out_ptr += vl;
+            }
+        }
+    }
+}
+
+static void rvv_ncx_to_nc1xc0_int8(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count; i++) {
+        inner_size *= src->dim[i];
+    }
+
+    int8_t *src_data = src->data;
+    int8_t *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int vl = vsetvl_e8m1(packn);
+    int batch_size = in_c * inner_size;
+
+    int8_t *out_ptr = dst_data;
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c + packn - 1 < in_c; c += packn) {
+            int8_t *in_ptr = src_data + b * batch_size + c * inner_size;
+            for (int i = 0; i < inner_size; i++) {
+                vint8m1_t _tmp = vlse8_v_i8m1(in_ptr, inner_size * sizeof(int8_t), vl);
+                in_ptr++;
+                vse8_v_i8m1(out_ptr, _tmp, vl);
+                out_ptr += vl;
+            }
+        }
+    }
+}
+
+static void rvv_nc1xc0_to_ncx_fp32(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c1 = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count - 1; i++) {
+        inner_size *= src->dim[i];
+    }
+    int in_elempack = src->dim[src->dim_count - 1];
+
+    float *src_data = src->data;
+    float *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(float);
+    int vl = vsetvl_e32m1(packn);
+    int batch_size = in_c1 * inner_size * in_elempack;
+
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c < in_c1; c++) {
+            float *out_ptr = dst_data + b * batch_size + c * inner_size * in_elempack;
+            for (int i = 0; i < inner_size; i++) {
+                vfloat32m1_t _tmp = vle32_v_f32m1(src_data, vl);
+                src_data += vl;
+                vsse32_v_f32m1(out_ptr, inner_size * sizeof(float), _tmp, vl);
+                out_ptr++;
+            }
+        }
+    }
+}
+
+static void rvv_nc1xc0_to_ncx_fp16(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c1 = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count - 1; i++) {
+        inner_size *= src->dim[i];
+    }
+    int in_elempack = src->dim[src->dim_count - 1];
+
+    __fp16 *src_data = src->data;
+    __fp16 *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    int vl = vsetvl_e16m1(packn);
+    int batch_size = in_c1 * inner_size * in_elempack;
+
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c < in_c1; c++) {
+            __fp16 *out_ptr = dst_data + b * batch_size + c * inner_size * in_elempack;
+            for (int i = 0; i < inner_size; i++) {
+                vfloat16m1_t _tmp = vle16_v_f16m1(src_data, vl);
+                src_data += vl;
+                vsse16_v_f16m1(out_ptr, inner_size * sizeof(__fp16), _tmp, vl);
+                out_ptr++;
+            }
+        }
+    }
+}
+
+static void rvv_nc1xc0_to_ncx_int8(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int in_c1 = src->dim[1];
+    int inner_size = 1;
+    for (int i = 2; i < src->dim_count - 1; i++) {
+        inner_size *= src->dim[i];
+    }
+    int in_elempack = src->dim[src->dim_count - 1];
+
+    int8_t *src_data = src->data;
+    int8_t *dst_data = dst->data;
+
+    const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+    int vl = vsetvl_e8m1(packn);
+    int batch_size = in_c1 * inner_size * in_elempack;
+
+    for (int b = 0; b < batch; b++) {
+        for (int c = 0; c < in_c1; c++) {
+            int8_t *out_ptr = dst_data + b * batch_size + c * inner_size * in_elempack;
+            for (int i = 0; i < inner_size; i++) {
+                vint8m1_t _tmp = vle8_v_i8m1(src_data, vl);
+                src_data += vl;
+                vsse8_v_i8m1(out_ptr, inner_size * sizeof(int8_t), _tmp, vl);
+                out_ptr++;
+            }
+        }
+    }
+}
+
+static void rvv_ncx_to_nxc_fp32(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int outer_size;
+    int inner_size;
+    if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
+        (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
+        (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            inner_size *= src->dim[i];
+        }
+        outer_size = src->dim[src->dim_count - 1];
+    } else if ((src->layout == CSINN_LAYOUT_NDHWC && dst->layout == CSINN_LAYOUT_NCDHW) ||
+               (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
+               (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            outer_size *= src->dim[i];
+        }
+        inner_size = src->dim[src->dim_count - 1];
+    }
+
+    float *src_data = src->data;
+    float *dst_data = dst->data;
+
+    for (int b = 0; b < batch; b++) {
+        for (int i = 0; i < outer_size; i++) {
+            int size = inner_size;
+            float *d_ptr = dst_data + i;
+            while (size > 0) {
+                int vl = vsetvl_e32m4(size);
+                vfloat32m4_t _in = vle32_v_f32m4(src_data, vl);
+                src_data += vl;
+                vsse32_v_f32m4(d_ptr, outer_size * sizeof(float), _in, vl);
+                d_ptr += vl * outer_size;
+                size -= vl;
+            }
+        }
+        dst_data += inner_size * outer_size;
+    }
+}
+
+static void rvv_ncx_to_nxc_fp16(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int outer_size;
+    int inner_size;
+    if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
+        (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
+        (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            inner_size *= src->dim[i];
+        }
+        outer_size = src->dim[src->dim_count - 1];
+    } else if ((src->layout == CSINN_LAYOUT_NDHWC && dst->layout == CSINN_LAYOUT_NCDHW) ||
+               (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
+               (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            outer_size *= src->dim[i];
+        }
+        inner_size = src->dim[src->dim_count - 1];
+    }
+
+    __fp16 *src_data = src->data;
+    __fp16 *dst_data = dst->data;
+
+    for (int b = 0; b < batch; b++) {
+        for (int i = 0; i < outer_size; i++) {
+            int size = inner_size;
+            __fp16 *d_ptr = dst_data + i;
+            while (size > 0) {
+                int vl = vsetvl_e16m4(size);
+                vfloat16m4_t _in = vle16_v_f16m4(src_data, vl);
+                src_data += vl;
+                vsse16_v_f16m4(d_ptr, outer_size * sizeof(__fp16), _in, vl);
+                d_ptr += vl * outer_size;
+                size -= vl;
+            }
+        }
+        dst_data += inner_size * outer_size;
+    }
+}
+
+static void rvv_ncx_to_nxc_int8(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    int batch = src->dim[0];
+    int outer_size;
+    int inner_size;
+    if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
+        (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
+        (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            inner_size *= src->dim[i];
+        }
+        outer_size = src->dim[src->dim_count - 1];
+    } else if ((src->layout == CSINN_LAYOUT_NDHWC && dst->layout == CSINN_LAYOUT_NCDHW) ||
+               (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
+               (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
+        for (int i = 2; i < src->dim_count - 1; i++) {
+            outer_size *= src->dim[i];
+        }
+        inner_size = src->dim[src->dim_count - 1];
+    }
+
+    int8_t *src_data = src->data;
+    int8_t *dst_data = dst->data;
+
+    for (int b = 0; b < batch; b++) {
+        for (int i = 0; i < outer_size; i++) {
+            int size = inner_size;
+            int8_t *d_ptr = dst_data + i;
+            while (size > 0) {
+                int vl = vsetvl_e8m4(size);
+                vint8m4_t _in = vle8_v_i8m4(src_data, vl);
+                src_data += vl;
+                vsse8_v_i8m4(d_ptr, outer_size * sizeof(int8_t), _in, vl);
+                d_ptr += vl * outer_size;
+                size -= vl;
+            }
+        }
+        dst_data += inner_size * outer_size;
+    }
+}
+
+static int rvv_tensor_layout_convert(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    if ((src->layout == CSINN_LAYOUT_NC1DHWC0 && dst->layout == CSINN_LAYOUT_NCDHW) ||
+        (src->layout == CSINN_LAYOUT_NC1HWC0 && dst->layout == CSINN_LAYOUT_NCHW) ||
+        (src->layout == CSINN_LAYOUT_NC1WC0 && dst->layout == CSINN_LAYOUT_NCW) ||
+        (src->layout == CSINN_LAYOUT_NC1C0 && dst->layout == CSINN_LAYOUT_NC)) {
+        if (src->dtype == CSINN_DTYPE_FLOAT32) {
+            rvv_nc1xc0_to_ncx_fp32(src, dst);
+        } else if (src->dtype == CSINN_DTYPE_FLOAT16) {
+            rvv_nc1xc0_to_ncx_fp16(src, dst);
+        } else if (src->dtype == CSINN_DTYPE_INT8) {
+            rvv_nc1xc0_to_ncx_int8(src, dst);
+        } else {
+            shl_debug_error("Unsupported dtype from %d to %d during ndarray_to_nc1xc0 conversion\n",
+                            src->dtype, dst->dtype);
+            return CSINN_UNSUPPORT_DTYPE;
+        }
+    } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NC1DHWC0) ||
+               (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NC1HWC0) ||
+               (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NC1WC0) ||
+               (src->layout == CSINN_LAYOUT_NC && dst->layout == CSINN_LAYOUT_NC1C0)) {
+        if (dst->dtype == CSINN_DTYPE_FLOAT32) {
+            rvv_ncx_to_nc1xc0_fp32(src, dst);
+        } else if (dst->dtype == CSINN_DTYPE_FLOAT16) {
+            rvv_ncx_to_nc1xc0_fp16(src, dst);
+        } else if (dst->dtype == CSINN_DTYPE_INT8) {
+            rvv_ncx_to_nc1xc0_int8(src, dst);
+        } else {
+            shl_debug_error("Unsupported dtype from %d to %d during nc1xc0_to_ndarray conversion\n",
+                            src->dtype, dst->dtype);
+            return CSINN_UNSUPPORT_DTYPE;
+        }
+    } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
+               (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
+               (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC) ||
+               (src->layout == CSINN_LAYOUT_NDHWC && dst->layout == CSINN_LAYOUT_NCDHW) ||
+               (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
+               (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
+        if (dst->dtype == CSINN_DTYPE_FLOAT32) {
+            rvv_ncx_to_nxc_fp32(src, dst);
+        } else if (dst->dtype == CSINN_DTYPE_FLOAT16) {
+            rvv_ncx_to_nxc_fp16(src, dst);
+        } else if (dst->dtype == CSINN_DTYPE_INT8) {
+            rvv_ncx_to_nxc_int8(src, dst);
+        } else {
+            shl_debug_error("Unsupported dtype from %d to %d during layout conversion\n",
+                            src->dtype, dst->dtype);
+            return CSINN_UNSUPPORT_DTYPE;
+        }
+    } else {
+        shl_debug_error("Unsupported convert layout from %d to %d\n", src->layout, dst->layout);
+        return CSINN_UNSUPPORT_LAYOUT;
+    }
+    return CSINN_TRUE;
+}
+
+static int rvv_tensor_layout_dtype_convert(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    struct csinn_tensor *tmp = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(tmp, src);
+    tmp->data = shl_mem_alloc(csinn_tensor_byte_size(src));
+
+    if ((src->layout == CSINN_LAYOUT_NC1DHWC0 && dst->layout == CSINN_LAYOUT_NCDHW) ||
+        (src->layout == CSINN_LAYOUT_NC1HWC0 && dst->layout == CSINN_LAYOUT_NCHW) ||
+        (src->layout == CSINN_LAYOUT_NC1WC0 && dst->layout == CSINN_LAYOUT_NCW) ||
+        (src->layout == CSINN_LAYOUT_NC1C0 && dst->layout == CSINN_LAYOUT_NC)) {
+        tmp->layout = dst->layout;
+        tmp->dtype = src->dtype;
+        int ret1 = rvv_tensor_layout_convert(src, tmp);
+        int ret2 = rvv_tensor_dtype_convert(tmp, dst);
+        return (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
+    } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NC1DHWC0) ||
+               (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NC1HWC0) ||
+               (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NC1WC0) ||
+               (src->layout == CSINN_LAYOUT_NC && dst->layout == CSINN_LAYOUT_NC1C0)) {
+        tmp->dtype = dst->dtype;
+        tmp->layout = src->layout;
+        int ret1 = rvv_tensor_dtype_convert(src, tmp);
+        int ret2 = rvv_tensor_layout_convert(tmp, dst);
+        return (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
+    } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
+               (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
+               (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC) ||
+               (src->layout == CSINN_LAYOUT_NDHWC && dst->layout == CSINN_LAYOUT_NCDHW) ||
+               (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
+               (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
+        tmp->dtype = dst->dtype;
+        tmp->layout = src->layout;
+        int ret1 = rvv_tensor_dtype_convert(src, tmp);
+        int ret2 = rvv_tensor_layout_convert(tmp, dst);
+    } else {
+        shl_debug_error("Unsupported convert layout from %d to %d, dtype from %d to %d\n",
+                        src->layout, dst->layout, src->dtype, dst->dtype);
+        return CSINN_FALSE;
+    }
+
+    shl_mem_free(tmp->data);
+    csinn_free_tensor(tmp);
+    return CSINN_TRUE;
+}
+
+int shl_rvv_tensor_data_convert(struct csinn_tensor *src, struct csinn_tensor *dst)
+{
+    if (dst->layout == src->layout && dst->dtype == src->dtype) {
+        memcpy(dst->data, src->data, csinn_tensor_byte_size(dst));
+        return CSINN_TRUE;
+    } else if (dst->layout == src->layout && dst->dtype != src->dtype) {
+        return rvv_tensor_dtype_convert(src, dst);
+    } else if (dst->layout != src->layout && dst->dtype == src->dtype) {
+        return rvv_tensor_layout_convert(src, dst);
+    } else {
+        // dst->layout != src->layout && dst->dtype != src->dtype
+        return rvv_tensor_layout_dtype_convert(src, dst);
+    }
+}
+
+struct csinn_tensor *shl_rvv_tensor_transform_f32(struct csinn_tensor *input)
+{
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(ret, input);
+    if (ret->qinfo != NULL) {
+        shl_mem_free(ret->qinfo);
+        ret->qinfo = NULL;
+    }
+    ret->quant_channel = 0;
+    ret->dtype = CSINN_DTYPE_FLOAT32;
+    switch (input->layout) {
+        case CSINN_LAYOUT_NC1DHWC0:
+            ret->layout = CSINN_LAYOUT_NCDHW;
+            ret->dim[1] *= input->dim[5];
+            ret->dim[5] = 0;
+            ret->dim_count = 5;
+            break;
+        case CSINN_LAYOUT_NC1HWC0:
+            ret->layout = CSINN_LAYOUT_NCHW;
+            ret->dim[1] *= input->dim[4];
+            ret->dim[4] = 0;
+            ret->dim_count = 4;
+            break;
+        case CSINN_LAYOUT_NC1WC0:
+            ret->layout = CSINN_LAYOUT_NCW;
+            ret->dim[1] *= input->dim[3];
+            ret->dim[3] = 0;
+            ret->dim_count = 3;
+            break;
+        case CSINN_LAYOUT_NC1C0:
+            ret->layout = CSINN_LAYOUT_NC;
+            ret->dim[1] *= input->dim[2];
+            ret->dim[2] = 0;
+            ret->dim_count = 2;
+            break;
+        default:
+            break;
+    }
+    if (ret->dim_count == 0) {
+        return ret;
+    }
+    int input_size = csinn_tensor_size(input);
+    if (input_size == 0) {
+        return ret;
+    }
+    ret->data = shl_mem_alloc(input_size * sizeof(float));
+    if (shl_rvv_tensor_data_convert(input, ret) == CSINN_TRUE) {
+        return ret;
+    } else {
+        shl_mem_free(ret->data);
+        csinn_free_tensor(ret);
+        return NULL;
+    }
+}
+
+int shl_rvv_siso_callback_base(struct csinn_tensor *input, struct csinn_tensor *output,
+                               void *params, void *cb)
+{
+    int (*callback)() = cb;
+    struct csinn_tensor *finput = shl_rvv_tensor_transform_f32(input);
+    struct csinn_tensor *foutput = shl_rvv_tensor_transform_f32(output);
+    if (finput == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        finput = shl_ref_tensor_transform_f32(input);
+    }
+    if (foutput == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        foutput = shl_ref_tensor_transform_f32(output);
+    }
+    int ret = callback(finput, foutput, params);
+    if (shl_rvv_tensor_data_convert(foutput, output) != CSINN_TRUE) {
+        shl_debug_warning(
+            "shl_rvv_tensor_data_convert is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        csinn_tensor_data_convert(output, foutput);
+    }
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput);
+    return ret;
 }

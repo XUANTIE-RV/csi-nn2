@@ -30,11 +30,12 @@ int shl_gref_depth_to_space_infer_shape(struct csinn_tensor *input, struct csinn
                                         struct csinn_depth_to_space_params *params)
 {
     int h, w, c;
-    if (output->layout == CSINN_LAYOUT_NCHW) {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
+    if (input->layout == CSINN_LAYOUT_NCHW) {
         c = 1;
         h = 2;
         w = 3;
-    } else if (output->layout == CSINN_LAYOUT_NHWC) {
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
         h = 1;
         w = 2;
         c = 3;

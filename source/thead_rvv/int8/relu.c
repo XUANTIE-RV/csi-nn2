@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /************************************************************************************
  * s2(q2 - z2) = relu{ s1(q1 - z1) }

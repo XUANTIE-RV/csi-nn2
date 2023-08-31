@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
+#include "rvv/rvv.h"
 #include "rvv_mathfun_fp16.h"
-#include "shl_thead_rvv.h"
 
 static inline __fp16 fast_exp16(__fp16 y)
 {

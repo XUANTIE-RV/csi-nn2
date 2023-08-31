@@ -18,7 +18,7 @@
 
 #include <time.h>
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int32_t shl_ref_max_internal_s32(int32_t a, int32_t b)
 {

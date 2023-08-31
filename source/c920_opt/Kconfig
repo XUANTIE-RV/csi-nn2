@@ -1,0 +1,52 @@
+
+menu "C920 optimization"
+
+config C920_SOURCE
+	bool "SHL C920 optimization code"
+	default y
+	help
+		Select SHL build C920 optimization
+
+config C920_CONVOLUTION_FP32
+	depends on C920_SOURCE
+	bool "Layer convolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C920_CONVOLUTION_FP16
+	depends on C920_SOURCE
+	bool "Layer convolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution
+
+config C920_GEMM_FP32
+	depends on C920_SOURCE
+	bool "Layer GEMM fp32"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C920_GEMM_FP16
+	depends on C920_SOURCE
+	bool "Layer GEMM fp16"
+	default y
+	help
+		Select SHL build v extension optimized gemm
+
+config C920_MATMUL_FP32
+	depends on C920_SOURCE
+	bool "Layer matmul fp32"
+	default y
+	help
+		Select SHL build v extension optimized matmul
+
+config C920_MATMUL_FP16
+	depends on C920_SOURCE
+	bool "Layer matmul fp16"
+	default y
+	help
+		Select SHL build v extension optimized matmul
+
+endmenu

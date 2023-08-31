@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static float relu6(float x) { return fmin(x > 0 ? x : 0, 6); }
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 static void element_minimum_fp16(__fp16 *input0, __fp16 *input1, __fp16 *output, int size)
 {

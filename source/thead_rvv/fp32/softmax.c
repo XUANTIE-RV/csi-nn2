@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
+#include "rvv/rvv.h"
 #include "rvv_mathfun_fp32.h"
-#include "shl_thead_rvv.h"
 
 static inline float fast_exp32(float y)
 {

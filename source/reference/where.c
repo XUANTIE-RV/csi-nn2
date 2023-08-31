@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_where_f32(struct csinn_tensor *condition, struct csinn_tensor *x,
                       struct csinn_tensor *y, struct csinn_tensor *output,

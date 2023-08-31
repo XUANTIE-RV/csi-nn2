@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 #ifndef DWCONV5X5S1
 #define DWCONV5X5S1 shl_c906_dwconv5x5s1

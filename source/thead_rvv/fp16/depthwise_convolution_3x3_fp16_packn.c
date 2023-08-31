@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256 ... flexible vlen
@@ -36,7 +36,7 @@ int shl_rvv_dwconv3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tens
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
@@ -48,6 +48,44 @@ int shl_rvv_dwconv3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tens
 
     const int packn = csrr_vlenb() / sizeof(__fp16);
     const int vl = vsetvl_e16m1(packn);
+
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        int8_t *kernel_int8 = (int8_t *)kernel->data;
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            const int maxk = kernel->dim[2] * kernel->dim[3];
+            for (int oc = 0; oc + packn - 1 < in_c; oc += packn) {
+                int8_t *ksrc = kernel_int8 + oc * maxk;
+                __fp16 *kdst = kernel_fp16 + oc * maxk;
+                vint32m4_t _z32 = vlse32_v_i32m4(&(kernel->qinfo[oc].zero_point),
+                                                 sizeof(struct csinn_quant_info), vl);
+                vint16m2_t _z16 = vnclip_wx_i16m2(_z32, 0, vl);
+                vint8m1_t _z = vnclip_wx_i8m1(_z16, 0, vl);
+                vfloat32m4_t _s32 =
+                    vlse32_v_f32m4(&(kernel->qinfo[oc].scale), sizeof(struct csinn_quant_info), vl);
+                vfloat16m2_t _s = vfncvt_f_f_w_f16m2(_s32, vl);
+                for (int k = 0; k < maxk; k++) {
+                    vint8m1_t _i8 = vle8_v_i8m1(ksrc, vl);
+                    vfloat16m2_t _f16 = shl_rvv_vdeq_vv_f16m2(_i8, _z, _s, vl);
+                    vse16_v_f16m2(kdst, _f16, vl);
+                    ksrc += vl;
+                    kdst += vl;
+                }
+            }
+        } else {
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
@@ -534,6 +572,10 @@ int shl_rvv_dwconv3x3s1_packn_fp16(struct csinn_tensor *input, struct csinn_tens
         }
     }
     shl_mem_free(input_padd_buf);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;
@@ -554,7 +596,7 @@ int shl_rvv_dwconv3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tens
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
@@ -566,6 +608,44 @@ int shl_rvv_dwconv3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tens
 
     const int packn = csrr_vlenb() / sizeof(__fp16);
     const int vl = vsetvl_e16m1(packn);
+
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        int8_t *kernel_int8 = (int8_t *)kernel->data;
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            const int maxk = kernel->dim[2] * kernel->dim[3];
+            for (int oc = 0; oc + packn - 1 < in_c; oc += packn) {
+                int8_t *ksrc = kernel_int8 + oc * maxk;
+                __fp16 *kdst = kernel_fp16 + oc * maxk;
+                vint32m4_t _z32 = vlse32_v_i32m4(&(kernel->qinfo[oc].zero_point),
+                                                 sizeof(struct csinn_quant_info), vl);
+                vint16m2_t _z16 = vnclip_wx_i16m2(_z32, 0, vl);
+                vint8m1_t _z = vnclip_wx_i8m1(_z16, 0, vl);
+                vfloat32m4_t _s32 =
+                    vlse32_v_f32m4(&(kernel->qinfo[oc].scale), sizeof(struct csinn_quant_info), vl);
+                vfloat16m2_t _s = vfncvt_f_f_w_f16m2(_s32, vl);
+                for (int k = 0; k < maxk; k++) {
+                    vint8m1_t _i8 = vle8_v_i8m1(ksrc, vl);
+                    vfloat16m2_t _f16 = shl_rvv_vdeq_vv_f16m2(_i8, _z, _s, vl);
+                    vse16_v_f16m2(kdst, _f16, vl);
+                    ksrc += vl;
+                    kdst += vl;
+                }
+            }
+        } else {
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
@@ -784,6 +864,10 @@ int shl_rvv_dwconv3x3s2_packn_fp16(struct csinn_tensor *input, struct csinn_tens
         }
     }
     shl_mem_free(input_padd_buf);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;
@@ -810,5 +894,29 @@ void shl_rvv_dwconv_reorder_kernel_packn_fp16(struct csinn_tensor *kernel,
         }
     }
     memcpy(kernel_data, kernel_trans, out_ch * maxk * sizeof(__fp16));
+    shl_mem_free(kernel_trans);
+}
+
+void shl_rvv_dwconv_reorder_kernel_packn_fp16_w_int8(struct csinn_tensor *kernel,
+                                                     struct csinn_conv2d_params *params)
+{
+    int8_t *kernel_data = (int8_t *)kernel->data;
+    const int out_ch = kernel->dim[0];
+    const int maxk = kernel->dim[2] * kernel->dim[3];
+    int8_t *kernel_trans = (int8_t *)shl_mem_alloc(out_ch * maxk * sizeof(int8_t));
+
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    const int vl = vsetvl_e16m1(packn);
+
+    for (int oc = 0; oc + packn - 1 < out_ch; oc += packn) {
+        int8_t *ksrc = kernel_data + oc * maxk;
+        int8_t *kdst = kernel_trans + oc * maxk;
+        for (int ic = 0; ic < maxk; ic++) {
+            vint8m1_t _tmp = vlse8_v_i8m1(ksrc + ic, maxk * sizeof(int8_t), vl);
+            vse8_v_i8m1(kdst, _tmp, vl);
+            kdst += vl;
+        }
+    }
+    memcpy(kernel_data, kernel_trans, out_ch * maxk * sizeof(int8_t));
     shl_mem_free(kernel_trans);
 }

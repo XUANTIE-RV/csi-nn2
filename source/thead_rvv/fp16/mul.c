@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static void elementwise_mul_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                  struct csinn_tensor *output)
@@ -58,6 +58,45 @@ static void broadcast_single_1_mul_fp16(struct csinn_tensor *input0, struct csin
     }
 }
 
+static inline void mul_vv_f16m4(__fp16 *in0, __fp16 *in1, __fp16 *out, int32_t size)
+{
+    while (size > 0) {
+        int vl = vsetvl_e16m4(size);
+        vfloat16m4_t _a = vle16_v_f16m4(in0, vl);
+        vfloat16m4_t _b = vle16_v_f16m4(in1, vl);
+        vfloat16m4_t _c = vfmul_vv_f16m4(_a, _b, vl);
+        vse16_v_f16m4(out, _c, vl);
+        in0 += vl;
+        in1 += vl;
+        out += vl;
+        size -= vl;
+    }
+}
+
+static inline void mul_vf_f16m4(__fp16 *in0, __fp16 *in1, __fp16 *out, int32_t size)
+{
+    while (size > 0) {
+        int vl = vsetvl_e16m4(size);
+        vfloat16m4_t _a = vle16_v_f16m4(in0, vl);
+        vfloat16m4_t _c = vfmul_vf_f16m4(_a, in1[0], vl);
+        vse16_v_f16m4(out, _c, vl);
+        in0 += vl;
+        out += vl;
+        size -= vl;
+    }
+}
+
+static inline void mul_fv_f16m4(__fp16 *in0, __fp16 *in1, __fp16 *out, int32_t size)
+{
+    mul_vf_f16m4(in1, in0, out, size);
+}
+
+void *mul_cb_fp16[] = {
+    [CSINN_BROADCAST_VV] = mul_vv_f16m4,
+    [CSINN_BROADCAST_VS] = mul_vf_f16m4,
+    [CSINN_BROADCAST_SV] = mul_fv_f16m4,
+};
+
 int shl_rvv_mul_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
                      struct csinn_tensor *output, struct csinn_diso_params *params)
 {
@@ -87,8 +126,7 @@ int shl_rvv_mul_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
         // requantize
         shl_rvv_sidcso_op_requantize_fp16(input0, output, input1);
     } else {
-        /* TODO: recursive opt */
-        return shl_ref_mul_quant(input0, input1, output, params);
+        return shl_rvv_binary_op_broadcast_fp16(input0, input1, output, mul_cb_fp16);
     }
     return CSINN_TRUE;
 }

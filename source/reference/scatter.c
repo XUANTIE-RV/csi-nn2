@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_scatter_nd_f32(struct csinn_tensor *input, struct csinn_tensor *indices,
                            struct csinn_tensor *updates, struct csinn_tensor *output,

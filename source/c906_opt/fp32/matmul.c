@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*************************************************************
   Matmul fp32 performance on C906@1GHz
@@ -46,19 +46,21 @@ int shl_rvv_matmul_init_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat
                              struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
-    if (mat0->dtype == CSINN_DTYPE_FLOAT32) {
-        if (mat1->dtype == CSINN_DTYPE_FLOAT32) {
-            if (mat1->is_const) {
-                shl_rvv_matmul_reorder_weight_fp32(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+    if (!params->trans_a && !params->trans_b) {
+        if (mat0->dtype == CSINN_DTYPE_FLOAT32) {
+            if (mat1->dtype == CSINN_DTYPE_FLOAT32) {
+                if (mat1->is_const) {
+                    shl_rvv_matmul_reorder_weight_fp32(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+                }
+                cb->exec = shl_c906_matmul_fp32;
             }
-            cb->exec = shl_c906_matmul_fp32;
-        } else {
-            shl_debug_error("mat1 unsupported dtype: %d\n", mat1->dtype);
-            return CSINN_FALSE;
         }
-    } else {
-        shl_debug_error("mat0 unsupported dtype: %d\n", mat0->dtype);
-        return CSINN_FALSE;
+    }
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "matmul is not optimized to achieve under this condition, call reference func "
+            "replaced.\n");
+        cb->exec = shl_ref_matmul_quant;
     }
     return CSINN_TRUE;
 }

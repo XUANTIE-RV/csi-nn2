@@ -28,6 +28,7 @@ int shl_gref_one_hot(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_one_hot_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                  struct csinn_one_hot_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count + 1;
     if (params->axis == -1) {
         for (int i = 0; i < input->dim_count; i++) {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c920.h"
+#include "c920/c920.h"
 
 /*************************************************************
  * src: [M_BLOCK, K_BLOCK]
@@ -109,7 +109,7 @@ static inline void reorder_kernel_8xk_fp32(float *src, float *dst, int M_BLOCK, 
 /*************************************************************
  * src: [m, k]
  * dst: [m/m_blk, k/k_blk, m_blk/8, 8, k_blk]
- * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 8
+ * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
@@ -120,12 +120,10 @@ void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k
     int m_block = M_BLK;
     int m_idx = 0;
     while (m_idx < m) {
-        while (!(m_idx + m_block - 1 < m)) {
-            m_block /= 2;
-        }
-        if (m_block < MIN_M_BLK) {
+        if (m - m_idx < m_block) {
             m_block = m - m_idx;
         }
+
         int k_block = K_BLK;
         int k_idx = 0;
         while (k_idx < k) {
@@ -232,7 +230,7 @@ static inline void reorder_kernel_8xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOCK
 /*************************************************************
  * src: [m, k]
  * dst: [m/m_blk, k/k_blk, m_blk/8, 8, k_blk]
- * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 8
+ * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_c920_reorder_kernel_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
@@ -243,12 +241,10 @@ void shl_c920_reorder_kernel_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int
     int m_block = M_BLK;
     int m_idx = 0;
     while (m_idx < m) {
-        while (!(m_idx + m_block - 1 < m)) {
-            m_block /= 2;
-        }
-        if (m_block < MIN_M_BLK) {
+        if (m - m_idx < m_block) {
             m_block = m - m_idx;
         }
+
         int k_block = K_BLK;
         int k_idx = 0;
         while (k_idx < k) {

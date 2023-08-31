@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*************************************************************
   Matmul fp16_w_int8 performance on C906@1GHz
@@ -208,15 +208,17 @@ static int matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
     /* compute the outer size */
     for (int i = 0; i < dims_count - 2; i++) {
         batches_a *= mat0->dim[i];
+    }
+    for (int i = 0; i < mat1->dim_count - 2; i++) {
         batches_b *= mat1->dim[i];
     }
 
     const int dim_m = mat0->dim[dims_count - (params->trans_a ? 1 : 2)];
     const int dim_k = mat0->dim[dims_count - (params->trans_a ? 2 : 1)];
-    const int dim_n = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
+    const int dim_n = mat1->dim[mat1->dim_count - (params->trans_b ? 2 : 1)];
 
-    if (batches_a == batches_b) {
-        if (!params->trans_a && !params->trans_b) {
+    if (!params->trans_a && !params->trans_b) {
+        if (batches_a == batches_b) {
             __fp16 *in0 = (__fp16 *)shl_mem_alloc(dim_m * dim_k * sizeof(__fp16));
             __fp16 *in1 = (__fp16 *)shl_mem_alloc(dim_k * dim_n * sizeof(__fp16));
 
@@ -234,11 +236,7 @@ static int matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
             shl_mem_free(in1);
             // requantize
             shl_rvv_sidcso_op_requantize_fp16(mat0, output, mat1);
-        } else {
-            shl_ref_matmul_quant(mat0, mat1, output, params);
-        }
-    } else if (batches_a > 1 && batches_b == 1) {
-        if (!params->trans_a && !params->trans_b) {
+        } else if (batches_a > 1 && batches_b == 1) {
             __fp16 *in0 = (__fp16 *)shl_mem_alloc(dim_m * dim_k * sizeof(__fp16));
             __fp16 *in1 = (__fp16 *)shl_mem_alloc(dim_k * dim_n * sizeof(__fp16));
 
@@ -260,8 +258,7 @@ static int matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
             return CSINN_FALSE;
         }
     } else {
-        shl_debug_error("matmul unsupport this broadcast\n");
-        return CSINN_FALSE;
+        return shl_ref_matmul_quant(mat0, mat1, output, params);
     }
 
     return CSINN_TRUE;
@@ -387,18 +384,20 @@ static int matmul_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *ma
     /* compute the outer size */
     for (int i = 0; i < dims_count - 2; i++) {
         batches_a *= mat0->dim[i];
+    }
+    for (int i = 0; i < mat1->dim_count - 2; i++) {
         batches_b *= mat1->dim[i];
     }
 
     const int dim_m = mat0->dim[dims_count - (params->trans_a ? 1 : 2)];
     const int dim_k = mat0->dim[dims_count - (params->trans_a ? 2 : 1)];
-    const int dim_n = mat1->dim[dims_count - (params->trans_b ? 2 : 1)];
+    const int dim_n = mat1->dim[mat1->dim_count - (params->trans_b ? 2 : 1)];
 
     int32_t zp = mat1->qinfo->zero_point;
     float scale = mat1->qinfo->scale;
 
-    if (batches_a == batches_b) {
-        if (!params->trans_a && !params->trans_b) {
+    if (!params->trans_a && !params->trans_b) {
+        if (batches_a == batches_b) {
             for (int b = 0; b < batches_a; b++) {
                 shl_c906_matmul_4x32_fp16_w_int8(output_data, mat0_data, mat1_data, dim_m, dim_k,
                                                  dim_n, zp, scale);
@@ -407,11 +406,7 @@ static int matmul_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *ma
                 mat1_data += dim_n * dim_k;
                 output_data += dim_m * dim_n;
             }
-        } else {
-            shl_ref_matmul_quant(mat0, mat1, output, params);
-        }
-    } else if (batches_a > 1 && batches_b == 1) {
-        if (!params->trans_a && !params->trans_b) {
+        } else if (batches_a > 1 && batches_b == 1) {
             for (int b = 0; b < batches_a; b++) {
                 /* TODO: mat1_data dequantize once */
                 shl_c906_matmul_4x32_fp16_w_int8(output_data, mat0_data, mat1_data, dim_m, dim_k,
@@ -424,8 +419,7 @@ static int matmul_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *ma
             return CSINN_FALSE;
         }
     } else {
-        shl_debug_error("matmul unsupport this broadcast\n");
-        return CSINN_FALSE;
+        return shl_ref_matmul_quant(mat0, mat1, output, params);
     }
 
     return CSINN_TRUE;
@@ -499,23 +493,25 @@ int shl_c906_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *ma
 {
     struct csinn_callback *cb = params->base.cb;
     const int dim_k = mat1->dim[mat1->dim_count - (params->trans_b ? 1 : 2)];
-    if (mat0->dtype == CSINN_DTYPE_FLOAT16) {
-        if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
-            shl_c906_matmul_reorder_weight_z32_int8(mat1);
-        } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
-            if (dim_k > MATMUL_K_BLK) {
-                if (mat1->is_const) {
-                    shl_rvv_matmul_reorder_weight_fp16(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+    if (!params->trans_a && !params->trans_b) {
+        if (mat0->dtype == CSINN_DTYPE_FLOAT16) {
+            if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
+                shl_c906_matmul_reorder_weight_z32_int8(mat1);
+            } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
+                if (dim_k > MATMUL_K_BLK) {
+                    if (mat1->is_const) {
+                        shl_rvv_matmul_reorder_weight_fp16(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+                    }
                 }
             }
-        } else {
-            shl_debug_error("mat1 unsupported dtype: %d\n", mat1->dtype);
-            return CSINN_FALSE;
+            cb->exec = shl_c906_matmul_fp16;
         }
-        cb->exec = shl_c906_matmul_fp16;
-    } else {
-        shl_debug_error("mat0 unsupport dtype: %d\n", mat0->dtype);
-        return CSINN_FALSE;
+    }
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "matmul is not optimized to achieve under this condition, call reference func "
+            "replaced.\n");
+        cb->exec = shl_ref_matmul_quant;
     }
     return CSINN_TRUE;
 }

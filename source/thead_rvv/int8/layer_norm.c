@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
     note: support flexible vlen
 *************************************************************/
 
 // FIXME: precision loss
-int shl_rvv_layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
-                            struct csinn_layer_norm_params *params)
+int layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                    struct csinn_layer_norm_params *params)
 {
     if (params->center == false || params->scale == false) {
         shl_debug_error("Layer norm only support center & scale == true\n");
@@ -162,4 +162,54 @@ int shl_rvv_layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *out
     shl_mem_free(qbeta);
 
     return CSINN_TRUE;
+}
+
+int shl_rvv_layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *gamma, struct csinn_tensor *beta,
+                            struct csinn_layer_norm_params *params)
+{
+    struct csinn_tensor *float_input = shl_rvv_tensor_transform_f32(input);
+    struct csinn_tensor *float_output = shl_rvv_tensor_transform_f32(output);
+    struct csinn_tensor *float_gamma = shl_rvv_tensor_transform_f32(gamma);
+    struct csinn_tensor *float_beta = shl_rvv_tensor_transform_f32(beta);
+    if (float_input == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        float_input = shl_ref_tensor_transform_f32(input);
+    }
+    if (float_output == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        float_output = shl_ref_tensor_transform_f32(output);
+    }
+    if (float_gamma == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        float_gamma = shl_ref_tensor_transform_f32(gamma);
+    }
+    if (float_beta == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        float_beta = shl_ref_tensor_transform_f32(beta);
+    }
+
+    int ret = shl_rvv_layer_norm_fp32(float_input, float_output, float_gamma, float_beta, params);
+
+    if (shl_rvv_tensor_data_convert(float_output, output) != CSINN_TRUE) {
+        shl_debug_warning(
+            "shl_rvv_tensor_data_convert is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        csinn_tensor_data_convert(output, float_output);
+    }
+
+    shl_ref_tensor_transform_free_f32(float_input);
+    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_gamma);
+    shl_ref_tensor_transform_free_f32(float_beta);
+
+    return ret;
 }

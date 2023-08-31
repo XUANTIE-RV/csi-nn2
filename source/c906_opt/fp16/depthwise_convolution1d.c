@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 int shl_c906_dwconv8s1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -27,15 +27,31 @@ int shl_c906_dwconv8s1_fp16(struct csinn_tensor *input, struct csinn_tensor *out
     __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
+    int32_t batch = input->dim[0];
+    int32_t in_c = input->dim[1];  // group = in_channel
+    int32_t in_w = input->dim[2];
+
+    int32_t out_c = output->dim[1];
+    int32_t out_w = output->dim[2];
+
     __fp16 *kernel_fp16 = NULL;
     if (kernel->dtype == CSINN_DTYPE_INT8) {
-        // TODO: support per-channel quantization
-        int32_t zp = kernel->qinfo->zero_point;
-        float scale = kernel->qinfo->scale;
-        int kernel_size = csinn_tensor_size(kernel);
+        int size = csinn_tensor_size(kernel);
         int8_t *kernel_int8 = (int8_t *)kernel->data;
-        kernel_fp16 = (__fp16 *)shl_mem_alloc(kernel_size * sizeof(__fp16));
-        shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, kernel_size, zp, scale);
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            const int maxk = kernel->dim[2];
+            for (int c = 0; c < in_c; c++) {
+                int32_t zp = kernel->qinfo[c].zero_point;
+                float scale = kernel->qinfo[c].scale;
+                shl_rvv_dequantize_i8_to_f16(kernel_int8 + c * maxk, kernel_fp16 + c * maxk, maxk,
+                                             zp, scale);
+            }
+        } else {
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
         kernel_data = kernel_fp16;
     } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
         kernel_data = (__fp16 *)kernel->data;
@@ -43,13 +59,6 @@ int shl_c906_dwconv8s1_fp16(struct csinn_tensor *input, struct csinn_tensor *out
         shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
         return CSINN_FALSE;
     }
-
-    int32_t batch = input->dim[0];
-    int32_t in_c = input->dim[1];  // group = in_channel
-    int32_t in_w = input->dim[2];
-
-    int32_t out_c = output->dim[1];
-    int32_t out_w = output->dim[2];
 
     if (params->pad_left == 0 && params->pad_right == 0) {
         for (int c = 0; c < in_c; c++) {
@@ -97,6 +106,7 @@ int shl_c906_dwconv8s1_fp16(struct csinn_tensor *input, struct csinn_tensor *out
                 vfloat16m1_t _acc0_tmp =
                     vfredusum_vs_f16m1_f16m1(vundefined_f16m1(), _acc0, _tmp, vl);
                 __fp16 res0 = vfmv_f_s_f16m1_f16(_acc0_tmp);
+                img0 += 1;
                 *out0++ = res0;
             }
         }

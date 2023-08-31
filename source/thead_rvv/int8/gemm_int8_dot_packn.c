@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #ifdef SHL_USE_DOT_INT8
 /*************************************************************
  * note: VLEN = 128/256 ... flexible vlen
@@ -40,9 +40,10 @@ static vint8mf2_t requantize_m2_s(vint32m2_t _src, vint32m2_t _multiplier, vint3
  * sa - kernel:  [m/packn, k, packn]
  * sb - input:   [n/12, k, 12]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                           int32_t *bias, int m, int k, int n, int ldc,
-                                           int32_t out_zp, int32_t *mult, int32_t *shift)
+                                           int32_t *bias, int m, int k, int n, int32_t out_zp,
+                                           int32_t *mult, int32_t *shift)
 {
     int8_t *kernel_data = (int8_t *)sa;
     int8_t *input_data = (int8_t *)sb;
@@ -422,9 +423,10 @@ void shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(int8_t *dst, const int8_t *sa, const 
  * sa - kernel:  [m/packn, k, packn]
  * sb - input:   [n/8, k, 8]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_8xpackn_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                          int32_t *bias, int m, int k, int n, int ldc,
-                                          int32_t out_zp, int32_t *mult, int32_t *shift)
+                                          int32_t *bias, int m, int k, int n, int32_t out_zp,
+                                          int32_t *mult, int32_t *shift)
 {
     int8_t *kernel_data = (int8_t *)sa;
     int8_t *input_data = (int8_t *)sb;

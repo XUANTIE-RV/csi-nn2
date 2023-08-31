@@ -29,7 +29,9 @@
 #if (!defined SHL_BUILD_RTOS)
 #include <omp.h>
 #endif
-#include "csinn_data_structure.h"
+#include "csinn/csinn_data_structure.h"
+#include "shl_debug.h"
+#include "shl_memory.h"
 #ifdef SHL_MCONF_CONFIG
 #include "mconf_config.h"
 #endif
@@ -105,7 +107,7 @@ struct shl_binary_model_section_info {
     struct shl_bm_sections sections[127];
 };
 
-char *shl_bm_header_str();
+void shl_bm_header_str(char *buffer);
 
 void shl_dump_bm_header(FILE *f);
 void shl_dump_bm_section_info(FILE *f, struct shl_binary_model_section_info *info);
@@ -113,8 +115,11 @@ int shl_dump_bm_graph_info_section(FILE *f, struct csinn_session *sess);
 void shl_bm_session_load(struct csinn_session *dest, struct csinn_session *src);
 int shl_dump_bm_graph_struct_section(FILE *f, struct shl_ref_graph *graph);
 void shl_bm_graph_struct_load(struct shl_ref_graph *dest, struct shl_ref_graph *src);
-
 bool shl_is_first_layer_input(struct csinn_tensor *input, struct csinn_session *sess);
+
+/** Export model */
+void shl_export_model_print(struct csinn_session *sess);
+int shl_export_model_json(struct csinn_session *sess, char *path);
 
 /** YOLOv5 detect box */
 struct shl_yolov5_box {

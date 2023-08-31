@@ -28,6 +28,7 @@ int shl_gref_slice(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_slice_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_slice_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
     for (int i = 0; i < output->dim_count; i++) {
         output->dim[i] = params->end[i] - params->begin[i];

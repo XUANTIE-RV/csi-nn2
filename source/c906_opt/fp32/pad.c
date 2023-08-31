@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 // constrain: only support pad on h and w dim
 // pad_mode: constant

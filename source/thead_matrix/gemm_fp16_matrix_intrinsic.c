@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
-
+#include "rvm/rvm.h"
+#if 0
 static void gemm_fp16_nhwc_matrix_2rowxn(__fp16 *output, const __fp16 *kernel, const __fp16 *input,
                                          const __fp16 *bias, int mrows, int K, int N)
 {
@@ -274,3 +274,4 @@ void shl_rvm_nhwc_gemm_fp16_intrinsic(__fp16 *dst, const __fp16 *sa, const __fp1
         bias_shadow = NULL;
     }
 }
+#endif

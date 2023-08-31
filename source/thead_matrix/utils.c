@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 int csrr_xrlenb()
 {

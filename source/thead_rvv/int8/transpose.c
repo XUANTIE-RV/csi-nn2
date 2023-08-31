@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static void transpose_021_int8(int8_t *src, int8_t *dst, int batch, int inner_size, int outer_size)
 {
@@ -89,9 +89,10 @@ static int transpose_tail_coincide_int8(struct csinn_tensor *input, struct csinn
 int shl_rvv_transpose_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_transpose_params *params)
 {
-    if (input->layout >= CSINN_LAYOUT_NC1WC0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
-        return shl_ref_transpose_quant(input, output, params);
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
     }
+
     if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 1 &&
         params->permute[2] == 2 && params->permute[3] == 3) {
         int8_t *input_data = (int8_t *)input->data;

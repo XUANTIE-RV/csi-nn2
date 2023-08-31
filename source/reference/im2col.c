@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 // input_data layout:NCHW
 // https://github.com/pjreddie/darknet/blob/master/src/im2col.c

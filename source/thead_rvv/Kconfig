@@ -124,28 +124,42 @@ config THEAD_RVV_DEPTHWISE_CONVOLUTION_FP32
 	bool "Layer depthwise convolution fp32"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
 
 config THEAD_RVV_DEPTHWISE_CONVOLUTION_FP16
 	depends on THEAD_RVV_SOURCE
 	bool "Layer depthwise convolution fp16"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
 
 config THEAD_RVV_DEPTHWISE_CONVOLUTION_INT8
 	depends on THEAD_RVV_SOURCE
 	bool "Layer depthwise convolution int8"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
 
 config THEAD_RVV_DEPTHWISE_CONVOLUTION_INT4
 	depends on THEAD_RVV_SOURCE
 	bool "Layer depthwise convolution int4"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
+
+config THEAD_RVV_CONVOLUTION1D_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer convolution1d fp32"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
+
+config THEAD_RVV_CONVOLUTION1D_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer convolution1d fp16"
+	default y
+	help
+		Select SHL build v extension optimized convolution1d
 
 config THEAD_RVV_CONVOLUTION1D_INT8
 	depends on THEAD_RVV_SOURCE
@@ -159,7 +173,56 @@ config THEAD_RVV_DEPTHWISE_CONVOLUTION1D_INT8
 	bool "Layer depthwise convolution1d int8"
 	default y
 	help
-		Select SHL build v extension optimized convolution1d
+		Select SHL build v extension optimized depthwise_convolution1d
+
+config THEAD_RVV_DECONVOLUTION_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer deconvolution fp32"
+	default y
+	help
+		Select SHL build v extension optimized deconvolution
+
+config THEAD_RVV_DECONVOLUTION_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer deconvolution fp16"
+	default y
+	help
+		Select SHL build v extension optimized deconvolution
+
+config THEAD_RVV_DIV_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer div fp32"
+	default y
+	help
+		Select SHL build v extension optimized div
+
+config THEAD_RVV_DIV_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer div fp16"
+	default y
+	help
+		Select SHL build v extension optimized div
+
+config THEAD_RVV_DIV_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer div int8"
+	default y
+	help
+		Select SHL build v extension optimized div
+
+config CONFIG_THEAD_RVV_ERF_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer erf fp32"
+	default y
+	help
+		Select SHL build v extension optimized erf
+
+config CONFIG_THEAD_RVV_ERF_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer erf fp16"
+	default y
+	help
+		Select SHL build v extension optimized erf
 
 config THEAD_RVV_FULLYCONNECTED_FP32
 	depends on THEAD_RVV_SOURCE
@@ -189,33 +252,54 @@ config THEAD_RVV_FULLYCONNECTED_INT4
 	help
 		Select SHL build v extension optimized fullyconnected
 
+config THEAD_RVV_GATHER_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer gather fp32"
+	default y
+	help
+		Select SHL build v extension optimized gather
+
+config THEAD_RVV_GATHER_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer gather fp16"
+	default y
+	help
+		Select SHL build v extension optimized gather
+
+config THEAD_RVV_GATHER_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer gather int8"
+	default y
+	help
+		Select SHL build v extension optimized gather
+
 config THEAD_RVV_GEMM_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer GEMM fp32"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config THEAD_RVV_GEMM_FP16
 	depends on THEAD_RVV_SOURCE
 	bool "Layer GEMM fp16"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config THEAD_RVV_GEMM_INT8
 	depends on THEAD_RVV_SOURCE
 	bool "Layer GEMM int8"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config THEAD_RVV_GEMM_INT4
 	depends on THEAD_RVV_SOURCE
 	bool "Layer GEMM int4"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config THEAD_RVV_GLOBAL_AVERAGEPOOL_FP32
 	depends on THEAD_RVV_SOURCE
@@ -406,6 +490,13 @@ config THEAD_RVV_PRELU_INT8
 	help
 		Select SHL build v extension optimized prelu
 
+config THEAD_RVV_REDUCE_SUM_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer reduce_sum int8"
+	default y
+	help
+		Select SHL build v extension optimized reduce_sum
+
 config THEAD_RVV_RELU_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer relu fp32"
@@ -476,6 +567,27 @@ config THEAD_RVV_SIGMOID_FP16
 	help
 		Select SHL build v extension optimized sigmoid
 
+config THEAD_RVV_SUB_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer sub fp32"
+	default y
+	help
+		Select SHL build v extension optimized sub
+
+config THEAD_RVV_SUB_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer sub fp16"
+	default y
+	help
+		Select SHL build v extension optimized sub
+
+config THEAD_RVV_SUB_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer sub int8"
+	default y
+	help
+		Select SHL build v extension optimized sub
+
 config THEAD_RVV_SOFTMAX_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer softmax fp32"
@@ -490,12 +602,12 @@ config THEAD_RVV_SOFTMAX_FP16
 	help
 		Select SHL build v extension optimized softmax
 
-config THEAD_RVV_REDUCE_SUM_INT8
+config THEAD_RVV_STRIDED_SLICE_FP16
 	depends on THEAD_RVV_SOURCE
-	bool "Layer reduce_sum int8"
+	bool "Layer strided_slice fp16"
 	default y
 	help
-		Select SHL build v extension optimized reduce_sum
+		Select SHL build v extension optimized strided_slice
 
 config THEAD_RVV_TRANSPOSE_FP32
 	depends on THEAD_RVV_SOURCE
@@ -517,26 +629,5 @@ config THEAD_RVV_TRANSPOSE_INT8
 	default y
 	help
 		Select SHL build v extension optimized transpose
-
-config THEAD_RVV_GATHER_FP16
-	depends on THEAD_RVV_SOURCE
-	bool "Layer gather fp16"
-	default y
-	help
-		Select SHL build v extension optimized gather
-
-config THEAD_RVV_GATHER_INT8
-	depends on THEAD_RVV_SOURCE
-	bool "Layer gather int8"
-	default y
-	help
-		Select SHL build v extension optimized gather
-
-config THEAD_RVV_STRIDED_SLICE_FP16
-	depends on THEAD_RVV_SOURCE
-	bool "Layer strided_slice fp16"
-	default y
-	help
-		Select SHL build v extension optimized strided_slice
 
 endmenu

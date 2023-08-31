@@ -18,7 +18,7 @@
 
 #include <math.h>
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_psroipooling_f32(struct csinn_tensor *data, struct csinn_tensor *rois,
                              struct csinn_tensor *output, struct csinn_psroipooling_params *params)

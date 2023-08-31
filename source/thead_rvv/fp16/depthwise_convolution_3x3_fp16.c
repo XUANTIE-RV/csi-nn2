@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
@@ -30,7 +30,7 @@ int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
@@ -41,6 +41,32 @@ int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t out_c = output->dim[1];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
+
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        int8_t *kernel_int8 = (int8_t *)kernel->data;
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            const int maxk = kernel->dim[2] * kernel->dim[3];
+            for (int c = 0; c < in_c; c++) {
+                int32_t zp = kernel->qinfo[c].zero_point;
+                float scale = kernel->qinfo[c].scale;
+                shl_rvv_dequantize_i8_to_f16(kernel_int8 + c * maxk, kernel_fp16 + c * maxk, maxk,
+                                             zp, scale);
+            }
+        } else {
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
@@ -340,6 +366,10 @@ int shl_rvv_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
         }
     }
     shl_mem_free(input_padd_buf);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;
@@ -354,7 +384,7 @@ int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t batch = input->dim[0];
@@ -365,6 +395,32 @@ int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t out_c = output->dim[1];
     int32_t out_h = output->dim[2];
     int32_t out_w = output->dim[3];
+
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        int8_t *kernel_int8 = (int8_t *)kernel->data;
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            const int maxk = kernel->dim[2] * kernel->dim[3];
+            for (int c = 0; c < in_c; c++) {
+                int32_t zp = kernel->qinfo[c].zero_point;
+                float scale = kernel->qinfo[c].scale;
+                shl_rvv_dequantize_i8_to_f16(kernel_int8 + c * maxk, kernel_fp16 + c * maxk, maxk,
+                                             zp, scale);
+            }
+        } else {
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
 
     __fp16 *input_padd_buf =
         (__fp16 *)shl_mem_alloc(in_c * (in_h + params->pad_top + params->pad_down) *
@@ -515,6 +571,10 @@ int shl_rvv_dwconv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
     }
 
     shl_mem_free(input_padd_buf);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_topk_f32(struct csinn_tensor *input, struct csinn_tensor *output1,
                      struct csinn_tensor *output2, struct csinn_topk_params *params)

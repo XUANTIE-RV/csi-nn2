@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 void shl_rvm_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
                                                 struct csinn_conv2d_params *params)

@@ -110,14 +110,14 @@ config C906_DEPTHWISE_CONVOLUTION_FP32
 	bool "Layer depthwise convolution fp32"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
 
 config C906_DEPTHWISE_CONVOLUTION_FP16
 	depends on C906_SOURCE
 	bool "Layer depthwise convolution fp16"
 	default y
 	help
-		Select SHL build v extension optimized convolution
+		Select SHL build v extension optimized depthwise_convolution
 
 config C906_CONVOLUTION1D_FP32
 	depends on C906_SOURCE
@@ -138,21 +138,21 @@ config C906_DEPTHWISE_CONVOLUTION1D_FP16
 	bool "Layer depthwise convolution1d fp16"
 	default y
 	help
-		Select SHL build v extension optimized convolution1d
+		Select SHL build v extension optimized depthwise_convolution1d
 
 config C906_DIV_FP32
 	depends on C906_SOURCE
 	bool "Layer div fp32"
 	default y
 	help
-		Select SHL build v extension optimized convolution1d
+		Select SHL build v extension optimized div
 
 config C906_DIV_FP16
 	depends on C906_SOURCE
 	bool "Layer div fp16"
 	default y
 	help
-		Select SHL build v extension optimized convolution1d
+		Select SHL build v extension optimized div
 
 config C906_FULLYCONNECTED_FP16
 	depends on C906_SOURCE
@@ -166,21 +166,21 @@ config C906_GEMM_FP32
 	bool "Layer GEMM fp32"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config C906_GEMM_FP16
 	depends on C906_SOURCE
 	bool "Layer GEMM fp16"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemm
 
 config C906_GEMV_FP16
 	depends on C906_SOURCE
 	bool "Layer GEMV fp16"
 	default y
 	help
-		Select SHL build v extension optimized fullyconnected
+		Select SHL build v extension optimized gemv
 
 config C906_GLOBAL_AVERAGEPOOL_FP32
 	depends on C906_SOURCE
@@ -327,14 +327,14 @@ config C906_RELU1_FP32
 	bool "Layer relu1 fp32"
 	default y
 	help
-		Select SHL build v extension optimized relu
+		Select SHL build v extension optimized relu1
 
 config C906_RELU1_FP16
 	depends on C906_SOURCE
 	bool "Layer relu1 fp16"
 	default y
 	help
-		Select SHL build v extension optimized relu
+		Select SHL build v extension optimized relu1
 
 config C906_RELU6_FP32
 	depends on C906_SOURCE

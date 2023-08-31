@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /************************************************************************
  * input matrix and kernel matrix have been reordered
@@ -598,7 +598,7 @@ void shl_rvv256_gemm_8x16_fp32(float *dst, const float *sa, const float *sb, flo
                 _acc0 = vfmacc_vf_f32m1(_acc0, in_ptr0[c], _kernel, vl);
                 kernel_ptr += 8;
             }
-            vsse32_v_f32m1(out_ptr0, ldc * sizeof(__fp16), _acc0, vl);
+            vsse32_v_f32m1(out_ptr0, ldc * sizeof(float), _acc0, vl);
         }
         kernel_data += 8 * k;
         output_data += 8 * ldc;

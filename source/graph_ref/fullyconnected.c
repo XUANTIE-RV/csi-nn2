@@ -30,6 +30,7 @@ int shl_gref_fullyconnected_infer_shape(struct csinn_tensor *input, struct csinn
                                         struct csinn_tensor *weights, struct csinn_tensor *bias,
                                         struct csinn_fc_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
     for (int i = 0; i < input->dim_count; i++) {
         output->dim[i] = input->dim[i];

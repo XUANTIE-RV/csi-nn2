@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 /* https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/reference/l2normalization.h
  */

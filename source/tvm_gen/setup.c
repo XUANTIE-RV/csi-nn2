@@ -17,8 +17,8 @@
  */
 
 #include "csi_nn.h"
-#include "shl_tvmgen.h"
 #include "shl_utils.h"
+#include "tvmgen/shl_tvmgen.h"
 
 struct shl_tvmgen_name_func_map {
     int size;

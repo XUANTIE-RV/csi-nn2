@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 void shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(struct csinn_tensor *kernel,
                                                     struct csinn_conv2d_params *params)
@@ -66,13 +66,16 @@ int shl_c906_conv1x1s1_sgemm_fp16(struct csinn_tensor *input, struct csinn_tenso
 
     __fp16 *kernel_fp16 = NULL;
     if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-        // TODO: support per-channel quantization
-        int32_t zp = kernel->qinfo->zero_point;
-        float scale = kernel->qinfo->scale;
         int size = csinn_tensor_size(kernel);
-        int8_t *kernel_int8 = (int8_t *)kernel->data;
         kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
-        shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        if (kernel->quant_channel > 1) {
+            shl_rvv_conv_im2col_gemm_dequantize_per_channel_i8_to_f16(kernel, params, kernel_fp16);
+        } else {
+            int8_t *kernel_int8 = (int8_t *)kernel->data;
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
         kernel_data = kernel_fp16;
     } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
         kernel_data = (__fp16 *)kernel->data;
@@ -113,6 +116,7 @@ int shl_c906_conv1x1s1_sgemm_fp16(struct csinn_tensor *input, struct csinn_tenso
     shl_mem_free(pb_reorder);
     if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
         shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
     }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);

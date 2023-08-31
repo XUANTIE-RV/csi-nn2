@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*********************************************************************
  * s3 * (q3 - z3) = prelu{ s1 * (q1 - z1), s2 * (q2 - z2) }

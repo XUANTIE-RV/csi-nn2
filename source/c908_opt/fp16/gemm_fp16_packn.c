@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void gemm_fp16_ncxhwx_12xpack2n(__fp16 *output, const __fp16 *kernel, const __fp16 *input,
                                 const __fp16 *bias, int m, int k, int n, bool fuse_relu);
@@ -24,7 +24,7 @@ void gemm_fp16_ncxhwx_12xpackn(__fp16 *output, const __fp16 *kernel, const __fp1
                                const __fp16 *bias, int m, int k, int n, bool fuse_relu);
 
 void shl_c908_ncxhwx_gemm_12xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
-                                         const __fp16 *bias, int m, int k, int n, bool fuse_relu)
+                                         __fp16 *bias, int m, int k, int n, bool fuse_relu)
 {
     const int packn = csrr_vlenb() / sizeof(__fp16);
     const int pack2n = packn * 2;

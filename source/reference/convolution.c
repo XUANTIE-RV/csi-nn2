@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 #ifdef SHL_AVX_OPT
 #include "conv_avx.h"
 #endif

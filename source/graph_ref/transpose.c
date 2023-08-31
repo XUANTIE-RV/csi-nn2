@@ -28,6 +28,7 @@ int shl_gref_transpose(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_transpose_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                    struct csinn_transpose_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     int32_t *perm = params->permute;
     output->dim_count = input->dim_count;
     for (int i = 0; i < params->permute_num; i++) {

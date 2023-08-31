@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * note: VLEN = 128/256 ... flexible vlen
@@ -28,8 +28,9 @@
  * sa - kernel:  [m/pack2n, k, pack2n]  [m/packn, k, packn]
  * sb - input:   [n/8, k, 8]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
-                                       __fp16 *bias, int m, int k, int n, int ldc)
+                                       __fp16 *bias, int m, int k, int n, bool fuse_relu)
 {
     __fp16 *kernel_data = (__fp16 *)sa;
     __fp16 *input_data = (__fp16 *)sb;
@@ -397,8 +398,9 @@ void shl_rvv_ncxhwx_gemm_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp
  * sa - kernel:  [m/pack2n, k, pack2n]  [m/packn, k, packn]
  * sb - input:   [n/12, k, 12]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_12xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
-                                        __fp16 *bias, int m, int k, int n, int ldc)
+                                        __fp16 *bias, int m, int k, int n, bool fuse_relu)
 {
     __fp16 *kernel_data = (__fp16 *)sa;
     __fp16 *input_data = (__fp16 *)sb;

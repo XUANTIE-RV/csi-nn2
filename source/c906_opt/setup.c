@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
-#include "shl_c906_cap.h"
+#include "c906/c906.h"
+#include "c906/cap.h"
 
 static struct shl_cb_op_list shl_c906_cb_op_list;
 
@@ -151,12 +151,6 @@ void __attribute__((weak)) shl_target_init_c906()
 #ifndef CONFIG_C906_CONVOLUTION_FP32_DISABLED
     shl_c906_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_c906_conv2d_init_fp32, NULL);
     shl_c906_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_c906_conv2d_init_fp32, NULL);
-#endif
-#ifndef CONFIG_C906_CONVOLUTION1D_FP16_DISABLED
-    shl_c906_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV1D, shl_c906_conv1d_init_fp16, NULL);
-#endif
-#ifndef CONFIG_C906_CONVOLUTION1D_FP32_DISABLED
-    shl_c906_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV1D, shl_c906_conv1d_init_fp32, NULL);
 #endif
 #ifndef CONFIG_C906_MAXPOOL_FP16_DISABLED
     shl_c906_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_MAXPOOL2D, shl_c906_maxpool2d_init_fp16, NULL);

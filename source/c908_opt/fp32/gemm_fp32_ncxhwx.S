@@ -132,6 +132,8 @@ pack2nx12_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, pack2nx12_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, pack2nx12_k2_end
 
 pack2nx12_k2:
     vle32.v         v5, (t3)
@@ -222,10 +224,98 @@ pack2nx12_k2:
     addi            t2, t2, -1
     bnez            t2, pack2nx12_k2
 
-pack2nx12_k1:
+pack2nx12_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v6, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    vfmacc.vf       v20, ft0, v4
+    flw             fa0, 24(a2)
+    vfmacc.vf       v9, ft1, v3
+    vfmacc.vf       v21, ft1, v4
+    flw             fa1, 28(a2)
+    vfmacc.vf       v10, ft2, v3
+    vfmacc.vf       v22, ft2, v4
+    flw             fa2, 32(a2)
+    vfmacc.vf       v11, ft3, v3
+    vfmacc.vf       v23, ft3, v4
+    flw             fa3, 36(a2)
+    vfmacc.vf       v12, ft4, v3
+    vfmacc.vf       v24, ft4, v4
+    flw             fa4, 40(a2)
+    vfmacc.vf       v13, ft5, v3
+    vfmacc.vf       v25, ft5, v4
+    flw             fa5, 44(a2)
+    vfmacc.vf       v14, fa0, v3
+    vfmacc.vf       v26, fa0, v4
+    flw             ft0, 48(a2)
+    vfmacc.vf       v15, fa1, v3
+    vfmacc.vf       v27, fa1, v4
+    flw             ft1, 52(a2)
+    vfmacc.vf       v16, fa2, v3
+    vfmacc.vf       v28, fa2, v4
+    flw             ft2, 56(a2)
+    vfmacc.vf       v17, fa3, v3
+    vfmacc.vf       v29, fa3, v4
+    flw             ft3, 60(a2)
+    vfmacc.vf       v18, fa4, v3
+    vfmacc.vf       v30, fa4, v4
+    flw             ft4, 64(a2)
+    vfmacc.vf       v19, fa5, v3
+    vfmacc.vf       v31, fa5, v4
+    flw             ft5, 68(a2)
+
+    vfmacc.vf       v8, ft0, v5
+    vfmacc.vf       v20, ft0, v6
+    flw             fa0, 72(a2)
+    vfmacc.vf       v9, ft1, v5
+    vfmacc.vf       v21, ft1, v6
+    flw             fa1, 76(a2)
+    vfmacc.vf       v10, ft2, v5
+    vfmacc.vf       v22, ft2, v6
+    flw             fa2, 80(a2)
+    vfmacc.vf       v11, ft3, v5
+    vfmacc.vf       v23, ft3, v6
+    flw             fa3, 84(a2)
+    vfmacc.vf       v12, ft4, v5
+    vfmacc.vf       v24, ft4, v6
+    flw             fa4, 88(a2)
+    vfmacc.vf       v13, ft5, v5
+    vfmacc.vf       v25, ft5, v6
+    flw             fa5, 92(a2)
+    addi            a2, a2, 96
+    vfmacc.vf       v14, fa0, v5
+    vfmacc.vf       v26, fa0, v6
+    vfmacc.vf       v15, fa1, v5
+    vfmacc.vf       v27, fa1, v6
+    vfmacc.vf       v16, fa2, v5
+    vfmacc.vf       v28, fa2, v6
+    vfmacc.vf       v17, fa3, v5
+    vfmacc.vf       v29, fa3, v6
+    vfmacc.vf       v18, fa4, v5
+    vfmacc.vf       v30, fa4, v6
+    vfmacc.vf       v19, fa5, v5
+    vfmacc.vf       v31, fa5, v6
+
     andi            t2, a5, 1   // k1
     beqz            t2, pack2nx12_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v4, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+    flw             ft4, 16(a2)
+    flw             ft5, 20(a2)
+
+pack2nx12_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v20, ft0, v4
     flw             fa0, 24(a2)
@@ -377,6 +467,8 @@ pack2nx8_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, pack2nx8_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, pack2nx8_k2_end
 
 pack2nx8_k2:
     vle32.v         v5, (t3)
@@ -443,10 +535,74 @@ pack2nx8_k2:
     addi            t2, t2, -1
     bnez            t2, pack2nx8_k2
 
-pack2nx8_k1:
+pack2nx8_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v6, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    vfmacc.vf       v20, ft0, v4
+    flw             fa0, 16(a2)
+    vfmacc.vf       v9, ft1, v3
+    vfmacc.vf       v21, ft1, v4
+    flw             fa1, 20(a2)
+    vfmacc.vf       v10, ft2, v3
+    vfmacc.vf       v22, ft2, v4
+    flw             fa2, 24(a2)
+    vfmacc.vf       v11, ft3, v3
+    vfmacc.vf       v23, ft3, v4
+    flw             fa3, 28(a2)
+    vfmacc.vf       v12, fa0, v3
+    vfmacc.vf       v24, fa0, v4
+    flw             ft0, 32(a2)
+    vfmacc.vf       v13, fa1, v3
+    vfmacc.vf       v25, fa1, v4
+    flw             ft1, 36(a2)
+    vfmacc.vf       v14, fa2, v3
+    vfmacc.vf       v26, fa2, v4
+    flw             ft2, 40(a2)
+    vfmacc.vf       v15, fa3, v3
+    vfmacc.vf       v27, fa3, v4
+    flw             ft3, 44(a2)
+
+    vfmacc.vf       v8, ft0, v5
+    vfmacc.vf       v20, ft0, v6
+    flw             fa0, 48(a2)
+    vfmacc.vf       v9, ft1, v5
+    vfmacc.vf       v21, ft1, v6
+    flw             fa1, 52(a2)
+    vfmacc.vf       v10, ft2, v5
+    vfmacc.vf       v22, ft2, v6
+    flw             fa2, 56(a2)
+    vfmacc.vf       v11, ft3, v5
+    vfmacc.vf       v23, ft3, v6
+    flw             fa3, 60(a2)
+    addi            a2, a2, 64
+    vfmacc.vf       v12, fa0, v5
+    vfmacc.vf       v24, fa0, v6
+    vfmacc.vf       v13, fa1, v5
+    vfmacc.vf       v25, fa1, v6
+    vfmacc.vf       v14, fa2, v5
+    vfmacc.vf       v26, fa2, v6
+    vfmacc.vf       v15, fa3, v5
+    vfmacc.vf       v27, fa3, v6
+
     andi            t2, a5, 1   // k1
     beqz            t2, pack2nx8_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v4, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+
+pack2nx8_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v20, ft0, v4
     flw             fa0, 16(a2)
@@ -551,6 +707,8 @@ pack2nx4_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, pack2nx4_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, pack2nx4_k2_end
 
 pack2nx4_k2:
     vle32.v         v5, (t3)
@@ -593,10 +751,54 @@ pack2nx4_k2:
     addi            t2, t2, -1
     bnez            t2, pack2nx4_k2
 
-pack2nx4_k1:
+pack2nx4_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v6, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    vfmacc.vf       v20, ft0, v4
+    flw             fa0, 16(a2)
+    vfmacc.vf       v9, ft1, v3
+    vfmacc.vf       v21, ft1, v4
+    flw             fa1, 20(a2)
+    vfmacc.vf       v10, ft2, v3
+    vfmacc.vf       v22, ft2, v4
+    flw             fa2, 24(a2)
+    vfmacc.vf       v11, ft3, v3
+    vfmacc.vf       v23, ft3, v4
+    flw             fa3, 28(a2)
+    addi            a2, a2, 32
+
+    vfmacc.vf       v8, fa0, v5
+    vfmacc.vf       v20, fa0, v6
+    flw             ft0, 0(a2)
+    vfmacc.vf       v9, fa1, v5
+    vfmacc.vf       v21, fa1, v6
+    flw             ft1, 4(a2)
+    vfmacc.vf       v10, fa2, v5
+    vfmacc.vf       v22, fa2, v6
+    flw             ft2, 8(a2)
+    vfmacc.vf       v11, fa3, v5
+    vfmacc.vf       v23, fa3, v6
+    flw             ft3, 12(a2)
+
     andi            t2, a5, 1   // k1
     beqz            t2, pack2nx4_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v4, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+
+pack2nx4_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v20, ft0, v4
     vfmacc.vf       v9, ft1, v3
@@ -660,6 +862,8 @@ pack2nx2_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, pack2nx2_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, pack2nx2_k2_end
 
 pack2nx2_k2:
     vle32.v         v5, (t3)
@@ -690,10 +894,38 @@ pack2nx2_k2:
     addi            t2, t2, -1
     bnez            t2, pack2nx2_k2
 
-pack2nx2_k1:
+pack2nx2_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v6, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    vfmacc.vf       v20, ft0, v4
+    flw             fa0, 8(a2)
+    vfmacc.vf       v9, ft1, v3
+    vfmacc.vf       v21, ft1, v4
+    flw             fa1, 12(a2)
+    addi            a2, a2, 16
+
+    vfmacc.vf       v8, fa0, v5
+    vfmacc.vf       v20, fa0, v6
+    vfmacc.vf       v9, fa1, v5
+    vfmacc.vf       v21, fa1, v6
+
     andi            t2, a5, 1   // k1
     beqz            t2, pack2nx2_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v4, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+
+pack2nx2_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v20, ft0, v4
     vfmacc.vf       v9, ft1, v3
@@ -736,6 +968,8 @@ pack2nx1_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, pack2nx1_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, pack2nx1_k2_end
 
 pack2nx1_k2:
     vle32.v         v5, (t3)
@@ -760,10 +994,32 @@ pack2nx1_k2:
     addi            t2, t2, -1
     bnez            t2, pack2nx1_k2
 
-pack2nx1_k1:
+pack2nx1_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v6, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    vfmacc.vf       v20, ft0, v4
+    flw             fa0, 4(a2)
+    addi            a2, a2, 8
+
+    vfmacc.vf       v8, fa0, v5
+    vfmacc.vf       v20, fa0, v6
+
     andi            t2, a5, 1   // k1
     beqz            t2, pack2nx1_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    vle32.v         v4, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+
+pack2nx1_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v20, ft0, v4
     addi            a2, a2, 4
@@ -871,6 +1127,8 @@ packnx12_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, packnx12_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, packnx12_k2_end
 
 packnx12_k2:
     vle32.v         v5, (t3)
@@ -933,10 +1191,70 @@ packnx12_k2:
     addi            t2, t2, -1
     bnez            t2, packnx12_k2
 
-packnx12_k1:
+packnx12_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    flw             fa0, 24(a2)
+    vfmacc.vf       v9, ft1, v3
+    flw             fa1, 28(a2)
+    vfmacc.vf       v10, ft2, v3
+    flw             fa2, 32(a2)
+    vfmacc.vf       v11, ft3, v3
+    flw             fa3, 36(a2)
+    vfmacc.vf       v12, ft4, v3
+    flw             fa4, 40(a2)
+    vfmacc.vf       v13, ft5, v3
+    flw             fa5, 44(a2)
+    vfmacc.vf       v14, fa0, v3
+    flw             ft0, 48(a2)
+    vfmacc.vf       v15, fa1, v3
+    flw             ft1, 52(a2)
+    vfmacc.vf       v16, fa2, v3
+    flw             ft2, 56(a2)
+    vfmacc.vf       v17, fa3, v3
+    flw             ft3, 60(a2)
+    vfmacc.vf       v18, fa4, v3
+    flw             ft4, 64(a2)
+    vfmacc.vf       v19, fa5, v3
+    flw             ft5, 68(a2)
+
+    vfmacc.vf       v8, ft0, v5
+    flw             fa0, 72(a2)
+    vfmacc.vf       v9, ft1, v5
+    flw             fa1, 76(a2)
+    vfmacc.vf       v10, ft2, v5
+    flw             fa2, 80(a2)
+    vfmacc.vf       v11, ft3, v5
+    flw             fa3, 84(a2)
+    vfmacc.vf       v12, ft4, v5
+    flw             fa4, 88(a2)
+    vfmacc.vf       v13, ft5, v5
+    flw             fa5, 92(a2)
+    addi            a2, a2, 96
+    vfmacc.vf       v14, fa0, v5
+    vfmacc.vf       v15, fa1, v5
+    vfmacc.vf       v16, fa2, v5
+    vfmacc.vf       v17, fa3, v5
+    vfmacc.vf       v18, fa4, v5
+    vfmacc.vf       v19, fa5, v5
+
     andi            t2, a5, 1   // k1
     beqz            t2, packnx12_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+    flw             ft4, 16(a2)
+    flw             ft5, 20(a2)
+
+packnx12_k1:
     vfmacc.vf       v8, ft0, v3
     flw             fa0, 24(a2)
     vfmacc.vf       v9, ft1, v3
@@ -1027,6 +1345,8 @@ packnx8_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, packnx8_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, packnx8_k2_end
 
 packnx8_k2:
     vle32.v         v5, (t3)
@@ -1073,10 +1393,58 @@ packnx8_k2:
     addi            t2, t2, -1
     bnez            t2, packnx8_k2
 
-packnx8_k1:
+packnx8_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    flw             fa0, 16(a2)
+    vfmacc.vf       v9, ft1, v3
+    flw             fa1, 20(a2)
+    vfmacc.vf       v10, ft2, v3
+    flw             fa2, 24(a2)
+    vfmacc.vf       v11, ft3, v3
+    flw             fa3, 28(a2)
+    vfmacc.vf       v12, fa0, v3
+    flw             ft0, 32(a2)
+    vfmacc.vf       v13, fa1, v3
+    flw             ft1, 36(a2)
+    vfmacc.vf       v14, fa2, v3
+    flw             ft2, 40(a2)
+    vfmacc.vf       v15, fa3, v3
+    flw             ft3, 44(a2)
+
+    vfmacc.vf       v8, ft0, v5
+    flw             fa0, 48(a2)
+    vfmacc.vf       v9, ft1, v5
+    flw             fa1, 52(a2)
+    vfmacc.vf       v10, ft2, v5
+    flw             fa2, 56(a2)
+    vfmacc.vf       v11, ft3, v5
+    flw             fa3, 60(a2)
+    addi            a2, a2, 64
+    vfmacc.vf       v12, fa0, v5
+    flw             ft0, 0(a2)
+    vfmacc.vf       v13, fa1, v5
+    flw             ft1, 4(a2)
+    vfmacc.vf       v14, fa2, v5
+    flw             ft2, 8(a2)
+    vfmacc.vf       v15, fa3, v5
+    flw             ft3, 12(a2)
+
     andi            t2, a5, 1   // k2
     beqz            t2, packnx8_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+
+packnx8_k1:
     vfmacc.vf       v8, ft0, v3
     flw             fa0, 16(a2)
     vfmacc.vf       v9, ft1, v3
@@ -1142,6 +1510,8 @@ packnx4_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, packnx4_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, packnx4_k2_end
 
 packnx4_k2:
     vle32.v         v5, (t3)
@@ -1172,10 +1542,42 @@ packnx4_k2:
     addi            t2, t2, -1
     bnez            t2, packnx4_k2
 
-packnx4_k1:
+packnx4_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    flw             fa0, 16(a2)
+    vfmacc.vf       v9, ft1, v3
+    flw             fa1, 20(a2)
+    vfmacc.vf       v10, ft2, v3
+    flw             fa2, 24(a2)
+    vfmacc.vf       v11, ft3, v3
+    flw             fa3, 28(a2)
+    addi            a2, a2, 32
+
+    vfmacc.vf       v8, fa0, v5
+    flw             ft0, 0(a2)
+    vfmacc.vf       v9, fa1, v5
+    flw             ft1, 4(a2)
+    vfmacc.vf       v10, fa2, v5
+    flw             ft2, 8(a2)
+    vfmacc.vf       v11, fa3, v5
+    flw             ft3, 12(a2)
+
     andi            t2, a5, 1   // k1
     beqz            t2, packnx4_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+    flw             ft2, 8(a2)
+    flw             ft3, 12(a2)
+
+packnx4_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v9, ft1, v3
     vfmacc.vf       v10, ft2, v3
@@ -1216,6 +1618,8 @@ packnx2_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, packnx2_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, packnx2_k2_end
 
 packnx2_k2:
     vle32.v         v5, (t3)
@@ -1238,10 +1642,32 @@ packnx2_k2:
     addi            t2, t2, -1
     bnez            t2, packnx2_k2
 
-packnx2_k1:
+packnx2_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+
+    vfmacc.vf       v8, ft0, v3
+    flw             fa0, 8(a2)
+    vfmacc.vf       v9, ft1, v3
+    flw             fa1, 12(a2)
+    addi            a2, a2, 16
+
+    vfmacc.vf       v8, fa0, v5
+    flw             ft0, 0(a2)
+    vfmacc.vf       v9, fa1, v5
+    flw             ft1, 4(a2)
+
     andi            t2, a5, 1   // k1
     beqz            t2, packnx2_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+    flw             ft1, 4(a2)
+
+packnx2_k1:
     vfmacc.vf       v8, ft0, v3
     vfmacc.vf       v9, ft1, v3
     addi            a2, a2, 8
@@ -1272,6 +1698,8 @@ packnx1_start:
 
     srai            t2, a5, 1   // k2
     beqz            t2, packnx1_k1
+    addi            t2, t2, -1  // k2_end
+    beqz            t2, packnx1_k2_end
 
 packnx1_k2:
     vle32.v         v5, (t3)
@@ -1288,10 +1716,26 @@ packnx1_k2:
     addi            t2, t2, -1
     bnez            t2, packnx1_k2
 
-packnx1_k1:
+packnx1_k2_end:
+    vle32.v         v5, (t3)
+    add             t3, t3, t0  // +packn
+    vfmacc.vf       v8, ft0, v3
+    flw             fa0, 4(a2)
+    addi            a2, a2, 8
+
+    add             t3, t3, t0  // +packn
+    vfmacc.vf       v8, fa0, v5
+
     andi            t2, a5, 1   // k2
     beqz            t2, packnx1_relu
 
+    // pre-load kernel_data
+    vle32.v         v3, (t3)
+    add             t3, t3, t0  // +packn
+    // pre-load input_data
+    flw             ft0, 0(a2)
+
+packnx1_k1:
     vfmacc.vf       v8, ft0, v3
     addi            a2, a2, 4
 

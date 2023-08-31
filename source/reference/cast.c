@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_bytes_for_dtype(enum csinn_dtype_enum dtype)
 {

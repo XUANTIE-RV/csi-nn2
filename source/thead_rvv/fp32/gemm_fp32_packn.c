@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * note: VLEN = 128/256 ... flexible vlen
@@ -30,8 +30,9 @@
  * sa - kernel:  [m/pack2n, k, pack2n]  [m/packn, k, packn]
  * sb - input:   [n/8, k, 8]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_8xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
-                                       int m, int k, int n, int ldc)
+                                       int m, int k, int n, bool fuse_relu)
 {
     float *kernel_data = (float *)sa;
     float *input_data = (float *)sb;
@@ -399,8 +400,9 @@ void shl_rvv_ncxhwx_gemm_8xpack2n_fp32(float *dst, const float *sa, const float 
  * sa - kernel:  [m/pack2n, k, pack2n]  [m/packn, k, packn]
  * sb - input:   [n/12, k, 12]
  **************************************************************/
+// XXX: unsupported fuse relu
 void shl_rvv_ncxhwx_gemm_12xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
-                                        int m, int k, int n, int ldc)
+                                        int m, int k, int n, bool fuse_relu)
 {
     float *kernel_data = (float *)sa;
     float *input_data = (float *)sb;

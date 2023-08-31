@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 #ifndef MATRIX_PW_I32
 static void requantize_m4_nhwc(int8_t *dst, int32_t *src, int row, int col, int32_t out_zp,

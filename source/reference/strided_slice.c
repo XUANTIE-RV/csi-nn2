@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 /* fixme: */
 int shl_ref_strided_slice(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -103,7 +103,7 @@ int shl_ref_strided_slice_f32(struct csinn_tensor *input, struct csinn_tensor *o
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
 
-    for (int i = 0; i < params->slice_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         if (params->begin[i] < -input->dim[i]) params->begin[i] = -input->dim[i];
         if (params->begin[i] < 0) params->begin[i] += input->dim[i];
         if (params->begin[i] > input->dim[i]) params->begin[i] = input->dim[i];

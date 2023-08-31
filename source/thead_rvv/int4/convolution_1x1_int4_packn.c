@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #ifdef SHL_USE_DOT_INT4
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_int4(struct csinn_tensor *kernel,
                                                       struct csinn_conv2d_params *params)
@@ -75,8 +75,7 @@ int shl_rvv_conv1x1s1_gemm_packn_int4(struct csinn_tensor *input, struct csinn_t
             shl_rvv_reorder_input_z12_packn_int8_dot(input_ncxhwx, pb_reorder, k, n, n);
 
             shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m, k,
-                                                  n, n, output->qinfo->zero_point, multiplier,
-                                                  shift);
+                                                  n, output->qinfo->zero_point, multiplier, shift);
 
             shl_rvv_reorder_input_packnto1_int8(output_ncxhwx, output_data, m, out_h, out_w);
 

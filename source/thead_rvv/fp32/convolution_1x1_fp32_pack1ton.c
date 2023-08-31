@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************************************
  * reorder kernel_data inplace, means the origin kernel_data be destoried.
@@ -28,9 +28,11 @@ void shl_rvv_conv1x1s1_gemm_reorder_kernel_pack1ton_fp32(struct csinn_tensor *ke
     shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_fp32(kernel, params);
 }
 
-int shl_rvv_conv1x1s1_gemm_pack1ton_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                         struct csinn_conv2d_params *params)
+int shl_rvv_common_conv1x1_gemm_pack1ton_fp32(
+    struct csinn_tensor *input, struct csinn_tensor *output, struct csinn_tensor *kernel,
+    struct csinn_tensor *bias, struct csinn_conv2d_params *params,
+    void (*reorder_input)(float *, float *, int, int, int, int),
+    void (*gemm)(float *, const float *, const float *, float *, int, int, int, bool))
 {
     if (input->layout == CSINN_LAYOUT_NC1HWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);
@@ -73,10 +75,10 @@ int shl_rvv_conv1x1s1_gemm_pack1ton_fp32(struct csinn_tensor *input, struct csin
             shl_rvv_reorder_input_pack1ton_fp32(input_data, input_ncxhwx, k, out_h, out_w);
 
             // reorder(pack)
-            shl_rvv_reorder_input_z12_pack1ton_fp32(input_ncxhwx, in_ptr, k, 1, n, n);
+            reorder_input(input_ncxhwx, in_ptr, k, 1, n, n);
 
             // gemm
-            shl_rvv_ncxhwx_gemm_12xpack2n_fp32(out_ptr, kernel_ptr, in_ptr, bias_ptr, m, k, n, n);
+            gemm(out_ptr, kernel_ptr, in_ptr, bias_ptr, m, k, n, false);
 
             input_data += k * n;
             output_data += m * n;
@@ -85,4 +87,13 @@ int shl_rvv_conv1x1s1_gemm_pack1ton_fp32(struct csinn_tensor *input, struct csin
     shl_mem_free(pb_reorder);
     shl_mem_free(input_ncxhwx);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv1x1s1_gemm_pack1ton_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                         struct csinn_conv2d_params *params)
+{
+    return shl_rvv_common_conv1x1_gemm_pack1ton_fp32(input, output, kernel, bias, params,
+                                                     shl_rvv_reorder_input_z12_pack1ton_fp32,
+                                                     shl_rvv_ncxhwx_gemm_12xpack2n_fp32);
 }

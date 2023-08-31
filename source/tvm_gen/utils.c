@@ -17,7 +17,7 @@
  */
 
 #include "dlpack/dlpack.h"
-#include "shl_tvmgen.h"
+#include "tvmgen/shl_tvmgen.h"
 
 static DLTensor *tensor_to_dltensor(struct csinn_tensor *tensor)
 {

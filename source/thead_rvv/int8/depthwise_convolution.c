@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -50,6 +50,9 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
             in_elempack = 1;
             out_elempack = 1;  // dwconv2d out_channel pack is same as in_channel
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        in_elempack = in_c % packn == 0 ? packn : 1;
+        out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
     // enable fuse zeropoint to bias

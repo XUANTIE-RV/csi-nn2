@@ -30,15 +30,17 @@ int shl_gref_batch_to_space_infer_shape(struct csinn_tensor *input, struct csinn
                                         struct csinn_batch_to_space_params *params)
 {
     int h, w, c;
-    if (output->layout == CSINN_LAYOUT_NCHW) {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
+    if (input->layout == CSINN_LAYOUT_NCHW) {
         c = 1;
         h = 2;
         w = 3;
-    } else if (output->layout == CSINN_LAYOUT_NHWC) {
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
         h = 1;
         w = 2;
         c = 3;
     } else {
+        shl_debug_error("%s: Invalid input tensor layout!\n", __func__);
         return CSINN_UNSUPPORT_LAYOUT;
     }
 

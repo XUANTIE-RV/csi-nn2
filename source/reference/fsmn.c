@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static float fsmn(float x) { return x > 0 ? x : 0; }
 

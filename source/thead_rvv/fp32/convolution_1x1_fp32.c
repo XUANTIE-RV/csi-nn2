@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_fp32(struct csinn_tensor *kernel,
                                                 struct csinn_conv2d_params *params)
@@ -35,9 +35,12 @@ void shl_rvv_conv1x1s1_gemm_reorder_kernel_fp32(struct csinn_tensor *kernel,
     shl_mem_free(pa_reorder);
 }
 
-int shl_rvv_conv1x1s1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                struct csinn_conv2d_params *params)
+int shl_rvv_common_conv1x1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                     struct csinn_conv2d_params *params,
+                                     void (*reorder_input)(float *, float *, int, int, int),
+                                     void (*gemm)(float *, const float *, const float *, float *,
+                                                  int, int, int, int))
 {
     if (input->layout == CSINN_LAYOUT_NC1HWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);
@@ -59,20 +62,39 @@ int shl_rvv_conv1x1s1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor 
     int32_t n = out_h * out_w;
 
     float *pb_reorder = (float *)shl_mem_alloc(k * n * sizeof(float));
+    const int vlen = csrr_vlenb() * 8;
 
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
             float *pa = kernel_data + g * m * k;
             float *pb = pb_reorder;
             float *pc = output_data;
+
             // pack
-            shl_rvv_reorder_input_z8_fp32(input_data, pb, k, n, n);
+            reorder_input(input_data, pb, k, n, n);
             // GEMM
-            shl_rvv_gemm_8x8_fp32(pc, pa, pb, bias_data + g * m, m, k, n, n);
+            gemm(pc, pa, pb, bias_data + g * m, m, k, n, n);
+
             input_data += k * n;
             output_data += m * n;
         }
     }
     shl_mem_free(pb_reorder);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv1x1s1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                struct csinn_conv2d_params *params)
+{
+    const int vlen = csrr_vlenb() * 8;
+    if (vlen == 128) {
+        return shl_rvv_common_conv1x1_gemm_fp32(input, output, kernel, bias, params,
+                                                shl_rvv_reorder_input_z8_fp32,
+                                                shl_rvv_gemm_8x8_fp32);
+    } else if (vlen >= 256) {
+        return shl_rvv_common_conv1x1_gemm_fp32(input, output, kernel, bias, params,
+                                                shl_rvv256_reorder_input_z16_fp32,
+                                                shl_rvv256_gemm_8x16_fp32);
+    }
 }

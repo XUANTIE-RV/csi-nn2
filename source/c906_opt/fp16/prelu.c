@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 // nchw layout
 int shl_c906_prelu_fp16(struct csinn_tensor *input, struct csinn_tensor *alpha,

@@ -41,6 +41,7 @@ int shl_gref_split(struct csinn_tensor *input, struct csinn_tensor **output,
 int shl_gref_split_infer_shape(struct csinn_tensor *input, struct csinn_tensor **output,
                                struct csinn_split_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     int32_t axis = params->axis;
     int32_t out_num = params->output_num;
     int32_t *split_index = params->split_index;

@@ -16,12 +16,16 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_dwconv1d_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                           struct csinn_conv1d_params *params)
 {
+    if (input->layout == CSINN_LAYOUT_NC1WC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
+
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
     int8_t *kernel_data = (int8_t *)kernel->data;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
     note: support flexible vlen
@@ -29,7 +29,7 @@ int shl_rvv_reshape_int8(struct csinn_tensor *input, struct csinn_tensor *output
     int8_t *output_data = (int8_t *)output->data;
 
     shl_gref_reshape_infer_shape(input, output, params);
-    if (input->layout >= CSINN_LAYOUT_NC1WC0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
         const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
         const int vl = vsetvl_e8m1(packn);
         int outer_size = input->dim[0] * input->dim[1];  // batch fuse to outer

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                 struct csinn_pool_params *params)
@@ -47,6 +47,8 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
         if (shl_is_first_layer_input(input, sess)) {
             elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        elempack = in_c % packn == 0 ? packn : 1;
     }
 
     // global avgpool2d

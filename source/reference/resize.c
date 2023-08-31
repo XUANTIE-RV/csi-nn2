@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static void shl_ref_resize_bilinear_nhwc_f32(struct csinn_tensor *input,
                                              struct csinn_tensor *output, bool align_corners)

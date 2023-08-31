@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void gemm_fp32_ncxhwx_12xpack2n(float *output, const float *kernel, const float *input,
                                 const float *bias, int m, int k, int n, bool fuse_relu);
 void gemm_fp32_ncxhwx_12xpackn(float *output, const float *kernel, const float *input,
                                const float *bias, int m, int k, int n, bool fuse_relu);
 
-void shl_c908_ncxhwx_gemm_12xpack2n_fp32(float *dst, const float *sa, const float *sb,
-                                         const float *bias, int m, int k, int n, bool fuse_relu)
+void shl_c908_ncxhwx_gemm_12xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
+                                         int m, int k, int n, bool fuse_relu)
 {
     const int packn = csrr_vlenb() / sizeof(float);
     const int pack2n = packn * 2;

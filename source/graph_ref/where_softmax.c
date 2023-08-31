@@ -44,6 +44,8 @@ int shl_gref_where_softmax_infer_shape(struct csinn_tensor *condition, struct cs
                                        struct csinn_tensor *output,
                                        struct csinn_where_softmax_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(condition);
+    shl_tensor_try_nc1xc0_to_ndarray_shape(y);
     int shape_rank = 0;
     shape_rank = condition->dim_count > shape_rank ? condition->dim_count : shape_rank;
     shape_rank = y->dim_count > shape_rank ? y->dim_count : shape_rank;

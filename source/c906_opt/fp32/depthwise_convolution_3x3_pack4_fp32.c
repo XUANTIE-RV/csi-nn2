@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 #ifndef DWCONV3X3S1_PACK4
 #define DWCONV3X3S1_PACK4 shl_c906_dwconv3x3s1_pack4

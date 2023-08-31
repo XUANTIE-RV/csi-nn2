@@ -134,6 +134,8 @@ packnx12_start:
     lwd             t5, t6, 16(a2)
 
     srai            s8, a4, 3   // k8(k2)
+    addi            s8, s8, -1  // k8(k2)_end
+    beqz            s8, packnx12_k2_end
 
 packnx12_k2:
     vle32.v         v6, (s9)
@@ -185,6 +187,48 @@ packnx12_k2:
 
     addi            s8, s8, -1
     bnez            s8, packnx12_k2
+
+packnx12_k2_end:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    vmaqa.vx        v10, t2, v4
+    vmaqa.vx        v12, t3, v4
+    lwd             s1, s2, 24(a2)
+    addi            a2, a2, 32
+    vmaqa.vx        v14, t4, v4
+    vmaqa.vx        v16, t5, v4
+    lwd             s3, s4, 0(a2)
+    lwd             s5, s6, 8(a2)
+    vmaqa.vx        v18, t6, v4
+    vmaqa.vx        v20, s1, v4
+    vmaqa.vx        v22, s2, v4
+    lwd             t1, t2, 16(a2)
+    lwd             t3, t4, 24(a2)
+    addi            a2, a2, 32
+    vmaqa.vx        v24, s3, v4
+    vmaqa.vx        v26, s4, v4
+    lwd             t5, t6, 0(a2)
+    vmaqa.vx        v28, s5, v4
+    vmaqa.vx        v30, s6, v4
+
+    vmaqa.vx        v8, t1, v6
+    vmaqa.vx        v10, t2, v6
+    lwd             s1, s2, 8(a2)
+    lwd             s3, s4, 16(a2)
+    vmaqa.vx        v12, t3, v6
+    vmaqa.vx        v14, t4, v6
+    lwd             s5, s6, 24(a2)
+    addi            a2, a2, 32
+    vmaqa.vx        v16, t5, v6
+    vmaqa.vx        v18, t6, v6
+    vmaqa.vx        v20, s1, v6
+    vmaqa.vx        v22, s2, v6
+    vmaqa.vx        v24, s3, v6
+    vmaqa.vx        v26, s4, v6
+    vmaqa.vx        v28, s5, v6
+    vmaqa.vx        v30, s6, v6
 
 packnx12_post:
     srai            s7, t0, 2
@@ -259,6 +303,8 @@ packnx8_start:
     lwd             t3, t4, 8(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k8(k2)_end
+    beqz            s8, packnx8_k2_end
 
 packnx8_k2:
     vle32.v         v6, (s9)
@@ -297,6 +343,37 @@ packnx8_k2:
 
     addi            s8, s8, -1
     bnez            s8, packnx8_k2
+
+packnx8_k2_end:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    vmaqa.vx        v10, t2, v4
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v4
+    vmaqa.vx        v14, t4, v4
+    vmaqa.vx        v16, s1, v4
+    addi            a2, a2, 32
+    lwd             t1, t2, 0(a2)
+    lwd             t3, t4, 8(a2)
+    vmaqa.vx        v18, s2, v4
+    vmaqa.vx        v20, s3, v4
+    vmaqa.vx        v22, s4, v4
+
+    vmaqa.vx        v8, t1, v6
+    vmaqa.vx        v10, t2, v6
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v6
+    vmaqa.vx        v14, t4, v6
+    vmaqa.vx        v16, s1, v6
+    addi            a2, a2, 32
+    vmaqa.vx        v18, s2, v6
+    vmaqa.vx        v20, s3, v6
+    vmaqa.vx        v22, s4, v6
+
 
 packnx8_post:
     srai            s7, t0, 2
@@ -351,6 +428,8 @@ packnx4_start:
     lwd             t3, t4, 8(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k8(k2)_end
+    beqz            s8, packnx4_k2_end
 
 packnx4_k2:
     vle32.v         v6, (s9)
@@ -376,6 +455,23 @@ packnx4_k2:
 
     addi            s8, s8, -1
     bnez            s8, packnx4_k2
+
+packnx4_k2_end:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    vmaqa.vx        v10, t2, v4
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v4
+    vmaqa.vx        v14, t4, v4
+    addi            a2, a2, 32
+
+    vmaqa.vx        v8, s1, v6
+    vmaqa.vx        v10, s2, v6
+    vmaqa.vx        v12, s3, v6
+    vmaqa.vx        v14, s4, v6
 
 packnx4_post:
     srai            s7, t0, 2
@@ -416,6 +512,8 @@ packnx2_start:
     lwd             t1, t2, 0(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k8(k2)_end
+    beqz            s8, packnx2_k2_end
 
 packnx2_k2:
     vle32.v         v6, (s9)
@@ -435,6 +533,19 @@ packnx2_k2:
 
     addi            s8, s8, -1
     bnez            s8, packnx2_k2
+
+packnx2_k2_end:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    lwd             s1, s2, 8(a2)
+    vmaqa.vx        v10, t2, v4
+    addi            a2, a2, 16
+
+    vmaqa.vx        v8, s1, v6
+    vmaqa.vx        v10, s2, v6
+
 packnx2_post:
     srai            s7, t0, 2
     vsetvli         zero, s7, e32, m2   // set vl = 8
@@ -467,6 +578,8 @@ packnx1_start:
     lw              t1, 0(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k8(k2)_end
+    beqz            s8, packnx1_k2_end
 
 packnx1_k2:
     vle32.v         v6, (s9)
@@ -484,6 +597,16 @@ packnx1_k2:
 
     addi            s8, s8, -1
     bnez            s8, packnx1_k2
+
+packnx1_k2_end:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    lw              s1, 4(a2)
+    addi            a2, a2, 8
+
+    vmaqa.vx        v8, s1, v6
 
 packnx1_post:
     srai            s7, t0, 2
@@ -610,6 +733,8 @@ packnx8_start_1:
     lwd             t3, t4, 8(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k2_end
+    beqz            s8, packnx8_k2_end_1
 
 packnx8_k2_1:
     vle32.v         v6, (s9)
@@ -648,6 +773,36 @@ packnx8_k2_1:
 
     addi            s8, s8, -1
     bnez            s8, packnx8_k2_1
+
+packnx8_k2_end_1:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    vmaqa.vx        v10, t2, v4
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v4
+    vmaqa.vx        v14, t4, v4
+    vmaqa.vx        v16, s1, v4
+    addi            a2, a2, 32
+    lwd             t1, t2, 0(a2)
+    lwd             t3, t4, 8(a2)
+    vmaqa.vx        v18, s2, v4
+    vmaqa.vx        v20, s3, v4
+    vmaqa.vx        v22, s4, v4
+
+    vmaqa.vx        v8, t1, v6
+    vmaqa.vx        v10, t2, v6
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v6
+    vmaqa.vx        v14, t4, v6
+    vmaqa.vx        v16, s1, v6
+    addi            a2, a2, 32
+    vmaqa.vx        v18, s2, v6
+    vmaqa.vx        v20, s3, v6
+    vmaqa.vx        v22, s4, v6
 
 packnx8_post_1:
     vsetvli         zero, s7, e32, m2   // set vl = 8
@@ -706,6 +861,8 @@ packnx4_start_1:
     lwd             t3, t4, 8(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k2_end
+    beqz            s8, packnx4_k2_end_1
 
 packnx4_k2_1:
     vle32.v         v6, (s9)
@@ -731,6 +888,23 @@ packnx4_k2_1:
 
     addi            s8, s8, -1
     bnez            s8, packnx4_k2_1
+
+packnx4_k2_end_1:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    vmaqa.vx        v10, t2, v4
+    lwd             s1, s2, 16(a2)
+    lwd             s3, s4, 24(a2)
+    vmaqa.vx        v12, t3, v4
+    vmaqa.vx        v14, t4, v4
+    addi            a2, a2, 32
+
+    vmaqa.vx        v8, s1, v6
+    vmaqa.vx        v10, s2, v6
+    vmaqa.vx        v12, s3, v6
+    vmaqa.vx        v14, s4, v6
 
 packnx4_post_1:
     vsetvli         zero, s7, e32, m2   // set vl = 8
@@ -770,6 +944,8 @@ packnx2_start_1:
     lwd             t1, t2, 0(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k2_end
+    beqz            s8, packnx2_k2_end_1
 
 packnx2_k2_1:
     vle32.v         v6, (s9)
@@ -789,6 +965,18 @@ packnx2_k2_1:
 
     addi            s8, s8, -1
     bnez            s8, packnx2_k2_1
+
+packnx2_k2_end_1:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    lwd             s1, s2, 8(a2)
+    vmaqa.vx        v10, t2, v4
+    addi            a2, a2, 16
+
+    vmaqa.vx        v8, s1, v6
+    vmaqa.vx        v10, s2, v6
 
 packnx2_post_1:
     vsetvli         zero, s7, e32, m2   // set vl = 8
@@ -821,6 +1009,8 @@ packnx1_start_1:
     lw              t1, 0(a2)
 
     srai            s8, a4, 3   // k2
+    addi            s8, s8, -1  // k2_end
+    beqz            s8, packnx1_k2_end_1
 
 packnx1_k2_1:
     vle32.v         v6, (s9)
@@ -838,6 +1028,16 @@ packnx1_k2_1:
 
     addi            s8, s8, -1
     bnez            s8, packnx1_k2_1
+
+packnx1_k2_end_1:
+    vle32.v         v6, (s9)
+    add             s9, s9, t0  // +packn
+
+    vmaqa.vx        v8, t1, v4
+    lw              s1, 4(a2)
+    addi            a2, a2, 8
+
+    vmaqa.vx        v8, s1, v6
 
 packnx1_post_1:
     vsetvli         zero, s7, e32, m2   // set vl = 8

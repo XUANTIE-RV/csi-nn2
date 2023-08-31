@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * packn = vlenb / sizeof(int8_t) / 2
@@ -118,9 +118,13 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(struct csinn_tensor *ker
     // shl_mem_free(pa_reorder);
 }
 
-int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_rvv_common_conv_gemm_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                        struct csinn_conv2d_params *params)
+                                        struct csinn_conv2d_params *params,
+                                        void (*reorder_input)(int8_t *, int8_t *, int, int, int),
+                                        void (*gemm)(int8_t *, const int8_t *, const int8_t *,
+                                                     int32_t *, int, int, int, int32_t, int32_t *,
+                                                     int32_t *))
 {
     if (input->layout == CSINN_LAYOUT_NCHW) {
         shl_rvv_tensor_ndarray_to_nc1xc0_replace_int8(input);
@@ -174,7 +178,11 @@ int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn
 
             // im2col
             const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
+#ifdef RVV_1_0_0
+            const int vl = vsetvl_e8mf2(packn);
+#elif defined RVV_0_7_1
             const int vl = vsetvl_e8m1(packn);
+#endif
 
             // [in_c/packn, maxk, out_h, out_w, packn]
             int8_t *im2col_buf = (int8_t *)shl_mem_alloc(in_cp / packn * maxk * out_h * out_w *
@@ -192,10 +200,17 @@ int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn
 
                         for (int p = 0; p < out_h; p++) {
                             for (int q = 0; q < out_w; q++) {
+#ifdef RVV_1_0_0
+                                vint8mf2_t _tmp = vle8_v_i8mf2(img1, vl);
+                                img1 += stride_w * packn;
+                                vse8_v_i8mf2(dst_ptr, _tmp, vl);
+                                dst_ptr += packn;
+#elif defined RVV_0_7_1
                                 vint8m1_t _tmp = vle8_v_i8m1(img1, vl);
                                 img1 += stride_w * packn;
                                 vse8_v_i8m1(dst_ptr, _tmp, vl);
                                 dst_ptr += packn;
+#endif
                             }
                             img1 += tailstep;
                         }
@@ -221,19 +236,11 @@ int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn
 
             // reorder(pack)
             int8_t *reorder_buf = (int8_t *)shl_mem_alloc(in_cp * maxk * n * sizeof(int8_t));
-#ifdef SHL_USE_DOT_INT8
-            shl_rvv_reorder_input_z12_packn_int8_dot(im2col_buf, reorder_buf, in_cp * maxk, n, n);
+
+            reorder_input(im2col_buf, reorder_buf, in_cp * maxk, n, n);
             shl_mem_free(im2col_buf);
-            shl_rvv_ncxhwx_gemm_12xpackn_int8_dot(output_data, ker_ptr, reorder_buf, bias_ptr, m,
-                                                  in_cp * maxk, n, n, output->qinfo->zero_point,
-                                                  multiplier, shift);
-#else
-            shl_rvv_reorder_input_z4_packn_int8(im2col_buf, reorder_buf, in_cp * maxk, n, n);
-            shl_mem_free(im2col_buf);
-            shl_rvv_ncxhwx_gemm_4xpack2n_int8(output_data, ker_ptr, reorder_buf, bias_ptr, m,
-                                              in_cp * maxk, n, n, output->qinfo->zero_point,
-                                              multiplier, shift);
-#endif  // SHL_USE_DOT_INT8
+            gemm(output_data, ker_ptr, reorder_buf, bias_ptr, m, in_cp * maxk, n,
+                 output->qinfo->zero_point, multiplier, shift);
 
             shl_mem_free(reorder_buf);
             input_data += in_cp * in_h * in_w;
@@ -243,4 +250,19 @@ int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn
     shl_mem_free(multiplier);
     shl_mem_free(shift);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv_im2col_gemm_packn_int8(struct csinn_tensor *input, struct csinn_tensor *output,
+                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                        struct csinn_conv2d_params *params)
+{
+#ifdef SHL_USE_DOT_INT8
+    return shl_rvv_common_conv_gemm_packn_int8(input, output, kernel, bias, params,
+                                               shl_rvv_reorder_input_z12_packn_int8_dot,
+                                               shl_rvv_ncxhwx_gemm_12xpackn_int8_dot);
+#else
+    return shl_rvv_common_conv_gemm_packn_int8(input, output, kernel, bias, params,
+                                               shl_rvv_reorder_input_z4_packn_int8,
+                                               shl_rvv_ncxhwx_gemm_4xpack2n_int8);
+#endif  // SHL_USE_DOT_INT8
 }

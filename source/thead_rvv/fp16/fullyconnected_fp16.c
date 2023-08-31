@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
     note: VLEN = 128/256
@@ -89,6 +89,10 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
                                       struct csinn_fc_params *params)
 {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
+
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
     __fp16 *weights_data = (__fp16 *)weights->data;
@@ -115,13 +119,23 @@ int shl_rvv_fullyconnected_packn_fp16(struct csinn_tensor *input, struct csinn_t
 
     __fp16 *weights_fp16 = NULL;
     if (weights->is_const && weights->dtype == CSINN_DTYPE_INT8) {
-        // TODO: support per-channel quantization
-        int32_t zp = weights->qinfo->zero_point;
-        float scale = weights->qinfo->scale;
         int size = csinn_tensor_size(weights);
         int8_t *weights_int8 = (int8_t *)weights->data;
         weights_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
-        shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
+        if (weights->quant_channel == 1) {
+            int32_t zp = weights->qinfo->zero_point;
+            float scale = weights->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
+        } else if (weights->quant_channel == output_depth) {
+            // support channel quantization
+            for (int c = 0; c < output_depth; c++) {
+                int32_t zp = weights->qinfo[c].zero_point;
+                float scale = weights->qinfo[c].scale;
+                shl_rvv_dequantize_i8_to_f16(weights_int8 + c * accum_depth,
+                                             weights_fp16 + c * accum_depth, accum_depth, zp,
+                                             scale);
+            }
+        }
         weights_data = weights_fp16;
     } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {
         weights_data = (__fp16 *)weights->data;

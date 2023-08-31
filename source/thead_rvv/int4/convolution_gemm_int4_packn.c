@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #ifdef SHL_USE_DOT_INT4
 /*************************************************************
  * packn = vlenb / sizeof(int8_t) / 2

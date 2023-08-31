@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 static int shl_c906_prelu_nhwc_f32(struct csinn_tensor *input, struct csinn_tensor *alpha,
                                    struct csinn_tensor *output, struct csinn_prelu_params *params)

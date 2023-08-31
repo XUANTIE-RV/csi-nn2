@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static int shl_rvv_concat_ndarray_int8(struct csinn_tensor **input, struct csinn_tensor *output,
                                        struct csinn_concat_params *params)

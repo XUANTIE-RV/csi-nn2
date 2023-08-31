@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 /* logsoftmax = logits - log(reduce_sum(exp(logits), axis)) */
 int shl_ref_log_softmax_f32(struct csinn_tensor *input, struct csinn_tensor *output,

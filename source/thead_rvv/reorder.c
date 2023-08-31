@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /************************************************************************
  * pack1ton: change input(activation) layout from nchw to nc1hwc0
@@ -2338,21 +2338,16 @@ static inline void reorder_kernel_12xk_fp32(float *src, float *dst, int M_BLOCK,
 /*************************************************************
  * src: [m, k]
  * dst: [m/m_blk, k/k_blk, m_blk/12, 12, k_blk]
- * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 12
+ * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_rvv_reorder_kernel_block_12xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
                                             const int K_BLK)
 {
-    const int MIN_M_BLK = 12;
-
     int m_block = M_BLK;
     int m_idx = 0;
     while (m_idx < m) {
-        while (!(m_idx + m_block - 1 < m)) {
-            m_block /= 2;
-        }
-        if (m_block < MIN_M_BLK) {
+        if (m - m_idx < m_block) {
             m_block = m - m_idx;
         }
         int k_block = K_BLK;
@@ -2497,21 +2492,16 @@ static inline void reorder_kernel_12xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOC
 /*************************************************************
  * src: [m, k]
  * dst: [m/m_blk, k/k_blk, m_blk/12, 12, k_blk]
- * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 12
+ * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_rvv_reorder_kernel_block_12xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
                                             const int K_BLK)
 {
-    const int MIN_M_BLK = 12;
-
     int m_block = M_BLK;
     int m_idx = 0;
     while (m_idx < m) {
-        while (!(m_idx + m_block - 1 < m)) {
-            m_block /= 2;
-        }
-        if (m_block < MIN_M_BLK) {
+        if (m - m_idx < m_block) {
             m_block = m - m_idx;
         }
         int k_block = K_BLK;
@@ -2569,15 +2559,12 @@ static inline void reorder_input_pack2nxk_fp32(float *src, float *dst, int N_BLO
  * packn = vlenb / sizeof(float)
  * src: [k, n]
  * dst: [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
- * n_blk: N_BLK, N_BLK/2, N_BLK/4, ..., pack2n
+ * n_blk: N_BLK, N_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_rvv_reorder_input_block_pack2nxk_fp32(float *src, float *dst, int k, int n,
                                                const int K_BLK, const int N_BLK)
 {
-    const int packn = csrr_vlenb() / sizeof(float);
-    const int MIN_N_BLK = packn * 2;
-
     int k_block = K_BLK;
     int k_idx = 0;
     while (k_idx < k) {
@@ -2587,10 +2574,7 @@ void shl_rvv_reorder_input_block_pack2nxk_fp32(float *src, float *dst, int k, in
         int n_block = N_BLK;
         int n_idx = 0;
         while (n_idx < n) {
-            while (!(n_idx + n_block - 1 < n)) {
-                n_block /= 2;
-            }
-            if (n_block < MIN_N_BLK) {
+            if (n - n_idx < n_block) {
                 n_block = n - n_idx;
             }
             float *s_ptr = src + k_idx * n + n_idx;
@@ -2642,15 +2626,12 @@ static inline void reorder_input_pack2nxk_fp16(__fp16 *src, __fp16 *dst, int N_B
  * packn = vlenb / sizeof(__fp16)
  * src: [k, n]
  * dst: [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
- * n_blk: N_BLK, N_BLK/2, N_BLK/4, ..., pack2n
+ * n_blk: N_BLK, N_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
 void shl_rvv_reorder_input_block_pack2nxk_fp16(__fp16 *src, __fp16 *dst, int k, int n,
                                                const int K_BLK, const int N_BLK)
 {
-    const int packn = csrr_vlenb() / sizeof(__fp16);
-    const int MIN_N_BLK = packn * 2;
-
     int k_block = K_BLK;
     int k_idx = 0;
     while (k_idx < k) {
@@ -2660,10 +2641,7 @@ void shl_rvv_reorder_input_block_pack2nxk_fp16(__fp16 *src, __fp16 *dst, int k, 
         int n_block = N_BLK;
         int n_idx = 0;
         while (n_idx < n) {
-            while (!(n_idx + n_block - 1 < n)) {
-                n_block /= 2;
-            }
-            if (n_block < MIN_N_BLK) {
+            if (n - n_idx < n_block) {
                 n_block = n - n_idx;
             }
             __fp16 *s_ptr = src + k_idx * n + n_idx;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 static void im2col_gemm_reorder_kernel_nhwc_per_group_fp16(__fp16 *src, __fp16 *dst, int out_c,
                                                            int in_c, int maxk)

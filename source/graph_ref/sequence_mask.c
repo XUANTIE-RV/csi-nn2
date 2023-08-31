@@ -29,6 +29,8 @@ int shl_gref_sequence_mask_infer_shape(struct csinn_tensor *input0, struct csinn
                                        struct csinn_tensor *output,
                                        struct csinn_sequence_mask_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input0);
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input1);
     int maxlen = 0;
     if (input1->dim_count > 0) {
         int32_t *input1_data = (int32_t *)input1->data;

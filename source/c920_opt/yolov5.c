@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c920.h"
+#include "c920/c920.h"
 
 static void qsort_desc_fp32(int32_t *box_idx, float *scores, int left, int right)
 {

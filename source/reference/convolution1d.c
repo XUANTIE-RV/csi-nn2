@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 /* TODO: direct conv1d calculation */
 int shl_ref_conv1d_f32(struct csinn_tensor *input, struct csinn_tensor *output,

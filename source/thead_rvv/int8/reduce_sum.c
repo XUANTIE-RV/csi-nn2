@@ -16,11 +16,15 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_reduce_sum_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_reduce_params *params)
 {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
+    }
+
     int8_t *input_data = (int8_t *)input->data;
     int8_t *output_data = (int8_t *)output->data;
 

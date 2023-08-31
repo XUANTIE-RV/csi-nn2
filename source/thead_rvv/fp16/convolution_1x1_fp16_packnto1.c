@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 void shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_fp16(struct csinn_tensor *kernel,
                                                          struct csinn_conv2d_params *params)
@@ -24,16 +24,24 @@ void shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_fp16(struct csinn_tensor *ke
     shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_fp16(kernel, params);
 }
 
-int shl_rvv_conv1x1s1_gemm_packnto1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                         struct csinn_conv2d_params *params)
+void shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_fp16_w_int8(struct csinn_tensor *kernel,
+                                                                struct csinn_conv2d_params *params)
+{
+    shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_fp16_w_int8(kernel, params);
+}
+
+int shl_rvv_common_conv1x1_gemm_packnto1_fp16(
+    struct csinn_tensor *input, struct csinn_tensor *output, struct csinn_tensor *kernel,
+    struct csinn_tensor *bias, struct csinn_conv2d_params *params,
+    void (*reorder_input)(__fp16 *, __fp16 *, int, int, int),
+    void (*gemm)(__fp16 *, const __fp16 *, const __fp16 *, __fp16 *, int, int, int, bool))
 {
     if (input->layout == CSINN_LAYOUT_NCHW) {
         shl_rvv_tensor_ndarray_to_nc1xc0_replace_fp16(input);
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t group = params->group;
@@ -47,6 +55,27 @@ int shl_rvv_conv1x1s1_gemm_packnto1_fp16(struct csinn_tensor *input, struct csin
     int32_t k = in_ch / group;
     int32_t n = out_h * out_w;
 
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            shl_rvv_conv_im2col_gemm_packnto1_dequantize_per_channel_i8_to_f16(kernel, params,
+                                                                               kernel_fp16);
+        } else {
+            int8_t *kernel_int8 = (int8_t *)kernel->data;
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
+
     __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
     __fp16 *output_ncxhwx = (__fp16 *)shl_mem_alloc(m * n * sizeof(__fp16));
 
@@ -58,10 +87,9 @@ int shl_rvv_conv1x1s1_gemm_packnto1_fp16(struct csinn_tensor *input, struct csin
             __fp16 *bias_ptr = bias_data ? (bias_data + g * m) : NULL;
 
             // pack
-            shl_rvv_reorder_input_z12_packn_fp16(input_data, in_ptr, k, n, n);
+            reorder_input(input_data, in_ptr, k, n, n);
             // GEMM
-            shl_rvv_ncxhwx_gemm_12xpack2n_fp16(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m, k, n,
-                                               n);
+            gemm(output_ncxhwx, kernel_ptr, in_ptr, bias_ptr, m, k, n, false);
 
             shl_rvv_reorder_input_packnto1_fp16(output_ncxhwx, output_data, m, out_h, out_w);
 
@@ -71,7 +99,20 @@ int shl_rvv_conv1x1s1_gemm_packnto1_fp16(struct csinn_tensor *input, struct csin
     }
     shl_mem_free(pb_reorder);
     shl_mem_free(output_ncxhwx);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv1x1s1_gemm_packnto1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                         struct csinn_conv2d_params *params)
+{
+    return shl_rvv_common_conv1x1_gemm_packnto1_fp16(input, output, kernel, bias, params,
+                                                     shl_rvv_reorder_input_z12_packn_fp16,
+                                                     shl_rvv_ncxhwx_gemm_12xpack2n_fp16);
 }

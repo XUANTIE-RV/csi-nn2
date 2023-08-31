@@ -17,8 +17,8 @@
  */
 #ifndef INCLUDE_SHL_DEBUG_H_
 #define INCLUDE_SHL_DEBUG_H_
-#include "csi_nn.h"
-#include "shl_node.h"
+#include "csinn/csi_nn.h"
+#include "graph/shl_node.h"
 
 enum shl_debug_enum {
     SHL_DEBUG_LEVEL_DEBUG = -2,

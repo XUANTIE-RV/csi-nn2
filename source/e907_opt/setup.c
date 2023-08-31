@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_e907.h"
+#include "e907/e907.h"
 
 static struct shl_cb_op_list shl_e907_cb_op_list;
 

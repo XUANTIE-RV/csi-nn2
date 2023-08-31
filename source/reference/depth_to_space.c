@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 // the input->data is a 4-D Tensor with shape [batch, depth, height, width].
 int shl_ref_depth_to_space_nchw_f32(struct csinn_tensor *input, struct csinn_tensor *output,

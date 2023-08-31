@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static int shl_rvv_concat_ndarray_fp16(struct csinn_tensor **input, struct csinn_tensor *output,
                                        struct csinn_concat_params *params)
@@ -51,7 +51,9 @@ static int shl_rvv_concat_ndarray_fp16(struct csinn_tensor **input, struct csinn
             __fp16 in_scale = input_item->qinfo->scale;
             int copy_size = input_item->dim[params->axis] * base_inner_size;
             __fp16 *input_ptr = input_item_data + k * copy_size;
-
+            if ((fabs(in_scale - 1) > FLT_EPSILON || fabs(out_scale - 1) > FLT_EPSILON)) {
+                shl_rvv_requantize_fp16(input_ptr, in_scale / out_scale, copy_size);
+            }
             while (copy_size > 0) {
                 vl = vsetvl_e16m2(copy_size);
                 vfloat16m2_t _input = vle16_v_f16m2(input_ptr, vl);

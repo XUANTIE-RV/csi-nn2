@@ -51,6 +51,10 @@ int shl_gref_where_infer_shape(struct csinn_tensor *condition, struct csinn_tens
                                struct csinn_tensor *y, struct csinn_tensor *output,
                                struct csinn_where_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(condition);
+    shl_tensor_try_nc1xc0_to_ndarray_shape(x);
+    shl_tensor_try_nc1xc0_to_ndarray_shape(y);
+
     if (x->data == NULL || y->data == NULL) {
         // Return the indices of non-zero elements
         int c_size = 1;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 void gemm_fp16_nhwc_matrix_rowxn(__fp16 *output, const __fp16 *kernel, const __fp16 *input,
                                  const __fp16 *bias, int row, int k, int n);

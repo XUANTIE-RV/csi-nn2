@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static void element_div_f32(float *src0, float *src1, float *dest, int input_idx, int output_idx)
 {

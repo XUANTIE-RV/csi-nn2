@@ -18,7 +18,7 @@
 
 #include <math.h>
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 // https://github.com/pytorch/pytorch/blob/master/caffe2/operators/roi_pool_op.cc
 // defalut input layout: NCHW

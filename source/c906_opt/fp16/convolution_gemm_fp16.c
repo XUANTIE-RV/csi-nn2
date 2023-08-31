@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /*************************************************************************************
  * reorder kernel_data inplace, means the origin kernel_data be destoried.
@@ -39,13 +39,35 @@ void shl_c906_conv_im2col_sgemm_transform_kernel_fp16(struct csinn_tensor *kerne
     shl_mem_free(pa_reorder);
 }
 
+/*************************************************************************************
+ * reorder kernel_data inplace, means the origin kernel_data be destoried.
+ * The reason to do this is that the packaging process must not consume more memory.
+ **************************************************************************************/
+void shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(struct csinn_tensor *kernel,
+                                                             struct csinn_conv2d_params *params)
+{
+    int8_t *kernel_data = (int8_t *)kernel->data;
+    int group = params->group;
+
+    int m = kernel->dim[0] / group;  // m = out_ch / group
+    int k = kernel->dim[1] * kernel->dim[2] * kernel->dim[3];
+
+    int8_t *pa_reorder = (int8_t *)shl_mem_alloc(group * m * k * sizeof(int8_t));
+    for (int g = 0; g < group; g++) {
+        shl_rvv_reorder_kernel_n8_fp16_w_int8(kernel_data + g * m * k, pa_reorder + g * m * k, m, k,
+                                              k);
+    }
+    memcpy(kernel_data, pa_reorder, group * m * k * sizeof(int8_t));
+    shl_mem_free(pa_reorder);
+}
+
 int shl_c906_conv_im2col_sgemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                     struct csinn_conv2d_params *params)
 {
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t group = params->group;
@@ -62,7 +84,7 @@ int shl_c906_conv_im2col_sgemm_fp16(struct csinn_tensor *input, struct csinn_ten
     int32_t stride_w = params->stride_width;
     int32_t pad_left = params->pad_left;
     int32_t pad_top = params->pad_top;
-    int32_t pad_if_zero = pad_left + pad_top + params->pad_right + params->pad_down;
+    int32_t pad_non_zero = pad_left + pad_top + params->pad_right + params->pad_down;
     int32_t dilation_h = params->dilation_height;
     int32_t dilation_w = params->dilation_width;
     int channel_col = in_ch / group * ksize_h * ksize_w;
@@ -71,56 +93,30 @@ int shl_c906_conv_im2col_sgemm_fp16(struct csinn_tensor *input, struct csinn_ten
     int32_t k = in_ch / group * ksize_h * ksize_w;
     int32_t n = out_height * out_width;
 
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            shl_rvv_conv_im2col_gemm_dequantize_per_channel_i8_to_f16(kernel, params, kernel_fp16);
+        } else {
+            int8_t *kernel_int8 = (int8_t *)kernel->data;
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
+
     __fp16 *im2col_data = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
     __fp16 *pb_reorder = (__fp16 *)shl_mem_alloc(k * n * sizeof(__fp16));
 
-    if (pad_if_zero) {
-        for (int i = 0; i < batch; i++) {
-            for (int g = 0; g < group; g++) {
-                // im2col
-                __fp16 *data_col = im2col_data;
-                __fp16 *channel_data = input_data;
-                for (int c = 0; c < in_ch / group; c++) {
-                    for (int kh = 0; kh < ksize_h; kh++) {
-                        for (int kw = 0; kw < ksize_w; kw++) {
-                            int in_row = -pad_top + kh * dilation_h;
-                            for (int oh = 0; oh < out_height; oh++) {
-                                if (in_row >= in_height || in_row < 0) {
-                                    for (int ow = 0; ow < out_width; ow++) {
-                                        *data_col++ = 0.0f;
-                                    }
-                                } else {
-                                    int in_col = -pad_left + kw * dilation_w;
-                                    for (int ow1 = 0; ow1 < out_width; ow1++) {
-                                        int col_idx = (c * out_height + oh) * out_width + ow1;
-                                        if (in_col < in_width && in_col >= 0) {
-                                            *data_col++ = channel_data[in_row * in_width + in_col];
-                                        } else {
-                                            *data_col++ = 0.0f;
-                                        }
-                                        in_col += stride_w;
-                                    }
-                                }
-                                in_row += stride_h;
-                            }
-                        }
-                    }
-                    channel_data += in_height * in_width;
-                }
-
-                __fp16 *pa = kernel_data + g * m * k;
-                __fp16 *pb = pb_reorder;
-                __fp16 *pc = output_data;
-
-                // pack
-                shl_c906_reorder_input_fp16_1(im2col_data, pb, k, n, n);
-                // GEMM
-                shl_c906_sgemm_kernel_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
-                input_data += in_ch / group * in_height * in_width;
-                output_data += m * n;
-            }
-        }
-    } else {
+    if (!pad_non_zero && dilation_h == 1 && dilation_w == 1) {
         for (int i = 0; i < batch; i++) {
             for (int g = 0; g < group; g++) {
                 // im2col
@@ -178,10 +174,60 @@ int shl_c906_conv_im2col_sgemm_fp16(struct csinn_tensor *input, struct csinn_ten
                 output_data += m * n;
             }
         }
+    } else {
+        for (int i = 0; i < batch; i++) {
+            for (int g = 0; g < group; g++) {
+                // im2col
+                __fp16 *data_col = im2col_data;
+                __fp16 *channel_data = input_data;
+                for (int c = 0; c < in_ch / group; c++) {
+                    for (int kh = 0; kh < ksize_h; kh++) {
+                        for (int kw = 0; kw < ksize_w; kw++) {
+                            int in_row = -pad_top + kh * dilation_h;
+                            for (int oh = 0; oh < out_height; oh++) {
+                                if (in_row >= in_height || in_row < 0) {
+                                    for (int ow = 0; ow < out_width; ow++) {
+                                        *data_col++ = 0.0f;
+                                    }
+                                } else {
+                                    int in_col = -pad_left + kw * dilation_w;
+                                    for (int ow1 = 0; ow1 < out_width; ow1++) {
+                                        int col_idx = (c * out_height + oh) * out_width + ow1;
+                                        if (in_col < in_width && in_col >= 0) {
+                                            *data_col++ = channel_data[in_row * in_width + in_col];
+                                        } else {
+                                            *data_col++ = 0.0f;
+                                        }
+                                        in_col += stride_w;
+                                    }
+                                }
+                                in_row += stride_h;
+                            }
+                        }
+                    }
+                    channel_data += in_height * in_width;
+                }
+
+                __fp16 *pa = kernel_data + g * m * k;
+                __fp16 *pb = pb_reorder;
+                __fp16 *pc = output_data;
+
+                // pack
+                shl_c906_reorder_input_fp16_1(im2col_data, pb, k, n, n);
+                // GEMM
+                shl_c906_sgemm_kernel_fp16(pc, pa, pb, m, k, n, n, bias_data + g * m);
+                input_data += in_ch / group * in_height * in_width;
+                output_data += m * n;
+            }
+        }
     }
 
     shl_mem_free(pb_reorder);
     shl_mem_free(im2col_data);
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;

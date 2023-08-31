@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 static float threshold_relu(float x, float theta) { return x > theta ? x : 0; }
 

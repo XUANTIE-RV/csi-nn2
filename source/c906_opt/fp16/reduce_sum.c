@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 // reduce_sum
 int shl_c906_reduce_sum_fp16(struct csinn_tensor *input, struct csinn_tensor *output,

@@ -109,6 +109,8 @@ packnx12_start:
     srli            t4, t3, 16
 
     srai            t6, a3, 1   // k2
+    addi            t6, t6, -1  // k2_end
+    beqz            t6, packnx12_k2_end
 
 packnx12_k2:
     vle16.v         v4, (a5)
@@ -165,6 +167,53 @@ packnx12_k2:
 
     addi            t6, t6, -1
     bnez            t6, packnx12_k2
+
+packnx12_k2_end:
+    vle16.v         v4, (a5)
+    add             a5, a5, t0  // kernel_ptr += packn * 2
+
+    vwmacc.vx       v8, t1, v2
+    vwmacc.vx       v12, t3, v2
+    lwd             s1, s3, 8(a2)
+    vwmacc.vx       v10, t2, v2
+    srli            s2, s1, 16
+    vwmacc.vx       v14, t4, v2
+    srli            s4, s3, 16
+    vwmacc.vx       v16, s1, v2
+    vwmacc.vx       v20, s3, v2
+    lwd             t1, t3, 16(a2)
+    addi            a2, a2, 24
+    vwmacc.vx       v18, s2, v2
+    srli            t2, t1, 16
+    vwmacc.vx       v22, s4, v2
+    srli            t4, t3, 16
+    vwmacc.vx       v24, t1, v2
+    vwmacc.vx       v28, t3, v2
+    lwd             s1, s3, 0(a2)
+    vwmacc.vx       v26, t2, v2
+    srli            s2, s1, 16
+    vwmacc.vx       v30, t4, v2
+    srli            s4, s3, 16
+
+    vwmacc.vx       v8, s1, v4
+    vwmacc.vx       v12, s3, v4
+    lwd             t1, t3, 8(a2)
+    vwmacc.vx       v10, s2, v4
+    srli            t2, t1, 16
+    vwmacc.vx       v14, s4, v4
+    srli            t4, t3, 16
+    vwmacc.vx       v16, t1, v4
+    vwmacc.vx       v20, t3, v4
+    lwd             s1, s3, 16(a2)
+    addi            a2, a2, 24
+    vwmacc.vx       v18, t2, v4
+    srli            s2, s1, 16
+    vwmacc.vx       v22, t4, v4
+    srli            s4, s3, 16
+    vwmacc.vx       v24, s1, v4
+    vwmacc.vx       v28, s3, v4
+    vwmacc.vx       v26, s2, v4
+    vwmacc.vx       v30, s4, v4
 
 packnx12_end:
     vsetvli         zero, zero, e32, m2
@@ -228,6 +277,8 @@ packnx8_start:
     srli            t4, t3, 16
 
     srai            t6, a3, 1   // k2
+    addi            t6, t6, -1  // k2_end
+    beqz            t6, packnx8_k2_end
 
 packnx8_k2:
     vle16.v         v4, (a5)
@@ -269,6 +320,38 @@ packnx8_k2:
 
     addi            t6, t6, -1
     bnez            t6, packnx8_k2
+
+packnx8_k2_end:
+    vle16.v         v4, (a5)
+    add             a5, a5, t0  // kernel_ptr += packn * 2
+
+    vwmacc.vx       v8, t1, v2
+    vwmacc.vx       v12, t3, v2
+    lwd             s1, s3, 8(a2)
+    vwmacc.vx       v10, t2, v2
+    srli            s2, s1, 16
+    vwmacc.vx       v14, t4, v2
+    srli            s4, s3, 16
+    vwmacc.vx       v16, s1, v2
+    vwmacc.vx       v20, s3, v2
+    lwd             t1, t3, 16(a2)
+    vwmacc.vx       v18, s2, v2
+    srli            t2, t1, 16
+    vwmacc.vx       v22, s4, v2
+    srli            t4, t3, 16
+
+    vwmacc.vx       v8, t1, v4
+    vwmacc.vx       v12, t3, v4
+    lwd             s1, s3, 24(a2)
+    addi            a2, a2, 32
+    vwmacc.vx       v10, t2, v4
+    srli            s2, s1, 16
+    vwmacc.vx       v14, t4, v4
+    srli            s4, s3, 16
+    vwmacc.vx       v16, s1, v4
+    vwmacc.vx       v20, s3, v4
+    vwmacc.vx       v18, s2, v4
+    vwmacc.vx       v22, s4, v4
 
 packnx8_end:
     vsetvli         zero, zero, e32, m2
@@ -313,6 +396,8 @@ packnx4_start:
     srli            t4, t3, 16
 
     srai            t6, a3, 1   // k2
+    addi            t6, t6, -1  // k2_end
+    beqz            t6, packnx4_k2_end
 
 packnx4_k2:
     vle16.v         v4, (a5)
@@ -340,6 +425,24 @@ packnx4_k2:
 
     addi            t6, t6, -1
     bnez            t6, packnx4_k2
+
+packnx4_k2_end:
+    vle16.v         v4, (a5)
+    add             a5, a5, t0  // kernel_ptr += packn * 2
+
+    vwmacc.vx       v8, t1, v2
+    lwd             s1, s3, 8(a2)
+    vwmacc.vx       v12, t3, v2
+    srli            s2, s1, 16
+    vwmacc.vx       v10, t2, v2
+    srli            s4, s3, 16
+    vwmacc.vx       v14, t4, v2
+    addi            a2, a2, 16
+
+    vwmacc.vx       v8, s1, v4
+    vwmacc.vx       v12, s3, v4
+    vwmacc.vx       v10, s2, v4
+    vwmacc.vx       v14, s4, v4
 
 packnx4_end:
     vsetvli         zero, zero, e32, m2
@@ -371,6 +474,8 @@ packnx2_start:
     lh              t2, 2(a2)
 
     srai            t6, a3, 1   // k2
+    addi            t6, t6, -1  // k2_end
+    beqz            t6, packnx2_k2_end
 
 packnx2_k2:
     vle16.v         v4, (a5)
@@ -392,6 +497,19 @@ packnx2_k2:
 
     addi            t6, t6, -1
     bnez            t6, packnx2_k2
+
+packnx2_k2_end:
+    vle16.v         v4, (a5)
+    add             a5, a5, t0  // kernel_ptr += packn * 2
+
+    vwmacc.vx       v8, t1, v2
+    lh              s1, 4(a2)
+    vwmacc.vx       v10, t2, v2
+    lh              s2, 6(a2)
+    addi            a2, a2, 8
+
+    vwmacc.vx       v8, s1, v4
+    vwmacc.vx       v10, s2, v4
 
 packnx2_end:
     vsetvli         zero, zero, e32, m2
@@ -416,6 +534,8 @@ packnx1_start:
     lh              t1, 0(a2)
 
     srai            t6, a3, 1   // k2
+    addi            t6, t6, -1  // k2_end
+    beqz            t6, packnx1_k2_end
 
 packnx1_k2:
     vle16.v         v4, (a5)
@@ -433,6 +553,16 @@ packnx1_k2:
 
     addi            t6, t6, -1
     bnez            t6, packnx1_k2
+
+packnx1_k2_end:
+    vle16.v         v4, (a5)
+    add             a5, a5, t0  // kernel_ptr += packn * 2
+
+    vwmacc.vx       v8, t1, v2
+    lh              s1, 2(a2)
+    addi            a2, a2, 4
+
+    vwmacc.vx       v8, s1, v4
 
 packnx1_end:
     vsetvli         zero, zero, e32, m2

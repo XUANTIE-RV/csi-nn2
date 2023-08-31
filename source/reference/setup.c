@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
 {
@@ -675,8 +675,8 @@ static void *setup_cb_map()
     }
 
 #ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
-        cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].exec = shl_ref_reshape;
-        cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].init = shl_ref_reshape_init;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].exec = shl_ref_reshape;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].init = shl_ref_reshape_init;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED

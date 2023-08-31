@@ -28,6 +28,7 @@ int shl_gref_gather(struct csinn_tensor *input, struct csinn_tensor *indices,
 int shl_gref_gather_infer_shape(struct csinn_tensor *input, struct csinn_tensor *indices,
                                 struct csinn_tensor *output, struct csinn_gather_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     int32_t axis = params->axis;
     int32_t indices_dim_count = indices->dim_count;
     // if indices is a single number

@@ -46,9 +46,11 @@ int shl_gref_concat(struct csinn_tensor **input, struct csinn_tensor *output,
 int shl_gref_concat_infer_shape(struct csinn_tensor **input, struct csinn_tensor *output,
                                 struct csinn_concat_params *params)
 {
-    for (int i = 1; i < params->inputs_count; i++) {
+    for (int i = 0; i < params->inputs_count; i++) {
+        shl_tensor_try_nc1xc0_to_ndarray_shape(input[i]);
         if (input[i]->dim_count != input[0]->dim_count) {
             shl_debug_error("all inputs must have same shape size!\n");
+            return CSINN_FALSE;
         }
     }
     output->dim_count = input[0]->dim_count;

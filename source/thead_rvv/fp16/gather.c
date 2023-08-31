@@ -16,11 +16,15 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 int shl_rvv_gather_fp16(struct csinn_tensor *input, struct csinn_tensor *indices,
                         struct csinn_tensor *output, struct csinn_gather_params *params)
 {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
+
     int input_size = csinn_tensor_size(input);
     if (input_size == 0) {
         return CSINN_TRUE;

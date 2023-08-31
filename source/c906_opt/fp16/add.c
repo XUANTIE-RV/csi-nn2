@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 static int tail_coincide(struct csinn_tensor *input0, struct csinn_tensor *input1)
 {

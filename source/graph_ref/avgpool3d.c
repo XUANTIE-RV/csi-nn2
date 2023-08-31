@@ -41,19 +41,27 @@ int shl_gref_global_avgpool3d(struct csinn_tensor *input, struct csinn_tensor *o
 int shl_gref_global_avgpool3d_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                           struct csinn_pool_params *params)
 {
-    int d, h, w;
-    if (output->layout == CSINN_LAYOUT_NCDHW) {
+    int n, c, d, h, w;
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
+    if (input->layout == CSINN_LAYOUT_NCDHW) {
+        n = 0;
+        c = 1;
         d = 2;
         h = 3;
         w = 4;
-    } else if (output->layout == CSINN_LAYOUT_NDHWC) {
+    } else if (input->layout == CSINN_LAYOUT_NDHWC) {
+        n = 0;
         d = 1;
         h = 2;
         w = 3;
+        c = 4;
     } else {
+        shl_debug_error("%s: Invalid input tensor layout!\n", __func__);
         return CSINN_UNSUPPORT_LAYOUT;
     }
-
+    output->dim_count = 5;
+    output->dim[n] = input->dim[n];
+    output->dim[c] = input->dim[c];
     output->dim[d] = 1;
     output->dim[h] = 1;
     output->dim[w] = 1;

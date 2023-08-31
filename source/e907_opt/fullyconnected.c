@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_e907.h"
+#include "e907/e907.h"
 
 int shl_e907_fullyconnected_init(struct csinn_tensor *input, struct csinn_tensor *output,
                                  struct csinn_tensor *weights, struct csinn_tensor *bias,

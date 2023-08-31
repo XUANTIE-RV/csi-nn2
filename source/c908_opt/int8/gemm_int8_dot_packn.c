@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void gemm_int8_dot_ncxhwx_12xpackn(int8_t *output, const int8_t *kernel, const int8_t *input,
                                    const int32_t *bias, int m, int k, int n, int32_t out_zp,
@@ -26,8 +26,8 @@ void gemm_int8_dot_ncxhwx_8xpackn(int8_t *output, const int8_t *kernel, const in
                                   int32_t *mult, int32_t *shift);
 
 void shl_c908_ncxhwx_gemm_12xpackn_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                            const int32_t *bias, int m, int k, int n,
-                                            int32_t out_zp, int32_t *mult, int32_t *shift)
+                                            int32_t *bias, int m, int k, int n, int32_t out_zp,
+                                            int32_t *mult, int32_t *shift)
 {
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
 

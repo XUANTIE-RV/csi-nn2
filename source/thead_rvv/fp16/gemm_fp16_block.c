@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * packn = vlenb / sizeof(__fp16)
@@ -677,8 +677,8 @@ static inline void gemm_12xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp
 
 /*************************************************************
  * packn = vlenb / sizeof(__fp16)
- * m_blk: M_BLK, M_BLK/2, M_BLK/4, ..., 12
- * n_blk: N_BLK, N_BLK/2, N_BLK/4, ..., pack2n
+ * m_blk: M_BLK, M_tail
+ * n_blk: N_BLK, N_tail
  * k_blk: K_BLK, K_tail
  *
  * dst - output: [m, n]
@@ -700,28 +700,17 @@ void shl_rvv_gemm_block_12xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp
         bias = (__fp16 *)shl_mem_alloc(m * sizeof(__fp16));
     }
 
-    const int packn = csrr_vlenb() / sizeof(__fp16);
-
-    const int MIN_M_BLK = 12;
-    const int MIN_N_BLK = packn * 2;
-
     int m_block = M_BLK;
     int m_idx = 0;
     while (m_idx < m) {
-        while (!(m_idx + m_block - 1 < m)) {
-            m_block /= 2;
-        }
-        if (m_block < MIN_M_BLK) {
+        if (m - m_idx < m_block) {
             m_block = m - m_idx;
         }
 
         int n_block = N_BLK;
         int n_idx = 0;
         while (n_idx < n) {
-            while (!(n_idx + n_block - 1 < n)) {
-                n_block /= 2;
-            }
-            if (n_block < MIN_N_BLK) {
+            if (n - n_idx < n_block) {
                 n_block = n - n_idx;
             }
 

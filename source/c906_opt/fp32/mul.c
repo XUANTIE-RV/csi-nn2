@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 static void element_mul_f32(float *input0, float *input1, float *output, int size)
 {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 int shl_c906_conv1d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -27,10 +27,10 @@ int shl_c906_conv1d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *o
     int32_t in_w = input->dim[2];
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_w = params->stride_width;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
 
-    if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
+    if (kernel_w == 1 && stride_w == 1 && dilation_w == 1) {
         shl_c906_conv1x1s1_sgemm_transform_kernel(kernel, (struct csinn_conv2d_params *)params);
         cb->exec = shl_c906_conv1x1s1_sgemm;
     } else {

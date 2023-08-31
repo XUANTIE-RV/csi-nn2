@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 void shl_c908_conv_im2col_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
                                                    struct csinn_conv2d_params *params)
@@ -44,115 +44,16 @@ int shl_c908_conv_im2col_gemm_int8(struct csinn_tensor *input, struct csinn_tens
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params)
 {
-    if (input->layout == CSINN_LAYOUT_NC1HWC0) {
-        shl_rvv_tensor_nc1xc0_to_ndarray_replace_int8(input);
-    }
-    int8_t *input_data = (int8_t *)input->data;
-    int8_t *output_data = (int8_t *)output->data;
-    int8_t *kernel_data = (int8_t *)params->conv_extra.kernel_tm->data;
-    // int8_t *kernel_data = (int8_t *)kernel->data;
-    int32_t *bias_data = (int32_t *)bias->data;
-
-    int32_t group = params->group;
-    int32_t batch = input->dim[0];
-    int32_t in_ch = input->dim[1];
-    int32_t in_height = input->dim[2];
-    int32_t in_width = input->dim[3];
-    int32_t out_ch = kernel->dim[0];
-    int32_t out_height = output->dim[2];
-    int32_t out_width = output->dim[3];
-    int32_t ksize_h = kernel->dim[2];
-    int32_t ksize_w = kernel->dim[3];
-    int32_t stride_h = params->stride_height;
-    int32_t stride_w = params->stride_width;
-    int32_t pad_left = params->pad_left;
-    int32_t pad_top = params->pad_top;
-    int32_t dilation_h = params->dilation_height;
-    int32_t dilation_w = params->dilation_width;
-
-    int32_t m = out_ch / group;
-    int32_t k = in_ch / group * ksize_h * ksize_w;
-    int32_t n = out_height * out_width;
-    int32_t k4 = (k % 4 != 0) ? ((k / 4 + 1) * 4) : k;
-
-    int8_t *im2col_data = (int8_t *)shl_mem_alloc(k * n * sizeof(int8_t));
-    int8_t *pb_reorder = (int8_t *)shl_mem_alloc(k4 * n * sizeof(int8_t));
-
-    int32_t *multiplier = (int32_t *)shl_mem_alloc(m * sizeof(int32_t));
-    int32_t *shift = (int32_t *)shl_mem_alloc(m * sizeof(int32_t));
-
+#ifdef SHL_USE_DOT_INT8
     const int vlen = csrr_vlenb() * 8;
-
-    int j = 0;
-    for (int i = 0; i < batch; i++) {
-        for (int g = 0; g < group; g++) {
-            // im2col
-            int8_t *data_col = im2col_data;
-            int8_t *channel_data = input_data;
-            for (int c = 0; c < in_ch / group; c++) {
-                for (int kh = 0; kh < ksize_h; kh++) {
-                    for (int kw = 0; kw < ksize_w; kw++) {
-                        int in_row = -pad_top + kh * dilation_h;
-                        for (int oh = 0; oh < out_height; oh++) {
-                            if (in_row >= in_height || in_row < 0) {
-                                for (int ow = 0; ow < out_width; ow++) {
-                                    *data_col++ = input->qinfo->zero_point;
-                                }
-                            } else {
-                                int in_col = -pad_left + kw * dilation_w;
-                                for (int ow1 = 0; ow1 < out_width; ow1++) {
-                                    int col_idx = (c * out_height + oh) * out_width + ow1;
-                                    if (in_col < in_width && in_col >= 0) {
-                                        *data_col++ = channel_data[in_row * in_width + in_col];
-                                    } else {
-                                        *data_col++ = input->qinfo->zero_point;
-                                    }
-                                    in_col += stride_w;
-                                }
-                            }
-                            in_row += stride_h;
-                        }
-                    }
-                }
-                channel_data += in_height * in_width;
-            }
-
-            int8_t *pa = kernel_data + g * m * k4;
-            int8_t *pb = pb_reorder;
-            int8_t *pc = output_data;
-
-            if (kernel->quant_channel > 1) {
-                for (int c = 0; c < m; c++, j++) {
-                    multiplier[c] = kernel->qinfo[j].multiplier;
-                    shift[c] = kernel->qinfo[j].shift;
-                }
-            } else if (kernel->quant_channel == 1) {
-                for (int c = 0; c < m; c++) {
-                    multiplier[c] = kernel->qinfo[0].multiplier;
-                    shift[c] = kernel->qinfo[0].shift;
-                }
-            }
-
-            if (vlen == 128) {
-                // pack
-                shl_c908_reorder_input_z8_int8_dot(im2col_data, pb, k, n, n);
-                // GEMM
-                shl_c908_gemm_8x8_int8_dot(pc, pa, pb, bias_data + g * m, m, k4, n, n,
-                                           output->qinfo->zero_point, multiplier, shift);
-            } else if (vlen >= 256) {
-                // pack
-                shl_c908_reorder_input_z16_int8_v256_dot(im2col_data, pb, k, n, n);
-                // GEMM
-                shl_c908_gemm_8x16_int8_v256_dot(pc, pa, pb, bias_data + g * m, m, k4, n, n,
-                                                 output->qinfo->zero_point, multiplier, shift);
-            }
-            input_data += in_ch / group * in_height * in_width;
-            output_data += m * n;
-        }
+    if (vlen == 128) {
+        return shl_rvv_common_conv_gemm_int8(input, output, kernel, bias, params,
+                                             shl_c908_reorder_input_z8_int8_dot,
+                                             shl_c908_gemm_8x8_int8_dot);
+    } else if (vlen >= 256) {
+        return shl_rvv_common_conv_gemm_int8(input, output, kernel, bias, params,
+                                             shl_c908_reorder_input_z16_int8_v256_dot,
+                                             shl_c908_gemm_8x16_int8_v256_dot);
     }
-    shl_mem_free(pb_reorder);
-    shl_mem_free(im2col_data);
-    shl_mem_free(multiplier);
-    shl_mem_free(shift);
-    return CSINN_TRUE;
+#endif  // SHL_USE_DOT_INT8
 }

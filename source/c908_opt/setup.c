@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c908.h"
+#include "c908/c908.h"
 
 #define C908_OP_PATTERN_MAX 60
 static struct shl_cb_table shl_c908_cb_table[C908_OP_PATTERN_MAX];

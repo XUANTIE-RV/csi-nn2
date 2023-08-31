@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_e907.h"
+#include "e907/e907.h"
 
 int shl_e907_concat_int8(struct csinn_tensor **input, struct csinn_tensor *output,
                          struct csinn_concat_params *params)

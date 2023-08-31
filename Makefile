@@ -28,6 +28,9 @@ nn2_c908:
 nn2_c920:
 	mkdir -p c920_build; cd c920_build; cmake ../ -DCONFIG_BUILD_RISCV_C920=ON -DCONFIG_SHL_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/c920/; make -j${USE_CORE}; make install; cd -
 
+nn2_c920v2:
+	mkdir -p c920v2_build; cd c920v2_build; cmake ../ -DCONFIG_BUILD_RISCV_C920V2=ON -DCONFIG_SHL_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/c920v2/; make -j${USE_CORE}; make install; cd -
+
 nn2_c920_so:
 	mkdir -p c920_build_so; cd c920_build_so; cmake ../ -DCONFIG_BUILD_RISCV_C920=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/c920/; make -j${USE_CORE}; make install; cd -
 

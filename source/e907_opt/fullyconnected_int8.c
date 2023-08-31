@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_e907.h"
+#include "e907/e907.h"
 
 static void shl_e907_fullyconnectd_int8_internel(const int8_t *input, int32_t *output,
                                                  int8_t *weight, const int32_t *bias, int in_nodes,

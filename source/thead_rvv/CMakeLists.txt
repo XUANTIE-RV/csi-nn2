@@ -5,6 +5,7 @@ if(CONFIG_THEAD_RVV_SOURCE)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/reorder.c)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/data_convert.c)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/capability.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/binary_broadcast.c)
 endif()
 
 if(CONFIG_THEAD_RVV_ADD_FP32)
@@ -120,6 +121,16 @@ if(CONFIG_THEAD_RVV_CONVOLUTION_INT4)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int4/convolution.c)
 endif()
 
+if(CONFIG_THEAD_RVV_CONVOLUTION1D_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/convolution1d.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/convolution1d_gemm_fp32.c)
+endif()
+
+if(CONFIG_THEAD_RVV_CONVOLUTION1D_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/convolution1d.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/convolution1d_gemm_fp16.c)
+endif()
+
 if(CONFIG_THEAD_RVV_CONVOLUTION1D_INT8)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/convolution1d.c)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/convolution1d_1_int8.c)
@@ -158,6 +169,40 @@ if(CONFIG_THEAD_RVV_DEPTHWISE_CONVOLUTION1D_INT8)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/depthwise_convolution1d_int8.c)
 endif()
 
+if(CONFIG_THEAD_RVV_DECONVOLUTION_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/deconvolution_gemm_fp32.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/deconvolution.c)
+endif()
+
+if(CONFIG_THEAD_RVV_DECONVOLUTION_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/deconvolution_gemm_fp16.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/deconvolution.c)
+endif()
+
+if(CONFIG_THEAD_RVV_DIV_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/div.c)
+endif()
+
+if(CONFIG_THEAD_RVV_DIV_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/div.c)
+endif()
+
+if(CONFIG_THEAD_RVV_DIV_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/div.c)
+endif()
+
+if(CONFIG_THEAD_RVV_ERF_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/erf.c)
+endif()
+
+if(CONFIG_THEAD_RVV_ERF_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/erf.c)
+endif()
+
+if(CONFIG_THEAD_RVV_ERF_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/erf.c)
+endif()
+
 if(CONFIG_THEAD_RVV_FULLYCONNECTED_FP32)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/fullyconnected_fp32.c)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/fullyconnected.c)
@@ -175,6 +220,18 @@ endif()
 
 if(CONFIG_THEAD_RVV_FULLYCONNECTED_INT4)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int4/fullyconnected_int4.c)
+endif()
+
+if(CONFIG_THEAD_RVV_GATHER_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/gather.c)
+endif()
+
+if(CONFIG_THEAD_RVV_GATHER_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/gather.c)
+endif()
+
+if(CONFIG_THEAD_RVV_GATHER_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/gather.c)
 endif()
 
 if(CONFIG_THEAD_RVV_GEMM_FP32)
@@ -269,7 +326,9 @@ if(CONFIG_THEAD_RVV_MATMUL_FP16)
 endif()
 
 if(CONFIG_THEAD_RVV_MATMUL_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/matmul.c)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/matmul_int8.c)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/matmul_int8_dot.c)
 endif()
 
 if(CONFIG_THEAD_RVV_MAXPOOL_FP32)
@@ -338,6 +397,10 @@ if(CONFIG_THEAD_RVV_PRELU_INT8)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/prelu.c)
 endif()
 
+if(CONFIG_THEAD_RVV_REDUCE_SUM_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/reduce_sum.c)
+endif()
+
 if(CONFIG_THEAD_RVV_RELU_FP32)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/relu.c)
 endif()
@@ -356,6 +419,10 @@ endif()
 
 if(CONFIG_THEAD_RVV_RELU6_FP16)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/relu6.c)
+endif()
+
+if(CONFIG_THEAD_RVV_RELU6_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/relu6.c)
 endif()
 
 if(CONFIG_THEAD_RVV_RESHAPE_FP32)
@@ -378,6 +445,22 @@ if(CONFIG_THEAD_RVV_SIGMOID_FP16)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/sigmoid.c)
 endif()
 
+if(CONFIG_THEAD_RVV_SIGMOID_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/sigmoid.c)
+endif()
+
+if(CONFIG_THEAD_RVV_SUB_FP32)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/sub.c)
+endif()
+
+if(CONFIG_THEAD_RVV_SUB_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/sub.c)
+endif()
+
+if(CONFIG_THEAD_RVV_SUB_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/sub.c)
+endif()
+
 if(CONFIG_THEAD_RVV_SOFTMAX_FP32)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp32/softmax.c)
 endif()
@@ -386,8 +469,12 @@ if(CONFIG_THEAD_RVV_SOFTMAX_FP16)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/softmax.c)
 endif()
 
-if(CONFIG_THEAD_RVV_REDUCE_SUM_INT8)
-    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/reduce_sum.c)
+if(CONFIG_THEAD_RVV_SOFTMAX_INT8)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/softmax.c)
+endif()
+
+if(CONFIG_THEAD_RVV_STRIDED_SLICE_FP16)
+    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/strided_slice.c)
 endif()
 
 if(CONFIG_THEAD_RVV_TRANSPOSE_FP32)
@@ -400,16 +487,4 @@ endif()
 
 if(CONFIG_THEAD_RVV_TRANSPOSE_INT8)
     list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/transpose.c)
-endif()
-
-if(CONFIG_THEAD_RVV_GATHER_FP16)
-    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/gather.c)
-endif()
-
-if(CONFIG_THEAD_RVV_GATHER_INT8)
-    list(APPEND THEAD_RVV_SRCS source/thead_rvv/int8/gather.c)
-endif()
-
-if(CONFIG_THEAD_RVV_STRIDED_SLICE_FP16)
-    list(APPEND THEAD_RVV_SRCS source/thead_rvv/fp16/strided_slice.c)
 endif()

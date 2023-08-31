@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 static int get_index(int32_t *dim, int32_t *idx, int32_t dim_count)
 {
@@ -30,10 +30,14 @@ static int get_index(int32_t *dim, int32_t *idx, int32_t dim_count)
 int shl_rvv_strided_slice_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                struct csinn_strided_slice_params *params)
 {
+    if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
+    }
+
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
 
-    for (int i = 0; i < params->slice_count; i++) {
+    for (int i = 0; i < input->dim_count; i++) {
         if (params->begin[i] < -input->dim[i]) params->begin[i] = -input->dim[i];
         if (params->begin[i] < 0) params->begin[i] += input->dim[i];
         if (params->begin[i] > input->dim[i]) params->begin[i] = input->dim[i];

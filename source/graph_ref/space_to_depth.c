@@ -30,6 +30,7 @@ int shl_gref_space_to_depth_infer_shape(struct csinn_tensor *input, struct csinn
                                         struct csinn_space_to_depth_params *params)
 {
     int h, w, c;
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     if (output->layout == CSINN_LAYOUT_NCHW) {
         c = 1;
         h = 2;
@@ -39,6 +40,7 @@ int shl_gref_space_to_depth_infer_shape(struct csinn_tensor *input, struct csinn
         w = 2;
         c = 3;
     } else {
+        shl_debug_error("%s: Invalid input tensor layout!\n", __func__);
         return CSINN_UNSUPPORT_LAYOUT;
     }
 

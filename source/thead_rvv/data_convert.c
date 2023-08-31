@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #ifdef XTHEADVDOT
 int shl_rvv_data_convert_init(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_siso_params *params)

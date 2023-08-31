@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvm.h"
+#include "rvm/rvm.h"
 
 static inline void wg_bxf3s1_reorder_kernel_nhwc_fp16(__fp16 *dst, const __fp16 *src, int N, int K,
                                                       int mcols)

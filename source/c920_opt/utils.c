@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c920.h"
+#include "c920/c920.h"
 
 // Only dtype conversion is supported. Layout conversion is not supported.
 void *shl_c920_f32_to_input_dtype(uint32_t index, float *data, struct csinn_session *sess)

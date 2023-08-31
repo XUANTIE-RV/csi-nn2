@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /************************************************************************************
  * (1) s2*(q2-z2) = s0*(q0-z0) * s1*(q1-z1)
@@ -104,7 +104,7 @@ static void elementwise_mul_int8_trans_fp16(struct csinn_tensor *input0,
 /************************************************************************************
  * (1) q2 = [ (q0-z0) * (q1-z1) * (s0*s1/s2) ] + z2
  * (2) q2 = (q0-z0) + z2
- * (3) ps: (q1-z1) * (s0*s1/s2) = 1
+ * (3) ps: (q1-z1) * (s0*s1/s2) = 1(z1<0) or -1(z1>0)
  ***********************************************************************************/
 static void broadcast_single_1_mul_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                         struct csinn_tensor *output)
@@ -113,6 +113,7 @@ static void broadcast_single_1_mul_int8(struct csinn_tensor *input0, struct csin
     int8_t *input1_data = (int8_t *)input1->data;
     int8_t *output_data = (int8_t *)output->data;
     int32_t zero_point0 = input0->qinfo->zero_point;
+    int32_t zero_point1 = input1->qinfo->zero_point;
     int32_t zero_point2 = output->qinfo->zero_point;
 
     int64_t size = csinn_tensor_size(output);
@@ -120,6 +121,9 @@ static void broadcast_single_1_mul_int8(struct csinn_tensor *input0, struct csin
         int vl = vsetvl_e8m1(size);
         vint8m1_t _in0 = vle8_v_i8m1(input0_data, vl);
         vint16m2_t _q1_z1 = vwsub_vx_i16m2(_in0, zero_point0, vl);
+        if (zero_point1 > 0) {
+            _q1_z1 = vneg_v_i16m2(_q1_z1, vl);
+        }
         vint16m2_t _res0 = vadd_vx_i16m2(_q1_z1, zero_point2, vl);
         vint8m1_t _res1 = vnclip_wx_i8m1(_res0, 0, vl);
         vse8_v_i8m1(output_data, _res1, vl);
@@ -128,6 +132,90 @@ static void broadcast_single_1_mul_int8(struct csinn_tensor *input0, struct csin
         size -= vl;
     }
 }
+
+static inline void mul_vv_i8_trans_f16(int8_t *in0, int8_t *in1, int8_t *out, int32_t size,
+                                       float *scale, int32_t *zero_point)
+{
+    int32_t z0 = zero_point[0];
+    int32_t z1 = zero_point[1];
+    int32_t z2 = zero_point[2];
+    float real_scale = scale[0] * scale[1] / scale[2];
+
+    while (size > 0) {
+        int vl = vsetvl_e8m1(size);
+        vint8m1_t _a = vle8_v_i8m1(in0, vl);
+        vint8m1_t _b = vle8_v_i8m1(in1, vl);
+        vint16m2_t _a_w = vwsub_vx_i16m2(_a, z0, vl);
+        vint16m2_t _b_w = vwsub_vx_i16m2(_b, z1, vl);
+        vfloat16m2_t _a_f = vfcvt_f_x_v_f16m2(_a_w, vl);
+        vfloat16m2_t _b_f = vfcvt_f_x_v_f16m2(_b_w, vl);
+        vfloat16m2_t _mulf = vfmul_vv_f16m2(_a_f, _b_f, vl);
+        _mulf = vfmul_vf_f16m2(_mulf, real_scale, vl);
+        vint16m2_t _res = vfcvt_x_f_v_i16m2(_mulf, vl);
+        _res = vadd_vx_i16m2(_res, z2, vl);
+        vse8_v_i8m1(out, vnclip_wx_i8m1(_res, 0, vl), vl);
+        in0 += vl;
+        in1 += vl;
+        out += vl;
+        size -= vl;
+    }
+}
+
+static inline void mul_vx_i8_trans_f16(int8_t *in0, int8_t *in1, int8_t *out, int32_t size,
+                                       float *scale, int32_t *zero_point)
+{
+    int32_t z0 = zero_point[0];
+    int32_t z1 = zero_point[1];
+    int32_t z2 = zero_point[2];
+    float real_scale = scale[0] * scale[1] / scale[2];
+    float b_f = in1[0] - z1;
+
+    while (size > 0) {
+        int vl = vsetvl_e8m1(size);
+        vint8m1_t _a = vle8_v_i8m1(in0, vl);
+        vint16m2_t _a_w = vwsub_vx_i16m2(_a, z0, vl);
+        vfloat16m2_t _a_f = vfcvt_f_x_v_f16m2(_a_w, vl);
+        vfloat16m2_t _mulf = vfmul_vf_f16m2(_a_f, b_f, vl);
+        _mulf = vfmul_vf_f16m2(_mulf, real_scale, vl);
+        vint16m2_t _res = vfcvt_x_f_v_i16m2(_mulf, vl);
+        _res = vadd_vx_i16m2(_res, z2, vl);
+        vse8_v_i8m1(out, vnclip_wx_i8m1(_res, 0, vl), vl);
+        in0 += vl;
+        out += vl;
+        size -= vl;
+    }
+}
+
+static inline void mul_xv_i8_trans_f16(int8_t *in0, int8_t *in1, int8_t *out, int32_t size,
+                                       float *scale, int32_t *zero_point)
+{
+    int32_t z0 = zero_point[0];
+    int32_t z1 = zero_point[1];
+    int32_t z2 = zero_point[2];
+    float real_scale = scale[0] * scale[1] / scale[2];
+    float a_f = in0[0] - z0;
+
+    while (size > 0) {
+        int vl = vsetvl_e8m1(size);
+        vint8m1_t _b = vle8_v_i8m1(in1, vl);
+        vint16m2_t _b_w = vwsub_vx_i16m2(_b, z1, vl);
+        vfloat16m2_t _b_f = vfcvt_f_x_v_f16m2(_b_w, vl);
+        vfloat16m2_t _mulf = vfmul_vf_f16m2(_b_f, a_f, vl);
+        _mulf = vfmul_vf_f16m2(_mulf, real_scale, vl);
+        vint16m2_t _res = vfcvt_x_f_v_i16m2(_mulf, vl);
+        _res = vadd_vx_i16m2(_res, z2, vl);
+        vse8_v_i8m1(out, vnclip_wx_i8m1(_res, 0, vl), vl);
+        in1 += vl;
+        out += vl;
+        size -= vl;
+    }
+}
+
+void *mul_cb_int8[] = {
+    [CSINN_BROADCAST_VV] = mul_vv_i8_trans_f16,
+    [CSINN_BROADCAST_VS] = mul_vx_i8_trans_f16,
+    [CSINN_BROADCAST_SV] = mul_xv_i8_trans_f16,
+};
 
 int shl_rvv_mul_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
                      struct csinn_tensor *output, struct csinn_diso_params *params)
@@ -158,8 +246,7 @@ int shl_rvv_mul_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
         }
         broadcast_single_1_mul_int8(input0, input1, output);
     } else {
-        /* TODO: recursive opt */
-        return shl_ref_mul_quant(input0, input1, output, params);
+        return shl_rvv_binary_op_broadcast_int8(input0, input1, output, mul_cb_int8);
     }
     return CSINN_TRUE;
 }

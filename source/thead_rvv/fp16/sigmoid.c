@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
+#include "rvv/rvv.h"
 #include "rvv_mathfun_fp16.h"
-#include "shl_thead_rvv.h"
 
 int shl_rvv_sigmoid_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_sigmoid_params *params)

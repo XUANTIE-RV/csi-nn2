@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 static int common_all_support(struct csinn_tensor *input, struct csinn_params_base *base)
 {
@@ -84,9 +84,9 @@ int shl_c906_conv1d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 {
     int32_t kernel_w = kernel->dim[2];
     int32_t stride_w = params->stride_width;
-    int32_t dalition_w = params->dilation_width;
+    int32_t dilation_w = params->dilation_width;
     if (input->dtype == CSINN_DTYPE_FLOAT16) {
-        if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
+        if (kernel_w == 1 && stride_w == 1 && dilation_w == 1) {
             if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
                 return CSINN_OPT_INTRINSIC;
             } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
@@ -98,7 +98,7 @@ int shl_c906_conv1d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
             return CSINN_OPT_C_REFERENCE;
         }
     } else if (input->dtype == CSINN_DTYPE_FLOAT32) {
-        if (kernel_w == 1 && stride_w == 1 && dalition_w == 1) {
+        if (kernel_w == 1 && stride_w == 1 && dilation_w == 1) {
             return CSINN_OPT_ASM;
         } else {
             return CSINN_OPT_C_REFERENCE;
@@ -450,25 +450,24 @@ int shl_c906_lrn_cap(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_c906_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
-    const int dims_count = mat0->dim_count;
     int batches_a = 1;
     int batches_b = 1;
 
     /* compute the outer size */
-    for (int i = 0; i < dims_count - 2; i++) {
+    for (int i = 0; i < mat0->dim_count - 2; i++) {
         batches_a *= mat0->dim[i];
+    }
+    for (int i = 0; i < mat1->dim_count - 2; i++) {
         batches_b *= mat1->dim[i];
     }
 
     if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32 ||
         mat0->dtype == CSINN_DTYPE_FLOAT16 &&
             (mat1->dtype == CSINN_DTYPE_FLOAT16 || mat1->dtype == CSINN_DTYPE_INT8)) {
-        if (batches_a == batches_b) {
-            if (!params->trans_a && !params->trans_b) {
+        if (!params->trans_a && !params->trans_b) {
+            if (batches_a == batches_b) {
                 return CSINN_OPT_INTRINSIC;
-            }
-        } else if (batches_a > 1 && batches_b == 1) {
-            if (!params->trans_a && !params->trans_b) {
+            } else if (batches_a > 1 && batches_b == 1) {
                 return CSINN_OPT_INTRINSIC;
             }
         }

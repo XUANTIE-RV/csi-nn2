@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_c906.h"
+#include "c906/c906.h"
 
 /* The matrices are stored in row-major order */
 #define A(i, j) a[(i)*lda + (j)]

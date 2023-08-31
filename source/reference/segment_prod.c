@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_ref.h"
+#include "reference/ref.h"
 
 int shl_ref_unsorted_segment_prod_f32(struct csinn_tensor *input, struct csinn_tensor *segment_ids,
                                       struct csinn_tensor *output,

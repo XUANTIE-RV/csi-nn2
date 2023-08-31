@@ -30,6 +30,7 @@ int shl_gref_instance_norm_infer_shape(struct csinn_tensor *input, struct csinn_
                                        struct csinn_tensor *bias, struct csinn_tensor *output,
                                        struct csinn_instance_norm_params *params)
 {
+    shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
     for (int i = 0; i < input->dim_count; i++) {
         output->dim[i] = input->dim[i];

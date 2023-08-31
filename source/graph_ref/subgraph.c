@@ -517,6 +517,7 @@ int shl_subgraph_setup(struct shl_node *n)
             case CSINN_OP_UNPOOLING:
             case CSINN_OP_UNSTACK:
             case CSINN_OP_YUV_RGB_SCALE:
+            case CSINN_OP_DATA_CONVERT:
                 output = node->out[0]->data;
                 output->sess = sub_sess;
                 ret = func(input0, output, params);

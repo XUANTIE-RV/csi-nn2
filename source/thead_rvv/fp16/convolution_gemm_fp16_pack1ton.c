@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 
 /*************************************************************
  * packn = vlenb / sizeof(__fp16)
@@ -117,9 +117,117 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_fp16(struct csinn_tensor *
     shl_mem_free(pa_reorder);
 }
 
-int shl_rvv_conv_im2col_gemm_pack1ton_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                           struct csinn_conv2d_params *params)
+/*************************************************************
+ * packn = vlenb / sizeof(__fp16)
+ * maxk = ksize_h * ksize_w
+ * constrain: out_c % packn = 0 and in_ch % packn can != 0
+ * layout: [out_c/pack2n, in_c/packn*maxk*packn + maxk*in_c%packn, pack2n]
+ *         [out_c/packna, in_c/packnb*maxk*packnb + maxk*in_c%packnb, packna]
+ ************************************************************/
+static void im2col_gemm_reorder_kernel_pack1ton_per_group_fp16_w_int8(int8_t *src, int8_t *dst,
+                                                                      int out_c, int in_c, int maxk)
+{
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    const int pack2n = packn * 2;
+
+    int vl = vsetvl_e16m2(pack2n);
+    int oc = 0;
+    // [out_c/pack2n, in_c/packn*maxk*packn + maxk*in_c%packn, pack2n]
+    for (; oc + pack2n - 1 < out_c; oc += pack2n) {
+        int8_t *k0 = src + oc * in_c * maxk;
+        int8_t *g0 = dst + oc * in_c * maxk;
+
+        int ic = 0;
+        for (; ic + packn - 1 < in_c; ic += packn) {
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < packn; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+        if (ic < in_c) {
+            int tail_c = in_c & (packn - 1);
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < tail_c; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+    }
+    vl = vsetvl_e16m1(packn);
+    // [out_c/packn, in_c/packnb*maxk*packnb + maxk*in_c%packnb, packn]
+    for (; oc + packn - 1 < out_c; oc += packn) {
+        int8_t *k0 = src + oc * in_c * maxk;
+        int8_t *g0 = dst + oc * in_c * maxk;
+
+        int ic = 0;
+        for (; ic + packn - 1 < in_c; ic += packn) {
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < packn; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+        if (ic < in_c) {
+            int tail_c = in_c & (packn - 1);
+            for (int k = 0; k < maxk; k++) {
+                for (int p = 0; p < tail_c; p++) {
+                    vint8m1_t _tmp =
+                        vlse8_v_i8m1(k0 + ((ic + p) * maxk + k), in_c * maxk * sizeof(int8_t), vl);
+                    vse8_v_i8m1(g0, _tmp, vl);
+                    g0 += vl;
+                }
+            }
+        }
+    }
+}
+
+/*************************************************************************************
+ * reorder kernel_data inplace, means the origin kernel_data be destoried.
+ * The reason to do this is that the packaging process must not consume more memory.
+ **************************************************************************************/
+void shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_fp16_w_int8(
+    struct csinn_tensor *kernel, struct csinn_conv2d_params *params)
+{
+    int8_t *kernel_data = (int8_t *)kernel->data;
+    int group = params->group;
+
+    int out_c = kernel->dim[0];
+    int out_cp = out_c / group;  // per-group out channel
+    int in_c = kernel->dim[1];
+    int maxk = kernel->dim[2] * kernel->dim[3];
+
+    int8_t *pa_reorder = (int8_t *)shl_mem_alloc(out_c * in_c * maxk * sizeof(int8_t));
+    for (int g = 0; g < group; g++) {
+        int8_t *ker_ptr = kernel_data + g * out_cp * in_c * maxk;
+        int8_t *ker_tm_ptr = pa_reorder + g * out_cp * in_c * maxk;
+        im2col_gemm_reorder_kernel_pack1ton_per_group_fp16_w_int8(ker_ptr, ker_tm_ptr, out_cp, in_c,
+                                                                  maxk);
+    }
+    memcpy(kernel_data, pa_reorder, out_c * in_c * maxk * sizeof(int8_t));
+    shl_mem_free(pa_reorder);
+}
+
+void shl_rvv_conv_im2col_gemm_pack1ton_dequantize_per_channel_i8_to_f16(
+    struct csinn_tensor *kernel, struct csinn_conv2d_params *params, __fp16 *kernel_fp16)
+{
+    shl_rvv_conv_im2col_gemm_packn_dequantize_per_channel_i8_to_f16(kernel, params, kernel_fp16);
+}
+
+int shl_rvv_common_conv_gemm_pack1ton_fp16(
+    struct csinn_tensor *input, struct csinn_tensor *output, struct csinn_tensor *kernel,
+    struct csinn_tensor *bias, struct csinn_conv2d_params *params,
+    void (*reorder_input)(__fp16 *, __fp16 *, int, int, int, int),
+    void (*gemm)(__fp16 *, const __fp16 *, const __fp16 *, __fp16 *, int, int, int, bool))
 {
     if (input->layout == CSINN_LAYOUT_NC1HWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
@@ -133,7 +241,7 @@ int shl_rvv_conv_im2col_gemm_pack1ton_fp16(struct csinn_tensor *input, struct cs
     }
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;
-    __fp16 *kernel_data = (__fp16 *)kernel->data;
+    __fp16 *kernel_data = NULL;
     __fp16 *bias_data = (__fp16 *)bias->data;
 
     int32_t group = params->group;
@@ -156,6 +264,27 @@ int shl_rvv_conv_im2col_gemm_pack1ton_fp16(struct csinn_tensor *input, struct cs
     int32_t in_cp = in_c / group;
     int32_t maxk = ksize_h * ksize_w;
     int32_t n = out_h * out_w;
+
+    __fp16 *kernel_fp16 = NULL;
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        int size = csinn_tensor_size(kernel);
+        kernel_fp16 = (__fp16 *)shl_mem_alloc(size * sizeof(__fp16));
+        if (kernel->quant_channel > 1) {
+            shl_rvv_conv_im2col_gemm_pack1ton_dequantize_per_channel_i8_to_f16(kernel, params,
+                                                                               kernel_fp16);
+        } else {
+            int8_t *kernel_int8 = (int8_t *)kernel->data;
+            int32_t zp = kernel->qinfo->zero_point;
+            float scale = kernel->qinfo->scale;
+            shl_rvv_dequantize_i8_to_f16(kernel_int8, kernel_fp16, size, zp, scale);
+        }
+        kernel_data = kernel_fp16;
+    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+        kernel_data = (__fp16 *)kernel->data;
+    } else {
+        shl_debug_error("kernel unsupport dtype: %d\n", kernel->dtype);
+        return CSINN_FALSE;
+    }
 
     for (int i = 0; i < batch; i++) {
         for (int g = 0; g < group; g++) {
@@ -207,21 +336,33 @@ int shl_rvv_conv_im2col_gemm_pack1ton_fp16(struct csinn_tensor *input, struct cs
 
             // reorder(pack)
             __fp16 *reorder_buf = (__fp16 *)shl_mem_alloc(in_cp * maxk * n * sizeof(__fp16));
-            shl_rvv_reorder_input_z12_pack1ton_fp16(im2col_buf, reorder_buf, in_cp, maxk, n, n);
+            reorder_input(im2col_buf, reorder_buf, in_cp, maxk, n, n);
             shl_mem_free(im2col_buf);
 
             // gemm
             __fp16 *ker_ptr = kernel_data + g * m * maxk * in_cp;
             __fp16 *bias_ptr = bias_data ? (bias_data + g * m) : NULL;
-            shl_rvv_ncxhwx_gemm_12xpack2n_fp16(output_data, ker_ptr, reorder_buf, bias_ptr, m,
-                                               in_cp * maxk, n, n);
+            gemm(output_data, ker_ptr, reorder_buf, bias_ptr, m, in_cp * maxk, n, false);
             shl_mem_free(reorder_buf);
 
             input_data += in_cp * in_h * in_w;
             output_data += m * n;
         }
     }
+    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+        shl_mem_free(kernel_fp16);
+        return CSINN_TRUE;
+    }
     // requantize
     shl_rvv_sidcso_op_requantize_fp16(input, output, kernel);
     return CSINN_TRUE;
+}
+
+int shl_rvv_conv_im2col_gemm_pack1ton_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
+                                           struct csinn_conv2d_params *params)
+{
+    return shl_rvv_common_conv_gemm_pack1ton_fp16(input, output, kernel, bias, params,
+                                                  shl_rvv_reorder_input_z12_pack1ton_fp16,
+                                                  shl_rvv_ncxhwx_gemm_12xpack2n_fp16);
 }
