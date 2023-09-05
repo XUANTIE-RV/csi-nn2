@@ -721,6 +721,7 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_RELU6:
             case CSINN_OP_SIGMOID:
             case CSINN_OP_SOFTMAX:
+            case CSINN_OP_TANH:
                 shl_gref_siso_infer_shape(n->in[0]->data, n->out[0]->data, params);
                 break;
             case CSINN_OP_ADD:
