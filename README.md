@@ -90,6 +90,7 @@ NOTE: Original mobilenetv1's every conv2d has one BN(batch norm), but the exampl
 
 - [T-HEAD Open Chip Community](https://xrvm.com/)
 - [Use SHL to run MLPerf tiny](https://github.com/mlcommons/tiny_results_v0.7/tree/main/open/Alibaba)
+- [Usage Feedback](https://survey.taobao.com/apps/zhiliao/En_DWvP1t)
 
 ## Acknowledgement
 

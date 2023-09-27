@@ -88,6 +88,7 @@ NOTE: 原始 mobilenetv1 中每层 conv2d 后接一层 batch norm，示例中假
 
 - [T-HEAD 芯片开放社区](https://occ.t-head.cn/)
 - [SHL 应用在 MLPerf tiny](https://github.com/mlcommons/tiny_results_v0.7/tree/main/open/Alibaba)
+- [使用反馈](https://survey.taobao.com/apps/zhiliao/En_DWvP1t)
 
 # 致谢
 
