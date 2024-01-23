@@ -10,14 +10,14 @@ static char *alloc_name(char *name)
 static char *alloc_index_name(int index, char *name)
 {
     char *ret = shl_mem_alloc(strlen(name) + 10);
-    sprintf(ret, "%s_%d_", name, index);
+    sprintf(ret, "%s_%d", name, index);
     return ret;
 }
 
 static char *concat_name(char *name, char *append)
 {
     char *ret = shl_mem_alloc(strlen(name) + strlen(append) + 10);
-    sprintf(ret, "%s%s", name, append);
+    sprintf(ret, "%s_%s", name, append);
     return ret;
 }
 
@@ -43,10 +43,12 @@ static struct csinn_tensor *linear(struct csinn_session *sess, struct csinn_tens
 {
     struct csinn_tensor *linear_output = csinn_alloc_tensor(sess);
     linear_output->name = concat_name(name, "output");
+    linear_output->dtype = sess->base_dtype;
 
     y->is_const = 1;
     struct csinn_matmul_params *linear_params =
         csinn_alloc_params(sizeof(struct csinn_matmul_params), sess);
+    linear_params->base.name = concat_name(name, "params");
     linear_params->trans_b = true;
     csinn_matmul_init(x, y, linear_output, linear_params);
     csinn_matmul(x, y, linear_output, linear_params);
@@ -58,10 +60,11 @@ static struct csinn_tensor *matmul(struct csinn_session *sess, struct csinn_tens
 {
     struct csinn_tensor *matmul_output = csinn_alloc_tensor(sess);
     matmul_output->name = concat_name(name, "output");
-    matmul_output->dtype = CSINN_DTYPE_FLOAT32;
+    matmul_output->dtype = sess->base_dtype;
 
     struct csinn_matmul_params *matmul_params =
         csinn_alloc_params(sizeof(struct csinn_matmul_params), sess);
+    matmul_params->base.name = concat_name(name, "params");
     csinn_matmul_init(x, y, matmul_output, matmul_params);
     csinn_matmul(x, y, matmul_output, matmul_params);
     return matmul_output;
@@ -71,10 +74,11 @@ static struct csinn_tensor *silu(struct csinn_session *sess, struct csinn_tensor
 {
     struct csinn_tensor *silu_output = csinn_alloc_tensor(sess);
     silu_output->name = concat_name(name, "output");
-    silu_output->dtype = CSINN_DTYPE_FLOAT32;
+    silu_output->dtype = sess->base_dtype;
 
     struct csinn_sigmoid_params *silu_params =
         csinn_alloc_params(sizeof(struct csinn_sigmoid_params), sess);
+    silu_params->base.name = concat_name(name, "params");
     csinn_silu_init(x, silu_output, silu_params);
     csinn_silu(x, silu_output, silu_params);
     return silu_output;
@@ -85,13 +89,13 @@ static struct csinn_tensor *norm(struct csinn_session *sess, struct csinn_tensor
 {
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     output->name = concat_name(name, "output");
-    output->dtype = CSINN_DTYPE_FLOAT32;
+    output->dtype = sess->base_dtype;
     /*
      * output = x * rsqrt(x.pow(2).mean(-1, keepdim=True) + eps) * weight
      */
     struct csinn_rms_norm_params *rms_params =
         csinn_alloc_params(sizeof(struct csinn_rms_norm_params), sess);
-
+    rms_params->base.name = concat_name(name, "params");
     // FIXME: from params.json's norm_eps
     rms_params->epsilon = 1e-05;
     // last dim
@@ -99,20 +103,6 @@ static struct csinn_tensor *norm(struct csinn_session *sess, struct csinn_tensor
     weight->is_const = 1;
     csinn_rms_norm_init(x, weight, output, rms_params);
     csinn_rms_norm(x, weight, output, rms_params);
-    return output;
-}
-
-static struct csinn_tensor *view(struct csinn_session *sess, struct csinn_tensor *in, char *name)
-{
-    struct csinn_tensor *output = csinn_alloc_tensor(sess);
-    output->name = concat_name(name, "output");
-    output->dtype = CSINN_DTYPE_FLOAT32;
-
-    struct csinn_reshape_params *params =
-        csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
-
-    csinn_reshape_init(in, output, params);
-    csinn_reshape(in, output, params);
     return output;
 }
 
@@ -137,6 +127,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     // xk = xk.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
     struct csinn_reshape_params *xk_reshape_params =
         csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
+    xk_reshape_params->base.name = concat_name(name, "xk_reshape_params");
     xk_reshape_params->shape_num = 4;
     xk_reshape_params->shape = shl_mem_alloc(4 * sizeof(int32_t));
     xk_reshape_params->shape[0] = bsz;
@@ -145,13 +136,14 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     xk_reshape_params->shape[3] = head_dim;
 
     struct csinn_tensor *xk_reshape_output = csinn_alloc_tensor(sess);
-    xk_reshape_output->name = alloc_name("xk_reshape_output");
+    xk_reshape_output->name = concat_name(name, "xk_reshape_output");
     csinn_reshape_init(xk, xk_reshape_output, xk_reshape_params);
     csinn_reshape(xk, xk_reshape_output, xk_reshape_params);
 
     // xq = xq.view(bsz, seqlen, self.n_local_heads, self.head_dim)
     struct csinn_reshape_params *xq_reshape_params =
         csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
+    xq_reshape_params->base.name = concat_name(name, "xq_reshape_params");
     xq_reshape_params->shape_num = 4;
     xq_reshape_params->shape = shl_mem_alloc(4 * sizeof(int32_t));
     xq_reshape_params->shape[0] = bsz;
@@ -160,7 +152,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     xq_reshape_params->shape[3] = head_dim;
 
     struct csinn_tensor *xq_reshape_output = csinn_alloc_tensor(sess);
-    xq_reshape_output->name = alloc_name("xq_reshape_output");
+    xq_reshape_output->name = concat_name(name, "xq_reshape_output");
     csinn_reshape_init(xq, xq_reshape_output, xq_reshape_params);
     csinn_reshape(xq, xq_reshape_output, xq_reshape_params);
 
@@ -168,6 +160,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     xq_rope->name = concat_name(name, "xq_rope");
     struct csinn_rope_params *rope_params =
         csinn_alloc_params(sizeof(struct csinn_rope_params), sess);
+    rope_params->base.name = concat_name(name, "rope_params");
     rope_params->freq_base = 10000;
     rope_params->freq_scale = 1;
     rope_params->xpos_base = 0;
@@ -189,6 +182,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     // xv = xv.view(bsz, seqlen, self.n_local_kv_heads, self.head_dim)
     struct csinn_reshape_params *xv_reshape_params =
         csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
+    xv_reshape_params->base.name = concat_name(name, "xv_reshape_params");
     xv_reshape_params->shape_num = 4;
     xv_reshape_params->shape = shl_mem_alloc(4 * sizeof(int32_t));
     xv_reshape_params->shape[0] = bsz;
@@ -197,14 +191,14 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     xv_reshape_params->shape[3] = head_dim;
 
     struct csinn_tensor *xv_reshape_output = csinn_alloc_tensor(sess);
-    xv_reshape_output->name = alloc_name("xv_reshape_output");
+    xv_reshape_output->name = concat_name(name, "xv_reshape_output");
     csinn_reshape_init(xv, xv_reshape_output, xv_reshape_params);
     csinn_reshape(xv, xv_reshape_output, xv_reshape_params);
 
     // cache_k[:bsz, start_pos : start_pos + seqlen] = xk
     struct csinn_tensor *cache_k = csinn_alloc_tensor(sess);
-    cache_k->name = alloc_name("cache_k");
-    cache_k->dtype = CSINN_DTYPE_FLOAT32;
+    cache_k->name = concat_name(name, "cache_k");
+    cache_k->dtype = sess->base_dtype;
     cache_k->dim_count = 4;
     cache_k->dim[0] = 1;
     cache_k->dim[1] = 2048;  // max_seq_len
@@ -216,6 +210,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_llm_pos_params *xk_cache_params =
         csinn_alloc_params(sizeof(struct csinn_llm_pos_params), sess);
+    xk_cache_params->base.name = concat_name(name, "xk_cache_params");
     xk_cache_params->bsz = bsz;
     xk_cache_params->seqlen = seqlen;
     xk_cache_params->mode = CSINN_LLM_POS_CACHE_COPY_IN;
@@ -225,8 +220,8 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     // cache_v[:bsz, start_pos : start_pos + seqlen] = xv
     struct csinn_tensor *cache_v = csinn_alloc_tensor(sess);
-    cache_v->name = alloc_name("cache_v");
-    cache_v->dtype = CSINN_DTYPE_FLOAT32;
+    cache_v->name = concat_name(name, "cache_v");
+    cache_v->dtype = sess->base_dtype;
     cache_v->dim_count = 4;
     cache_v->dim[0] = 1;
     cache_v->dim[1] = 2048;  // max_seq_len
@@ -238,6 +233,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_llm_pos_params *xv_cache_params =
         csinn_alloc_params(sizeof(struct csinn_llm_pos_params), sess);
+    xv_cache_params->base.name = concat_name(name, "xv_cache_params");
     xv_cache_params->bsz = bsz;
     xv_cache_params->seqlen = seqlen;
     xv_cache_params->mode = CSINN_LLM_POS_CACHE_COPY_IN;
@@ -251,6 +247,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_llm_pos_params *keys_params =
         csinn_alloc_params(sizeof(struct csinn_llm_pos_params), sess);
+    keys_params->base.name = concat_name(name, "keys_params");
     keys_params->bsz = bsz;
     keys_params->seqlen = seqlen;
     keys_params->mode = CSINN_LLM_POS_CACHE_COPY_OUT;
@@ -263,10 +260,11 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     // xq = xq.transpose(1, 2)  # (bs, n_local_heads, seqlen, head_dim)
     struct csinn_tensor *xq_transpose = csinn_alloc_tensor(sess);
-    xq_transpose->name = alloc_name("xq_transpose");
+    xq_transpose->name = concat_name(name, "xq_transpose");
 
     struct csinn_transpose_params *xq_transpose_params =
         csinn_alloc_params(sizeof(struct csinn_transpose_params), sess);
+    xq_transpose_params->base.name = concat_name(name, "xq_transpose_params");
     xq_transpose_params->permute_num = 4;
     xq_transpose_params->permute = shl_mem_alloc(4 * sizeof(int32_t));
     xq_transpose_params->permute[0] = 0;
@@ -278,10 +276,11 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     // keys = keys.transpose(1, 2)
     struct csinn_tensor *keys_transpose = csinn_alloc_tensor(sess);
-    keys_transpose->name = alloc_name("keys_transpose");
+    keys_transpose->name = concat_name(name, "keys_transpose");
 
     struct csinn_transpose_params *keys_transpose_params =
         csinn_alloc_params(sizeof(struct csinn_transpose_params), sess);
+    keys_transpose_params->base.name = concat_name(name, "keys_transpose_params");
     keys_transpose_params->permute_num = 4;
     keys_transpose_params->permute = shl_mem_alloc(4 * sizeof(int32_t));
     keys_transpose_params->permute[0] = 0;
@@ -297,6 +296,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_matmul_params *scores_matmul_params =
         csinn_alloc_params(sizeof(struct csinn_matmul_params), sess);
+    scores_matmul_params->base.name = concat_name(name, "scores_matmul_params");
     scores_matmul_params->trans_b = true;
     csinn_matmul_init(xq_transpose, keys_transpose, scores, scores_matmul_params);
     csinn_matmul(xq_transpose, keys_transpose, scores, scores_matmul_params);
@@ -306,13 +306,20 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_tensor *scale = csinn_alloc_tensor(sess);
     scale->is_const = 1;
-    float *scale_value = shl_mem_alloc(4);
-    scale_value[0] = 0.088388347648318;
-    scale->data = scale_value;
     scale->dim_count = 1;
     scale->dim[0] = 1;
+    scale->data = shl_mem_alloc(csinn_tensor_byte_size(scale));
+    float scale_value = 0.088388347648318;
+    if (sess->base_dtype == CSINN_DTYPE_FLOAT32) {
+        float *scale_data = scale->data;
+        scale_data[0] = scale_value;
+    } else if (sess->base_dtype == CSINN_DTYPE_FLOAT16) {
+        int16_t *scale_data = scale->data;
+        scale_data[0] = shl_ref_float32_to_float16(scale_value);
+    }
     struct csinn_diso_params *scores_mul_params =
         csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+    scores_mul_params->base.name = concat_name(name, "scores_mul_params");
     csinn_mul_init(scores, scale, scores_mul, scores_mul_params);
     csinn_mul(scores, scale, scores_mul, scores_mul_params);
 
@@ -323,6 +330,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_llm_pos_params *scores_mask_params =
         csinn_alloc_params(sizeof(struct csinn_llm_pos_params), sess);
+    scores_mask_params->base.name = concat_name(name, "scores_mask_params");
     scores_mask_params->bsz = bsz;
     scores_mask_params->seqlen = seqlen;
     scores_mask_params->mode = CSINN_LLM_POS_MASK;
@@ -335,6 +343,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_softmax_params *scores_softmax_params =
         csinn_alloc_params(sizeof(struct csinn_softmax_params), sess);
+    scores_softmax_params->base.name = concat_name(name, "scores_softmax_params");
     scores_softmax_params->axis = 3;
     csinn_softmax_init(scores_mask, scores_softmax, scores_softmax_params);
     csinn_softmax(scores_mask, scores_softmax, scores_softmax_params);
@@ -345,6 +354,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_llm_pos_params *values_params =
         csinn_alloc_params(sizeof(struct csinn_llm_pos_params), sess);
+    values_params->base.name = concat_name(name, "values_params");
     values_params->bsz = bsz;
     values_params->seqlen = seqlen;
     values_params->mode = CSINN_LLM_POS_CACHE_COPY_OUT;
@@ -354,10 +364,11 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     // values = values.transpose(1, 2)
     struct csinn_tensor *values_transpose = csinn_alloc_tensor(sess);
-    values_transpose->name = alloc_name("values_transpose");
+    values_transpose->name = concat_name(name, "values_transpose");
 
     struct csinn_transpose_params *values_transpose_params =
         csinn_alloc_params(sizeof(struct csinn_transpose_params), sess);
+    values_transpose_params->base.name = concat_name(name, "values_transpose_params");
     values_transpose_params->permute_num = 4;
     values_transpose_params->permute = shl_mem_alloc(4 * sizeof(int32_t));
     values_transpose_params->permute[0] = 0;
@@ -373,6 +384,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_matmul_params *output_matmul_params =
         csinn_alloc_params(sizeof(struct csinn_matmul_params), sess);
+    output_matmul_params->base.name = concat_name(name, "output_matmul_params");
     csinn_matmul_init(scores_softmax, values_transpose, output_matmul, output_matmul_params);
     csinn_matmul(scores_softmax, values_transpose, output_matmul, output_matmul_params);
 
@@ -382,6 +394,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_transpose_params *output_transpose_params =
         csinn_alloc_params(sizeof(struct csinn_transpose_params), sess);
+    output_transpose_params->base.name = concat_name(name, "output_transpose_params");
     output_transpose_params->permute_num = 4;
     output_transpose_params->permute = shl_mem_alloc(4 * sizeof(int32_t));
     output_transpose_params->permute[0] = 0;
@@ -393,6 +406,8 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
 
     struct csinn_reshape_params *output_transpose_reshape_params =
         csinn_alloc_params(sizeof(struct csinn_reshape_params), sess);
+    output_transpose_reshape_params->base.name =
+        concat_name(name, "output_transpose_reshape_params");
     output_transpose_reshape_params->shape_num = 3;
     output_transpose_reshape_params->shape = shl_mem_alloc(3 * sizeof(int32_t));
     output_transpose_reshape_params->shape[0] = bsz;
@@ -400,7 +415,7 @@ static struct csinn_tensor *attention(struct shl_transformer_block *block, struc
     output_transpose_reshape_params->shape[2] = n_heads * head_dim;
 
     struct csinn_tensor *output_transpose_reshape_output = csinn_alloc_tensor(sess);
-    output_transpose_reshape_output->name = alloc_name("output_transpose_reshape_output");
+    output_transpose_reshape_output->name = concat_name(name, "output_transpose_reshape_output");
     csinn_reshape_init(output_transpose, output_transpose_reshape_output,
                        output_transpose_reshape_params);
     csinn_reshape(output_transpose, output_transpose_reshape_output,
@@ -430,9 +445,9 @@ static struct csinn_tensor *feed_forward(struct csinn_session *sess, struct csin
     x2->name = concat_name(name, "ff_0_x2_mul_output");
     struct csinn_diso_params *x2_mul_params =
         csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+    x2_mul_params->base.name = concat_name(name, "x2_mul_params");
     csinn_mul_init(silu_output, x3, x2, x2_mul_params);
     csinn_mul(silu_output, x3, x2, x2_mul_params);
-    // struct csinn_tensor *x2 = matmul(sess, silu_output, x3, concat_name(name, "x2_matmul"));
 
     // x2 = linear(x2, w2)
     struct csinn_tensor *x2_linear_output = linear(sess, x2, w2, concat_name(name, "x2_linear"));
@@ -449,11 +464,11 @@ static struct shl_transformer_block *layer(struct shl_llm_ctx *ctx, struct csinn
 
     struct csinn_session *sess = csinn_alloc_session();
     sess->base_run_mode = CSINN_RM_CPU_GRAPH;
-    sess->base_quant_type = CSINN_QUANT_FLOAT32;
+    sess->base_quant_type = ctx->base_quant_type;
     sess->model.save_mode = CSINN_RUN_ONLY;
     sess->base_layout = CSINN_LAYOUT_NCHW;
-    sess->base_api = CSINN_REF;
-    sess->base_dtype = CSINN_DTYPE_FLOAT32;
+    sess->base_api = ctx->base_api;
+    sess->base_dtype = ctx->base_dtype;
     sess->dynamic_shape = CSINN_FALSE;
     // sess->debug_level = CSINN_DEBUG_LEVEL_INFO;
     csinn_session_init(sess);
@@ -480,6 +495,7 @@ static struct shl_transformer_block *layer(struct shl_llm_ctx *ctx, struct csinn
     h_attention->name = alloc_index_name(layer_id, "h_attention");
     struct csinn_diso_params *x_add_params =
         csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+    x_add_params->base.name = alloc_index_name(layer_id, "x_add_params");
     csinn_add_init(x, attention_output, h_attention, x_add_params);
     csinn_add(x, attention_output, h_attention, x_add_params);
 
@@ -502,6 +518,7 @@ static struct shl_transformer_block *layer(struct shl_llm_ctx *ctx, struct csinn
 
     struct csinn_diso_params *h_add_params =
         csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+    h_add_params->base.name = alloc_index_name(layer_id, "h_add_params");
     csinn_add_init(h_attention, ff_output, h_ff, h_add_params);
     csinn_add(h_attention, ff_output, h_ff, h_add_params);
 
@@ -512,15 +529,15 @@ static struct shl_transformer_block *layer(struct shl_llm_ctx *ctx, struct csinn
     return ret;
 }
 
-static struct csinn_session *tok_embedding(struct llama_config *config)
+static struct csinn_session *tok_embedding(struct shl_llm_model *model, struct shl_llm_ctx *config)
 {
     struct csinn_session *sess = csinn_alloc_session();
     sess->base_run_mode = CSINN_RM_CPU_GRAPH;
-    sess->base_quant_type = CSINN_QUANT_FLOAT16;
+    sess->base_quant_type = config->base_quant_type;
     sess->model.save_mode = CSINN_RUN_ONLY;
     sess->base_layout = CSINN_LAYOUT_NCHW;
-    sess->base_api = CSINN_REF;
-    sess->base_dtype = CSINN_DTYPE_FLOAT16;
+    sess->base_api = config->base_api;
+    sess->base_dtype = config->base_dtype;
     sess->dynamic_shape = CSINN_TRUE;
     // sess->debug_level = CSINN_DEBUG_LEVEL_INFO;
     csinn_session_init(sess);
@@ -534,26 +551,27 @@ static struct csinn_session *tok_embedding(struct llama_config *config)
     csinn_set_input(0, embd, sess);
     struct csinn_tensor *embd_output = csinn_alloc_tensor(sess);
     embd_output->name = "embd_output";
-    embd_output->dtype = CSINN_DTYPE_FLOAT32;
+    embd_output->dtype = sess->base_dtype;
 
     embd_output->dim_count = 2;
     embd_output->dim[0] = 0;
-    embd_output->dim[1] = config->shl_model->tok_embeddings->dim[1];
+    embd_output->dim[1] = model->tok_embeddings->dim[1];
 
     struct csinn_tensor *embd_weight = csinn_alloc_tensor(sess);
     embd_weight->name = "embd_weight";
     embd_weight->is_const = 1;
 
-    embd_weight->dtype = config->shl_model->tok_embeddings->dtype;
-    embd_weight->mtype = config->shl_model->tok_embeddings->mtype;
-    embd_weight->dim_count = config->shl_model->tok_embeddings->dim_count;
-    embd_weight->dim[0] = config->shl_model->tok_embeddings->dim[0];
-    embd_weight->dim[1] = config->shl_model->tok_embeddings->dim[1];
+    embd_weight->dtype = model->tok_embeddings->dtype;
+    embd_weight->mtype = model->tok_embeddings->mtype;
+    embd_weight->dim_count = model->tok_embeddings->dim_count;
+    embd_weight->dim[0] = model->tok_embeddings->dim[0];
+    embd_weight->dim[1] = model->tok_embeddings->dim[1];
 
-    embd_weight->data = config->shl_model->tok_embeddings->data;
+    embd_weight->data = model->tok_embeddings->data;
 
     struct csinn_diso_params *embd_params =
         csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+    embd_params->base.name = alloc_name("embd_params");
     csinn_embedding_init(embd, embd_weight, embd_output, embd_params);
     csinn_embedding(embd, embd_weight, embd_output, embd_params);
 
@@ -567,11 +585,11 @@ static struct csinn_session *llama2_output(struct shl_llm_ctx *ctx)
 {
     struct csinn_session *sess = csinn_alloc_session();
     sess->base_run_mode = CSINN_RM_CPU_GRAPH;
-    sess->base_quant_type = CSINN_QUANT_FLOAT32;
+    sess->base_quant_type = ctx->base_quant_type;
     sess->model.save_mode = CSINN_RUN_ONLY;
     sess->base_layout = CSINN_LAYOUT_NCHW;
-    sess->base_api = CSINN_REF;
-    sess->base_dtype = CSINN_DTYPE_FLOAT32;
+    sess->base_api = ctx->base_api;
+    sess->base_dtype = ctx->base_dtype;
     sess->dynamic_shape = CSINN_FALSE;
     // sess->debug_level = CSINN_DEBUG_LEVEL_INFO;
     csinn_session_init(sess);
@@ -606,10 +624,14 @@ static struct csinn_session *llama2_output(struct shl_llm_ctx *ctx)
 struct shl_llm_ctx *llama2_build(struct llama_config *config)
 {
     struct shl_llm_ctx *ctx = shl_mem_alloc(sizeof(struct shl_llm_ctx));
+    /* TODO: target may have multiple computing units */
+    ctx->base_api = config->base_api;
+    ctx->base_dtype = config->base_dtype;
+    ctx->base_quant_type = config->base_quant_type;
     ctx->shl_model = config->shl_model;
 
     // h = tok_embedding(tokens)
-    ctx->embeding_session = tok_embedding(config);
+    ctx->embeding_session = tok_embedding(config->shl_model, ctx);
 
     // TransformerBlocks: h = layer(h, start_pos, freqes_cis, mask)
     ctx->layers_num = config->n_layers;

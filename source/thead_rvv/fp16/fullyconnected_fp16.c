@@ -112,6 +112,62 @@ void shl_rvv_fc_gemm_reorder_weight_fp16_w_int8(struct csinn_tensor *weights)
     shl_mem_free(pa_reorder);
 }
 
+/*************************************************************************************
+ * Per-channel dequantize int8 -> fp16
+ ************************************************************************************/
+void shl_rvv_fc_npack2n_dequantize_per_channel_i8_to_f16(struct csinn_tensor *weights,
+                                                         struct csinn_fc_params *params,
+                                                         __fp16 *weights_fp16)
+{
+    int8_t *weights_int8 = (int8_t *)weights->data;
+    int n = weights->dim[0];  // out_nodes
+    int k = weights->dim[1];  // in_nodes
+
+    const int packn = csrr_vlenb() / sizeof(__fp16);
+    const int pack2n = packn * 2;
+
+    int i = 0;
+    int vl = vsetvl_e16m2(pack2n);
+    for (; i + pack2n - 1 < n; i += pack2n) {
+        int8_t *w_src = weights_int8 + i * k;
+        __fp16 *w_dst = weights_fp16 + i * k;
+        vint32m4_t _z32 =
+            vlse32_v_i32m4(&(weights->qinfo[i].zero_point), sizeof(struct csinn_quant_info), vl);
+        vint16m2_t _z16 = vnclip_wx_i16m2(_z32, 0, vl);
+        vint8m1_t _z = vnclip_wx_i8m1(_z16, 0, vl);
+        vfloat32m4_t _s32 =
+            vlse32_v_f32m4(&(weights->qinfo[i].scale), sizeof(struct csinn_quant_info), vl);
+        vfloat16m2_t _s = vfncvt_f_f_w_f16m2(_s32, vl);
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _i8 = vle8_v_i8m1(w_src, vl);
+            vfloat16m2_t _f16 = shl_rvv_vdeq_vv_f16m2(_i8, _z, _s, vl);
+            vse16_v_f16m2(w_dst, _f16, vl);
+            w_src += vl;
+            w_dst += vl;
+        }
+    }
+    while (i < n) {
+        int vl = vsetvl_e16m1(n - i);
+        int8_t *w_src = weights_int8 + i * k;
+        __fp16 *w_dst = weights_fp16 + i * k;
+        vint32m4_t _z32 =
+            vlse32_v_i32m4(&(weights->qinfo[i].zero_point), sizeof(struct csinn_quant_info), vl);
+        vint16m2_t _z16 = vnclip_wx_i16m2(_z32, 0, vl);
+        vint8m1_t _z = vnclip_wx_i8m1(_z16, 0, vl);
+        vfloat32m4_t _s32 =
+            vlse32_v_f32m4(&(weights->qinfo[i].scale), sizeof(struct csinn_quant_info), vl);
+        vfloat16m2_t _s = vfncvt_f_f_w_f16m2(_s32, vl);
+        for (int j = 0; j < k; j++) {
+            vint8m1_t _i8 = vle8_v_i8m1(w_src, vl);
+            vfloat16m2_t _f16 = shl_rvv_vdeq_vv_f16m2(_i8, _z, _s, vl);
+            vse16_v_f16m2(w_dst, _f16, vl);
+            w_src += vl;
+            w_dst += vl;
+        }
+        i += vl;
+    }
+}
+
 int shl_rvv_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
                                      struct csinn_fc_params *params)
@@ -149,14 +205,9 @@ int shl_rvv_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_te
             float scale = weights->qinfo->scale;
             shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
         } else if (weights->quant_channel == output_depth) {
-            // support channel quantization
-            for (int c = 0; c < output_depth; c++) {
-                int32_t zp = weights->qinfo[c].zero_point;
-                float scale = weights->qinfo[c].scale;
-                shl_rvv_dequantize_i8_to_f16(weights_int8 + c * accum_depth,
-                                             weights_fp16 + c * accum_depth, accum_depth, zp,
-                                             scale);
-            }
+            shl_rvv_fc_npack2n_dequantize_per_channel_i8_to_f16(weights, params, weights_fp16);
+        } else {
+            shl_debug_error("%s unsupported quant_channel: %d\n", __func__, weights->quant_channel);
         }
         weights_data = weights_fp16;
     } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {

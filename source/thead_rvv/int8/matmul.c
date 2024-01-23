@@ -176,10 +176,14 @@ int shl_rvv_matmul_init_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat
                              struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
+    struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (!params->trans_a && !params->trans_b) {
         if (mat0->dtype == CSINN_DTYPE_INT8 && mat1->dtype == CSINN_DTYPE_INT8) {
-            if (mat1->is_const) {
-                shl_rvv_matmul_reorder_weight_int8(mat0, mat1);
+            if (!binary_model_op_init) {
+                if (mat1->is_const) {
+                    shl_rvv_matmul_reorder_weight_int8(mat0, mat1);
+                }
             }
             cb->exec = shl_rvv_matmul_int8;
         }

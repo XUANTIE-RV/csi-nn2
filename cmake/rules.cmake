@@ -1,11 +1,10 @@
 if (NOT CONFIG_USE_COMPILER_PATH)
 
 # riscv linux compiler
-if (CONFIG_BUILD_RISCV_RVV OR CONFIG_BUILD_RISCV_RVV_NODOT OR
-    CONFIG_BUILD_RISCV_C906 OR CONFIG_BUILD_RISCV_RVM OR
-    CONFIG_BUILD_RISCV_C908 OR CONFIG_BUILD_RISCV_C920 OR
-    CONFIG_BUILD_RISCV_C920V2 OR CONFIG_BUILD_RISCV_PNNA OR
-    CONFIG_BUILD_TH1520)
+if (CONFIG_BUILD_RISCV_RVV OR CONFIG_BUILD_RISCV_C906 OR
+    CONFIG_BUILD_RISCV_RVM OR CONFIG_BUILD_RISCV_C908 OR
+    CONFIG_BUILD_RISCV_C920 OR CONFIG_BUILD_RISCV_C920V2 OR
+    CONFIG_BUILD_RISCV_PNNA OR CONFIG_BUILD_TH1520)
     set(CMAKE_C_COMPILER riscv64-unknown-linux-gnu-gcc)
     set(CMAKE_CXX_COMPILER riscv64-unknown-linux-gnu-g++)
     set(CMAKE_ASM_COMPILER riscv64-unknown-linux-gnu-gcc)
@@ -28,6 +27,11 @@ endif()
 # SHL export model
 if(CONFIG_USE_EXPORT_MODEL)
     add_definitions(-D SHL_EXPORT_MODEL)
+endif()
+
+# SHL disable xtheadvdot extension
+if(CONFIG_DISABLE_VDOT_EXTENSION)
+    add_definitions(-D SHL_DISABLE_VDOT)
 endif()
 
 if (CONFIG_BUILD_ANDROID_TH1520)
@@ -64,6 +68,11 @@ include_directories(include include/csinn include/graph include/backend module)
 if(CONFIG_SHL_LAYER_BENCHMARK)
     add_definitions(-DSHL_LAYER_BENCHMARK)
     message(STATUS "Print the execution time of each layer - ON")
+endif()
+
+if(CONFIG_SHL_TRACE)
+    add_definitions(-DSHL_TRACE)
+    message(STATUS "Generate trace data - ON")
 endif()
 
 if(CONFIG_GRAPH_REFERENCE_TVMGEN)

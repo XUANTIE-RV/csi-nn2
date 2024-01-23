@@ -145,6 +145,9 @@ int main(int argc, char **argv)
     struct shl_llm_model *reload_model = shl_llm_load_json(argv[2]);
     config->shl_model = reload_model;
     // config->shl_model = new_model;
+    config->base_api = CSINN_REF;
+    config->base_quant_type = CSINN_QUANT_FLOAT32;
+    config->base_dtype = CSINN_DTYPE_FLOAT32;
 
     struct shl_llm_ctx *ctx = llama2_build(config);
 

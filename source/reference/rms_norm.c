@@ -18,8 +18,8 @@
 
 #include "reference/ref.h"
 
-int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *output,
-                         struct csinn_tensor *weight, struct csinn_rms_norm_params *params)
+int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *weight,
+                         struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     float *input_data = (float *)input->data;
     float *output_data = (float *)output->data;
@@ -56,14 +56,14 @@ int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *output
     return CSINN_TRUE;
 }
 
-int shl_ref_rms_norm_quant(struct csinn_tensor *input, struct csinn_tensor *output,
-                           struct csinn_tensor *weight, struct csinn_rms_norm_params *params)
+int shl_ref_rms_norm_quant(struct csinn_tensor *input, struct csinn_tensor *weight,
+                           struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     struct csinn_tensor *float_input = shl_ref_tensor_transform_f32(input);
     struct csinn_tensor *float_output = shl_ref_tensor_transform_f32(output);
     struct csinn_tensor *float_gamma = shl_ref_tensor_transform_f32(weight);
 
-    int ret = shl_ref_rms_norm_f32(float_input, float_output, float_gamma, params);
+    int ret = shl_ref_rms_norm_f32(float_input, float_gamma, float_output, params);
 
     csinn_tensor_data_convert(output, float_output);
 

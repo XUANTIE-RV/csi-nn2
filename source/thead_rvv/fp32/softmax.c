@@ -90,10 +90,11 @@ int shl_rvv_softmax_fp32(struct csinn_tensor *input, struct csinn_tensor *output
             ptr = exp_buffer + k;
             float *ptr2 = output_data + k;
             int n = cnt;
+            float acc_axp_multi_coeff = 1.0f / acc_exp;
             while (n > 0) {
                 size_t vl = vsetvl_e32m2(n);
                 vfloat32m2_t _exp = vlse32_v_f32m2(ptr, inner_size * sizeof(float), vl);
-                vfloat32m2_t _output_data = vfdiv_vf_f32m2(_exp, acc_exp, vl);
+                vfloat32m2_t _output_data = vfmul_vf_f32m2(_exp, acc_axp_multi_coeff, vl);
                 vsse32_v_f32m2(ptr2, inner_size * sizeof(float), _output_data, vl);
 
                 ptr += vl * inner_size;

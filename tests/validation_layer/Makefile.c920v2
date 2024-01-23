@@ -1,5 +1,5 @@
 LIB_DIR = ../../c920v2_build
-INCLUDE = -I../../include -I../../include/shl_public -I../utils -I./layer
+INCLUDE = -I../../include -I../../include/csinn -I../../include/shl_public -I../utils -I./layer
 CFLAGS = -O0 -g3 -static
 CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections

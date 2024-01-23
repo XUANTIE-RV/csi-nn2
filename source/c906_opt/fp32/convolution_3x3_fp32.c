@@ -233,6 +233,13 @@ void shl_c906_conv3x3s1_winograd64_transform_kernel_pack4(struct csinn_tensor *o
     // };
 
     csinn_tensor_copy(t_kernel, o_kernel);
+    t_kernel->dim_count = 5;
+    t_kernel->dim[0] = outch / 4;
+    t_kernel->dim[1] = 8;
+    t_kernel->dim[2] = 8;
+    t_kernel->dim[3] = inch;
+    t_kernel->dim[4] = 4;
+    t_kernel->layout = CSINN_LAYOUT_O1HWIO0;
 
     for (int p = 0; p < outch; p++) {
         for (int q = 0; q < inch; q++) {
@@ -295,7 +302,7 @@ void shl_c906_conv3x3s1_winograd64_transform_kernel_pack4(struct csinn_tensor *o
             }
         }
     }
-
+    o_kernel->data = NULL;
     shl_mem_free(kernel_tm);
 }
 

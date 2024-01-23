@@ -10,9 +10,6 @@ nn2_e907_elf:
 nn2_rvv:
 	mkdir -p rvv_build; cd rvv_build; cmake ../ -DCONFIG_BUILD_RISCV_RVV=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/rvv/; make -j${USE_CORE}; make install; cd -
 
-nn2_rvv_nodot:
-	mkdir -p rvv_nodot_build; cd rvv_nodot_build; cmake ../ -DCONFIG_BUILD_RISCV_RVV_NODOT=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/rvv_nodot/; make -j${USE_CORE}; make install; cd -
-
 nn2_c906:
 	mkdir -p c906_static_build; cd c906_static_build; cmake ../ -DCONFIG_BUILD_RISCV_C906=ON -DCONFIG_SHL_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/c906/; make -j${USE_CORE}; make install; cd -
 

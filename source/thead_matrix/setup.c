@@ -344,24 +344,6 @@ void shl_target_init_rvm()
     shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_DEPTHWISE_CONV2D_RELU6,
                    shl_rvm_depthwise_conv2d_init_int8, NULL, shl_gref_depthwise_conv2d_relu6);
 
-    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_MAXPOOL2D, shl_rvm_maxpool2d_init_fp16, NULL,
-                   shl_gref_maxpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_MAXPOOL2D, shl_rvm_maxpool2d_init_int8, NULL,
-                   shl_gref_maxpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_AVGPOOL2D, shl_rvm_avgpool2d_init_fp16, NULL,
-                   shl_gref_avgpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_AVGPOOL2D, shl_rvm_avgpool2d_init_int8, NULL,
-                   shl_gref_avgpool2d);
-
-    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_AVGPOOL2D, shl_rvm_global_avgpool2d_init,
-                   NULL, shl_gref_global_avgpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_AVGPOOL2D, shl_rvm_global_avgpool2d_init, NULL,
-                   shl_gref_global_avgpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvm_global_maxpool2d_init,
-                   NULL, shl_gref_global_maxpool2d);
-    shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GLOBAL_MAXPOOL2D, shl_rvm_global_maxpool2d_init, NULL,
-                   shl_gref_global_maxpool2d);
-
     shl_rvm_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_FULLYCONNECTED, shl_rvm_fullyconnected_init_fp16,
                    NULL, shl_gref_fullyconnected);
     shl_rvm_reg_op(CSINN_DTYPE_INT8, CSINN_OP_FULLYCONNECTED, shl_rvm_fullyconnected_init_int8,

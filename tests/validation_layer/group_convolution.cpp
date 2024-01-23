@@ -23,6 +23,9 @@ int main(int argc, char **argv)
     init_testsuite("Testing function of group convolution(layer).\n");
 
     struct csinn_session *sess = csinn_alloc_session();
+    // sess->base_run_mode = CSINN_RM_CPU_GRAPH;
+    // sess->model.save_mode = CSINN_RUN_ONLY;
+    // sess->dynamic_shape = CSINN_FALSE;
     sess->base_run_mode = CSINN_RM_LAYER;
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
@@ -104,15 +107,45 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
+/* CSINN_RM_CPU_GRAPH */
+// #if (DTYPE == 32)
+//     test_conv2d_op(input, output, kernel, bias, params, CSINN_DTYPE_FLOAT32, CSINN_QUANT_FLOAT32,
+//                    sess, csinn_conv2d_init, csinn_conv2d, &difference);
+// #elif (DTYPE == 16)
+//     test_conv2d_op(input, output, kernel, bias, params, CSINN_DTYPE_FLOAT16, CSINN_QUANT_FLOAT16,
+//                    sess, csinn_conv2d_init, csinn_conv2d, &difference);
+// #elif (DTYPE == 8)
+//     test_conv2d_op(input, output, kernel, bias, params, CSINN_DTYPE_INT8,
+//                    CSINN_QUANT_INT8_ASYM_W_SYM, sess, csinn_conv2d_init, csinn_conv2d,
+//                    &difference);
+// #elif (DTYPE == 168)
+//     test_conv2d_op(input, output, kernel, bias, params, CSINN_DTYPE_FLOAT16,
+//                    CSINN_QUANT_FLOAT16_W_INT8, sess, csinn_conv2d_init, csinn_conv2d,
+//                    &difference);
+// #elif (DTYPE == 0x168C)
+//     csinn_realloc_quant_info(kernel, kernel->dim[0]);
+//     test_conv2d_op(input, output, kernel, bias, params, CSINN_DTYPE_INT8,
+//                    CSINN_QUANT_FLOAT16_W_INT8, sess, csinn_conv2d_init, csinn_conv2d,
+//                    &difference);
+// #endif
+
+/* CSINN_RM_LAYER */
 #if (DTYPE == 32)
-    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT32, csinn_conv2d_init,
-                   csinn_conv2d, &difference);
+    test_conv2d_layer(input, output, kernel, bias, params, CSINN_QUANT_FLOAT32, CSINN_QUANT_FLOAT32,
+                      csinn_conv2d_init, csinn_conv2d, &difference);
 #elif (DTYPE == 16)
-    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16, csinn_conv2d_init,
-                   csinn_conv2d, &difference);
+    test_conv2d_layer(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16, CSINN_QUANT_FLOAT16,
+                      csinn_conv2d_init, csinn_conv2d, &difference);
 #elif (DTYPE == 8)
-    test_conv2d_op(input, output, kernel, bias, params, CSINN_QUANT_INT8_SYM, csinn_conv2d_init,
-                   csinn_conv2d, &difference);
+    test_conv2d_layer(input, output, kernel, bias, params, CSINN_QUANT_INT8_ASYM,
+                      CSINN_QUANT_INT8_SYM, csinn_conv2d_init, csinn_conv2d, &difference);
+#elif (DTYPE == 168)
+    test_conv2d_layer(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16,
+                      CSINN_QUANT_INT8_SYM, csinn_conv2d_init, csinn_conv2d, &difference);
+#elif (DTYPE == 0x168C)
+    csinn_realloc_quant_info(kernel, kernel->dim[0]);
+    test_conv2d_layer(input, output, kernel, bias, params, CSINN_QUANT_FLOAT16,
+                      CSINN_QUANT_INT8_SYM, csinn_conv2d_init, csinn_conv2d, &difference);
 #endif
 
     return done_testing();

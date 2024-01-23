@@ -30,7 +30,8 @@ int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
     int32_t dilation_w = params->dilation_width;
     int32_t group = params->group;
     struct csinn_callback *cb = params->base.cb;
-
+    struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (params->base.quant_type != CSINN_QUANT_INT8_ASYM_W_SYM) {
         cb->exec = shl_ref_conv1d_quant;
         return CSINN_TRUE;
@@ -58,7 +59,9 @@ int shl_rvv_conv1d_init_int8(struct csinn_tensor *input, struct csinn_tensor *ou
                     bias_data[oc] -= tmp;
                 }
             }
-            shl_rvv_conv1d_gemm_reorder_kernel_int8(kernel, params);
+            if (!binary_model_op_init) {
+                shl_rvv_conv1d_gemm_reorder_kernel_int8(kernel, params);
+            }
             cb->exec = shl_rvv_conv1d_gemm_int8;
         } else {
             cb->exec = shl_ref_conv1d_quant;

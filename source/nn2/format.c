@@ -198,7 +198,7 @@ static char *tensor_dump(struct csinn_tensor *tensor, int *size)
     ret->layout = tensor->layout;
     ret->quant_channel = tensor->quant_channel;
 
-    if (tensor->is_const) {
+    if (tensor->is_const && tensor->data != NULL) {
         ret = shl_mem_realloc(ret, tensor_size + csinn_tensor_byte_size(tensor), tensor_size);
         append_ptr = (char *)ret + tensor_size;
         memcpy(append_ptr, tensor->data, csinn_tensor_byte_size(tensor));
@@ -206,7 +206,7 @@ static char *tensor_dump(struct csinn_tensor *tensor, int *size)
         tensor_size += csinn_tensor_byte_size(tensor);
     } else {
         /* ignore data */
-        ret->data = 0;
+        ret->data = NULL;
     }
 
     *size = tensor_size;
@@ -228,7 +228,7 @@ static void tensor_load(struct csinn_tensor *dest, struct csinn_tensor *src)
     dest->is_const = src->is_const;
     char *src_qinfo = (char *)src + read_offset(src->qinfo);
     memcpy(dest->qinfo, src_qinfo, sizeof(struct csinn_quant_info) * src->quant_channel);
-    if (src->is_const) {
+    if (src->is_const && src->data != NULL) {
         dest->data = copy_from_bm(ptr_offset_to_addr(src, src->data), csinn_tensor_byte_size(src));
     }
 }
@@ -310,6 +310,7 @@ void shl_bm_session_load(struct csinn_session *dest, struct csinn_session *src)
     dest->base_dtype = src->base_dtype;
     dest->base_run_mode = src->base_run_mode;
     dest->debug_level = src->debug_level;
+    dest->profiler_level = src->profiler_level;
     csinn_session_init(dest);
     csinn_set_input_number(src->input_num, dest);
     csinn_set_output_number(src->output_num, dest);
@@ -428,7 +429,22 @@ static char *layer_data_dump(struct shl_node *layer, int *size)
 
     *size = extend_size;
 
-    if (layer->type == CSINN_OP_RESHAPE) {
+    if (layer->type == CSINN_OP_CONV2D || layer->type == CSINN_OP_DEPTHWISE_CONV2D ||
+        layer->type == CSINN_OP_GROUP_CONV2D) {
+        struct csinn_conv2d_params *conv2d_params = layer->data;
+        if (conv2d_params->conv_extra.kernel_tm != NULL) {
+            int kernel_tm_size;
+            char *kernel_tm_buf = tensor_dump(conv2d_params->conv_extra.kernel_tm, &kernel_tm_size);
+            ret = shl_mem_realloc(ret, extend_size + kernel_tm_size, extend_size);
+            struct csinn_conv2d_params *ret_conv2d_params = (struct csinn_conv2d_params *)ret;
+            ret_conv2d_params->conv_extra.kernel_tm =
+                (struct csinn_tensor *)offset_to_ptr(extend_size);
+            memcpy((char *)ret + extend_size, kernel_tm_buf, kernel_tm_size);
+            shl_mem_free(kernel_tm_buf);
+            extend_size += kernel_tm_size;
+            *size = extend_size;
+        }
+    } else if (layer->type == CSINN_OP_RESHAPE) {
         struct csinn_reshape_params *reshape_params = layer->data;
         int shape_size = reshape_params->shape_num * sizeof(int32_t);
         ret = shl_mem_realloc(ret, extend_size + shape_size, extend_size);
@@ -567,8 +583,17 @@ static void layer_data_load(struct shl_node *dest, struct shl_node *src)
     // /* dest's input have been loaded */
     // struct csinn_tensor *input = dest->in[0]->data;
     // shl_op_callback_map(ret, src->type, input->dtype);
-
-    if (src->type == CSINN_OP_RESHAPE) {
+    if (src->type == CSINN_OP_CONV2D || src->type == CSINN_OP_DEPTHWISE_CONV2D ||
+        src->type == CSINN_OP_GROUP_CONV2D) {
+        struct csinn_conv2d_params *src_conv2d_params = ptr_offset_to_addr(src, src->data);
+        struct csinn_conv2d_params *conv2d_params = (struct csinn_conv2d_params *)ret;
+        if (src_conv2d_params->conv_extra.kernel_tm != NULL) {
+            conv2d_params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+            tensor_load(
+                conv2d_params->conv_extra.kernel_tm,
+                ptr_offset_to_addr(src_conv2d_params, src_conv2d_params->conv_extra.kernel_tm));
+        }
+    } else if (src->type == CSINN_OP_RESHAPE) {
         struct csinn_reshape_params *reshape_params = (struct csinn_reshape_params *)ret;
         char *shape_addr =
             ptr_offset_to_addr(ptr_offset_to_addr(src, src->data), reshape_params->shape);

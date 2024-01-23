@@ -55,14 +55,9 @@ int shl_c920_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_t
             float scale = weights->qinfo->scale;
             shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
         } else if (weights->quant_channel == output_depth) {
-            // support channel quantization
-            for (int c = 0; c < output_depth; c++) {
-                int32_t zp = weights->qinfo[c].zero_point;
-                float scale = weights->qinfo[c].scale;
-                shl_rvv_dequantize_i8_to_f16(weights_int8 + c * accum_depth,
-                                             weights_fp16 + c * accum_depth, accum_depth, zp,
-                                             scale);
-            }
+            shl_rvv_fc_npack2n_dequantize_per_channel_i8_to_f16(weights, params, weights_fp16);
+        } else {
+            shl_debug_error("%s unsupported quant_channel: %d\n", __func__, weights->quant_channel);
         }
         weights_data = weights_fp16;
     } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {

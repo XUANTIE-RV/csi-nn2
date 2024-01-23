@@ -96,12 +96,35 @@ void shl_c920_gemm_block_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp
                                        __fp16 *bias, int m, int k, int n, const int M_BLK,
                                        const int K_BLK, const int N_BLK);
 
-/************************************ fullyconnected **********************************/
+/************************************* gemm a0b1 *************************************/
 void shl_c920_gemm_a0b1_8xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
                                       int M, int K, int N);
 void shl_c920_gemm_a0b1_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
                                       int M, int K, int N);
 
+void shl_c920_gemm_a0nb1r_8xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
+                                        int M, int K, int N);
+void shl_c920_gemm_a0nb1n_dot_fp32_q8(float *dst, const float *sa, const int8_t *sb, float *bias,
+                                      int M, int K, int N, const __fp16 *scale);
+void shl_c920_gemm_a0nb1n_dot_fp32_q4(float *dst, const float *sa, const int8_t *sb, float *bias,
+                                      int M, int K, int N, const __fp16 *scale);
+
+void shl_c920_gemm_a0nb1r_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
+                                        __fp16 *bias, int M, int K, int N);
+void shl_c920_gemm_a0nb1n_dot_fp16_q8(__fp16 *dst, const __fp16 *sa, const int8_t *sb, __fp16 *bias,
+                                      int M, int K, int N, const __fp16 *scale);
+void shl_c920_gemm_a0nb1n_dot_fp16_q4(__fp16 *dst, const __fp16 *sa, const int8_t *sb, __fp16 *bias,
+                                      int M, int K, int N, const __fp16 *scale);
+
+void shl_c920_gemm_a0nb1_dot_fp16_q8_rearrange(__fp16 *dst, const __fp16 *sa, const int8_t *sb,
+                                               __fp16 *bias, int M, int K, int N,
+                                               const __fp16 *scale);
+
+void shl_c920_gemm_a0nb1_dot_fp16_q4_rearrange(__fp16 *dst, const __fp16 *sa, const int8_t *sb,
+                                               __fp16 *bias, int M, int K, int N,
+                                               const __fp16 *scale);
+
+/************************************ fullyconnected **********************************/
 int shl_c920_fullyconnected_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
                                       struct csinn_fc_params *params);
@@ -110,12 +133,23 @@ int shl_c920_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_t
                                       struct csinn_fc_params *params);
 
 /*************************************** matmul ***************************************/
-int shl_c920_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
-                         struct csinn_tensor *output, struct csinn_matmul_params *params);
-int shl_c920_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
-                         struct csinn_tensor *output, struct csinn_matmul_params *params);
-int shl_c920_matmul_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
-                                struct csinn_tensor *output, struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b0_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                              struct csinn_tensor *output, struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b1_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                              struct csinn_tensor *output, struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b1_fp32_block_quant(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                                          struct csinn_tensor *output,
+                                          struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b0_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                              struct csinn_tensor *output, struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b0_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                                     struct csinn_tensor *output,
+                                     struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b1_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                              struct csinn_tensor *output, struct csinn_matmul_params *params);
+int shl_c920_matmul_a0b1_fp16_block_quant(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
+                                          struct csinn_tensor *output,
+                                          struct csinn_matmul_params *params);
 
 void shl_c920_u8_to_f32(const uint8_t *input, float *output, int32_t offset, float *scale,
                         uint32_t length);

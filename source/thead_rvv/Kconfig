@@ -210,26 +210,47 @@ config THEAD_RVV_DIV_INT8
 	help
 		Select SHL build v extension optimized div
 
-config CONFIG_THEAD_RVV_ERF_FP32
+config THEAD_RVV_EMBEDDING_INT32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer embedding int32"
+	default y
+	help
+		Select SHL build v extension optimized embedding
+
+config THEAD_RVV_ERF_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer erf fp32"
 	default y
 	help
 		Select SHL build v extension optimized erf
 
-config CONFIG_THEAD_RVV_ERF_FP16
+config THEAD_RVV_ERF_FP16
 	depends on THEAD_RVV_SOURCE
 	bool "Layer erf fp16"
 	default y
 	help
 		Select SHL build v extension optimized erf
 
-config CONFIG_THEAD_RVV_ERF_INT8
+config THEAD_RVV_ERF_INT8
 	depends on THEAD_RVV_SOURCE
 	bool "Layer erf int8"
 	default y
 	help
 		Select SHL build v extension optimized erf
+
+config THEAD_RVV_EXPAND_DIMS_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer expand_dims fp32"
+	default y
+	help
+		Select SHL build v extension optimized expand_dims
+
+config THEAD_RVV_EXPAND_DIMS_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer expand_dims fp16"
+	default y
+	help
+		Select SHL build v extension optimized expand_dims
 
 config THEAD_RVV_FULLYCONNECTED_FP32
 	depends on THEAD_RVV_SOURCE
@@ -391,6 +412,13 @@ config THEAD_RVV_LEAKY_RELU_INT8
 	default y
 	help
 		Select SHL build v extension optimized leaky_relu
+
+config THEAD_RVV_LLM_POS_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer llm_pos fp16"
+	default y
+	help
+		Select SHL build v extension optimized llm_pos
 
 config THEAD_RVV_MATMUL_FP32
 	depends on THEAD_RVV_SOURCE
@@ -587,6 +615,34 @@ config THEAD_RVV_RMS_NORM_INT8
 	default y
 	help
 		Select SHL build v extension optimized rms_norm
+
+config THEAD_RVV_ROPE_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer rope fp32"
+	default y
+	help
+		Select SHL build v extension optimized rope
+
+config THEAD_RVV_ROPE_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer rope fp16"
+	default y
+	help
+		Select SHL build v extension optimized rope
+
+config THEAD_RVV_SCALED_DOT_PRODUCT_ATTENTION_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer scaled_dot_product_attention fp32"
+	default y
+	help
+		Select SHL build v extension optimized scaled_dot_product_attention
+
+config THEAD_RVV_SCALED_DOT_PRODUCT_ATTENTION_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer scaled_dot_product_attention fp16"
+	default y
+	help
+		Select SHL build v extension optimized scaled_dot_product_attention
 
 config THEAD_RVV_SIGMOID_FP32
 	depends on THEAD_RVV_SOURCE

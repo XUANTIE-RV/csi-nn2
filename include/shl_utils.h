@@ -26,12 +26,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if (!defined SHL_BUILD_RTOS)
-#include <omp.h>
-#endif
+
 #include "csinn/csinn_data_structure.h"
 #include "shl_debug.h"
 #include "shl_memory.h"
+#include "shl_multithread.h"
+#include "shl_profiler.h"
 #ifdef SHL_MCONF_CONFIG
 #include "mconf_config.h"
 #endif
@@ -139,6 +139,20 @@ struct shl_yolov5_params {
     int32_t strides[3]; /**< Strides */
     float anchors[18];  /**< Anchor box of three strides */
 };
+
+struct shl_function_map {
+    void *func;
+    char *name;
+};
+
+char *shl_find_function_name(struct shl_function_map *fmap, void *func);
+char *shl_find_enum_name(struct csinn_enum_map *map, int map_len, int type);
+
+char *shl_find_dtype_name(enum csinn_dtype_enum type);
+char *shl_find_quant_name(enum csinn_quant_enum type);
+char *shl_find_api_name(enum csinn_api_enum type);
+char *shl_find_rmod_name(enum csinn_rmode_enum type);
+char *shl_find_layout_name(enum csinn_layout_enum type);
 
 #ifdef __cplusplus
 }

@@ -116,7 +116,7 @@ int shl_rvv_matmul_block_fp32(struct csinn_tensor *mat0, struct csinn_tensor *ma
 }
 
 /*************************************************************
- * packn = vlenb / sizeof(__fp16)
+ * packn = vlenb / sizeof(float)
  * src: [k, n]
  * dst: [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
  * n_blk: N_BLK, N_tail
@@ -154,19 +154,21 @@ int shl_rvv_matmul_init_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat
                              struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
+    struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (!params->trans_a && !params->trans_b) {
-        if (mat0->dtype == CSINN_DTYPE_FLOAT32) {
-            if (mat1->dtype == CSINN_DTYPE_FLOAT32) {
+        if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32) {
+            if (!binary_model_op_init) {
                 if (mat1->is_const) {
                     shl_rvv_matmul_reorder_weight_fp32(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
                 }
-                cb->exec = shl_rvv_matmul_fp32;
             }
+            cb->exec = shl_rvv_matmul_fp32;
         }
     }
     if (cb->exec == NULL) {
         shl_debug_warning(
-            "matmul is not optimized to achieve under this condition, call reference func "
+            "matmul is not optimized to achieve under this condition on RVV, call reference func "
             "replaced.\n");
         cb->exec = shl_ref_matmul_quant;
     }

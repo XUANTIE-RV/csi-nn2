@@ -23,7 +23,9 @@ int main(int argc, char **argv)
     init_testsuite("Testing function of prelu(layer).\n");
 
     struct csinn_session *sess = csinn_alloc_session();
-    sess->base_run_mode = CSINN_RM_LAYER;
+    sess->base_run_mode = CSINN_RM_CPU_GRAPH;
+    sess->model.save_mode = CSINN_RUN_ONLY;
+    sess->dynamic_shape = CSINN_FALSE;
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
@@ -75,14 +77,14 @@ int main(int argc, char **argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if (DTYPE == 32)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT32, csinn_prelu_init,
-                   csinn_prelu, &difference);
+    test_binary_op(input, alpha_data, output, params, CSINN_DTYPE_FLOAT32, CSINN_QUANT_FLOAT32,
+                   sess, csinn_prelu_init, csinn_prelu, &difference);
 #elif (DTYPE == 16)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT16, csinn_prelu_init,
-                   csinn_prelu, &difference);
+    test_binary_op(input, alpha_data, output, params, CSINN_DTYPE_FLOAT16, CSINN_QUANT_FLOAT16,
+                   sess, csinn_prelu_init, csinn_prelu, &difference);
 #elif (DTYPE == 8)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_INT8_ASYM, csinn_prelu_init,
-                   csinn_prelu, &difference);
+    test_binary_op(input, alpha_data, output, params, CSINN_DTYPE_INT8, CSINN_QUANT_INT8_ASYM, sess,
+                   csinn_prelu_init, csinn_prelu, &difference);
 #endif
 
     return done_testing();

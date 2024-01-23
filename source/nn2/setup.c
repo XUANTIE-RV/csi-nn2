@@ -153,11 +153,30 @@ void *shl_get_runtime_callback(struct csinn_session *sess, int op)
 void csinn_session_init(struct csinn_session *sess)
 {
     shl_debug_set_level(sess->debug_level);
+    if (sess->profiler_level >= CSINN_PROFILER_LEVEL_TRACE) {
+        struct shl_trace *trace = (struct shl_trace *)shl_mem_alloc(sizeof(struct shl_trace));
+        trace->enable_trace = true;
+        sess->trace = trace;
+
+        SHL_TRACE_CALL(shl_trace_begin(trace, NULL));
+
+        // add some meta-data
+        SHL_TRACE_CALL(shl_trace_other_data(
+            trace, shl_trace_create_dict(
+                       4, "source", SHL_TRACE_STRING("csinn"), "base_api",
+                       SHL_TRACE_STRING(shl_find_api_name(sess->base_api)), "base_run_mode",
+                       SHL_TRACE_STRING(shl_find_rmod_name(sess->base_run_mode)), "base_quant_type",
+                       SHL_TRACE_STRING(shl_find_quant_name(sess->base_quant_type)))));
+    }
+
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
 
     void *(*func)() = shl_get_runtime_callback(sess, CSINN_SESSION_INIT);
     if (func != NULL) {
         func(sess);
     }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
 }
 /**
  * @}
@@ -169,10 +188,19 @@ void csinn_session_init(struct csinn_session *sess)
  */
 void csinn_session_deinit(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
     void *(*func)();
     func = shl_get_runtime_callback(sess, CSINN_SESSION_DEINIT);
     if (func != NULL) {
         func(sess);
+    }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    if (sess->profiler_level >= CSINN_PROFILER_LEVEL_TRACE) {
+        SHL_TRACE_CALL(shl_trace_end(sess->trace));
+        shl_mem_free(sess->trace);
     }
 }
 /**
@@ -185,6 +213,8 @@ void csinn_session_deinit(struct csinn_session *sess)
  */
 void csinn_set_output_number(int number, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
     sess->output_num = number;
     sess->output = shl_mem_alloc(sess->output_num * sizeof(struct csinn_tensor *));
     void (*func)();
@@ -192,6 +222,8 @@ void csinn_set_output_number(int number, struct csinn_session *sess)
     if (func != NULL) {
         func(number, sess);
     }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
 }
 /**
  * @}
@@ -203,6 +235,8 @@ void csinn_set_output_number(int number, struct csinn_session *sess)
  */
 void csinn_set_input_number(int number, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
     sess->input_num = number;
     sess->input = shl_mem_alloc(sess->input_num * sizeof(struct csinn_tensor *));
     void (*func)();
@@ -210,6 +244,8 @@ void csinn_set_input_number(int number, struct csinn_session *sess)
     if (func != NULL) {
         func(number, sess);
     }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
 }
 /**
  * @}
@@ -221,13 +257,20 @@ void csinn_set_input_number(int number, struct csinn_session *sess)
  */
 int csinn_get_output_number(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = 0;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_GET_OUTPUT_NUMBER);
     if (func != NULL) {
-        return func(sess);
+        ret = func(sess);
     } else {
-        return sess->output_num;
+        ret = sess->output_num;
     }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -239,13 +282,20 @@ int csinn_get_output_number(struct csinn_session *sess)
  */
 int csinn_get_input_number(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = 0;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_GET_INPUT_NUMBER);
     if (func != NULL) {
-        return func(sess);
+        ret = func(sess);
     } else {
-        return sess->input_num;
+        ret = sess->input_num;
     }
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -257,13 +307,19 @@ int csinn_get_input_number(struct csinn_session *sess)
  */
 int csinn_set_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     sess->output[index] = output;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SET_OUTPUT);
     if (func != NULL) {
-        return func(index, output, sess);
+        ret = func(index, output, sess);
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -275,13 +331,19 @@ int csinn_set_output(int index, struct csinn_tensor *output, struct csinn_sessio
  */
 int csinn_set_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     sess->input[index] = input;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SET_INPUT);
     if (func != NULL) {
-        return func(index, input, sess);
+        ret = func(index, input, sess);
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -293,13 +355,19 @@ int csinn_set_input(int index, struct csinn_tensor *input, struct csinn_session 
  */
 int csinn_get_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     csinn_tensor_copy(output, sess->output[index]);
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_GET_OUTPUT);
     if (func != NULL) {
-        return func(index, output, sess);
+        ret = func(index, output, sess);
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -311,13 +379,19 @@ int csinn_get_output(int index, struct csinn_tensor *output, struct csinn_sessio
  */
 int csinn_get_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     csinn_tensor_copy(input, sess->input[index]);
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_GET_INPUT);
     if (func != NULL) {
-        return func(index, input, sess);
+        ret = func(index, input, sess);
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -329,6 +403,9 @@ int csinn_get_input(int index, struct csinn_tensor *input, struct csinn_session 
  */
 int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     sess->input[index]->data = input->data;
     if (sess->dynamic_shape) {
         memcpy(sess->input[index]->dim, input->dim, sizeof(int32_t) * MAX_DIM);
@@ -337,7 +414,6 @@ int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_sessi
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_UPDATE_INPUT);
     if (func != NULL) {
-        int ret = CSINN_FALSE;
         if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(index, input, sess);
@@ -346,9 +422,11 @@ int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_sessi
         } else {
             ret = func(index, input, sess);
         }
-        return ret;
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -360,13 +438,19 @@ int csinn_update_input(int index, struct csinn_tensor *input, struct csinn_sessi
  */
 int csinn_update_output(int index, struct csinn_tensor *output, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     sess->output[index]->data = output->data;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_UPDATE_OUTPUT);
     if (func != NULL) {
-        return func(index, output, sess);
+        ret = func(index, output, sess);
     }
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -378,10 +462,12 @@ int csinn_update_output(int index, struct csinn_tensor *output, struct csinn_ses
  */
 int csinn_session_setup(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_FALSE;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SESSION_SETUP);
     if (func != NULL) {
-        int ret = CSINN_FALSE;
         if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
@@ -390,9 +476,11 @@ int csinn_session_setup(struct csinn_session *sess)
         } else {
             ret = func(sess);
         }
-        return ret;
     }
-    return CSINN_FALSE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -404,10 +492,12 @@ int csinn_session_setup(struct csinn_session *sess)
  */
 int csinn_session_run(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_FALSE;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_SESSION_RUN);
     if (func != NULL) {
-        int ret = CSINN_FALSE;
         if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
@@ -416,9 +506,11 @@ int csinn_session_run(struct csinn_session *sess)
         } else {
             ret = func(sess);
         }
-        return ret;
     }
-    return CSINN_FALSE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -430,12 +522,18 @@ int csinn_session_run(struct csinn_session *sess)
  */
 int csinn_set_tensor_entry(struct csinn_tensor *t, struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_FALSE;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_TENSOR_ENTRY);
     if (func != NULL) {
-        return func(t, sess);
+        ret = func(t, sess);
     }
-    return CSINN_FALSE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}
@@ -447,10 +545,12 @@ int csinn_set_tensor_entry(struct csinn_tensor *t, struct csinn_session *sess)
  */
 int csinn_load_binary_model(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_FALSE;
     int (*func)();
     func = shl_get_runtime_callback(sess, CSINN_LOAD_BG);
     if (func != NULL) {
-        int ret = CSINN_FALSE;
         if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER) {
             uint64_t start = shl_get_timespec();
             ret = func(sess);
@@ -459,9 +559,11 @@ int csinn_load_binary_model(struct csinn_session *sess)
         } else {
             ret = func(sess);
         }
-        return ret;
     }
-    return CSINN_FALSE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 /**
  * @}

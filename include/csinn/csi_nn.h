@@ -4546,8 +4546,8 @@ int csinn_layer_norm(struct csinn_tensor *input, struct csinn_tensor *output,
  *              If an error occurred while executing the function, the return value is less than or
  *              equal to 0.
  */
-int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                        struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *weights,
+                        struct csinn_tensor *output, struct csinn_rms_norm_params *params);
 
 /**
  * @brief       RMS normalization function
@@ -4560,8 +4560,8 @@ int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
  *              If an error occurred while executing the function, the return value is less than or
  *              equal to 0.
  */
-int csinn_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
-                   struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+int csinn_rms_norm(struct csinn_tensor *input, struct csinn_tensor *weights,
+                   struct csinn_tensor *output, struct csinn_rms_norm_params *params);
 
 /**
  * @brief       Cache matmul initialization function

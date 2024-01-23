@@ -713,8 +713,44 @@ int shl_rvv_silu_cap(struct csinn_tensor *input, struct csinn_tensor *output,
     return common_all_support(input, &(params->base));
 }
 
-int shl_rvv_rms_norm_cap(struct csinn_tensor *input, struct csinn_tensor *output,
-                         struct csinn_tensor *weight, struct csinn_rms_norm_params *params)
+int shl_rvv_rms_norm_cap(struct csinn_tensor *input, struct csinn_tensor *weight,
+                         struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     return common_all_support(input, &(params->base));
+}
+
+int shl_rvv_embedding_cap(struct csinn_tensor *input, struct csinn_tensor *weight,
+                          struct csinn_tensor *output, struct csinn_diso_params *params)
+{
+    return float_all_support(input, &(params->base));
+}
+
+int shl_rvv_expand_dims_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_expand_dims_params *params)
+{
+    return float_all_support(input, &(params->base));
+}
+
+int shl_rvv_rope_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_rope_params *params)
+{
+    return float_all_support(input, &(params->base));
+}
+
+int shl_rvv_scaled_dot_product_attention_cap(struct csinn_tensor *query, struct csinn_tensor *key,
+                                             struct csinn_tensor *value,
+                                             struct csinn_tensor *output_tensor,
+                                             struct csinn_scale_dot_attention_params *params)
+{
+    return float_all_support(query, &(params->base));
+}
+
+int shl_rvv_llm_pos_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_llm_pos_params *params)
+{
+    if (input->dtype == CSINN_DTYPE_FLOAT16) {
+        return CSINN_OPT_INTRINSIC;
+    }
+
+    return CSINN_OPT_UNSUPPORTED;
 }

@@ -18,12 +18,13 @@
 
 #include "c920v2/c920v2.h"
 #include "c920v2/cap.h"
+#include "c920v2/perf.h"
 
 #define C920V2_OP_PATTERN_MAX 40
 static struct shl_cb_table shl_c920v2_cb_table[C920V2_OP_PATTERN_MAX];
 
 void shl_c920v2_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init,
-                       void *exec, void *est, void *cap)
+                       void *exec, void *est, void *cap, void *perf)
 {
     static int i = 0;
     if (i >= C920V2_OP_PATTERN_MAX) {
@@ -34,6 +35,7 @@ void shl_c920v2_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, 
     shl_c920v2_cb_table[i].shl_cb_value.exec = exec;
     shl_c920v2_cb_table[i].shl_cb_value.est = est;
     shl_c920v2_cb_table[i].shl_cb_value.caps = cap;
+    shl_c920v2_cb_table[i].shl_cb_value.perf = perf;
     i++;
 }
 
@@ -180,7 +182,8 @@ void shl_c920v2_session_setup(struct csinn_session *sess)
     bool save_binary_model = false;
 
     if (sess->model.save_mode == CSINN_SAVE_AND_RUN || sess->model.save_mode == CSINN_SAVE_ONLY) {
-        if (sess->base_dtype == CSINN_DTYPE_FLOAT16 || sess->base_dtype == CSINN_DTYPE_FLOAT32) {
+        if (sess->base_dtype == CSINN_DTYPE_INT8 || sess->base_dtype == CSINN_DTYPE_FLOAT16 ||
+            sess->base_dtype == CSINN_DTYPE_FLOAT32) {
             save_binary_model = true;
         } else {
             shl_debug_warning("Unsupport to save this dtype binary model yet\n");
@@ -389,21 +392,21 @@ void shl_target_init_c920v2()
 {
 #ifndef CONFIG_C920V2_CONVOLUTION_FP32_DISABLED
     shl_c920v2_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_c920v2_conv2d_init_fp32, NULL,
-                      shl_gref_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
     shl_c920v2_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_c920v2_conv2d_init_fp32, NULL,
-                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
 #endif
 #ifndef CONFIG_C920V2_CONVOLUTION_FP16_DISABLED
     shl_c920v2_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_c920v2_conv2d_init_fp16, NULL,
-                      shl_gref_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
     shl_c920v2_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_c920v2_conv2d_init_fp16, NULL,
-                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
 #endif
 #ifndef CONFIG_C920V2_CONVOLUTION_INT8_DISABLED
     shl_c920v2_reg_op(CSINN_DTYPE_INT8, CSINN_OP_CONV2D, shl_c920v2_conv2d_init_int8, NULL,
-                      shl_gref_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
     shl_c920v2_reg_op(CSINN_DTYPE_INT8, CSINN_OP_GROUP_CONV2D, shl_c920v2_conv2d_init_int8, NULL,
-                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap);
+                      shl_gref_group_conv2d, shl_c920v2_conv2d_cap, shl_c920v2_conv2d_perf);
 #endif
     shl_register_op_callback(CSINN_C920V2, shl_cb_map_c920v2);
     shl_register_runtime_callback(CSINN_C920V2, shl_c920v2_runtime_callback);

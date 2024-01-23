@@ -1192,11 +1192,11 @@ int shl_ref_instance_norm_quant(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_tensor *bias, struct csinn_tensor *output,
                                 struct csinn_instance_norm_params *params);
 
-int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *output,
-                         struct csinn_tensor *weight, struct csinn_rms_norm_params *params);
+int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *weight,
+                         struct csinn_tensor *output, struct csinn_rms_norm_params *params);
 
-int shl_ref_rms_norm_quant(struct csinn_tensor *input, struct csinn_tensor *output,
-                           struct csinn_tensor *weight, struct csinn_rms_norm_params *params);
+int shl_ref_rms_norm_quant(struct csinn_tensor *input, struct csinn_tensor *weight,
+                           struct csinn_tensor *output, struct csinn_rms_norm_params *params);
 
 int shl_ref_rope_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_rope_params *params);

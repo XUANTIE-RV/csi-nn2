@@ -45,20 +45,6 @@ int shl_c908_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                         struct csinn_conv2d_params *params);
 
-int shl_c908_avgpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-int shl_c908_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-int shl_c908_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-
-int shl_c908_maxpool2d_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-int shl_c908_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-int shl_c908_maxpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_pool_params *params);
-
 int shl_c908_fullyconnected_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
                                       struct csinn_fc_params *params);

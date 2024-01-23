@@ -18,8 +18,8 @@
 
 #include "rvv/rvv.h"
 
-int shl_rvv_rms_norm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                          struct csinn_tensor *weight, struct csinn_rms_norm_params *params)
+int shl_rvv_rms_norm_fp32(struct csinn_tensor *input, struct csinn_tensor *weight,
+                          struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     if (input->layout == CSINN_LAYOUT_NC1HWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);

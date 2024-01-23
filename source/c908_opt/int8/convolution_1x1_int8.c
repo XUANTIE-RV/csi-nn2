@@ -28,6 +28,8 @@ void shl_c908_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
     int k = kernel->dim[1];          // in_ch ( kernel->dim[2] = kernel->dim[3] = 1)
     int k4 = (k % 4 != 0) ? ((k / 4 + 1) * 4) : k;
 
+    csinn_tensor_copy(params->conv_extra.kernel_tm, kernel);
+    params->conv_extra.kernel_tm->dim[1] = k4;
     params->conv_extra.kernel_tm->data = (int8_t *)shl_mem_alloc(group * m * k4 * sizeof(int8_t));
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
 
@@ -35,6 +37,7 @@ void shl_c908_conv1x1s1_gemm_reorder_kernel_int8(struct csinn_tensor *kernel,
         shl_c908_reorder_kernel_n8_int8_dot(kernel_data + g * m * k, pa_reorder + g * m * k4, m, k,
                                             k);
     }
+    kernel->data = NULL;
 }
 
 int shl_c908_conv1x1s1_gemm_int8(struct csinn_tensor *input, struct csinn_tensor *output,

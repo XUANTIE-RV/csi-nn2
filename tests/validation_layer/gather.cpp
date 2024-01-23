@@ -22,7 +22,9 @@ int main(int argc, char **argv)
 {
     init_testsuite("Testing function of gather(layer).\n");
     struct csinn_session *sess = csinn_alloc_session();
-    sess->base_run_mode = CSINN_RM_LAYER;
+    sess->base_run_mode = CSINN_RM_CPU_GRAPH;
+    sess->model.save_mode = CSINN_RUN_ONLY;
+    sess->dynamic_shape = CSINN_FALSE;
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *indices = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
     input->quant_channel = 1;
     indices->dtype = CSINN_DTYPE_INT64;
     indices->layout = CSINN_LAYOUT_NCHW;
-    indices->is_const = 0;
+    indices->is_const = 1;
     indices->quant_channel = 1;
     output->dtype = CSINN_DTYPE_FLOAT32;
     output->layout = CSINN_LAYOUT_NCHW;
@@ -93,14 +95,14 @@ int main(int argc, char **argv)
     indices->data = data_i64;
 
 #if (DTYPE == 32)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT32, csinn_gather_init,
-                   csinn_gather, &difference);
+    test_gather_op(input, indices, output, params, CSINN_DTYPE_FLOAT32, CSINN_QUANT_FLOAT32, sess,
+                   csinn_gather_init, csinn_gather, &difference);
 #elif (DTYPE == 16)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT16, csinn_gather_init,
-                   csinn_gather, &difference);
+    test_gather_op(input, indices, output, params, CSINN_DTYPE_FLOAT16, CSINN_QUANT_FLOAT16, sess,
+                   csinn_gather_init, csinn_gather, &difference);
 #elif (DTYPE == 8)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_INT8_ASYM, csinn_gather_init,
-                   csinn_gather, &difference);
+    test_gather_op(input, indices, output, params, CSINN_DTYPE_INT8, CSINN_QUANT_INT8_ASYM, sess,
+                   csinn_gather_init, csinn_gather, &difference);
 #endif
 
     return done_testing();

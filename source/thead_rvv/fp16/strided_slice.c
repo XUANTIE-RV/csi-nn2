@@ -187,6 +187,9 @@ int shl_rvv_strided_slice_fp16(struct csinn_tensor *input, struct csinn_tensor *
                     output_data += vl;
                     size -= vl;
                 }
+                if (cur == 0) {
+                    break;
+                }
                 cur -= 1;
                 idx[cur] += stride[cur];
             } else {

@@ -32,6 +32,10 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     int32_t stride_w = params->stride_width;
     int32_t dilation_h = params->dilation_height;
     int32_t dilation_w = params->dilation_width;
+    int32_t *bias_data = (int32_t *)bias->data;
+    int8_t *kernel_data = (int8_t *)kernel->data;
+    int32_t input_zp = input->qinfo->zero_point;
+
     struct csinn_callback *cb = params->base.cb;
 
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
@@ -53,13 +57,17 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
         out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
+
     // packn
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-            shl_c908_conv1x1s1_gemm_reorder_kernel_packn_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv1x1s1_gemm_reorder_kernel_packn_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv1x1s1_gemm_packn_int8;
             // } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
             //            dilation_h == 1 && dilation_w == 1) {
@@ -77,8 +85,10 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
             //     }
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
-            shl_c908_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv_im2col_gemm_packn_int8;
         }
     }
@@ -86,13 +96,18 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     // pack1ton
     if (in_elempack % packn != 0 && out_elempack % packn == 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            shl_c908_conv1x1s1_gemm_reorder_kernel_pack1ton_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv1x1s1_gemm_reorder_kernel_pack1ton_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv1x1s1_gemm_pack1ton_int8;
         } else {
-            shl_c908_conv_im2col_gemm_reorder_kernel_pack1ton_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv_im2col_gemm_reorder_kernel_pack1ton_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv_im2col_gemm_pack1ton_int8;
         }
     }
@@ -100,13 +115,18 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     // packnto1
     if (in_elempack % packn == 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            shl_c908_conv1x1s1_gemm_reorder_kernel_packnto1_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv1x1s1_gemm_reorder_kernel_packnto1_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv1x1s1_gemm_packnto1_int8;
         } else {
-            shl_c908_conv_im2col_gemm_reorder_kernel_packnto1_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv_im2col_gemm_reorder_kernel_packnto1_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv_im2col_gemm_packnto1_int8;
         }
     }
@@ -114,13 +134,18 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     // pack1
     if (in_elempack % packn != 0 && out_elempack % packn != 0) {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            shl_c908_conv1x1s1_gemm_reorder_kernel_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv1x1s1_gemm_reorder_kernel_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv1x1s1_gemm_int8;
         } else {
-            shl_c908_conv_im2col_gemm_reorder_kernel_int8(kernel, params);
+            if (!binary_model_op_init) {
+                params->conv_extra.kernel_tm = csinn_alloc_tensor(NULL);
+                shl_c908_conv_im2col_gemm_reorder_kernel_int8(kernel, params);
+            }
             cb->exec = shl_c908_conv_im2col_gemm_int8;
         }
     }
@@ -140,10 +165,6 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     if (params->conv_extra.conv_mode == CSINN_GEMM) {
         if (!params->conv_extra.fuse_zp2bias) {
             params->conv_extra.fuse_zp2bias = true;
-            int32_t *bias_data = (int32_t *)bias->data;
-            int8_t *kernel_data = (int8_t *)kernel->data;
-            int32_t input_zp = input->qinfo->zero_point;
-
             if (bias_data == NULL) {
                 // XXX: memory leak
                 bias_data = (int32_t *)shl_mem_alloc(out_c * params->group * sizeof(int32_t));
@@ -163,10 +184,6 @@ int shl_c908_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *o
     // recover fuse zeropoint to bias for winograd
     if (params->conv_extra.conv_mode == CSINN_WINOGRAD) {
         if (params->conv_extra.fuse_zp2bias) {
-            int32_t *bias_data = (int32_t *)bias->data;
-            int8_t *kernel_data = (int8_t *)kernel->data;
-            int32_t input_zp = input->qinfo->zero_point;
-
             int kernel_inner = in_c * kernel_h * kernel_w;
             for (int oc = 0; oc < out_c * params->group; oc++) {
                 int32_t tmp = 0;

@@ -470,57 +470,71 @@ void find_min_max(float *input, float *max_value, float *min_value, int size)
 void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
                     enum csinn_api_enum api)
 {
-    float max, min, scale;
-    int32_t zp, quantized_multiplier, shift;
-    if (tensor->qinfo == NULL) {
-        tensor->qinfo = malloc(sizeof(struct csinn_quant_info));
+    if (qtype == CSINN_QUANT_BLOCK_Q8_0 || qtype == CSINN_QUANT_BLOCK_Q4_0) {
+        return;
     }
-    int size = csinn_tensor_size(tensor);
-    find_min_max(tensor->data, &max, &min, size);
 
-    if (qtype == CSINN_QUANT_INT8_SYM) {
-        if (api == CSINN_TH1520) {
-            get_scale_and_zp_power2_i8(max, min, &scale, &zp);
-            if (min >= 0 && max > 0) {
-                min = -max;
+    int size = csinn_tensor_size(tensor);
+    int q_size = tensor->quant_channel;
+    int inner_size = size / q_size;
+
+    if (q_size > 1 && !(tensor->layout >= CSINN_LAYOUT_N && tensor->layout <= CSINN_LAYOUT_O1HW)) {
+        printf("only support NCHW layout\n");
+    }
+    if (tensor->qinfo == NULL) {
+        tensor->qinfo = (struct csinn_quant_info *)malloc(q_size * sizeof(struct csinn_quant_info));
+    }
+
+    for (int i = 0; i < q_size; i++) {
+        float max, min, scale;
+        int32_t zp, quantized_multiplier, shift;
+        float *data = (float *)tensor->data + i * inner_size;
+        find_min_max(data, &max, &min, inner_size);
+
+        if (qtype == CSINN_QUANT_INT8_SYM) {
+            if (api == CSINN_TH1520) {
+                get_scale_and_zp_power2_i8(max, min, &scale, &zp);
+                if (min >= 0 && max > 0) {
+                    min = -max;
+                } else {
+                    min = min;
+                }
             } else {
-                min = min;
+                get_scale_and_zp_i8(max, min, &scale, &zp);
             }
-        } else {
-            get_scale_and_zp_i8(max, min, &scale, &zp);
-        }
-    } else if (qtype == CSINN_QUANT_UINT8_ASYM) {
-        get_scale_and_zp(max, min, &scale, &zp);
-    } else if (qtype == CSINN_QUANT_INT8_ASYM) {
-        get_scale_and_zp_i8_asym(max, min, &scale, &zp);
-    } else if (qtype == CSINN_QUANT_INT16_SYM) {
-        if (api == CSINN_TH1520) {
-            get_scale_and_zp_power2_i16(max, min, &scale, &zp);
-            if (min >= 0 && max > 0) {
-                min = -max;
+        } else if (qtype == CSINN_QUANT_UINT8_ASYM) {
+            get_scale_and_zp(max, min, &scale, &zp);
+        } else if (qtype == CSINN_QUANT_INT8_ASYM) {
+            get_scale_and_zp_i8_asym(max, min, &scale, &zp);
+        } else if (qtype == CSINN_QUANT_INT16_SYM) {
+            if (api == CSINN_TH1520) {
+                get_scale_and_zp_power2_i16(max, min, &scale, &zp);
+                if (min >= 0 && max > 0) {
+                    min = -max;
+                } else {
+                    min = min;
+                }
             } else {
-                min = min;
+                printf("unsupport qinfo\n");
             }
+        } else if (qtype == CSINN_QUANT_FLOAT16) {
+            scale = 1;
+            zp = 0;
+        } else if (qtype == CSINN_QUANT_FLOAT32) {
+            scale = 1;
+            zp = 0;
         } else {
             printf("unsupport qinfo\n");
         }
-    } else if (qtype == CSINN_QUANT_FLOAT16) {
-        scale = 1;
-        zp = 0;
-    } else if (qtype == CSINN_QUANT_FLOAT32) {
-        scale = 1;
-        zp = 0;
-    } else {
-        printf("unsupport qinfo\n");
-    }
 
-    tensor->qinfo->max = max;
-    tensor->qinfo->min = min;
-    shl_quantize_multiplier(scale, &quantized_multiplier, &shift);
-    tensor->qinfo->scale = scale;
-    tensor->qinfo->zero_point = zp;
-    tensor->qinfo->multiplier = quantized_multiplier;
-    tensor->qinfo->shift = shift;
+        tensor->qinfo[i].max = max;
+        tensor->qinfo[i].min = min;
+        shl_quantize_multiplier(scale, &quantized_multiplier, &shift);
+        tensor->qinfo[i].scale = scale;
+        tensor->qinfo[i].zero_point = zp;
+        tensor->qinfo[i].multiplier = quantized_multiplier;
+        tensor->qinfo[i].shift = shift;
+    }
 }
 
 void get_quant_info(struct csinn_tensor *tensor)
@@ -555,6 +569,19 @@ void get_quant_info(struct csinn_tensor *tensor)
     tensor->qinfo->zero_point = zp;
     tensor->qinfo->multiplier = quantized_multiplier;
     tensor->qinfo->shift = shift;
+}
+
+struct csinn_tensor *broadcast_quant_info(struct csinn_tensor *i_tensor,
+                                          struct csinn_tensor *o_tensor,
+                                          enum csinn_dtype_enum dtype)
+{
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    o_tensor->qinfo = i_tensor->qinfo;
+    csinn_tensor_copy(ret, o_tensor);
+    ret->dtype = dtype;
+    ret->data = malloc(csinn_tensor_byte_size(ret));
+    csinn_tensor_data_convert(ret, o_tensor);
+    return ret;
 }
 
 struct csinn_tensor *convert_input(struct csinn_tensor *tensor, int dtype)
@@ -598,11 +625,27 @@ struct csinn_tensor *convert_f32_layer(struct csinn_tensor *tensor, enum csinn_q
         ret->dtype = CSINN_DTYPE_FLOAT16;
     } else if (qtype == CSINN_QUANT_FLOAT32) {
         ret->dtype = CSINN_DTYPE_FLOAT32;
+    } else if (qtype == CSINN_QUANT_BLOCK_Q8_0) {
+        ret->dtype = CSINN_DTYPE_INT8;
+        ret->mtype = CSINN_MEM_TYPE_BLOCK_Q8_0;
+    } else if (qtype == CSINN_QUANT_BLOCK_Q4_0) {
+        ret->dtype = CSINN_DTYPE_INT4;
+        ret->mtype = CSINN_MEM_TYPE_BLOCK_Q4_0;
     } else {
         printf("unsupport qinfo\n");
     }
 
-    ret->data = malloc(csinn_tensor_byte_size(ret));
+    if (qtype == CSINN_QUANT_BLOCK_Q8_0) {
+        int q8_block_size = 32;
+        int scale_size = csinn_tensor_size(ret) / q8_block_size * sizeof(int16_t);
+        ret->data = shl_mem_alloc(csinn_tensor_size(ret) + scale_size);
+    } else if (qtype == CSINN_QUANT_BLOCK_Q4_0) {
+        int q4_block_size = 32;
+        int scale_size = csinn_tensor_size(ret) / q4_block_size * sizeof(int16_t);
+        ret->data = shl_mem_alloc(csinn_tensor_size(ret) / 2 + scale_size);
+    } else {
+        ret->data = malloc(csinn_tensor_byte_size(ret));
+    }
     csinn_tensor_data_convert(ret, tensor);
 
     return ret;

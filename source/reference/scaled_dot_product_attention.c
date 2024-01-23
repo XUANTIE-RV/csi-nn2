@@ -39,66 +39,12 @@ int shl_ref_scaled_dot_product_attention_f32(struct csinn_tensor *query, struct 
     int32_t sk = key->dim[2];
     int32_t sq = query->dim[2];
     int32_t head_dim = query->dim[3];
-    float norm_factor = sqrt(128);
+    float norm_factor = 1.0f / params->norm_factor;
 
-    // matmul_result = torch.matmul(query, key.transpose(-1, -2))
-    // matmul_result = matmul_result / norm_factor
-    float *matmul_res_data = shl_mem_alloc(batch * np * sq * sk * sizeof(float));
-    int cnt = 0;
-    for (int i = 0; i < np; i++) {
-        float *mat_input1 = query_data + i * sq * head_dim;
-        float *mat_input2 = key_data + i * sk * head_dim;
-
-        for (int j = 0; j < sq; j++) {
-            for (int k = 0; k < sk; k++) {
-                float sum = 0;
-                for (int l = 0; l < head_dim; l++) {
-                    sum += (mat_input1[j * head_dim + l] * mat_input2[k * head_dim + l]);
-                }
-
-                matmul_res_data[cnt] = sum / norm_factor;
-                cnt++;
-            }
-        }
-    }
-
-    // attention_mask and softmax
-    // attention_scores: [batch,np,sq,sk]
-
-    float *input = matmul_res_data;
-    float *output = matmul_res_data;
-
-    for (int i = 0; i < np; i++) {
-        for (int k = 0; k < sq; k++) {
-            float acc_exp = 0.0f;
-            float max = -FLT_MAX;
-            int cnt = sk;
-            if (params->casual) {
-                cnt = k + 1 + (sk - sq);
-            }
-            for (int j = 0; j < cnt; j++) {
-                max = fmax(max, *(input + j));
-            }
-            // compute sum
-            for (int j = 0; j < cnt; j++) {
-                acc_exp += exp(*(input + j) - max);
-            }
-            // compute final result
-            for (int j = 0; j < cnt; j++) {
-                *(output + j) = exp(*(input + j) - max) / acc_exp;
-            }
-            if (params->casual) {
-                for (int j = cnt; j < sk; j++) {
-                    *(output + j) = 0;
-                }
-            }
-            input += sk;
-            output += sk;
-        }
-    }
-
-    // if value is [batch,np,sk,dim_head],do transpose(-2,-1)
-    if (!params->transpose_v) {
+    // deal with transpose_v first
+    // batch,np,sq,sk * batch,np,sk,dim_head
+    if (!params->transpose_v)  // if value is [batch,np,sk,dim_head],do transpose(-2,-1)
+    {
         float *value_transpose_tmp = shl_mem_alloc(batch * np * sk * head_dim * sizeof(float));
         memcpy(value_transpose_tmp, value_data, batch * np * sk * head_dim * sizeof(float));
         for (int i = 0; i < np; i++) {
@@ -114,11 +60,47 @@ int shl_ref_scaled_dot_product_attention_f32(struct csinn_tensor *query, struct 
         shl_mem_free(value_transpose_tmp);
     }
 
-    cnt = 0;
-    // context_layer = torch.matmul(attention_probs, value_layer1)
-    for (int i = 0; i < np; i++) {
-        float *mat_input1 = matmul_res_data + i * sq * sk;
-        float *mat_input2 = value_data + i * head_dim * sk;
+    // matmul_result = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+    // matmul_result = matmul_result / norm_factor
+    size_t matmul_res_size = batch * np * sq * sk * sizeof(float);
+    float *matmul_res_data = shl_mem_alloc(matmul_res_size);
+    memset(matmul_res_data, 0, matmul_res_size);
+    for (int i = 0; i < np; i++)  // split into multiple threads from here.
+    {
+        float *mat_input1 = query_data + i * sq * head_dim;
+        float *mat_input2 = key_data + i * sk * head_dim;
+
+        for (int j = 0; j < sq; j++) {
+            float max = -FLT_MAX;
+            float acc_exp = 0;
+            int casual_cnt = sk;
+            if (params->casual) {
+                casual_cnt = j + 1 + (sk - sq);
+            }
+            for (int k = 0; k < casual_cnt; k++) {
+                float sum = 0;
+                for (int l = 0; l < head_dim; l++) {
+                    sum += (mat_input1[j * head_dim + l] * mat_input2[k * head_dim + l]);
+                }
+                sum *= norm_factor;
+                // cal exp_sum
+                float tmp = max;
+                max = fmax(max, sum);
+                acc_exp *= exp(tmp - max);
+                acc_exp += exp(sum - max);
+                matmul_res_data[i * sq * sk + j * sk + k] = sum;
+            }
+            // do softmax
+            for (int k = 0; k < casual_cnt; k++) {
+                *(matmul_res_data + i * sq * sk + j * sk + k) =
+                    exp(*(matmul_res_data + i * sq * sk + j * sk + k) - max) / acc_exp;
+            }
+        }
+
+        // context_layer = torch.matmul(attention_probs, value_layer)
+
+        mat_input1 = matmul_res_data + i * sq * sk;
+        mat_input2 = value_data + i * head_dim * sk;
 
         for (int j = 0; j < sq; j++) {
             for (int k = 0; k < head_dim; k++) {
@@ -126,8 +108,7 @@ int shl_ref_scaled_dot_product_attention_f32(struct csinn_tensor *query, struct 
                 for (int l = 0; l < sk; l++) {
                     sum += (mat_input1[j * sk + l] * mat_input2[k * sk + l]);
                 }
-                output_data[cnt] = sum;
-                cnt++;
+                output_data[i * sq * head_dim + j * head_dim + k] = sum;
             }
         }
     }
@@ -149,7 +130,7 @@ int shl_ref_scaled_dot_product_attention_quant(struct csinn_tensor *query, struc
                                                        float_output, params);
     csinn_tensor_data_convert(output, float_output);
     shl_ref_tensor_transform_free_f32(float_query);
-    shl_ref_tensor_transform_free_f32(float_output);
+    shl_ref_tensor_transform_free_f32(float_value);
     shl_ref_tensor_transform_free_f32(float_key);
     shl_ref_tensor_transform_free_f32(float_output);
     return ret;

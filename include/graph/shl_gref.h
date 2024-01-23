@@ -981,11 +981,11 @@ int shl_gref_instance_norm_infer_shape(struct csinn_tensor *input, struct csinn_
                                        struct csinn_tensor *bias, struct csinn_tensor *output,
                                        struct csinn_instance_norm_params *params);
 
-int shl_gref_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
-                      struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+int shl_gref_rms_norm(struct csinn_tensor *input, struct csinn_tensor *weights,
+                      struct csinn_tensor *output, struct csinn_rms_norm_params *params);
 
-int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *weights,
+int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *weights,
+                                  struct csinn_tensor *output,
                                   struct csinn_rms_norm_params *params);
 
 int shl_gref_llm_pos(struct csinn_tensor *input, struct csinn_tensor *output,

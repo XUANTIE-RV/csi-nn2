@@ -41,20 +41,6 @@ int shl_rvm_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                        struct csinn_conv2d_params *params);
 
-int shl_rvm_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-int shl_rvm_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-int shl_rvm_global_avgpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_pool_params *params);
-int shl_rvm_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-int shl_rvm_maxpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                                struct csinn_pool_params *params);
-
-int shl_rvm_global_maxpool2d_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_pool_params *params);
-
 int shl_rvm_fullyconnected_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
                                      struct csinn_fc_params *params);
@@ -133,6 +119,10 @@ void shl_rvm_gemm_a0b1_int8_to_int32(int8_t *dst, int8_t *sa, int8_t *sb, int32_
 void shl_rvm_fc_gemm_reorder_weight_fp16(struct csinn_tensor *weights);
 void shl_rvm_fc_gemm_reorder_weight_fp16_w_int8(struct csinn_tensor *weights);
 void shl_rvm_fc_gemm_reorder_weight_int8(struct csinn_tensor *weights);
+
+void shl_rvm_fc_dequantize_per_channel_i8_to_f16(struct csinn_tensor *weights,
+                                                 struct csinn_fc_params *params,
+                                                 __fp16 *weights_fp16);
 
 int shl_rvm_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *weights, struct csinn_tensor *bias,

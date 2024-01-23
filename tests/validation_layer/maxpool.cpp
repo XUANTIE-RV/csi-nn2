@@ -23,6 +23,9 @@ int main(int argc, char **argv)
     init_testsuite("Testing function of maxpool(layer).\n");
 
     struct csinn_session *sess = csinn_alloc_session();
+    // sess->base_run_mode = CSINN_RM_CPU_GRAPH;
+    // sess->model.save_mode = CSINN_RUN_ONLY;
+    // sess->dynamic_shape = CSINN_FALSE;
     sess->base_run_mode = CSINN_RM_LAYER;
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
@@ -75,15 +78,29 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
+/* CSINN_RM_CPU_GRAPH */
+// #if (DTYPE == 32)
+//     test_maxpool_op(input, output, params, CSINN_DTYPE_FLOAT32, CSINN_QUANT_FLOAT32, sess,
+//                     csinn_maxpool2d_init, csinn_maxpool2d, &difference);
+// #elif (DTYPE == 16)
+//     test_maxpool_op(input, output, params, CSINN_DTYPE_FLOAT16, CSINN_QUANT_FLOAT16, sess,
+//                     csinn_maxpool2d_init, csinn_maxpool2d, &difference);
+// #elif (DTYPE == 8)
+//     test_maxpool_op(input, output, params, CSINN_DTYPE_INT8, CSINN_QUANT_INT8_ASYM, sess,
+//                     csinn_maxpool2d_init, csinn_maxpool2d, &difference);
+// #endif
+
+/* CSINN_RM_LAYER */
 #if (DTYPE == 32)
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_maxpool2d_init, csinn_maxpool2d,
-                  &difference);
+    test_maxpool_layer(input, output, params, CSINN_QUANT_FLOAT32, csinn_maxpool2d_init,
+                       csinn_maxpool2d, &difference);
 #elif (DTYPE == 16)
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_maxpool2d_init, csinn_maxpool2d,
-                  &difference);
+    test_maxpool_layer(input, output, params, CSINN_QUANT_FLOAT16, csinn_maxpool2d_init,
+                       csinn_maxpool2d, &difference);
 #elif (DTYPE == 8)
-    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_maxpool2d_init,
-                  csinn_maxpool2d, &difference);
+    test_maxpool_layer(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_maxpool2d_init,
+                       csinn_maxpool2d, &difference);
 #endif
+
     return done_testing();
 }

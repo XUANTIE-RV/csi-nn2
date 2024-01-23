@@ -18,12 +18,13 @@
 
 #include "c920/c920.h"
 #include "c920/cap.h"
+#include "c920/perf.h"
 
 #define C920_OP_PATTERN_MAX 40
 static struct shl_cb_table shl_c920_cb_table[C920_OP_PATTERN_MAX];
 
 void shl_c920_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init,
-                     void *exec, void *est, void *cap)
+                     void *exec, void *est, void *cap, void *perf)
 {
     static int i = 0;
     if (i >= C920_OP_PATTERN_MAX) {
@@ -34,6 +35,7 @@ void shl_c920_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, vo
     shl_c920_cb_table[i].shl_cb_value.exec = exec;
     shl_c920_cb_table[i].shl_cb_value.est = est;
     shl_c920_cb_table[i].shl_cb_value.caps = cap;
+    shl_c920_cb_table[i].shl_cb_value.perf = perf;
     i++;
 }
 
@@ -389,31 +391,33 @@ void shl_target_init_c920()
 {
 #ifndef CONFIG_C920_CONVOLUTION_FP32_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_c920_conv2d_init_fp32, NULL,
-                    shl_gref_conv2d, shl_c920_conv2d_cap);
+                    shl_gref_conv2d, shl_c920_conv2d_cap, shl_c920_conv2d_perf);
     shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_c920_conv2d_init_fp32, NULL,
-                    shl_gref_group_conv2d, shl_c920_conv2d_cap);
+                    shl_gref_group_conv2d, shl_c920_conv2d_cap, shl_c920_conv2d_perf);
 #endif
 #ifndef CONFIG_C920_CONVOLUTION_FP16_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_c920_conv2d_init_fp16, NULL,
-                    shl_gref_conv2d, shl_c920_conv2d_cap);
+                    shl_gref_conv2d, shl_c920_conv2d_cap, shl_c920_conv2d_perf);
     shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_c920_conv2d_init_fp16, NULL,
-                    shl_gref_group_conv2d, shl_c920_conv2d_cap);
+                    shl_gref_group_conv2d, shl_c920_conv2d_cap, shl_c920_conv2d_perf);
 #endif
 #ifndef CONFIG_C920_FULLYCONNECTED_FP32_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_FULLYCONNECTED, shl_c920_fullyconnected_init_fp32,
-                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap);
+                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap,
+                    shl_c920_fullyconnected_perf);
 #endif
 #ifndef CONFIG_C920_FULLYCONNECTED_FP16_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_FULLYCONNECTED, shl_c920_fullyconnected_init_fp16,
-                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap);
+                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap,
+                    shl_c920_fullyconnected_perf);
 #endif
 #ifndef CONFIG_C920_MATMUL_FP32_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_MATMUL, shl_c920_matmul_init_fp32, NULL,
-                    shl_gref_matmul, shl_c920_matmul_cap);
+                    shl_gref_matmul, shl_c920_matmul_cap, shl_c920_matmul_perf);
 #endif
 #ifndef CONFIG_C920_MATMUL_FP16_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_MATMUL, shl_c920_matmul_init_fp16, NULL,
-                    shl_gref_matmul, shl_c920_matmul_cap);
+                    shl_gref_matmul, shl_c920_matmul_cap, shl_c920_matmul_perf);
 #endif
     shl_register_op_callback(CSINN_C920, shl_cb_map_c920);
     shl_register_runtime_callback(CSINN_C920, shl_c920_runtime_callback);

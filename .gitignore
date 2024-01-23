@@ -17,7 +17,6 @@ example/*.elf
 openvx_build
 e907_build
 rvv_build
-rvv_nodot_build
 rvm_build
 c906_static_build
 c906_so_build

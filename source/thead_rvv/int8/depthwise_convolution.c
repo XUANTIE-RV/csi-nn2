@@ -39,6 +39,7 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
     int in_elempack = 1;
     int out_elempack = 1;
     struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
         struct shl_rvv_option *option = shl_rvv_get_graph_option(sess);
         if (option && option->use_packn_layout) {
@@ -78,7 +79,9 @@ int shl_rvv_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn_
     }
 
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
-        shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
+        if (!binary_model_op_init) {
+            shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
+        }
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_packn_int8;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {

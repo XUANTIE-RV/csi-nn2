@@ -918,7 +918,16 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
                              {1.0f / 24, -1.0f / 12, 1.0f / 6},
                              {0.0f, 0.0f, 1.0f}};
 
+    const int packn = csrr_vlenb() / sizeof(float);
+    const int pack2n = packn * 2;
     csinn_tensor_copy(dst_kernel, src_kernel);
+    dst_kernel->dim_count = 5;
+    dst_kernel->dim[0] = outch / packn;
+    dst_kernel->dim[1] = 6;
+    dst_kernel->dim[2] = 6;
+    dst_kernel->dim[3] = inch;
+    dst_kernel->dim[4] = packn;
+    dst_kernel->layout = CSINN_LAYOUT_O1HWIO0;
 
     for (int p = 0; p < outch; p++) {
         for (int q = 0; q < inch; q++) {
@@ -955,9 +964,6 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
     float *kernel_tm_packn = (float *)shl_mem_alloc(outch / 4 * 36 * inch * 4 * sizeof(float));
     dst_kernel->data = kernel_tm_packn;
 
-    const int packn = csrr_vlenb() / sizeof(float);
-    const int pack2n = packn * 2;
-
     int oc = 0;
     for (; oc + pack2n - 1 < outch; oc += pack2n) {
         float *g0 = kernel_tm_packn + oc * 36 * inch;
@@ -984,6 +990,7 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
             }
         }
     }
+    src_kernel->data = NULL;
     shl_mem_free(kernel_tm);
 }
 
@@ -1084,7 +1091,7 @@ int shl_rvv_wg_b4f3s1_packn_fp32(struct csinn_tensor *input, struct csinn_tensor
 
 /******************************************************************************************
  * kernel layout before:  [O, I, 3, 3]
- * kernel layout after :  [O/pack2n, 36, I, pack2n] --> [O/packn, 36, I, packn]
+ * kernel layout after :  [O/pack2n, 64, I, pack2n] --> [O/packn, 64, I, packn]
  * constrain: output channel % packn = 0
  *            input channel % packn = 0
  ******************************************************************************************/
@@ -1118,7 +1125,16 @@ void shl_rvv_wg_b6f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
     //     {0.0f, 0.0f, 1.0f}
     // };
 
+    const int packn = csrr_vlenb() / sizeof(float);
+    const int pack2n = packn * 2;
     csinn_tensor_copy(dst_kernel, src_kernel);
+    dst_kernel->dim_count = 5;
+    dst_kernel->dim[0] = outch / packn;
+    dst_kernel->dim[1] = 8;
+    dst_kernel->dim[2] = 8;
+    dst_kernel->dim[3] = inch;
+    dst_kernel->dim[4] = packn;
+    dst_kernel->layout = CSINN_LAYOUT_O1HWIO0;
 
     for (int p = 0; p < outch; p++) {
         for (int q = 0; q < inch; q++) {
@@ -1153,9 +1169,6 @@ void shl_rvv_wg_b6f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
     float *kernel_tm_packn = (float *)shl_mem_alloc(64 * outch / 4 * inch * 4 * sizeof(float));
     dst_kernel->data = kernel_tm_packn;
 
-    const int packn = csrr_vlenb() / sizeof(float);
-    const int pack2n = packn * 2;
-
     int oc = 0;
     for (; oc + pack2n - 1 < outch; oc += pack2n) {
         float *g0 = kernel_tm_packn + oc * 64 * inch;
@@ -1182,6 +1195,7 @@ void shl_rvv_wg_b6f3s1_trans_kernel_packn_fp32(struct csinn_tensor *src_kernel,
             }
         }
     }
+    src_kernel->data = NULL;
     shl_mem_free(kernel_tm);
 }
 

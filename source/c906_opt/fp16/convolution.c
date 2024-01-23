@@ -99,10 +99,11 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         // pack4 for winograd convolution
         if ((out_c % 8 == 0) && (in_c % 8 == 0)) {
             params->conv_extra.conv_mode = CSINN_WINOGRAD;
-            // TODO: params->conv_extra.kernel_tm in binary model
-            struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
-            shl_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(kernel, t_kernel);
-            params->conv_extra.kernel_tm = t_kernel;
+            if (!binary_model_op_init) {
+                struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+                shl_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(kernel, t_kernel);
+                params->conv_extra.kernel_tm = t_kernel;
+            }
             cb->exec = shl_c906_conv3x3s1_winograd64_pack8_fp16;
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;

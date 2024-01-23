@@ -54,6 +54,9 @@ void set_quant_info(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
 struct csinn_tensor *convert_input(struct csinn_tensor *tensor, int dtype);
 struct csinn_tensor *convert_f32_input(struct csinn_tensor *tensor, int dtype,
                                        struct csinn_session *sess);
+struct csinn_tensor *broadcast_quant_info(struct csinn_tensor *i_tensor,
+                                          struct csinn_tensor *o_tensor,
+                                          enum csinn_dtype_enum dtype);
 struct csinn_tensor *convert_f32_layer(struct csinn_tensor *tensor, enum csinn_quant_enum qtype,
                                        enum csinn_api_enum api);
 struct csinn_tensor *fuse_zp_to_bias(struct csinn_tensor *input, struct csinn_tensor *weight,

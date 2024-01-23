@@ -297,11 +297,282 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
             ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
             break;
         case CSINN_OP_RMS_NORM:
-            ret = func(node->in[0]->data, node->out[0]->data, node->in[1]->data, params);
+            ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
             break;
         case CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION:
             ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->out[0]->data,
                        params);
+            break;
+        case CSINN_OP_ALL:
+            shl_debug_error("unsupported CSINN_OP_ALL\n");
+            break;
+        case CSINN_OP_ARANGE:
+            shl_debug_error("unsupported CSINN_OP_ARANGE\n");
+            break;
+        case CSINN_OP_BN:
+            shl_debug_error("unsupported CSINN_OP_BN\n");
+            break;
+        case CSINN_OP_MIN_STRIDE:
+            shl_debug_error("unsupported CSINN_OP_MIN_STRIDE\n");
+            break;
+        case CSINN_OP_PROPOSAL:
+            shl_debug_error("unsupported CSINN_OP_PROPOSAL\n");
+            break;
+        case CSINN_OP_PSROIPOOLING:
+            shl_debug_error("unsupported CSINN_OP_PSROIPOOLING\n");
+            break;
+        case CSINN_OP_ROIALIGN:
+            shl_debug_error("unsupported CSINN_OP_ROIALIGN\n");
+            break;
+        case CSINN_OP_ROIPOOL:
+            shl_debug_error("unsupported CSINN_OP_ROIPOOL\n");
+            break;
+        case CSINN_OP_SCATTER_ND:
+            shl_debug_error("unsupported CSINN_OP_SCATTER_ND\n");
+            break;
+        case CSINN_OP_SELECT:
+            shl_debug_error("unsupported CSINN_OP_SELECT\n");
+            break;
+        case CSINN_OP_TOPK:
+            shl_debug_error("unsupported CSINN_OP_TOPK\n");
+            break;
+        default:
+            shl_debug_error("%s: unknown op %d\n", __func__, node->type);
+            return CSINN_FALSE;
+    }
+    return ret;
+}
+
+int shl_gref_call_layer_perf(void *fn, struct shl_node *node, struct csinn_perf_info *perf_info)
+{
+    /* base has same address with params */
+    struct csinn_params_base *params = node->data;
+    int (*func)();
+    func = fn;
+    if (!func) {
+        shl_debug_fatal("Can't find exec func %s\n", node->name);
+    }
+    int ret = CSINN_TRUE;
+    struct csinn_tensor **inputs;
+    struct csinn_tensor **outputs;
+
+    switch (node->type) {
+        case CSINN_OP_ABS:
+        case CSINN_OP_ACOS:
+        case CSINN_OP_ACOSH:
+        case CSINN_OP_ANY:
+        case CSINN_OP_ARGMAX:
+        case CSINN_OP_ARGMIN:
+        case CSINN_OP_ASIN:
+        case CSINN_OP_ASINH:
+        case CSINN_OP_ATAN:
+        case CSINN_OP_ATANH:
+        case CSINN_OP_AVGPOOL2D:
+        case CSINN_OP_AVGPOOL3D:
+        case CSINN_OP_BATCH_TO_SPACE:
+        case CSINN_OP_BATCH_TO_SPACE_ND:
+        case CSINN_OP_BROADCOST:
+        case CSINN_OP_CEIL:
+        case CSINN_OP_CLIP:
+        case CSINN_OP_COL2IM:
+        case CSINN_OP_COS:
+        case CSINN_OP_COSH:
+        case CSINN_OP_CROP:
+        case CSINN_OP_CUMPROD:
+        case CSINN_OP_CUMSUM:
+        case CSINN_OP_DATA_CONVERT:
+        case CSINN_OP_DEPTH_TO_SPACE:
+        case CSINN_OP_ELU:
+        case CSINN_OP_ERF:
+        case CSINN_OP_EXP:
+        case CSINN_OP_EXPAND_DIMS:
+        case CSINN_OP_EXPM1:
+        case CSINN_OP_FLATTEN:
+        case CSINN_OP_FLOOR:
+        case CSINN_OP_GLOBAL_AVGPOOL2D:
+        case CSINN_OP_GLOBAL_MAXPOOL2D:
+        case CSINN_OP_HARD_SIGMOID:
+        case CSINN_OP_IM2COL:
+        case CSINN_OP_ISNAN:
+        case CSINN_OP_L2N:
+        case CSINN_OP_L2POOL2D:
+        case CSINN_OP_LEAKY_RELU:
+        case CSINN_OP_LOG_SOFTMAX:
+        case CSINN_OP_LOG:
+        case CSINN_OP_LOG1P:
+        case CSINN_OP_LOGICAL_NOT:
+        case CSINN_OP_LRN:
+        case CSINN_OP_MAX:
+        case CSINN_OP_MAXPOOL2D:
+        case CSINN_OP_MAXPOOL2D_LOCAT:
+        case CSINN_OP_MAXPOOL3D:
+        case CSINN_OP_MEAN:
+        case CSINN_OP_MEAN_STRIDE:
+        case CSINN_OP_MIN:
+        case CSINN_OP_NDARRAY_SIZE:
+        case CSINN_OP_NEGATIVE:
+        case CSINN_OP_NOT:
+        case CSINN_OP_ONE_HOT:
+        case CSINN_OP_PAD:
+        case CSINN_OP_PROD:
+        case CSINN_OP_REDUCE_LOGSUMEXP:
+        case CSINN_OP_REDUCE_MAX:
+        case CSINN_OP_REDUCE_MEAN:
+        case CSINN_OP_REDUCE_MIN:
+        case CSINN_OP_REDUCE_PROD:
+        case CSINN_OP_REDUCE_SUM:
+        case CSINN_OP_RELU:
+        case CSINN_OP_RELU1:
+        case CSINN_OP_RELU6:
+        case CSINN_OP_RELUN:
+        case CSINN_OP_REORG:
+        case CSINN_OP_RESHAPE:
+        case CSINN_OP_RESIZE:
+        case CSINN_OP_REVERSE:
+        case CSINN_OP_ROUND:
+        case CSINN_OP_RSQRT:
+        case CSINN_OP_SHAPE:
+        case CSINN_OP_SHUFFLE_CHANNEL:
+        case CSINN_OP_SIGMOID:
+        case CSINN_OP_SIGN:
+        case CSINN_OP_SIN:
+        case CSINN_OP_SINH:
+        case CSINN_OP_SLICE:
+        case CSINN_OP_SOFTMAX:
+        case CSINN_OP_SOFTPLUS:
+        case CSINN_OP_SOFTRELU:
+        case CSINN_OP_SOFTSIGN:
+        case CSINN_OP_SPACE_TO_BATCH:
+        case CSINN_OP_SPACE_TO_BATCH_ND:
+        case CSINN_OP_SPACE_TO_DEPTH:
+        case CSINN_OP_SQRT:
+        case CSINN_OP_SQUARE:
+        case CSINN_OP_SQUEEZE:
+        case CSINN_OP_STACK:
+        case CSINN_OP_STRIDED_SLICE:
+        case CSINN_OP_SUM:
+        case CSINN_OP_TAN:
+        case CSINN_OP_TANH:
+        case CSINN_OP_THRESHOLD_RELU:
+        case CSINN_OP_TILE:
+        case CSINN_OP_TRANSPOSE:
+        case CSINN_OP_TRUNC:
+        case CSINN_OP_UNPOOLING:
+        case CSINN_OP_UNSTACK:
+        case CSINN_OP_CAST:
+        case CSINN_OP_YUV_RGB_SCALE:
+        case CSINN_OP_SILU:
+        case CSINN_OP_ROPE:
+        case CSINN_OP_LLM_POS:
+            ret = func(node->in[0]->data, node->out[0]->data, params, perf_info);
+            break;
+        case CSINN_OP_ADD:
+        case CSINN_OP_AND:
+        case CSINN_OP_DIV:
+        case CSINN_OP_EQUANL:
+        case CSINN_OP_FLOOR_DIVIDE:
+        case CSINN_OP_FLOOR_MOD:
+        case CSINN_OP_GATHER_ND:
+        case CSINN_OP_GATHER:
+        case CSINN_OP_GREATHER_EQUAL:
+        case CSINN_OP_GREATHER:
+        case CSINN_OP_LESS_EQUAL:
+        case CSINN_OP_LESS:
+        case CSINN_OP_LOGICAL_AND:
+        case CSINN_OP_LOGICAL_OR:
+        case CSINN_OP_LOGICAL_XOR:
+        case CSINN_OP_MATMUL:
+        case CSINN_OP_MAXIMUM:
+        case CSINN_OP_MINIMUM:
+        case CSINN_OP_MOD:
+        case CSINN_OP_MUL:
+        case CSINN_OP_NON_MAX_SUPPRESSION:
+        case CSINN_OP_NOT_EQUAL:
+        case CSINN_OP_OR:
+        case CSINN_OP_POWER:
+        case CSINN_OP_PRELU:
+        case CSINN_OP_SEQUENCE_MASK:
+        case CSINN_OP_SEGMENT_MAX:
+        case CSINN_OP_UNSORTED_SEGMENT_MAX:
+        case CSINN_OP_SEGMENT_MEAN:
+        case CSINN_OP_UNSORTED_SEGMENT_MEAN:
+        case CSINN_OP_SEGMENT_MIN:
+        case CSINN_OP_UNSORTED_SEGMENT_MIN:
+        case CSINN_OP_SEGMENT_PROD:
+        case CSINN_OP_UNSORTED_SEGMENT_PROD:
+        case CSINN_OP_SEGMENT_SUM:
+        case CSINN_OP_UNSORTED_SEGMENT_SUM:
+        case CSINN_OP_SUB:
+        case CSINN_OP_XOR:
+        case CSINN_OP_EMBEDDING:
+            ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params, perf_info);
+            break;
+        case CSINN_OP_CONV1D:
+        case CSINN_OP_CONV2D:
+        case CSINN_OP_CONV2D_RELU:
+        case CSINN_OP_CONV2D_RELU6:
+        case CSINN_OP_CONV2D_CHANNEL:
+        case CSINN_OP_CONV2D_CHANNEL_RELU:
+        case CSINN_OP_CONV2D_CHANNEL_RELU6:
+        case CSINN_OP_DEPTHWISE_CONV1D:
+        case CSINN_OP_DEPTHWISE_CONV2D:
+        case CSINN_OP_DEPTHWISE_CONV2D_RELU:
+        case CSINN_OP_DEPTHWISE_CONV2D_RELU6:
+        case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL:
+        case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU:
+        case CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6:
+        case CSINN_OP_GROUP_CONV2D:
+        case CSINN_OP_GROUP_CONV2D_RELU:
+        case CSINN_OP_GROUP_CONV2D_RELU6:
+        case CSINN_OP_GROUP_CONV2D_CHANNEL:
+        case CSINN_OP_GROUP_CONV2D_CHANNEL_RELU:
+        case CSINN_OP_CONV3D:
+        case CSINN_OP_DECONV2D:
+        case CSINN_OP_DEPTHWISE_DECONV2D:
+        case CSINN_OP_GROUP_DECONV2D:
+        case CSINN_OP_DECONV3D:
+        case CSINN_OP_FULLYCONNECTED:
+        case CSINN_OP_LAYER_NORM:
+        case CSINN_OP_CACHE_MATMUL:
+        case CSINN_OP_CACHE_CONV1D:
+            ret = func(node->in[0]->data, node->out[0]->data, node->in[1]->data, node->in[2]->data,
+                       params, perf_info);
+            break;
+        case CSINN_OP_FSMN:
+            ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->in[3]->data,
+                       node->in[4]->data, node->out[0]->data, params, perf_info);
+            break;
+        case CSINN_OP_CONCAT:
+            inputs = shl_mem_alloc(sizeof(struct csinn_tensor *) *
+                                   ((struct csinn_concat_params *)params)->inputs_count);
+            for (int i = 0; i < ((struct csinn_concat_params *)params)->inputs_count; i++) {
+                inputs[i] = node->in[i]->data;
+            }
+            ret = func(inputs, node->out[0]->data, params, perf_info);
+            shl_mem_free(inputs);
+            break;
+        case CSINN_OP_SPLIT:
+            outputs = shl_mem_alloc(sizeof(struct csinn_tensor *) *
+                                    ((struct csinn_split_params *)params)->output_num);
+            for (int i = 0; i < ((struct csinn_split_params *)params)->output_num; i++) {
+                outputs[i] = node->out[i]->data;
+            }
+            ret = func(node->in[0]->data, outputs, params, perf_info);
+            shl_mem_free(outputs);
+            break;
+        case CSINN_OP_WHERE:
+            ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->out[0]->data,
+                       params, perf_info);
+            break;
+        case CSINN_OP_WHERE_SOFTMAX:
+            ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params, perf_info);
+            break;
+        case CSINN_OP_RMS_NORM:
+            ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params, perf_info);
+            break;
+        case CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION:
+            ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->out[0]->data,
+                       params, perf_info);
             break;
         case CSINN_OP_ALL:
             shl_debug_error("unsupported CSINN_OP_ALL\n");
@@ -386,6 +657,10 @@ static int init_op(struct shl_node *node)
 {
     /* base has same address with params */
     struct csinn_params_base *params = node->data;
+    int ret = CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_begin(params->sess->trace, __func__,
+                                            SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
 
     int (*func)();
 
@@ -395,12 +670,13 @@ static int init_op(struct shl_node *node)
     params->sess->base_run_mode = org_rm;
 
     if (cb->init != NULL) {
-        if (shl_gref_call_layer_func(cb->init, node) != CSINN_TRUE) {
-            return CSINN_FALSE;
-        }
+        ret = shl_gref_call_layer_func(cb->init, node);
     }
 
-    return CSINN_TRUE;
+    SHL_TRACE_CALL(
+        shl_trace_duration_end(params->sess->trace, __func__, SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
+
+    return ret;
 }
 
 int shl_gref_size_align(int orig, int align)
@@ -877,6 +1153,106 @@ static int op_run_deinit(struct shl_node *node, struct shl_ref_graph *graph)
     return CSINN_TRUE;
 }
 
+static struct shl_trace_value *create_strings_with_trace(char **strs, int num)
+{
+    struct shl_trace_value *res =
+        (struct shl_trace_value *)shl_mem_alloc(sizeof(struct shl_trace_value));
+
+    struct shl_trace_value_list *list =
+        (struct shl_trace_value_list *)shl_mem_alloc(sizeof(struct shl_trace_value_list));
+    list->size = num;
+    list->value = (struct shl_trace_value **)shl_mem_alloc(sizeof(struct shl_trace_value *) * num);
+
+    res->type = SHL_TRACE_VALUE_TYPE_LIST;
+    res->content.list = list;
+
+    for (int i = 0; i < num; i++) {
+        struct shl_trace_value *value = SHL_TRACE_STRING(strs[i]);
+        list->value[i] = value;
+    }
+
+    return res;
+}
+
+static char **get_node_output_names(struct shl_node *node)
+{
+    struct shl_ref_graph *sgraph = NULL;
+    int output_num;
+    if (node->type == CSINN_SUBGRAPH) {
+        sgraph = node->data;
+        output_num = sgraph->output_num;
+    } else {
+        output_num = node->out_num;
+    }
+
+    /* get subgraph output names(including layer name) */
+    char **output_names = (char **)shl_mem_alloc(sizeof(char *) * output_num);
+    for (int i = 0; i < output_num; i++) {
+        output_names[i] = (char *)shl_mem_alloc(sizeof(char) * 1024);
+
+        if (node->type == CSINN_SUBGRAPH) {
+            for (int j = 0; j < sgraph->layer_index; j++) {
+                struct shl_node *curr_n = sgraph->layer[j];
+                if (curr_n->type >= CSINN_OP_SIZE) continue;
+
+                for (int k = 0; k < curr_n->out_num; k++) {
+                    if (sgraph->output[i] == curr_n->out[k]) {
+                        snprintf(output_names[i], 1024, "%s:out%d", curr_n->name, k);
+                        break;
+                    }
+                }
+            }
+        } else {
+            snprintf(output_names[i], 1024, "%s:out%d", node->name, i);
+        }
+    }
+    return output_names;
+}
+
+static struct shl_trace_value *create_node_dtype_with_trace(struct shl_node **node, int num)
+{
+    struct shl_trace_value *res =
+        (struct shl_trace_value *)shl_mem_alloc(sizeof(struct shl_trace_value));
+
+    struct shl_trace_value_list *list =
+        (struct shl_trace_value_list *)shl_mem_alloc(sizeof(struct shl_trace_value_list));
+    list->size = num;
+    list->value = (struct shl_trace_value **)shl_mem_alloc(sizeof(struct shl_trace_value *) * num);
+
+    res->type = SHL_TRACE_VALUE_TYPE_LIST;
+    res->content.list = list;
+
+    for (int i = 0; i < num; i++) {
+        struct csinn_tensor *tensor = node[i]->data;
+        struct shl_trace_value *value = SHL_TRACE_STRING(shl_find_dtype_name(tensor->dtype));
+        list->value[i] = value;
+    }
+
+    return res;
+}
+
+static struct shl_trace_value *create_node_shape_with_trace(struct shl_node **node, int num)
+{
+    struct shl_trace_value *res =
+        (struct shl_trace_value *)shl_mem_alloc(sizeof(struct shl_trace_value));
+
+    struct shl_trace_value_list *list =
+        (struct shl_trace_value_list *)shl_mem_alloc(sizeof(struct shl_trace_value_list));
+    list->size = num;
+    list->value = (struct shl_trace_value **)shl_mem_alloc(sizeof(struct shl_trace_value *) * num);
+
+    res->type = SHL_TRACE_VALUE_TYPE_LIST;
+    res->content.list = list;
+
+    for (int i = 0; i < num; i++) {
+        struct csinn_tensor *tensor = node[i]->data;
+        struct shl_trace_value *value = SHL_TRACE_LIST_INT(tensor->dim_count, tensor->dim);
+        list->value[i] = value;
+    }
+
+    return res;
+}
+
 static int op_run(struct shl_node *node)
 {
     /* base has same address with params */
@@ -891,11 +1267,46 @@ static int op_run(struct shl_node *node)
     int (*func)();
     struct csinn_callback *cb = params->cb;
     func = cb->exec;
-    return shl_gref_call_layer_func(func, node);
+    char *kernel_name = "";
+    if (params->sess->profiler_level >= CSINN_PROFILER_LEVEL_TRACE) {
+        if (cb->perf) {
+            struct csinn_perf_info *perf_info =
+                (struct csinn_perf_info *)shl_mem_alloc(sizeof(struct csinn_perf_info));
+            shl_gref_call_layer_perf(cb->perf, node, perf_info);
+            if (perf_info->kernel_name) {
+                kernel_name = perf_info->kernel_name;
+            }
+            shl_mem_free(perf_info);
+        }
+        SHL_TRACE_CALL(shl_trace_duration_begin(
+            params->sess->trace, kernel_name, SHL_TRACE_EVENT_CPU_KERNEL,
+            shl_trace_create_dict(
+                6, "name", SHL_TRACE_STRING(params->name), "layout",
+                SHL_TRACE_STRING(shl_find_layout_name(params->layout)), "api",
+                SHL_TRACE_STRING(shl_find_api_name(params->api)), "quant_type",
+                SHL_TRACE_STRING(shl_find_quant_name(params->quant_type)), "input_shape",
+                create_node_shape_with_trace(node->in, node->in_num), "input_dtype",
+                create_node_dtype_with_trace(node->in, node->in_num))));
+    }
+
+    int ret = shl_gref_call_layer_func(func, node);
+
+    if (params->sess->profiler_level >= CSINN_PROFILER_LEVEL_TRACE) {
+        SHL_TRACE_CALL(shl_trace_duration_end(
+            params->sess->trace, kernel_name, SHL_TRACE_EVENT_CPU_KERNEL,
+            shl_trace_create_dict(
+                2, "output_shape", create_node_shape_with_trace(node->out, node->out_num),
+                "output_dtype", create_node_dtype_with_trace(node->out, node->out_num))));
+    }
+
+    return ret;
 }
 
 int shl_gref_session_run(struct csinn_session *sess)
 {
+    SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    int ret = CSINN_TRUE;
     struct shl_ref_graph *g = shl_gref_get_graph(sess);
     uint64_t time_acc = 0;
     node_ref_reset(sess);
@@ -906,8 +1317,14 @@ int shl_gref_session_run(struct csinn_session *sess)
 
     for (int i = 0; i < g->layer_index; i++) {
         struct shl_node *n = g->layer[i];
+
+        char **output_filenames = NULL;
+        char **output_names = NULL;
+        int output_num = 0;
         if (n->type == CSINN_SUBGRAPH) {
             if (sess->base_run_mode == CSINN_RM_CPU_BASE_HYBRID) {
+                SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, "subgraph_execution",
+                                                        SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
                 shl_subgraph_run_init(n);
 #ifdef SHL_LAYER_BENCHMARK
                 if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER ||
@@ -930,15 +1347,40 @@ int shl_gref_session_run(struct csinn_session *sess)
                 shl_subgraph_run_deinit(n, g);
 
                 if (sess->profiler_level == CSINN_PROFILER_LEVEL_DUMP ||
-                    sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
-                    shl_dump_output_tensor(n);
+                    sess->profiler_level == CSINN_PROFILER_LEVEL_ALL ||
+                    (sess->profiler_level > CSINN_PROFILER_LEVEL_TRACE &&
+                     (sess->profiler_level - CSINN_PROFILER_LEVEL_TRACE) ==
+                         CSINN_PROFILER_LEVEL_DUMP)) {
+                    struct shl_ref_graph *sgraph = n->data;
+                    output_num = sgraph->output_num;
+
+                    output_filenames = (char **)shl_mem_alloc(sizeof(char *) * output_num);
+                    for (int i = 0; i < output_num; i++) {
+                        output_filenames[i] = (char *)shl_mem_alloc(sizeof(char) * 1024);
+                    }
+                    shl_dump_output_tensor(n, output_filenames);
                 }
 #else
                 shl_subgraph_run(n);
                 shl_subgraph_run_deinit(n, g);
 #endif
+                if (output_filenames == NULL) {
+                    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, "subgraph_execution",
+                                                          SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
+                } else {
+                    output_names = get_node_output_names(n);
+                    SHL_TRACE_CALL(shl_trace_duration_end(
+                        sess->trace, "subgraph_execution", SHL_TRACE_EVENT_CPU_OPERATOR,
+                        shl_trace_create_dict(
+                            3, "name", SHL_TRACE_STRING(n->name), "output_files",
+                            create_strings_with_trace(output_filenames, output_num), "output_names",
+                            create_strings_with_trace(output_names, output_num))));
+                }
             }
         } else if (n->type >= 0 && n->type < CSINN_OP_SIZE) {
+            SHL_TRACE_CALL(shl_trace_duration_begin(sess->trace, "cpu_ops_execution",
+                                                    SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
+
             op_run_init(n);
 #ifdef SHL_LAYER_BENCHMARK
             if (sess->profiler_level == CSINN_PROFILER_LEVEL_TIMER ||
@@ -952,21 +1394,59 @@ int shl_gref_session_run(struct csinn_session *sess)
                 op_run(n);
             }
             if (sess->profiler_level == CSINN_PROFILER_LEVEL_DUMP ||
-                sess->profiler_level == CSINN_PROFILER_LEVEL_ALL) {
-                shl_dump_output_tensor(n);
+                sess->profiler_level == CSINN_PROFILER_LEVEL_ALL ||
+                (sess->profiler_level > CSINN_PROFILER_LEVEL_TRACE &&
+                 (sess->profiler_level - CSINN_PROFILER_LEVEL_TRACE) ==
+                     CSINN_PROFILER_LEVEL_DUMP)) {
+                output_num = n->out_num;
+                output_filenames = (char **)shl_mem_alloc(sizeof(char *) * output_num);
+                for (int idx = 0; idx < output_num; idx++) {
+                    output_filenames[idx] = (char *)shl_mem_alloc(sizeof(char) * 1024);
+                }
+                shl_dump_output_tensor(n, output_filenames);
             }
 #else
             op_run(n);
 #endif
             op_run_deinit(n, g);
+            if (output_filenames == NULL) {
+                SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, "cpu_ops_execution",
+                                                      SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
+            } else {
+                output_names = get_node_output_names(n);
+                SHL_TRACE_CALL(shl_trace_duration_end(
+                    sess->trace, "cpu_ops_execution", SHL_TRACE_EVENT_CPU_OPERATOR,
+                    shl_trace_create_dict(3, "name", SHL_TRACE_STRING(n->name), "output_files",
+                                          create_strings_with_trace(output_filenames, output_num),
+                                          "output_names",
+                                          create_strings_with_trace(output_names, output_num))));
+            }
         } else {
-            return CSINN_FALSE;
+            ret = CSINN_FALSE;
+        }
+
+        if (output_filenames) {
+            for (int idx = 0; idx < output_num; idx++) {
+                shl_mem_free(output_filenames[idx]);
+            }
+            shl_mem_free(output_filenames);
+            output_filenames = NULL;
+        }
+        if (output_names) {
+            for (int idx = 0; idx < output_num; idx++) {
+                shl_mem_free(output_names[idx]);
+            }
+            shl_mem_free(output_names);
+            output_names = NULL;
         }
     }
 #ifdef SHL_LAYER_BENCHMARK
     shl_debug_info("[layer-benchmark]: network exec time = %f\n\n", time_acc / 1000000.0f);
 #endif
-    return CSINN_TRUE;
+
+    SHL_TRACE_CALL(shl_trace_duration_end(sess->trace, __func__, SHL_TRACE_EVENT_RUNTIME, NULL));
+
+    return ret;
 }
 
 void shl_gref_set_tensor(struct csinn_tensor *input, struct csinn_session *sess)
@@ -1001,6 +1481,18 @@ void shl_gref_session_deinit(struct csinn_session *sess)
         for (int i = 0; i < g->layer_index; i++) {
             struct shl_node *n = g->layer[i];
             if (n->type == CSINN_SUBGRAPH) {
+                if (sess->profiler_level >= CSINN_PROFILER_LEVEL_TRACE) {
+                    struct shl_ref_graph *sgraph = n->data;
+                    struct shl_node *node = sgraph->layer[0];
+                    struct csinn_params_base *params = node->data;
+
+                    // move trace data of subgraph into that of main graph.
+                    shl_trace_move_events(params->sess->trace, sess->trace);
+
+                    // (Note:@chenf) disable trace temporarily
+                    struct shl_trace *sub_trace = params->sess->trace;
+                    sub_trace->enable_trace = false;
+                }
                 shl_subgraph_deinit(n);
             }
         }

@@ -99,13 +99,13 @@ def caseParams(dirname, dtype, cpu_type, flow=FLOW_ID):
                     for key, value in case_type.items():
                         case_name = key
                         if isinstance(value, dict):
-                            for k,v in value.items():                         
+                            for k,v in value.items():
                                 if v.get("layout", "nchw") == "nhwc":
                                     elf_name = f"{case_name}_nhwc"
                                 else:
                                     elf_name = case_name
                                 elf_data = os.path.join(elf_path, f"{elf_name}.o.elf")
-                                temp_case.append(pytest.param((elf_data, case_name, v), id=id_flag))
+                                temp_case.append(pytest.param((elf_data, case_name, k, v), id=id_flag))
                         else:
                             continue
                 except:
@@ -119,6 +119,7 @@ def run_base(
         cmd_execute,
         elf_data,
         python_data,
+        data_params,
         test_accuracy,
         python_cmd,
 ):
@@ -145,7 +146,7 @@ def run_base(
         print(ret)
         err = ret.stderr.decode("utf-8")
     # out = out
-    assert ret.returncode == 0, f"\nexecute cmd:\n{cmd}\ngenerate python:\n{python_cmd}\n{p_out}out:\n{out}\nerr:\n{err}"
+    assert ret.returncode == 0, f"\nexecute cmd:\n{cmd}\ngenerate python:\n{python_cmd}\n{p_out}out:\n{out}\nerr:\n{err}\nparams:{data_params}"
 
 
 class Test_CSINN_Base:
@@ -173,8 +174,8 @@ class Test_CSINN_Base:
 class TestCSINN(Test_CSINN_Base):
     #####TODO fix###########
     @pytest.mark.parametrize('test_data', caseParams(elf_path, DTYPE, CPU_TYPE))
-    def test_layer(self, test_data):   
-        python_data = test_data[1:]
+    def test_layer(self, test_data):
+        python_data = (test_data[1], test_data[3])
         if test_data[1] == "convolution" or test_data[1] == "group_convolution" or test_data[1] == "depthwise_convolution":
             convolution(python_data)
         elif test_data[1] == "convolution_relu":
@@ -198,15 +199,15 @@ class TestCSINN(Test_CSINN_Base):
         elif test_data[1] == "abs" or test_data[1] == "relu" or test_data[1] == "erf" or test_data[1] == "sigmoid":
             unary(python_data)
         elif test_data[1] == "relu1" or test_data[1] == "relu6":
-            thresholdedrelu(python_data)  
+            thresholdedrelu(python_data)
         elif test_data[1] == "minimum":
-            muti_min(python_data)  
+            muti_min(python_data)
         elif test_data[1] == "strided_slice":
             strided_slice(python_data)
         elif test_data[1] == "reduce_sum":
-            reduce_op(python_data) 
+            reduce_op(python_data)
         elif test_data[1] == "reshape":
-            reshape(python_data) 
+            reshape(python_data)
         elif test_data[1] == "silu":
             silu(python_data)
         elif test_data[1] == "clip":
@@ -229,21 +230,21 @@ class TestCSINN(Test_CSINN_Base):
             transpose(python_data)
         elif test_data[1] == "lrn":
             lrn(python_data)
-        elif test_data[1] == "convolution1d":
+        elif test_data[1] == "convolution1d" or test_data[1] == "depthwise_convolution1d":
             convolution1d(python_data)
         elif test_data[1] == "softmax":
             softmax(python_data)
         elif test_data[1] == "layer_norm":
             layer_norm(python_data)
         else:
-            return 
-        
-        run_base(self.qemu, test_data[0], TOPDIR + test_data[1] + "_test_data_f32.bin", self.accuracy, "")
+            return
+
+        run_base(self.qemu, test_data[0], TOPDIR + test_data[1] + "_test_data_f32.bin", f"{test_data[2]}: {test_data[3]}", self.accuracy, "")
 
 
     @pytest.mark.parametrize('unit_test_elf_data', numberOffile(unit_test_elf_path, "elf"))
     def test_opt_interface(self, unit_test_elf_data):
-        run_base(self.qemu, unit_test_elf_data, "", self.accuracy, "")
+        run_base(self.qemu, unit_test_elf_data, "", "", self.accuracy, "")
 
 
 class TestHeterogeneous:

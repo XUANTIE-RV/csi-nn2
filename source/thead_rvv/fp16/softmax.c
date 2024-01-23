@@ -112,10 +112,11 @@ int shl_rvv_softmax_fp16(struct csinn_tensor *input, struct csinn_tensor *output
             ptr = exp_buffer + k;
             ptr2 = output_data + k;
             int n = cnt;
+            __fp16 acc_axp_multi_coeff = 1.0f / acc_exp;
             while (n > 0) {
                 size_t vl = vsetvl_e16m2(n);
                 vfloat16m2_t _exp = vlse16_v_f16m2(ptr, inner_size * sizeof(__fp16), vl);
-                vfloat16m2_t _output_data = vfdiv_vf_f16m2(_exp, acc_exp, vl);
+                vfloat16m2_t _output_data = vfmul_vf_f16m2(_exp, acc_axp_multi_coeff, vl);
                 vsse16_v_f16m2(ptr2, inner_size * sizeof(__fp16), _output_data, vl);
 
                 ptr += vl * inner_size;

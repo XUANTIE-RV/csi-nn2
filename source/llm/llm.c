@@ -126,7 +126,7 @@ static void llm_session_dynamic_infer_shape(struct csinn_session *sess, struct s
                 shl_gref_rope_infer_shape(n->in[0]->data, n->out[0]->data, rope_params);
                 break;
             case CSINN_OP_RMS_NORM:
-                shl_gref_rms_norm_infer_shape(n->in[0]->data, n->out[0]->data, n->in[1]->data,
+                shl_gref_rms_norm_infer_shape(n->in[0]->data, n->in[1]->data, n->out[0]->data,
                                               (struct csinn_rms_norm_params *)params);
                 break;
             case CSINN_OP_SILU:

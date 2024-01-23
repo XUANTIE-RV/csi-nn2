@@ -50,69 +50,82 @@ int shl_rvv_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
         elempack = in_c % packn == 0 ? packn : 1;
     }
 
-    // global maxpool2d // TODO: remove
-    if (in_h == kernel_h && in_w == kernel_w) {
-        cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_fp16
-                                           : shl_rvv_global_maxpool2d_fp16;
-        return CSINN_TRUE;
-    }
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        // global maxpool2d // TODO: remove
+        if (in_h == kernel_h && in_w == kernel_w) {
+            cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_fp16
+                                               : shl_rvv_global_maxpool2d_fp16;
+            return CSINN_TRUE;
+        }
 
-    if (elempack % packn == 0) {
-        cb->exec = shl_rvv_maxpool_packn_fp16;
-    } else {
-        if (stride_h == 2 && stride_w == 2) {
-            if (kernel_h == 2 && kernel_w == 2) {  // 2x2s2
-                if (pad_left == 0 && pad_top == 0) {
-                    // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
-                    if (in_h % 2 == 1 && params->ceil_mode == 1) {
-                        if (params->pad_down == 0) params->pad_down++;
+        if (elempack % packn == 0) {
+            cb->exec = shl_rvv_maxpool_packn_fp16;
+        } else {
+            if (stride_h == 2 && stride_w == 2) {
+                if (kernel_h == 2 && kernel_w == 2) {  // 2x2s2
+                    if (pad_left == 0 && pad_top == 0) {
+                        // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                        if (in_h % 2 == 1 && params->ceil_mode == 1) {
+                            if (params->pad_down == 0) params->pad_down++;
+                        }
+                        if (in_w % 2 == 1 && params->ceil_mode == 1) {
+                            if (params->pad_right == 0) params->pad_right++;
+                        }
+                        // end consider ceil_mode 2x2s2p0
+                        cb->exec = shl_rvv_maxpool2x2s2_fp16;
+                    } else if (pad_left == 1 && pad_top == 1) {
+                        cb->exec = shl_rvv_maxpool2x2s2_p1_fp16;
                     }
-                    if (in_w % 2 == 1 && params->ceil_mode == 1) {
-                        if (params->pad_right == 0) params->pad_right++;
-                    }
-                    // end consider ceil_mode 2x2s2p0
-                    cb->exec = shl_rvv_maxpool2x2s2_fp16;
-                } else if (pad_left == 1 && pad_top == 1) {
-                    cb->exec = shl_rvv_maxpool2x2s2_p1_fp16;
-                }
-            } else if (kernel_h == 3 && kernel_w == 3) {  // 3x3s2
-                if (pad_left == 0 && pad_top == 0) {
-                    // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
-                    if (in_h % 2 == 0 && params->ceil_mode == 1) {
-                        if (params->pad_down == 0)
-                            params->pad_down++;  // origin pad_down mast be equal to zero ?
-                    }
-                    if (in_w % 2 == 0 && params->ceil_mode == 1) {
-                        if (params->pad_right == 0) params->pad_right++;
-                    }
-                    // end consider ceil_mode 3x3s2p0
-                    cb->exec = shl_rvv_maxpool3x3s2_fp16;
-                } else if (pad_left == 1 && pad_top == 1) {
-                    if (params->ceil_mode == 0) {
-                        cb->exec = shl_rvv_maxpool3x3s2_p1_fp16;
-                    } else {
-                        if ((in_w % 2 == 0 && pad_right == 1) || (in_h % 2 == 0 && pad_down == 1)) {
-                            cb->exec = shl_ref_maxpool2d_quant;
-                        } else {
+                } else if (kernel_h == 3 && kernel_w == 3) {  // 3x3s2
+                    if (pad_left == 0 && pad_top == 0) {
+                        // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
+                        if (in_h % 2 == 0 && params->ceil_mode == 1) {
+                            if (params->pad_down == 0)
+                                params->pad_down++;  // origin pad_down mast be equal to zero ?
+                        }
+                        if (in_w % 2 == 0 && params->ceil_mode == 1) {
+                            if (params->pad_right == 0) params->pad_right++;
+                        }
+                        // end consider ceil_mode 3x3s2p0
+                        cb->exec = shl_rvv_maxpool3x3s2_fp16;
+                    } else if (pad_left == 1 && pad_top == 1) {
+                        if (params->ceil_mode == 0) {
                             cb->exec = shl_rvv_maxpool3x3s2_p1_fp16;
+                        } else {
+                            if ((in_w % 2 == 0 && pad_right == 1) ||
+                                (in_h % 2 == 0 && pad_down == 1)) {
+                                cb->exec = shl_ref_maxpool2d_quant;
+                            } else {
+                                cb->exec = shl_rvv_maxpool3x3s2_p1_fp16;
+                            }
                         }
                     }
                 }
-            }
-        } else if (stride_h == 1 && stride_w == 1) {
-            if (kernel_h == 3 && kernel_w == 3) {
-                if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
-                    cb->exec = shl_rvv_maxpool3x3s1_p1_fp16;
+            } else if (stride_h == 1 && stride_w == 1) {
+                if (kernel_h == 3 && kernel_w == 3) {
+                    if (pad_left == 1 && pad_top == 1 && pad_right == 1 && pad_down == 1) {
+                        cb->exec = shl_rvv_maxpool3x3s1_p1_fp16;
+                    }
                 }
             }
         }
-        if (cb->exec == NULL) {
-            shl_debug_warning(
-                "maxpool is not optimized to achieve under this condition on rvv, call reference "
-                "func replaced.\n");
-            cb->exec = shl_ref_maxpool2d_quant;
+
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
+        // global maxpool2d
+        if (in_h == kernel_h && in_w == kernel_w) {
+            cb->exec = shl_rvv_global_maxpool2d_nhwc_fp16;
+            return CSINN_TRUE;
         }
+        cb->exec = shl_rvv_maxpool_nhwc_fp16;
     }
+
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "maxpool is not optimized to achieve under this condition on rvv, call reference "
+            "func replaced.\n");
+        cb->exec = shl_ref_maxpool2d_quant;
+    }
+
     return CSINN_TRUE;
 }
 
@@ -139,7 +152,12 @@ int shl_rvv_global_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_
         elempack = in_c % packn == 0 ? packn : 1;
     }
 
-    cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_fp16
-                                       : shl_rvv_global_maxpool2d_fp16;
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_fp16
+                                           : shl_rvv_global_maxpool2d_fp16;
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
+        cb->exec = shl_rvv_global_maxpool2d_nhwc_fp16;
+    }
+
     return CSINN_TRUE;
 }

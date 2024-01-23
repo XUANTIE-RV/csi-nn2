@@ -23,13 +23,13 @@
  * @addtogroup INIT
  * @{
  */
-int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
-                        struct csinn_tensor *weights, struct csinn_rms_norm_params *params)
+int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *weights,
+                        struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     shl_op_callback_map(&params->base, CSINN_OP_RMS_NORM, input->dtype);
     int (*func)() = shl_get_init_cb(&params->base);
     if (func != NULL) {
-        func(input, output, weights, params);
+        func(input, weights, output, params);
     }
     return CSINN_TRUE;
 }
@@ -41,13 +41,13 @@ int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
  * @addtogroup NN
  * @{
  */
-int csinn_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
-                   struct csinn_tensor *weights, struct csinn_rms_norm_params *params)
+int csinn_rms_norm(struct csinn_tensor *input, struct csinn_tensor *weights,
+                   struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
-    SHL_DEBUG_CALL(shl_rms_norm_debug_info(input, output, weights, params, __func__));
+    SHL_DEBUG_CALL(shl_rms_norm_debug_info(input, weights, output, params, __func__));
     int (*func)() = shl_get_p0_cb(&params->base);
     if (func != NULL) {
-        func(input, output, weights, params);
+        func(input, weights, output, params);
     } else {
         return CSINN_CALLBACK_UNSET;
     }

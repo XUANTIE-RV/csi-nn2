@@ -18,8 +18,8 @@
 
 #include "rvv/rvv.h"
 
-int shl_rvv_rms_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
-                          struct csinn_tensor *weight, struct csinn_rms_norm_params *params)
+int shl_rvv_rms_norm_int8(struct csinn_tensor *input, struct csinn_tensor *weight,
+                          struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     struct csinn_tensor *float_input = shl_rvv_tensor_transform_f32(input);
     struct csinn_tensor *float_output = shl_rvv_tensor_transform_f32(output);
@@ -44,7 +44,7 @@ int shl_rvv_rms_norm_int8(struct csinn_tensor *input, struct csinn_tensor *outpu
         float_weight = shl_ref_tensor_transform_f32(weight);
     }
 
-    int ret = shl_rvv_rms_norm_fp32(float_input, float_output, float_weight, params);
+    int ret = shl_rvv_rms_norm_fp32(float_input, float_weight, float_output, params);
 
     if (shl_rvv_tensor_data_convert(float_output, output) != CSINN_TRUE) {
         shl_debug_warning(

@@ -23,7 +23,9 @@ int main(int argc, char **argv)
     init_testsuite("Testing function of fullyconnected(layer).\n");
 
     struct csinn_session *sess = csinn_alloc_session();
-    sess->base_run_mode = CSINN_RM_LAYER;
+    sess->base_run_mode = CSINN_RM_CPU_GRAPH;
+    sess->model.save_mode = CSINN_RUN_ONLY;
+    sess->dynamic_shape = CSINN_FALSE;
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
@@ -76,17 +78,24 @@ int main(int argc, char **argv)
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 #if (DTYPE == 32)
-    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT32,
-                  csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_DTYPE_FLOAT32, CSINN_QUANT_FLOAT32,
+                  sess, csinn_fullyconnected_init, csinn_fullyconnected, &difference);
 #elif (DTYPE == 16)
-    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_FLOAT16,
-                  csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_DTYPE_FLOAT16, CSINN_QUANT_FLOAT16,
+                  sess, csinn_fullyconnected_init, csinn_fullyconnected, &difference);
 #elif (DTYPE == 8)
-    test_fully_op(input, output, weight, bias, params, CSINN_QUANT_INT8_SYM,
-                  csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_DTYPE_INT8,
+                  CSINN_QUANT_INT8_ASYM_W_SYM, sess, csinn_fullyconnected_init,
+                  csinn_fullyconnected, &difference);
 #elif (DTYPE == 168)
-    test_fully_op_fp16_w_int8(input, output, weight, bias, params, CSINN_QUANT_FLOAT16_W_INT8,
-                              csinn_fullyconnected_init, csinn_fullyconnected, &difference);
+    test_fully_op(input, output, weight, bias, params, CSINN_DTYPE_FLOAT16,
+                  CSINN_QUANT_FLOAT16_W_INT8, sess, csinn_fullyconnected_init, csinn_fullyconnected,
+                  &difference);
+#elif (DTYPE == 0x168C)
+    csinn_realloc_quant_info(weight, weight->dim[0]);
+    test_fully_op(input, output, weight, bias, params, CSINN_DTYPE_FLOAT16,
+                  CSINN_QUANT_FLOAT16_W_INT8, sess, csinn_fullyconnected_init, csinn_fullyconnected,
+                  &difference);
 #endif
 
     return done_testing();

@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include "reference/perf.h"
 #include "reference/ref.h"
 
 void shl_ref_nn_init(struct csinn_tensor *input, struct csinn_tensor *output)
@@ -211,594 +212,816 @@ static void *setup_cb_map()
     for (int i = CSINN_DTYPE_INT4; i <= CSINN_DTYPE_FLOAT32; i++) {
 #ifndef CONFIG_C_REFERENCE_ABS_DISABLED
         cb_map[CSINN_OP_ABS][i].exec = shl_ref_abs_quant;
+        cb_map[CSINN_OP_ABS][i].perf = shl_ref_abs_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ACOS_DISABLED
         cb_map[CSINN_OP_ACOS][i].exec = shl_ref_acos_quant;
+        cb_map[CSINN_OP_ACOS][i].perf = shl_ref_acos_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ACOSH_DISABLED
         cb_map[CSINN_OP_ACOSH][i].exec = shl_ref_acosh_quant;
+        cb_map[CSINN_OP_ACOSH][i].perf = shl_ref_acosh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ADD_DISABLED
         cb_map[CSINN_OP_ADD][i].exec = shl_ref_add_quant;
+        cb_map[CSINN_OP_ADD][i].perf = shl_ref_add_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ARANGE_DISABLED
         cb_map[CSINN_OP_ARANGE][i].exec = shl_ref_arange_quant;
+        cb_map[CSINN_OP_ARANGE][i].perf = shl_ref_arange_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ARGMAX_DISABLED
         cb_map[CSINN_OP_ARGMAX][i].exec = shl_ref_argmax_stride_quant;
+        cb_map[CSINN_OP_ARGMAX][i].perf = shl_ref_argmax_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ARGMIN_DISABLED
         cb_map[CSINN_OP_ARGMIN][i].exec = shl_ref_argmin_stride_quant;
+        cb_map[CSINN_OP_ARGMIN][i].perf = shl_ref_argmin_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ASIN_DISABLED
         cb_map[CSINN_OP_ASIN][i].exec = shl_ref_asin_quant;
+        cb_map[CSINN_OP_ASIN][i].perf = shl_ref_asin_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ASINH_DISABLED
         cb_map[CSINN_OP_ASINH][i].exec = shl_ref_asinh_quant;
+        cb_map[CSINN_OP_ASINH][i].perf = shl_ref_asinh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ATAN_DISABLED
         cb_map[CSINN_OP_ATAN][i].exec = shl_ref_atan_quant;
+        cb_map[CSINN_OP_ATAN][i].perf = shl_ref_atan_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ATANH_DISABLED
         cb_map[CSINN_OP_ATANH][i].exec = shl_ref_atanh_quant;
+        cb_map[CSINN_OP_ATANH][i].perf = shl_ref_atanh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_AVERAGEPOOL_DISABLED
         cb_map[CSINN_OP_AVGPOOL2D][i].exec = shl_ref_avgpool2d_quant;
+        cb_map[CSINN_OP_AVGPOOL2D][i].perf = shl_ref_avgpool2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_AVERAGEPOOL3D_DISABLED
         cb_map[CSINN_OP_AVGPOOL3D][i].exec = shl_ref_avgpool3d_quant;
+        cb_map[CSINN_OP_AVGPOOL3D][i].perf = shl_ref_avgpool3d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_BATCH_NORMALIZATION_DISABLED
         cb_map[CSINN_OP_BN][i].exec = shl_ref_batch_normalization_quant;
+        cb_map[CSINN_OP_BN][i].perf = shl_ref_batch_normalization_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_BATCH_TO_SPACE_DISABLED
         cb_map[CSINN_OP_BATCH_TO_SPACE][i].exec = shl_ref_batch_to_space_quant;
+        cb_map[CSINN_OP_BATCH_TO_SPACE][i].perf = shl_ref_batch_to_space_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_BROADCAST_TO_DISABLED
         cb_map[CSINN_OP_BROADCOST][i].exec = shl_ref_broadcast_to_quant;
+        cb_map[CSINN_OP_BROADCOST][i].perf = shl_ref_broadcast_to_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CACHE_MATMUL_DISABLED
         cb_map[CSINN_OP_CACHE_MATMUL][i].exec = shl_ref_cache_matmul_quant;
+        cb_map[CSINN_OP_CACHE_MATMUL][i].perf = shl_ref_cache_matmul_perf;
         cb_map[CSINN_OP_CACHE_MATMUL][i].init = shl_ref_cache_matmul_init;
 #endif
 #ifndef CONFIG_C_REFERENCE_CACHE_CONV1D_DISABLED
         cb_map[CSINN_OP_CACHE_CONV1D][i].exec = shl_ref_cache_conv1d_quant;
+        cb_map[CSINN_OP_CACHE_CONV1D][i].perf = shl_ref_cache_conv1d_perf;
         cb_map[CSINN_OP_CACHE_CONV1D][i].init = shl_ref_cache_conv1d_init;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONV1D_DISABLED
         cb_map[CSINN_OP_CONV1D][i].exec = shl_ref_conv1d_quant;
+        cb_map[CSINN_OP_CONV1D][i].perf = shl_ref_conv1d_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV1D][i].exec = shl_ref_conv1d_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV1D][i].perf = shl_ref_conv1d_perf;
         cb_map[CSINN_OP_GROUP_CONV1D][i].exec = shl_ref_conv1d_quant;
+        cb_map[CSINN_OP_GROUP_CONV1D][i].perf = shl_ref_conv1d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CEIL_DISABLED
         cb_map[CSINN_OP_CEIL][i].exec = shl_ref_ceil_quant;
+        cb_map[CSINN_OP_CEIL][i].perf = shl_ref_ceil_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CLIP_DISABLED
         cb_map[CSINN_OP_CLIP][i].exec = shl_ref_clip_quant;
+        cb_map[CSINN_OP_CLIP][i].perf = shl_ref_clip_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED
         cb_map[CSINN_OP_CONCAT][i].exec = shl_ref_concat_quant;
+        cb_map[CSINN_OP_CONCAT][i].perf = shl_ref_concat_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_COS_DISABLED
         cb_map[CSINN_OP_COS][i].exec = shl_ref_cos_quant;
+        cb_map[CSINN_OP_COS][i].perf = shl_ref_cos_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_COSH_DISABLED
         cb_map[CSINN_OP_COSH][i].exec = shl_ref_cosh_quant;
+        cb_map[CSINN_OP_COSH][i].perf = shl_ref_cosh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CUMPROD_DISABLED
         cb_map[CSINN_OP_CUMPROD][i].exec = shl_ref_cumprod_quant;
+        cb_map[CSINN_OP_CUMPROD][i].perf = shl_ref_cumprod_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CUMSUM_DISABLED
         cb_map[CSINN_OP_CUMSUM][i].exec = shl_ref_cumsum_quant;
+        cb_map[CSINN_OP_CUMSUM][i].perf = shl_ref_cumsum_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_DEPTH_TO_SPACE_DISABLED
         cb_map[CSINN_OP_DEPTH_TO_SPACE][i].exec = shl_ref_depth_to_space_quant;
+        cb_map[CSINN_OP_DEPTH_TO_SPACE][i].perf = shl_ref_depth_to_space_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_DIV_DISABLED
         cb_map[CSINN_OP_DIV][i].exec = shl_ref_div_quant;
+        cb_map[CSINN_OP_DIV][i].perf = shl_ref_div_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ELU_DISABLED
         cb_map[CSINN_OP_ELU][i].exec = shl_ref_elu_quant;
+        cb_map[CSINN_OP_ELU][i].perf = shl_ref_elu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_EMBEDDING_DISABLED
         cb_map[CSINN_OP_EMBEDDING][i].exec = shl_ref_embedding_quant;
+        cb_map[CSINN_OP_EMBEDDING][i].perf = shl_ref_embedding_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_EQUAL_DISABLED
         cb_map[CSINN_OP_EQUANL][i].exec = shl_ref_equal_quant;
+        cb_map[CSINN_OP_EQUANL][i].perf = shl_ref_equal_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ERF_DISABLED
         cb_map[CSINN_OP_ERF][i].exec = shl_ref_erf_quant;
+        cb_map[CSINN_OP_ERF][i].perf = shl_ref_erf_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_EXP_DISABLED
         cb_map[CSINN_OP_EXP][i].exec = shl_ref_exp_quant;
+        cb_map[CSINN_OP_EXP][i].perf = shl_ref_exp_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_EXPAND_DIMS_DISABLED
         cb_map[CSINN_OP_EXPAND_DIMS][i].exec = shl_ref_expand_dims_quant;
+        cb_map[CSINN_OP_EXPAND_DIMS][i].perf = shl_ref_expand_dims_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_EXPM1_DISABLED
         cb_map[CSINN_OP_EXPM1][i].exec = shl_ref_expm1_quant;
+        cb_map[CSINN_OP_EXPM1][i].perf = shl_ref_expm1_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_FLATTEN_DISABLED
         cb_map[CSINN_OP_FLATTEN][i].exec = shl_ref_flatten;
+        cb_map[CSINN_OP_FLATTEN][i].perf = shl_ref_flatten_perf;
         cb_map[CSINN_OP_FLATTEN][i].init = shl_ref_flatten_init;
 #endif
 #ifndef CONFIG_C_REFERENCE_FLOOR_DIVIDE_DISABLED
         cb_map[CSINN_OP_FLOOR_DIVIDE][i].exec = shl_ref_floor_divide_quant;
+        cb_map[CSINN_OP_FLOOR_DIVIDE][i].perf = shl_ref_floor_divide_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_FLOOR_MOD_DISABLED
         cb_map[CSINN_OP_FLOOR_MOD][i].exec = shl_ref_floor_mod_quant;
+        cb_map[CSINN_OP_FLOOR_MOD][i].perf = shl_ref_floor_mod_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_FLOOR_DISABLED
         cb_map[CSINN_OP_FLOOR][i].exec = shl_ref_floor_quant;
+        cb_map[CSINN_OP_FLOOR][i].perf = shl_ref_floor_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_FSMN_DISABLED
         cb_map[CSINN_OP_FSMN][i].exec = shl_ref_fsmn_quant;
+        cb_map[CSINN_OP_FSMN][i].perf = shl_ref_fsmn_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GATHER_ND_DISABLED
         cb_map[CSINN_OP_GATHER_ND][i].exec = shl_ref_gather_nd_quant;
+        cb_map[CSINN_OP_GATHER_ND][i].perf = shl_ref_gather_nd_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GATHER_DISABLED
         cb_map[CSINN_OP_GATHER][i].exec = shl_ref_gather_quant;
+        cb_map[CSINN_OP_GATHER][i].perf = shl_ref_gather_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GLOBAL_AVERAGEPOOL_DISABLED
         cb_map[CSINN_OP_GLOBAL_AVGPOOL2D][i].exec = shl_ref_global_avgpool2d_quant;
+        cb_map[CSINN_OP_GLOBAL_AVGPOOL2D][i].perf = shl_ref_global_avgpool2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GLOBAL_MAXPOOL_DISABLED
         cb_map[CSINN_OP_GLOBAL_MAXPOOL2D][i].exec = shl_ref_global_maxpool2d_quant;
+        cb_map[CSINN_OP_GLOBAL_MAXPOOL2D][i].perf = shl_ref_global_maxpool2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GREATER_EQUAL_DISABLED
         cb_map[CSINN_OP_GREATHER_EQUAL][i].exec = shl_ref_greater_equal_quant;
+        cb_map[CSINN_OP_GREATHER_EQUAL][i].perf = shl_ref_greater_equal_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_GREATER_DISABLED
         cb_map[CSINN_OP_GREATHER][i].exec = shl_ref_greater_quant;
+        cb_map[CSINN_OP_GREATHER][i].perf = shl_ref_greater_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_HARD_SIGMOID_DISABLED
         cb_map[CSINN_OP_HARD_SIGMOID][i].exec = shl_ref_hard_sigmoid_quant;
+        cb_map[CSINN_OP_HARD_SIGMOID][i].perf = shl_ref_hard_sigmoid_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_IM2COL_DISABLED
         cb_map[CSINN_OP_IM2COL][i].exec = shl_ref_im2col_quant;
+        cb_map[CSINN_OP_IM2COL][i].perf = shl_ref_im2col_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_L2_NORMALIZATION_DISABLED
         cb_map[CSINN_OP_L2N][i].exec = shl_ref_l2_normalization_quant;
+        cb_map[CSINN_OP_L2N][i].perf = shl_ref_l2_normalization_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LAYER_NORM_DISABLED
         cb_map[CSINN_OP_LAYER_NORM][i].exec = shl_ref_layer_norm_quant;
+        cb_map[CSINN_OP_LAYER_NORM][i].perf = shl_ref_layer_norm_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LEAKY_RELU_DISABLED
         cb_map[CSINN_OP_LEAKY_RELU][i].exec = shl_ref_leaky_relu_quant;
+        cb_map[CSINN_OP_LEAKY_RELU][i].perf = shl_ref_leaky_relu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LESS_EQUAL_DISABLED
         cb_map[CSINN_OP_LESS_EQUAL][i].exec = shl_ref_less_equal_quant;
+        cb_map[CSINN_OP_LESS_EQUAL][i].perf = shl_ref_less_equal_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LESS_DISABLED
         cb_map[CSINN_OP_LESS][i].exec = shl_ref_less_quant;
+        cb_map[CSINN_OP_LESS][i].perf = shl_ref_less_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LLM_POS_DISABLED
         cb_map[CSINN_OP_LLM_POS][i].exec = shl_ref_llm_pos_quant;
+        cb_map[CSINN_OP_LLM_POS][i].perf = shl_ref_llm_pos_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOG_SOFTMAX_DISABLED
         cb_map[CSINN_OP_LOG_SOFTMAX][i].exec = shl_ref_log_softmax_quant;
+        cb_map[CSINN_OP_LOG_SOFTMAX][i].perf = shl_ref_log_softmax_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOG_DISABLED
         cb_map[CSINN_OP_LOG][i].exec = shl_ref_log_quant;
+        cb_map[CSINN_OP_LOG][i].perf = shl_ref_log_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOG1P_DISABLED
         cb_map[CSINN_OP_LOG1P][i].exec = shl_ref_log1p_quant;
+        cb_map[CSINN_OP_LOG1P][i].perf = shl_ref_log1p_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOGICAL_AND_DISABLED
         cb_map[CSINN_OP_LOGICAL_AND][i].exec = shl_ref_logical_and_quant;
+        cb_map[CSINN_OP_LOGICAL_AND][i].perf = shl_ref_logical_and_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOGICAL_NOT_DISABLED
         cb_map[CSINN_OP_LOGICAL_NOT][i].exec = shl_ref_logical_not_quant;
+        cb_map[CSINN_OP_LOGICAL_NOT][i].perf = shl_ref_logical_not_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOGICAL_OR_DISABLED
         cb_map[CSINN_OP_LOGICAL_OR][i].exec = shl_ref_logical_or_quant;
+        cb_map[CSINN_OP_LOGICAL_OR][i].perf = shl_ref_logical_or_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOGICAL_XOR_DISABLED
         cb_map[CSINN_OP_LOGICAL_XOR][i].exec = shl_ref_logical_xor_quant;
+        cb_map[CSINN_OP_LOGICAL_XOR][i].perf = shl_ref_logical_xor_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_LRN_DISABLED
         cb_map[CSINN_OP_LRN][i].exec = shl_ref_lrn_quant;
+        cb_map[CSINN_OP_LRN][i].perf = shl_ref_lrn_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MATMUL_DISABLED
         cb_map[CSINN_OP_MATMUL][i].exec = shl_ref_matmul_quant;
+        cb_map[CSINN_OP_MATMUL][i].perf = shl_ref_matmul_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MAX_DISABLED
         cb_map[CSINN_OP_MAX][i].exec = shl_ref_max_stride_quant;
+        cb_map[CSINN_OP_MAX][i].perf = shl_ref_max_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MAXIMUM_DISABLED
         cb_map[CSINN_OP_MAXIMUM][i].exec = shl_ref_maximum_quant;
+        cb_map[CSINN_OP_MAXIMUM][i].perf = shl_ref_maximum_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MAXPOOL_DISABLED
         cb_map[CSINN_OP_MAXPOOL2D][i].exec = shl_ref_maxpool2d_quant;
+        cb_map[CSINN_OP_MAXPOOL2D][i].perf = shl_ref_maxpool2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MAXPOOL2D_LOCAT_DISABLED
         cb_map[CSINN_OP_MAXPOOL2D_LOCAT][i].exec = shl_ref_maxpool2d_locat_quant;
+        cb_map[CSINN_OP_MAXPOOL2D_LOCAT][i].perf = shl_ref_maxpool2d_locat_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MAXPOOL3D_DISABLED
         cb_map[CSINN_OP_MAXPOOL3D][i].exec = shl_ref_maxpool3d_quant;
+        cb_map[CSINN_OP_MAXPOOL3D][i].perf = shl_ref_maxpool3d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MEAN_DISABLED
         cb_map[CSINN_OP_MEAN][i].exec = shl_ref_mean_stride_quant;
+        cb_map[CSINN_OP_MEAN][i].perf = shl_ref_mean_stride_perf;
         cb_map[CSINN_OP_MEAN_STRIDE][i].exec = shl_ref_mean_stride_quant;
+        cb_map[CSINN_OP_MEAN_STRIDE][i].perf = shl_ref_mean_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MIN_DISABLED
         cb_map[CSINN_OP_MIN][i].exec = shl_ref_min_stride_quant;
+        cb_map[CSINN_OP_MIN][i].perf = shl_ref_min_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MINIMUM_DISABLED
         cb_map[CSINN_OP_MINIMUM][i].exec = shl_ref_minimum_quant;
+        cb_map[CSINN_OP_MINIMUM][i].perf = shl_ref_minimum_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MOD_DISABLED
         cb_map[CSINN_OP_MOD][i].exec = shl_ref_mod_quant;
+        cb_map[CSINN_OP_MOD][i].perf = shl_ref_mod_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_MUL_DISABLED
         cb_map[CSINN_OP_MUL][i].exec = shl_ref_mul_quant;
+        cb_map[CSINN_OP_MUL][i].perf = shl_ref_mul_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_NEGATIVE_DISABLED
         cb_map[CSINN_OP_NEGATIVE][i].exec = shl_ref_negative_quant;
+        cb_map[CSINN_OP_NEGATIVE][i].perf = shl_ref_negative_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_NOT_EQUAL_DISABLED
         cb_map[CSINN_OP_NOT_EQUAL][i].exec = shl_ref_not_equal_quant;
+        cb_map[CSINN_OP_NOT_EQUAL][i].perf = shl_ref_not_equal_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_PAD_DISABLED
         cb_map[CSINN_OP_PAD][i].exec = shl_ref_pad_quant;
+        cb_map[CSINN_OP_PAD][i].perf = shl_ref_pad_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_POWER_DISABLED
         cb_map[CSINN_OP_POWER][i].exec = shl_ref_power_quant;
+        cb_map[CSINN_OP_POWER][i].perf = shl_ref_power_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_PRELU_DISABLED
         cb_map[CSINN_OP_PRELU][i].exec = shl_ref_prelu_quant;
+        cb_map[CSINN_OP_PRELU][i].perf = shl_ref_prelu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_PROD_DISABLED
         cb_map[CSINN_OP_PROD][i].exec = shl_ref_prod_stride_quant;
+        cb_map[CSINN_OP_PROD][i].perf = shl_ref_prod_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_PROPOSAL_DISABLED
         cb_map[CSINN_OP_PROPOSAL][i].exec = shl_ref_proposal_quant;
+        cb_map[CSINN_OP_PROPOSAL][i].perf = shl_ref_proposal_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_PSROIPOOLING_DISABLED
         cb_map[CSINN_OP_PSROIPOOLING][i].exec = shl_ref_psroipooling_quant;
+        cb_map[CSINN_OP_PSROIPOOLING][i].perf = shl_ref_psroipooling_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_LOGSUMEXP_DISABLED
         cb_map[CSINN_OP_REDUCE_LOGSUMEXP][i].exec = shl_ref_reduce_logsumexp_quant;
+        cb_map[CSINN_OP_REDUCE_LOGSUMEXP][i].perf = shl_ref_reduce_logsumexp_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_MAX_DISABLED
         cb_map[CSINN_OP_REDUCE_MAX][i].exec = shl_ref_reduce_max_quant;
+        cb_map[CSINN_OP_REDUCE_MAX][i].perf = shl_ref_reduce_max_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_MEAN_DISABLED
         cb_map[CSINN_OP_REDUCE_MEAN][i].exec = shl_ref_reduce_mean_quant;
+        cb_map[CSINN_OP_REDUCE_MEAN][i].perf = shl_ref_reduce_mean_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_MIN_DISABLED
         cb_map[CSINN_OP_REDUCE_MIN][i].exec = shl_ref_reduce_min_quant;
+        cb_map[CSINN_OP_REDUCE_MIN][i].perf = shl_ref_reduce_min_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_PROD_DISABLED
         cb_map[CSINN_OP_REDUCE_PROD][i].exec = shl_ref_reduce_prod_quant;
+        cb_map[CSINN_OP_REDUCE_PROD][i].perf = shl_ref_reduce_prod_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REDUCE_SUM_DISABLED
         cb_map[CSINN_OP_REDUCE_SUM][i].exec = shl_ref_reduce_sum_quant;
+        cb_map[CSINN_OP_REDUCE_SUM][i].perf = shl_ref_reduce_sum_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RELU_DISABLED
         cb_map[CSINN_OP_RELU][i].exec = shl_ref_relu_quant;
+        cb_map[CSINN_OP_RELU][i].perf = shl_ref_relu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RELU1_DISABLED
         cb_map[CSINN_OP_RELU1][i].exec = shl_ref_relu1_quant;
+        cb_map[CSINN_OP_RELU1][i].perf = shl_ref_relu1_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RELU6_DISABLED
         cb_map[CSINN_OP_RELU6][i].exec = shl_ref_relu6_quant;
+        cb_map[CSINN_OP_RELU6][i].perf = shl_ref_relu6_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RELUN_DISABLED
         cb_map[CSINN_OP_RELUN][i].exec = shl_ref_relun_quant;
+        cb_map[CSINN_OP_RELUN][i].perf = shl_ref_relun_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
         cb_map[CSINN_OP_RESHAPE][i].exec = shl_ref_reshape;
+        cb_map[CSINN_OP_RESHAPE][i].perf = shl_ref_reshape_perf;
         cb_map[CSINN_OP_RESHAPE][i].init = shl_ref_reshape_init;
 #endif
 #ifndef CONFIG_C_REFERENCE_RESIZE_DISABLED
         cb_map[CSINN_OP_RESIZE][i].exec = shl_ref_resize_quant;
+        cb_map[CSINN_OP_RESIZE][i].perf = shl_ref_resize_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_REVERSE_DISABLED
         cb_map[CSINN_OP_REVERSE][i].exec = shl_ref_reverse_quant;
+        cb_map[CSINN_OP_REVERSE][i].perf = shl_ref_reverse_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ROIPOOL_DISABLED
         cb_map[CSINN_OP_ROIPOOL][i].exec = shl_ref_roipool_quant;
+        cb_map[CSINN_OP_ROIPOOL][i].perf = shl_ref_roipool_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ROPE_DISABLED
         cb_map[CSINN_OP_ROPE][i].exec = shl_ref_rope_quant;
+        cb_map[CSINN_OP_ROPE][i].perf = shl_ref_rope_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ROUND_DISABLED
         cb_map[CSINN_OP_ROUND][i].exec = shl_ref_round_quant;
+        cb_map[CSINN_OP_ROUND][i].perf = shl_ref_round_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RSQRT_DISABLED
         cb_map[CSINN_OP_RSQRT][i].exec = shl_ref_rsqrt_quant;
+        cb_map[CSINN_OP_RSQRT][i].perf = shl_ref_rsqrt_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SEGMENT_MAX_DISABLED
         cb_map[CSINN_OP_SEGMENT_MAX][i].exec = shl_ref_segment_max_quant;
+        cb_map[CSINN_OP_SEGMENT_MAX][i].perf = shl_ref_segment_max_perf;
         cb_map[CSINN_OP_UNSORTED_SEGMENT_MAX][i].exec = shl_ref_unsorted_segment_max_quant;
+        cb_map[CSINN_OP_UNSORTED_SEGMENT_MAX][i].perf = shl_ref_unsorted_segment_max_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SEGMENT_MEAN_DISABLED
         cb_map[CSINN_OP_SEGMENT_MEAN][i].exec = shl_ref_segment_mean_quant;
+        cb_map[CSINN_OP_SEGMENT_MEAN][i].perf = shl_ref_segment_mean_perf;
         cb_map[CSINN_OP_UNSORTED_SEGMENT_MEAN][i].exec = shl_ref_unsorted_segment_mean_quant;
+        cb_map[CSINN_OP_UNSORTED_SEGMENT_MEAN][i].perf = shl_ref_unsorted_segment_mean_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SEGMENT_MIN_DISABLED
         cb_map[CSINN_OP_SEGMENT_MIN][i].exec = shl_ref_segment_min_quant;
+        cb_map[CSINN_OP_SEGMENT_MIN][i].perf = shl_ref_segment_min_perf;
         cb_map[CSINN_OP_UNSORTED_SEGMENT_MIN][i].exec = shl_ref_unsorted_segment_min_quant;
+        cb_map[CSINN_OP_UNSORTED_SEGMENT_MIN][i].perf = shl_ref_unsorted_segment_min_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SEGMENT_PROD_DISABLED
         cb_map[CSINN_OP_SEGMENT_PROD][i].exec = shl_ref_segment_prod_quant;
+        cb_map[CSINN_OP_SEGMENT_PROD][i].perf = shl_ref_segment_prod_perf;
         cb_map[CSINN_OP_UNSORTED_SEGMENT_PROD][i].exec = shl_ref_unsorted_segment_prod_quant;
+        cb_map[CSINN_OP_UNSORTED_SEGMENT_PROD][i].perf = shl_ref_unsorted_segment_prod_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SEGMENT_SUM_DISABLED
         cb_map[CSINN_OP_SEGMENT_SUM][i].exec = shl_ref_segment_sum_quant;
+        cb_map[CSINN_OP_SEGMENT_SUM][i].perf = shl_ref_segment_sum_perf;
         cb_map[CSINN_OP_UNSORTED_SEGMENT_SUM][i].exec = shl_ref_unsorted_segment_sum_quant;
+        cb_map[CSINN_OP_UNSORTED_SEGMENT_SUM][i].perf = shl_ref_unsorted_segment_sum_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SHUFFLE_CHANNEL_DISABLED
         cb_map[CSINN_OP_SHUFFLE_CHANNEL][i].exec = shl_ref_shuffle_channel_quant;
+        cb_map[CSINN_OP_SHUFFLE_CHANNEL][i].perf = shl_ref_shuffle_channel_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SIGMOID_DISABLED
         cb_map[CSINN_OP_SIGMOID][i].exec = shl_ref_sigmoid_quant;
+        cb_map[CSINN_OP_SIGMOID][i].perf = shl_ref_sigmoid_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SILU_DISABLED
         cb_map[CSINN_OP_SILU][i].exec = shl_ref_silu_quant;
+        cb_map[CSINN_OP_SILU][i].perf = shl_ref_silu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SIGN_DISABLED
         cb_map[CSINN_OP_SIGN][i].exec = shl_ref_sign_quant;
+        cb_map[CSINN_OP_SIGN][i].perf = shl_ref_sign_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SIN_DISABLED
         cb_map[CSINN_OP_SIN][i].exec = shl_ref_sin_quant;
+        cb_map[CSINN_OP_SIN][i].perf = shl_ref_sin_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SINH_DISABLED
         cb_map[CSINN_OP_SINH][i].exec = shl_ref_sinh_quant;
+        cb_map[CSINN_OP_SINH][i].perf = shl_ref_sinh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SLICE_DISABLED
         cb_map[CSINN_OP_SLICE][i].exec = shl_ref_slice_quant;
+        cb_map[CSINN_OP_SLICE][i].perf = shl_ref_slice_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SOFTMAX_DISABLED
         cb_map[CSINN_OP_SOFTMAX][i].exec = shl_ref_softmax_quant;
+        cb_map[CSINN_OP_SOFTMAX][i].perf = shl_ref_softmax_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SOFTPLUS_DISABLED
         cb_map[CSINN_OP_SOFTPLUS][i].exec = shl_ref_softplus_quant;
+        cb_map[CSINN_OP_SOFTPLUS][i].perf = shl_ref_softplus_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SOFTRELU_DISABLED
         cb_map[CSINN_OP_SOFTRELU][i].exec = shl_ref_softrelu_quant;
+        cb_map[CSINN_OP_SOFTRELU][i].perf = shl_ref_softrelu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SOFTSIGN_DISABLED
         cb_map[CSINN_OP_SOFTSIGN][i].exec = shl_ref_softsign_quant;
+        cb_map[CSINN_OP_SOFTSIGN][i].perf = shl_ref_softsign_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SPACE_TO_BATCH_DISABLED
         cb_map[CSINN_OP_SPACE_TO_BATCH][i].exec = shl_ref_space_to_batch_quant;
+        cb_map[CSINN_OP_SPACE_TO_BATCH][i].perf = shl_ref_space_to_batch_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SPACE_TO_DEPTH_DISABLED
         cb_map[CSINN_OP_SPACE_TO_DEPTH][i].exec = shl_ref_space_to_depth_quant;
+        cb_map[CSINN_OP_SPACE_TO_DEPTH][i].perf = shl_ref_space_to_depth_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SQRT_DISABLED
         cb_map[CSINN_OP_SQRT][i].exec = shl_ref_sqrt_quant;
+        cb_map[CSINN_OP_SQRT][i].perf = shl_ref_sqrt_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SQUARE_DISABLED
         cb_map[CSINN_OP_SQUARE][i].exec = shl_ref_square_quant;
+        cb_map[CSINN_OP_SQUARE][i].perf = shl_ref_square_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SQUEEZE_DISABLED
         cb_map[CSINN_OP_SQUEEZE][i].exec = shl_ref_squeeze_quant;
+        cb_map[CSINN_OP_SQUEEZE][i].perf = shl_ref_squeeze_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_STACK_DISABLED
         cb_map[CSINN_OP_STACK][i].exec = shl_ref_stack_quant;
+        cb_map[CSINN_OP_STACK][i].perf = shl_ref_stack_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_STRIDED_SLICE_DISABLED
         cb_map[CSINN_OP_STRIDED_SLICE][i].exec = shl_ref_strided_slice_quant;
+        cb_map[CSINN_OP_STRIDED_SLICE][i].perf = shl_ref_strided_slice_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SUB_DISABLED
         cb_map[CSINN_OP_SUB][i].exec = shl_ref_sub_quant;
+        cb_map[CSINN_OP_SUB][i].perf = shl_ref_sub_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SUM_DISABLED
         cb_map[CSINN_OP_SUM][i].exec = shl_ref_sum_stride_quant;
+        cb_map[CSINN_OP_SUM][i].perf = shl_ref_sum_stride_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_TAN_DISABLED
         cb_map[CSINN_OP_TAN][i].exec = shl_ref_tan_quant;
+        cb_map[CSINN_OP_TAN][i].perf = shl_ref_tan_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_TANH_DISABLED
         cb_map[CSINN_OP_TANH][i].exec = shl_ref_tanh_quant;
+        cb_map[CSINN_OP_TANH][i].perf = shl_ref_tanh_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_THRESHOLD_RELU_DISABLED
         cb_map[CSINN_OP_THRESHOLD_RELU][i].exec = shl_ref_threshold_relu_quant;
+        cb_map[CSINN_OP_THRESHOLD_RELU][i].perf = shl_ref_threshold_relu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_TILE_DISABLED
         cb_map[CSINN_OP_TILE][i].exec = shl_ref_tile_quant;
+        cb_map[CSINN_OP_TILE][i].perf = shl_ref_tile_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_TOPK_DISABLED
         cb_map[CSINN_OP_TOPK][i].exec = shl_ref_topk_quant;
+        cb_map[CSINN_OP_TOPK][i].perf = shl_ref_topk_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_TRANSPOSE_DISABLED
         cb_map[CSINN_OP_TRANSPOSE][i].exec = shl_ref_transpose;
+        cb_map[CSINN_OP_TRANSPOSE][i].perf = shl_ref_transpose_perf;
         cb_map[CSINN_OP_TRANSPOSE][i].init = shl_ref_transpose_init;
 #endif
 #ifndef CONFIG_C_REFERENCE_TRUNC_DISABLED
         cb_map[CSINN_OP_TRUNC][i].exec = shl_ref_trunc_quant;
+        cb_map[CSINN_OP_TRUNC][i].perf = shl_ref_trunc_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_UNPOOLING_DISABLED
         cb_map[CSINN_OP_UNPOOLING][i].exec = shl_ref_unpooling_quant;
+        cb_map[CSINN_OP_UNPOOLING][i].perf = shl_ref_unpooling_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_YUV_RGB_SCALE_DISABLED
         cb_map[CSINN_OP_YUV_RGB_SCALE][i].exec = shl_ref_yuv_rgb_scale_quant;
+        cb_map[CSINN_OP_YUV_RGB_SCALE][i].perf = shl_ref_yuv_rgb_scale_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONVOLUTION_DISABLED
         cb_map[CSINN_OP_CONV2D][i].exec = shl_ref_conv2d_quant;
+        cb_map[CSINN_OP_CONV2D][i].perf = shl_ref_conv2d_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D][i].exec = shl_ref_depthwise_conv2d_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D][i].perf = shl_ref_depthwise_conv2d_perf;
         cb_map[CSINN_OP_GROUP_CONV2D][i].exec = shl_ref_group_conv2d_quant;
+        cb_map[CSINN_OP_GROUP_CONV2D][i].perf = shl_ref_group_conv2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONVOLUTION_RELU_DISABLED
         cb_map[CSINN_OP_CONV2D_RELU][i].exec = shl_ref_conv2d_relu_quant;
+        cb_map[CSINN_OP_CONV2D_RELU][i].perf = shl_ref_conv2d_relu_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU][i].exec = shl_ref_depthwise_conv2d_relu_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU][i].perf = shl_ref_depthwise_conv2d_relu_perf;
         cb_map[CSINN_OP_GROUP_CONV2D_RELU][i].exec = shl_ref_group_conv2d_relu_quant;
+        cb_map[CSINN_OP_GROUP_CONV2D_RELU][i].perf = shl_ref_group_conv2d_relu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONVOLUTION_RELU6_DISABLED
         cb_map[CSINN_OP_CONV2D_RELU6][i].exec = shl_ref_conv2d_relu6_quant;
+        cb_map[CSINN_OP_CONV2D_RELU6][i].perf = shl_ref_conv2d_relu6_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU6][i].exec = shl_ref_depthwise_conv2d_relu6_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D_RELU6][i].perf = shl_ref_depthwise_conv2d_relu6_perf;
         cb_map[CSINN_OP_GROUP_CONV2D_RELU6][i].exec = shl_ref_group_conv2d_relu6_quant;
+        cb_map[CSINN_OP_GROUP_CONV2D_RELU6][i].perf = shl_ref_group_conv2d_relu6_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONVOLUTION_CHANNEL_DISABLED
         cb_map[CSINN_OP_CONV2D_CHANNEL][i].exec = shl_ref_conv2d_channel_quant;
+        cb_map[CSINN_OP_CONV2D_CHANNEL][i].perf = shl_ref_conv2d_channel_perf;
         cb_map[CSINN_OP_CONV2D_CHANNEL_RELU][i].exec = shl_ref_conv2d_channel_relu_quant;
+        cb_map[CSINN_OP_CONV2D_CHANNEL_RELU][i].perf = shl_ref_conv2d_channel_relu_perf;
         cb_map[CSINN_OP_CONV2D_CHANNEL_RELU6][i].exec = shl_ref_conv2d_channel_relu6_quant;
+        cb_map[CSINN_OP_CONV2D_CHANNEL_RELU6][i].perf = shl_ref_conv2d_channel_relu6_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL][i].exec = shl_ref_depthwise_conv2d_channel_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL][i].perf = shl_ref_depthwise_conv2d_channel_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU][i].exec =
             shl_ref_depthwise_conv2d_channel_relu_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU][i].perf =
+            shl_ref_depthwise_conv2d_channel_relu_perf;
         cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6][i].exec =
             shl_ref_depthwise_conv2d_channel_relu6_quant;
+        cb_map[CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6][i].perf =
+            shl_ref_depthwise_conv2d_channel_relu6_perf;
         cb_map[CSINN_OP_GROUP_CONV2D_CHANNEL][i].exec = shl_ref_group_conv2d_channel_quant;
+        cb_map[CSINN_OP_GROUP_CONV2D_CHANNEL][i].perf = shl_ref_group_conv2d_channel_perf;
         cb_map[CSINN_OP_GROUP_CONV2D_CHANNEL_RELU][i].exec =
             shl_ref_group_conv2d_channel_relu_quant;
+        cb_map[CSINN_OP_GROUP_CONV2D_CHANNEL_RELU][i].perf = shl_ref_group_conv2d_channel_relu_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_CONVOLUTION3D_DISABLED
         cb_map[CSINN_OP_CONV3D][i].exec = shl_ref_conv3d_quant;
+        cb_map[CSINN_OP_CONV3D][i].perf = shl_ref_conv3d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_DECONVOLUTION_DISABLED
         cb_map[CSINN_OP_DECONV2D][i].exec = shl_ref_deconv2d_quant;
+        cb_map[CSINN_OP_DECONV2D][i].perf = shl_ref_deconv2d_perf;
         cb_map[CSINN_OP_DEPTHWISE_DECONV2D][i].exec = shl_ref_depthwise_deconv2d_quant;
+        cb_map[CSINN_OP_DEPTHWISE_DECONV2D][i].perf = shl_ref_depthwise_deconv2d_perf;
         cb_map[CSINN_OP_GROUP_DECONV2D][i].exec = shl_ref_group_deconv2d_quant;
+        cb_map[CSINN_OP_GROUP_DECONV2D][i].perf = shl_ref_group_deconv2d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_DECONVOLUTION3D_DISABLED
         cb_map[CSINN_OP_DECONV3D][i].exec = shl_ref_deconv3d_quant;
+        cb_map[CSINN_OP_DECONV3D][i].perf = shl_ref_deconv3d_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_FULLYCONNECTED_DISABLED
         cb_map[CSINN_OP_FULLYCONNECTED][i].exec = shl_ref_fullyconnected_quant;
+        cb_map[CSINN_OP_FULLYCONNECTED][i].perf = shl_ref_fullyconnected_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SCATTER_DISABLED
         cb_map[CSINN_OP_SCATTER_ND][i].exec = shl_ref_scatter_nd_quant;
+        cb_map[CSINN_OP_SCATTER_ND][i].perf = shl_ref_scatter_nd_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SPLIT_DISABLED
         cb_map[CSINN_OP_SPLIT][i].exec = shl_ref_split_quant;
+        cb_map[CSINN_OP_SPLIT][i].perf = shl_ref_split_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ONE_HOT_DISABLED
         cb_map[CSINN_OP_ONE_HOT][i].exec = shl_ref_one_hot_quant;
+        cb_map[CSINN_OP_ONE_HOT][i].perf = shl_ref_one_hot_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_WHERE_DISABLED
         cb_map[CSINN_OP_WHERE][i].exec = shl_ref_where_quant;
+        cb_map[CSINN_OP_WHERE][i].perf = shl_ref_where_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_WHERE_SOFTMAX_DISABLED
         cb_map[CSINN_OP_WHERE_SOFTMAX][i].exec = shl_ref_where_softmax_quant;
+        cb_map[CSINN_OP_WHERE_SOFTMAX][i].perf = shl_ref_where_softmax_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
         cb_map[CSINN_OP_INSTANCE_NORM][i].exec = shl_ref_instance_norm_quant;
+        cb_map[CSINN_OP_INSTANCE_NORM][i].perf = shl_ref_instance_norm_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_RMS_NORM_DISABLED
         cb_map[CSINN_OP_RMS_NORM][i].exec = shl_ref_rms_norm_quant;
+        cb_map[CSINN_OP_RMS_NORM][i].perf = shl_ref_rms_norm_perf;
 #endif
     }
 
     for (int i = CSINN_DTYPE_INT4; i < CSINN_DTYPE_FLOAT64; i++) {
 #ifndef CONFIG_C_REFERENCE_DATA_CONVERT_DISABLED
         cb_map[CSINN_OP_DATA_CONVERT][i].exec = shl_ref_data_convert_quant;
+        cb_map[CSINN_OP_DATA_CONVERT][i].perf = shl_ref_data_convert_perf;
 #endif
     }
 
 #ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].exec = shl_ref_reshape;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].perf = shl_ref_reshape_perf;
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].init = shl_ref_reshape_init;
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_BOOL].exec = shl_ref_reshape;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_BOOL].perf = shl_ref_reshape_perf;
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_BOOL].init = shl_ref_reshape_init;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED
     cb_map[CSINN_OP_CONCAT][CSINN_DTYPE_INT64].exec = shl_ref_concat_quant;
+    cb_map[CSINN_OP_CONCAT][CSINN_DTYPE_INT64].perf = shl_ref_concat_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_MUL_DISABLED
     cb_map[CSINN_OP_MUL][CSINN_DTYPE_INT64].exec = shl_ref_mul_quant;
+    cb_map[CSINN_OP_MUL][CSINN_DTYPE_INT64].perf = shl_ref_mul_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_ADD_DISABLED
     cb_map[CSINN_OP_ADD][CSINN_DTYPE_INT64].exec = shl_ref_add_quant;
+    cb_map[CSINN_OP_ADD][CSINN_DTYPE_INT64].perf = shl_ref_add_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_AND_DISABLED
     cb_map[CSINN_OP_AND][CSINN_DTYPE_UINT8].exec = shl_ref_and_u8;
+    cb_map[CSINN_OP_AND][CSINN_DTYPE_UINT8].perf = shl_ref_and_perf;
     cb_map[CSINN_OP_AND][CSINN_DTYPE_INT8].exec = shl_ref_and_i8;
+    cb_map[CSINN_OP_AND][CSINN_DTYPE_INT8].perf = shl_ref_and_perf;
     cb_map[CSINN_OP_AND][CSINN_DTYPE_UINT32].exec = shl_ref_and_u32;
+    cb_map[CSINN_OP_AND][CSINN_DTYPE_UINT32].perf = shl_ref_and_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_NDARRAY_SIZE_DISABLED
     cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_UINT8].exec = shl_ref_ndarray_size_u8;
+    cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_UINT8].perf = shl_ref_ndarray_size_perf;
     cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_INT8].exec = shl_ref_ndarray_size_i8;
+    cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_INT8].perf = shl_ref_ndarray_size_perf;
     cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_INT32].exec = shl_ref_ndarray_size_i32;
+    cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_INT32].perf = shl_ref_ndarray_size_perf;
     cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_FLOAT32].exec = shl_ref_ndarray_size_f32;
+    cb_map[CSINN_OP_NDARRAY_SIZE][CSINN_DTYPE_FLOAT32].perf = shl_ref_ndarray_size_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_NOT_DISABLED
     cb_map[CSINN_OP_NOT][CSINN_DTYPE_UINT8].exec = shl_ref_not_u8;
+    cb_map[CSINN_OP_NOT][CSINN_DTYPE_UINT8].perf = shl_ref_not_perf;
     cb_map[CSINN_OP_NOT][CSINN_DTYPE_INT8].exec = shl_ref_not_i8;
+    cb_map[CSINN_OP_NOT][CSINN_DTYPE_INT8].perf = shl_ref_not_perf;
     cb_map[CSINN_OP_NOT][CSINN_DTYPE_UINT32].exec = shl_ref_not_u32;
+    cb_map[CSINN_OP_NOT][CSINN_DTYPE_UINT32].perf = shl_ref_not_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_OR_DISABLED
     cb_map[CSINN_OP_OR][CSINN_DTYPE_UINT8].exec = shl_ref_or_u8;
+    cb_map[CSINN_OP_OR][CSINN_DTYPE_UINT8].perf = shl_ref_or_perf;
     cb_map[CSINN_OP_OR][CSINN_DTYPE_INT8].exec = shl_ref_or_i8;
+    cb_map[CSINN_OP_OR][CSINN_DTYPE_INT8].perf = shl_ref_or_perf;
     cb_map[CSINN_OP_OR][CSINN_DTYPE_UINT32].exec = shl_ref_or_u32;
+    cb_map[CSINN_OP_OR][CSINN_DTYPE_UINT32].perf = shl_ref_or_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SELECT_DISABLED
     cb_map[CSINN_OP_SELECT][CSINN_DTYPE_UINT8].exec = shl_ref_select_u8;
+    cb_map[CSINN_OP_SELECT][CSINN_DTYPE_UINT8].perf = shl_ref_select_perf;
     cb_map[CSINN_OP_SELECT][CSINN_DTYPE_INT8].exec = shl_ref_select_i8;
+    cb_map[CSINN_OP_SELECT][CSINN_DTYPE_INT8].perf = shl_ref_select_perf;
     cb_map[CSINN_OP_SELECT][CSINN_DTYPE_FLOAT32].exec = shl_ref_select_f32;
+    cb_map[CSINN_OP_SELECT][CSINN_DTYPE_FLOAT32].perf = shl_ref_select_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_SHAPE_DISABLED
     cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_UINT8].exec = shl_ref_shape_u8;
+    cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_UINT8].perf = shl_ref_shape_perf;
     cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_INT8].exec = shl_ref_shape_i8;
+    cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_INT8].perf = shl_ref_shape_perf;
     cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_INT32].exec = shl_ref_shape_i32;
+    cb_map[CSINN_OP_SHAPE][CSINN_DTYPE_INT32].perf = shl_ref_shape_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_XOR_DISABLED
     cb_map[CSINN_OP_XOR][CSINN_DTYPE_UINT8].exec = shl_ref_xor_u8;
+    cb_map[CSINN_OP_XOR][CSINN_DTYPE_UINT8].perf = shl_ref_xor_perf;
     cb_map[CSINN_OP_XOR][CSINN_DTYPE_INT8].exec = shl_ref_xor_i8;
+    cb_map[CSINN_OP_XOR][CSINN_DTYPE_INT8].perf = shl_ref_xor_perf;
     cb_map[CSINN_OP_XOR][CSINN_DTYPE_UINT32].exec = shl_ref_xor_u32;
+    cb_map[CSINN_OP_XOR][CSINN_DTYPE_UINT32].perf = shl_ref_xor_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_NON_MAX_SUPPRESSION_DISABLED
     cb_map[CSINN_OP_NON_MAX_SUPPRESSION][CSINN_DTYPE_FLOAT32].exec =
         shl_ref_non_max_suppression_std;
+    cb_map[CSINN_OP_NON_MAX_SUPPRESSION][CSINN_DTYPE_FLOAT32].perf =
+        shl_ref_non_max_suppression_std_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_ROIALIGN_DISABLED
     cb_map[CSINN_OP_ROIALIGN][CSINN_DTYPE_FLOAT32].exec = shl_ref_roi_align_f32;
+    cb_map[CSINN_OP_ROIALIGN][CSINN_DTYPE_FLOAT32].perf = shl_ref_roi_align_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_SCATTER_DISABLED
     cb_map[CSINN_OP_SCATTER_ND][CSINN_DTYPE_FLOAT32].exec = shl_ref_scatter_nd_f32;
+    cb_map[CSINN_OP_SCATTER_ND][CSINN_DTYPE_FLOAT32].perf = shl_ref_scatter_nd_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_COL2IM_DISABLED
     cb_map[CSINN_OP_COL2IM][CSINN_DTYPE_FLOAT32].exec = shl_ref_col2im_f32;
+    cb_map[CSINN_OP_COL2IM][CSINN_DTYPE_FLOAT32].perf = shl_ref_col2im_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_ISNAN_DISABLED
     cb_map[CSINN_OP_ISNAN][CSINN_DTYPE_FLOAT32].exec = shl_ref_isnan_bool_f32;
+    cb_map[CSINN_OP_ISNAN][CSINN_DTYPE_FLOAT32].perf = shl_ref_isnan_bool_perf;
 #endif
 #ifndef CONFIG_C_REFERENCE_L2POOL_DISABLED
     cb_map[CSINN_OP_L2POOL2D][CSINN_DTYPE_FLOAT32].exec = shl_ref_l2pool_f32;
+    cb_map[CSINN_OP_L2POOL2D][CSINN_DTYPE_FLOAT32].perf = shl_ref_l2pool_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_WHERE_DISABLED
     cb_map[CSINN_OP_WHERE][CSINN_DTYPE_BOOL].exec = shl_ref_where_quant;
+    cb_map[CSINN_OP_WHERE][CSINN_DTYPE_BOOL].perf = shl_ref_where_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_WHERE_SOFTMAX_DISABLED
     cb_map[CSINN_OP_WHERE_SOFTMAX][CSINN_DTYPE_BOOL].exec = shl_ref_where_softmax_quant;
+    cb_map[CSINN_OP_WHERE_SOFTMAX][CSINN_DTYPE_BOOL].perf = shl_ref_where_softmax_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
     cb_map[CSINN_OP_INSTANCE_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_instance_norm_f32;
+    cb_map[CSINN_OP_INSTANCE_NORM][CSINN_DTYPE_FLOAT32].perf = shl_ref_instance_norm_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_RMS_NORM_DISABLED
     cb_map[CSINN_OP_RMS_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_rms_norm_f32;
+    cb_map[CSINN_OP_RMS_NORM][CSINN_DTYPE_FLOAT32].perf = shl_ref_rms_norm_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_SCALED_DOT_PRODUCT_ATTENTION_DISABLED
     cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT16].exec =
         shl_ref_scaled_dot_product_attention_quant;
+    cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT16].perf =
+        shl_ref_scaled_dot_product_attention_perf;
     cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT32].exec =
         shl_ref_scaled_dot_product_attention_f32;
+    cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT32].perf =
+        shl_ref_scaled_dot_product_attention_perf;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_CAST_DISABLED
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_UINT8].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_UINT8].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT8].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT8].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT32].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT32].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT16].exec = shl_ref_cast_quant;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT16].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT32].exec = shl_ref_cast_f32;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_FLOAT32].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_BOOL].exec = shl_ref_cast_bool;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_BOOL].perf = shl_ref_cast_perf;
     cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT64].exec = shl_ref_cast_i64;
+    cb_map[CSINN_OP_CAST][CSINN_DTYPE_INT64].perf = shl_ref_cast_perf;
 #endif
 
 #ifdef SHL_BUILD_GREF

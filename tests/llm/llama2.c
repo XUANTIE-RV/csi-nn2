@@ -65,6 +65,9 @@ void main()
     void *base_addr = shl_mmap(path);
 
     config->shl_model = load_shl_model(base_addr);
+    config->base_api = CSINN_REF;
+    config->base_quant_type = CSINN_QUANT_FLOAT32;
+    config->base_dtype = CSINN_DTYPE_FLOAT32;
 
     struct shl_llm_ctx *ctx = llama2_build(config);
 

@@ -354,6 +354,7 @@ int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_t
     int32_t *out_dim = output->dim;
     int32_t dim_count = output->dim_count;
 
+    // Mark an index that traverses each dimension.
     int32_t *idx = (int32_t *)shl_mem_alloc(dim_count * sizeof(int32_t));
     int cur = 0;
 
@@ -366,15 +367,23 @@ int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_t
         binary_op = binary_op_callback[CSINN_BROADCAST_SV];
     }
 
+    // Work like a stack, "push" the higher dimension until reach the last dimension,
+    // "pop" when done traversing current dimension.
     while (idx[0] < out_dim[0]) {
         if (cur == dim_count - 1) {
+            // Do broadcast in the last dimension
             float *in0_ptr = input0_data + broadcast_get_index(in0_dim, idx, dim_count);
             float *in1_ptr = input1_data + broadcast_get_index(in1_dim, idx, dim_count);
             float *out_ptr = output_data + broadcast_get_index(out_dim, idx, dim_count);
             binary_op(in0_ptr, in1_ptr, out_ptr, out_dim[cur]);
+            if (cur == 0) {
+                break;
+            }
             cur -= 1;
             idx[cur] += 1;
         } else {
+            // If the current index is less than the current dim size, traverse the next dimension;
+            // Otherwise, set the index to 0, and return to the previous dimension.
             if (idx[cur] < out_dim[cur]) {
                 cur += 1;
             } else {
@@ -469,6 +478,9 @@ int shl_rvv_binary_op_broadcast_fp16(struct csinn_tensor *input0, struct csinn_t
             __fp16 *in1_ptr = input1_data + broadcast_get_index(in1_dim, idx, dim_count);
             __fp16 *out_ptr = output_data + broadcast_get_index(out_dim, idx, dim_count);
             binary_op(in0_ptr, in1_ptr, out_ptr, out_dim[cur]);
+            if (cur == 0) {
+                break;
+            }
             cur -= 1;
             idx[cur] += 1;
         } else {
@@ -570,6 +582,9 @@ int shl_rvv_binary_op_broadcast_int8(struct csinn_tensor *input0, struct csinn_t
             int8_t *in1_ptr = input1_data + broadcast_get_index(in1_dim, idx, dim_count);
             int8_t *out_ptr = output_data + broadcast_get_index(out_dim, idx, dim_count);
             binary_op(in0_ptr, in1_ptr, out_ptr, out_dim[cur], scale, zero_point);
+            if (cur == 0) {
+                break;
+            }
             cur -= 1;
             idx[cur] += 1;
         } else {

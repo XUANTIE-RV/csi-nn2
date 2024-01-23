@@ -50,7 +50,7 @@ int shl_debug_get_level();
 void shl_debug_set_level(int level);
 int shl_benchmark_layer(struct shl_node *node, uint64_t start_time, uint64_t end_time,
                         int layer_idx);
-int shl_dump_output_tensor(struct shl_node *node);
+int shl_dump_output_tensor(struct shl_node *node, char **output_filenames);
 
 int shl_conv2d_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
@@ -180,8 +180,8 @@ int shl_layer_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *o
                               struct csinn_tensor *gamma, struct csinn_tensor *beta,
                               struct csinn_layer_norm_params *params, const char *name);
 
-int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
-                            struct csinn_tensor *weights, struct csinn_rms_norm_params *params,
+int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *weights,
+                            struct csinn_tensor *output, struct csinn_rms_norm_params *params,
                             const char *name);
 
 int shl_softmax_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,

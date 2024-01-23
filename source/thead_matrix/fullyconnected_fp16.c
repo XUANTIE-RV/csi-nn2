@@ -142,6 +142,62 @@ void shl_rvm_fc_gemm_reorder_weight_fp16_w_int8(struct csinn_tensor *weights)
     shl_mem_free(weight_reorder);
 }
 
+/*************************************************************************************
+ * Per-channel dequantize int8 -> fp16
+ * mrows = rlenb / 4
+ * m2rows = mrows * 2
+ * mcols = rlenb / sizeof(__fp16)
+ * msize_n: m2rows, mrows, n_tail
+ * msize_k: mcols, k_tail
+ * weight: [n/msize_n, k/msize_k, msize_n, msize_k]
+ ************************************************************************************/
+void shl_rvm_fc_dequantize_per_channel_i8_to_f16(struct csinn_tensor *weights,
+                                                 struct csinn_fc_params *params,
+                                                 __fp16 *weights_fp16)
+{
+    int8_t *weights_int8 = (int8_t *)weights->data;
+    int n = weights->dim[0];  // out_nodes
+    int k = weights->dim[1];  // in_nodes
+
+    int mrows = csrr_xrlenb() / 4;
+    int m2rows = mrows * 2;
+    int mcols = m2rows;
+
+    int r = 0;
+    for (; r + m2rows - 1 < n; r += m2rows) {
+        int c = 0;
+        while (c < k) {
+            uint16_t msize_k = (k - c >= mcols) ? mcols : (k - c);
+            int8_t *w_src = weights_int8 + r * k + c * m2rows;
+            __fp16 *w_dst = weights_fp16 + r * k + c * m2rows;
+            for (int i = 0; i < m2rows; i++) {
+                int32_t zp = weights->qinfo[r + i].zero_point;
+                float scale = weights->qinfo[r + i].scale;
+                shl_rvv_dequantize_i8_to_f16(w_src + i * msize_k, w_dst + i * msize_k, msize_k, zp,
+                                             scale);
+            }
+            c += msize_k;
+        }
+    }
+    while (r < n) {
+        int msize_n = (n - r >= mrows) ? mrows : (n - r);
+        int c = 0;
+        while (c < k) {
+            uint16_t msize_k = (k - c >= mcols) ? mcols : (k - c);
+            int8_t *w_src = weights_int8 + r * k + c * msize_n;
+            __fp16 *w_dst = weights_fp16 + r * k + c * msize_n;
+            for (int i = 0; i < msize_n; i++) {
+                int32_t zp = weights->qinfo[r + i].zero_point;
+                float scale = weights->qinfo[r + i].scale;
+                shl_rvv_dequantize_i8_to_f16(w_src + i * msize_k, w_dst + i * msize_k, msize_k, zp,
+                                             scale);
+            }
+            c += msize_k;
+        }
+        r += msize_n;
+    }
+}
+
 int shl_rvm_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
                                      struct csinn_fc_params *params)
@@ -179,14 +235,9 @@ int shl_rvm_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_te
             float scale = weights->qinfo->scale;
             shl_rvv_dequantize_i8_to_f16(weights_int8, weights_fp16, size, zp, scale);
         } else if (weights->quant_channel == output_depth) {
-            // support channel quantization
-            for (int c = 0; c < output_depth; c++) {
-                int32_t zp = weights->qinfo[c].zero_point;
-                float scale = weights->qinfo[c].scale;
-                shl_rvv_dequantize_i8_to_f16(weights_int8 + c * accum_depth,
-                                             weights_fp16 + c * accum_depth, accum_depth, zp,
-                                             scale);
-            }
+            shl_rvm_fc_dequantize_per_channel_i8_to_f16(weights, params, weights_fp16);
+        } else {
+            shl_debug_error("%s unsupported quant_channel: %d\n", __func__, weights->quant_channel);
         }
         weights_data = weights_fp16;
     } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {

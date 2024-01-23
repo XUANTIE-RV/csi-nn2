@@ -21,6 +21,90 @@
 #include "csi_nn.h"
 #include "shl_utils.h"
 
+static struct csinn_enum_map csinn_dtype_map[] = {
+    {CSINN_DTYPE_BOOL, "CSINN_DTYPE_BOOL"},       {CSINN_DTYPE_INT4, "CSINN_DTYPE_INT4"},
+    {CSINN_DTYPE_UINT8, "CSINN_DTYPE_UINT8"},     {CSINN_DTYPE_INT8, "CSINN_DTYPE_INT8"},
+    {CSINN_DTYPE_UINT16, "CSINN_DTYPE_UINT16"},   {CSINN_DTYPE_INT16, "CSINN_DTYPE_INT16"},
+    {CSINN_DTYPE_UINT32, "CSINN_DTYPE_UINT32"},   {CSINN_DTYPE_INT32, "CSINN_DTYPE_INT32"},
+    {CSINN_DTYPE_FLOAT16, "CSINN_DTYPE_FLOAT16"}, {CSINN_DTYPE_BFLOAT16, "CSINN_DTYPE_BFLOAT16"},
+    {CSINN_DTYPE_FLOAT32, "CSINN_DTYPE_FLOAT32"}, {CSINN_DTYPE_FLOAT64, "CSINN_DTYPE_FLOAT64"},
+    {CSINN_DTYPE_INT64, "CSINN_DTYPE_INT64"},
+};
+
+static struct csinn_enum_map csinn_quant_map[] = {
+    {CSINN_QUANT_UNSET, "CSINN_QUANT_UNSET"},
+    {CSINN_QUANT_INT4_SYM, "CSINN_QUANT_INT4_SYM"},
+    {CSINN_QUANT_UINT8_ASYM, "CSINN_QUANT_UINT8_ASYM"},
+    {CSINN_QUANT_UINT8_SYM, "CSINN_QUANT_UINT8_SYM"},
+    {CSINN_QUANT_INT8_ASYM, "CSINN_QUANT_INT8_ASYM"},
+    {CSINN_QUANT_INT8_SYM, "CSINN_QUANT_INT8_SYM"},
+    {CSINN_QUANT_INT16_SYM, "CSINN_QUANT_INT16_SYM"},
+    {CSINN_QUANT_FLOAT16, "CSINN_QUANT_FLOAT16"},
+    {CSINN_QUANT_BFLOAT16, "CSINN_QUANT_BFLOAT16"},
+    {CSINN_QUANT_FLOAT32, "CSINN_QUANT_FLOAT32"},
+    {CSINN_QUANT_INT4_ASYM_W_SYM, "CSINN_QUANT_INT4_ASYM_W_SYM"},
+    {CSINN_QUANT_INT8_ASYM_W_SYM, "CSINN_QUANT_INT8_ASYM_W_SYM"},
+    {CSINN_QUANT_FLOAT16_W_INT8, "CSINN_QUANT_FLOAT16_W_INT8"},
+    {CSINN_QUANT_BLOCK_Q2_K, "CSINN_QUANT_BLOCK_Q2_K"},
+    {CSINN_QUANT_BLOCK_Q4_0, "CSINN_QUANT_BLOCK_Q4_0"},
+    {CSINN_QUANT_BLOCK_Q8_0, "CSINN_QUANT_BLOCK_Q8_0"},
+};
+
+static struct csinn_enum_map csinn_api_map[] = {
+    {CSINN_REF, "CSINN_REF"},       {CSINN_GREF, "CSINN_GREF"},
+    {CSINN_C860, "CSINN_C860"},     {CSINN_C906, "CSINN_C906"},
+    {CSINN_C920, "CSINN_C920"},     {CSINN_ANOLE, "CSINN_ANOLE"},
+    {CSINN_CH8601, "CSINN_CH8601"}, {CSINN_TH1520, "CSINN_TH1520"},
+    {CSINN_DP1K, "CSINN_DP1K"},     {CSINN_I805, "CSINN_I805"},
+    {CSINN_E804, "CSINN_E804"},     {CSINN_REF_I805, "CSINN_REF_I805"},
+    {CSINN_C908, "CSINN_C908"},     {CSINN_TVMGEN, "CSINN_TVMGEN"},
+    {CSINN_ASP, "CSINN_ASP"},       {CSINN_RVV, "CSINN_RVV"},
+    {CSINN_RVM, "CSINN_RVM"},       {CSINN_E907, "CSINN_E907"},
+    {CSINN_C920V2, "CSINN_C920V2"},
+};
+
+static struct csinn_enum_map csinn_rmod_map[] = {
+    {CSINN_RM_LAYER, "CSINN_RM_LAYER"},
+    {CSINN_RM_CPU_GRAPH, "CSINN_RM_CPU_GRAPH"},
+    {CSINN_RM_NPU_GRAPH, "CSINN_RM_NPU_GRAPH"},
+    {CSINN_RM_CPU_BASE_HYBRID, "CSINN_RM_CPU_BASE_HYBRID"},
+};
+
+static struct csinn_enum_map csinn_layout_map[] = {
+    {CSINN_LAYOUT_NULL, "CSINN_LAYOUT_NULL"},
+    {CSINN_LAYOUT_N, "CSINN_LAYOUT_N"},
+    {CSINN_LAYOUT_NC, "CSINN_LAYOUT_NC"},
+    {CSINN_LAYOUT_NCW, "CSINN_LAYOUT_NCW"},
+    {CSINN_LAYOUT_NCHW, "CSINN_LAYOUT_NCHW"},
+    {CSINN_LAYOUT_NCDHW, "CSINN_LAYOUT_NCDHW"},
+    {CSINN_LAYOUT_O, "CSINN_LAYOUT_O"},
+    {CSINN_LAYOUT_OI, "CSINN_LAYOUT_OI"},
+    {CSINN_LAYOUT_O16I16, "CSINN_LAYOUT_O16I16"},
+    {CSINN_LAYOUT_O32I32, "CSINN_LAYOUT_O32I32"},
+    {CSINN_LAYOUT_OIW, "CSINN_LAYOUT_OIW"},
+    {CSINN_LAYOUT_OIHW, "CSINN_LAYOUT_OIHW"},
+    {CSINN_LAYOUT_OIDHW, "CSINN_LAYOUT_OIDHW"},
+    {CSINN_LAYOUT_O1HW, "CSINN_LAYOUT_O1HW"},
+    {CSINN_LAYOUT_NWC, "CSINN_LAYOUT_NWC"},
+    {CSINN_LAYOUT_NHWC, "CSINN_LAYOUT_NHWC"},
+    {CSINN_LAYOUT_NDHWC, "CSINN_LAYOUT_NDHWC"},
+    {CSINN_LAYOUT_OWI, "CSINN_LAYOUT_OWI"},
+    {CSINN_LAYOUT_OHWI, "CSINN_LAYOUT_OHWI"},
+    {CSINN_LAYOUT_O16HWI16, "CSINN_LAYOUT_O16HWI16"},
+    {CSINN_LAYOUT_O32HWI32, "CSINN_LAYOUT_O32HWI32"},
+    {CSINN_LAYOUT_ODHWI, "CSINN_LAYOUT_ODHWI"},
+    {CSINN_LAYOUT_1HWO, "CSINN_LAYOUT_1HWO"},
+    {CSINN_LAYOUT_1HW16O16, "CSINN_LAYOUT_1HW16O16"},
+    {CSINN_LAYOUT_1HW32O32, "CSINN_LAYOUT_1HW32O32"},
+    {CSINN_LAYOUT_O1HWIO0, "CSINN_LAYOUT_O1HWIO0"},
+    {CSINN_LAYOUT_NC1C0, "CSINN_LAYOUT_NC1C0"},
+    {CSINN_LAYOUT_NC1WC0, "CSINN_LAYOUT_NC1WC0"},
+    {CSINN_LAYOUT_NC1HWC0, "CSINN_LAYOUT_NC1HWC0"},
+    {CSINN_LAYOUT_NC1DHWC0, "CSINN_LAYOUT_NC1DHWC0"},
+    {CSINN_LAYOUT_NLCDHW, "CSINN_LAYOUT_NLCDHW"},
+    {CSINN_LAYOUT_IOHW, "CSINN_LAYOUT_IOHW"},
+};
+
 /* https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/kernels/internal/quantization_util.cc
  */
 static int64_t integer_from_exp(double input, int32_t *shift)
@@ -2013,7 +2097,6 @@ static int block_dequantize_q4(struct csinn_tensor *dst, struct csinn_tensor *sr
             dst_data[output_index] = ((float)(value & 0xf) - 8) * fp32_scale;
             dst_data[output_index + block_size / 2] =
                 ((float)((value & 0xf0) >> 4) - 8) * fp32_scale;
-            ;
         }
     }
 
@@ -2044,6 +2127,78 @@ static int block_dequantize_q8(struct csinn_tensor *dst, struct csinn_tensor *sr
     return CSINN_TRUE;
 }
 
+static int block_quantize_q4(struct csinn_tensor *dst, struct csinn_tensor *src)
+{
+    if (dst->dtype != CSINN_DTYPE_INT4 || src->dtype != CSINN_DTYPE_FLOAT32) {
+        shl_debug_error("%s: unsupported convert dtype\n", __func__);
+        return CSINN_FALSE;
+    }
+
+    float *src_data = src->data;
+    int8_t *dst_data = dst->data;
+    int16_t *scale_data = dst->data + csinn_tensor_size(dst) / 2;
+    int block_size = 32;
+    int block_num = csinn_tensor_size(src) / block_size;
+
+    for (int i = 0; i < block_num; i++) {
+        float max_value = 0.0f;
+        float abs_max_value = 0.0f;
+
+        for (int j = 0; j < block_size; j++) {
+            float value = src_data[i * block_size + j];
+            if (abs_max_value < fabsf(value)) {
+                abs_max_value = fabsf(value);
+                max_value = value;
+            }
+        }
+
+        float fp32_scale = max_value / -8.0f;
+        float id = fp32_scale ? 1.0f / fp32_scale : 0.0f;
+        scale_data[i] = float32_to_float16_base(fp32_scale);
+
+        for (int j = 0; j < block_size / 2; ++j) {
+            float value0 = src_data[i * block_size + j];
+            float value1 = src_data[i * block_size + block_size / 2 + j];
+            uint8_t q4_value0 = fminf((int8_t)(value0 * id + 8.5f), 15);
+            uint8_t q4_value1 = fminf((int8_t)(value1 * id + 8.5f), 15);
+            dst_data[i * block_size / 2 + j] = q4_value0 | (q4_value1 << 4);
+        }
+    }
+}
+
+static int block_quantize_q8(struct csinn_tensor *dst, struct csinn_tensor *src)
+{
+    if (dst->dtype != CSINN_DTYPE_INT8 || src->dtype != CSINN_DTYPE_FLOAT32) {
+        shl_debug_error("%s: unsupported convert dtype\n", __func__);
+        return CSINN_FALSE;
+    }
+
+    float *src_data = src->data;
+    int8_t *dst_data = dst->data;
+    int16_t *scale_data = dst->data + csinn_tensor_size(dst);
+    int block_size = 32;
+    int block_num = csinn_tensor_size(src) / block_size;
+
+    for (int i = 0; i < block_num; i++) {
+        float max_value = 0.0f;
+
+        for (int j = 0; j < block_size; j++) {
+            float value = src_data[i * block_size + j];
+            max_value = fmaxf(max_value, fabsf(value));
+        }
+
+        float fp32_scale = max_value / ((1 << 7) - 1);
+        float id = fp32_scale ? 1.0f / fp32_scale : 0.0f;
+        scale_data[i] = float32_to_float16_base(fp32_scale);
+
+        for (int j = 0; j < block_size; j++) {
+            float value = src_data[i * block_size + j];
+            const float q8_value = value * id;
+            dst_data[i * block_size + j] = roundf(q8_value);
+        }
+    }
+}
+
 /**
  * @addtogroup TENSOR
  * @{
@@ -2054,6 +2209,10 @@ int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *sr
         return block_dequantize_q8(dest, src);
     } else if (src->mtype == CSINN_MEM_TYPE_BLOCK_Q4_0) {
         return block_dequantize_q4(dest, src);
+    } else if (dest->mtype == CSINN_MEM_TYPE_BLOCK_Q8_0) {
+        return block_quantize_q8(dest, src);
+    } else if (dest->mtype == CSINN_MEM_TYPE_BLOCK_Q4_0) {
+        return block_quantize_q4(dest, src);
     }
 
     if (dest->layout == src->layout && dest->dtype == src->dtype) {
@@ -2221,4 +2380,69 @@ int csinn_version(char *vstr)
         sprintf(vstr, "%d.%d.%d", major, minor, patch);
     }
     return (major << (VERSION_SHIFT * 2)) | (minor << VERSION_SHIFT) | patch;
+}
+
+char *shl_find_function_name(struct shl_function_map *fmap, void *func)
+{
+    char *res = NULL;
+    if (fmap == NULL || func == NULL) {
+        return res;
+    }
+    int idx = 0;
+    struct shl_function_map curr = fmap[idx];
+    while (curr.func != NULL && curr.name != NULL) {
+        if (func == curr.func) {
+            res = curr.name;
+            break;
+        }
+        idx++;
+        curr = fmap[idx];
+    }
+    return res;
+}
+
+char *shl_find_enum_name(struct csinn_enum_map *map, int map_len, int type)
+{
+    char *res = NULL;
+    if (!map || map_len <= 0) {
+        return res;
+    }
+    for (int i = 0; i < map_len; i++) {
+        if (map[i].type == type) {
+            res = map[i].name;
+            break;
+        }
+    }
+
+    return res;
+}
+
+char *shl_find_dtype_name(enum csinn_dtype_enum type)
+{
+    return shl_find_enum_name(csinn_dtype_map,
+                              sizeof(csinn_dtype_map) / sizeof(struct csinn_enum_map), type);
+}
+
+char *shl_find_quant_name(enum csinn_quant_enum type)
+{
+    return shl_find_enum_name(csinn_quant_map,
+                              sizeof(csinn_quant_map) / sizeof(struct csinn_enum_map), type);
+}
+
+char *shl_find_api_name(enum csinn_api_enum type)
+{
+    return shl_find_enum_name(csinn_api_map, sizeof(csinn_api_map) / sizeof(struct csinn_enum_map),
+                              type);
+}
+
+char *shl_find_rmod_name(enum csinn_rmode_enum type)
+{
+    return shl_find_enum_name(csinn_rmod_map,
+                              sizeof(csinn_rmod_map) / sizeof(struct csinn_enum_map), type);
+}
+
+char *shl_find_layout_name(enum csinn_layout_enum type)
+{
+    return shl_find_enum_name(csinn_layout_map,
+                              sizeof(csinn_layout_map) / sizeof(struct csinn_enum_map), type);
 }

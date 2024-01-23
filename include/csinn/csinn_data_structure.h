@@ -62,6 +62,8 @@ enum csinn_mem_type_enum {
     CSINN_MEM_TYPE_BLOCK_Q2_K,          /**< Block quantization from llama.cpp */
     CSINN_MEM_TYPE_BLOCK_Q4_0,          /**< Block quantization from llama.cpp */
     CSINN_MEM_TYPE_BLOCK_Q8_0,          /**< Block quantization from llama.cpp */
+    CSINN_MEM_TYPE_BLOCK_Q8_0_REARRANGE,
+    CSINN_MEM_TYPE_BLOCK_Q4_0_REARRANGE,
 };
 
 /** CSI-NN quant type */
@@ -421,6 +423,7 @@ enum csinn_layout_enum {
     CSINN_LAYOUT_1HWO,     /**< NHWC constant, depthwise convolution only */
     CSINN_LAYOUT_1HW16O16, /**< 16 bytes in parallel for ASP platform */
     CSINN_LAYOUT_1HW32O32, /**< 32 bytes in parallel for ASP platform */
+    CSINN_LAYOUT_O1HWIO0,  /**< NHWC constant, 5 dimensions, winograd convolution only*/
 
     // NC1HWC0
     // ACTIVITION
@@ -468,6 +471,7 @@ enum csinn_profiler_enum {
                                          the output tensor value of every layer. */
     CSINN_PROFILER_LEVEL_ALL,       /**< The performance analysis mode, do all operations that
                                          mentioned above. */
+    CSINN_PROFILER_LEVEL_TRACE,     /**< The performance analysis mode, generate trace data. */
 };
 
 /** debug type */
@@ -544,6 +548,9 @@ struct csinn_session {
     void *td;                              /**< Refers to private data, which can generally point to
                                                 the structure representing the graph in the driver */
     bool dynamic_shape;                    /**< Wether to infer shape */
+
+    void *trace; /**< Refers to trace data, it is valid after set
+                      profiler_level=CSINN_PROFILER_LEVEL_TRACE */
 };
 
 /** CSI-NN tensor */
@@ -553,6 +560,11 @@ struct csinn_callback {
     int (*exec)(); /**< execute real compute */
     int (*caps)(); /**< capabilities */
     int (*perf)(); /**< profiling */
+};
+
+/* CSI-NN perf information obtained by perf csinn_callback */
+struct csinn_perf_info {
+    char *kernel_name; /**< The actual kernel name used */
 };
 
 /** CSI-NN params base */
@@ -1217,6 +1229,8 @@ struct csinn_rope_params {
     int32_t xpos_down;
     int32_t n_dims;
     int32_t *pos;
+    bool use_rope_cache;
+    void *rope_cache;
 };
 
 /** CSI-NN LLM position OP type */
@@ -1240,8 +1254,14 @@ struct csinn_llm_pos_params {
 /** CSI-NN scaled_dot_product_attention params */
 struct csinn_scale_dot_attention_params {
     struct csinn_params_base base; /**< The basic information of the operator */
+    float norm_factor;
     bool casual;
     bool transpose_v;  // if transpose_v = true, v should be [batch,np,dim_head,sk]
+};
+
+struct csinn_enum_map {
+    int type;
+    char *name;
 };
 
 /**

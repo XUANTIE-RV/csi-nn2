@@ -51,21 +51,32 @@ int shl_rvv_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor 
         elempack = in_c % packn == 0 ? packn : 1;
     }
 
-    // global avgpool2d
-    if (in_h == kernel_h && in_w == kernel_w) {
-        cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
-                                           : shl_ref_global_avgpool2d_quant;
-        return CSINN_TRUE;
-    }
-    if (cb->exec == NULL) {
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        // global avgpool2d
+        if (in_h == kernel_h && in_w == kernel_w) {
+            cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
+                                               : shl_ref_global_avgpool2d_quant;
+            return CSINN_TRUE;
+        }
+
         if (elempack % packn == 0) {
             cb->exec = shl_rvv_avgpool_packn_int8;
-        } else {
-            shl_debug_warning(
-                "avgpool is not optimized to achieve under this condition on rvv, call reference "
-                "func replaced.\n");
-            cb->exec = shl_ref_avgpool2d_quant;
         }
+
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
+        // global avgpool2d
+        if (in_h == kernel_h && in_w == kernel_w) {
+            cb->exec = shl_rvv_global_avgpool2d_nhwc_int8;
+            return CSINN_TRUE;
+        }
+        cb->exec = shl_rvv_avgpool_nhwc_int8;
+    }
+
+    if (cb->exec == NULL) {
+        shl_debug_warning(
+            "avgpool is not optimized to achieve under this condition on rvv, call reference "
+            "func replaced.\n");
+        cb->exec = shl_ref_avgpool2d_quant;
     }
     return CSINN_TRUE;
 }
@@ -93,7 +104,12 @@ int shl_rvv_global_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_
         elempack = in_c % packn == 0 ? packn : 1;
     }
 
-    cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
-                                       : shl_ref_global_avgpool2d_quant;
+    if (input->layout == CSINN_LAYOUT_NCHW) {
+        cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
+                                           : shl_ref_global_avgpool2d_quant;
+    } else if (input->layout == CSINN_LAYOUT_NHWC) {
+        cb->exec = shl_rvv_global_avgpool2d_nhwc_int8;
+    }
+
     return CSINN_TRUE;
 }

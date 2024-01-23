@@ -69,6 +69,9 @@ static int transpose_tail_coincide_fp32(struct csinn_tensor *input, struct csinn
                 dst += vl;
                 i += vl;
             }
+            if (d == 0) {
+                break;
+            }
             d -= 1;
             idx[d] += 1;
         } else {

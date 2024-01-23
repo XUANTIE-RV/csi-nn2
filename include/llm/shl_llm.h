@@ -95,6 +95,12 @@ struct shl_llm_ctx {
     char *path;
 
     struct shl_llm_model *shl_model;
+
+    /* for csinn_session */
+    int32_t base_api;  // basic computing unit
+    int32_t base_dtype;
+    int32_t base_quant_type;
+    int32_t save_model;
 };
 
 struct shl_llm_input {
@@ -112,6 +118,12 @@ struct llama_config {
     int vocab_size;
 
     struct shl_llm_model *shl_model;
+
+    /* for csinn_session */
+    int32_t base_api;
+    int32_t base_dtype;
+    int32_t base_quant_type;
+    int32_t save_model;
 };
 
 struct shl_llm_ctx *llama2_build(struct llama_config *config);

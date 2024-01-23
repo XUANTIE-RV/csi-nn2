@@ -584,7 +584,17 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_int8(struct csinn_tensor *src_kernel,
     // kernel transform matrix: G
     const int16_t ktm[6][3] = {{6, 0, 0}, {-4, -4, -4}, {-4, 4, -4},
                                {1, 2, 4}, {1, -2, 4},   {0, 0, 6}};
-    csinn_tensor_copy(dst_kernel, src_kernel);  // tensor->dtype ??
+    const int packn = csrr_vlenb() / sizeof(int16_t);
+    const int pack2n = packn * 2;
+    csinn_tensor_copy(dst_kernel, src_kernel);
+    dst_kernel->dim_count = 5;
+    dst_kernel->dim[0] = outch / packn;
+    dst_kernel->dim[1] = 6;
+    dst_kernel->dim[2] = 6;
+    dst_kernel->dim[3] = inch;
+    dst_kernel->dim[4] = packn;
+    dst_kernel->layout = CSINN_LAYOUT_O1HWIO0;
+    dst_kernel->dtype = CSINN_DTYPE_INT16;
     for (int p = 0; p < outch; p++) {
         for (int q = 0; q < inch; q++) {
             const int8_t *kernel0 = kernel_data + p * inch * 9 + q * 9;
@@ -616,7 +626,6 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_int8(struct csinn_tensor *src_kernel,
         (int16_t *)shl_mem_alloc(outch / 8 * 36 * inch * 8 * sizeof(int16_t));
     dst_kernel->data = kernel_tm_packn;
 
-    const int packn = csrr_vlenb() / sizeof(int16_t);
     for (int oc = 0; oc + packn - 1 < outch; oc += packn) {
         int16_t *g0 = kernel_tm_packn + oc * 36 * inch;
         for (int k = 0; k < 36; k++) {
@@ -629,6 +638,7 @@ void shl_rvv_wg_b4f3s1_trans_kernel_packn_int8(struct csinn_tensor *src_kernel,
             }
         }
     }
+    src_kernel->data = 0;
     shl_mem_free(kernel_tm);
 }
 

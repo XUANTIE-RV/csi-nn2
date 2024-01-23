@@ -104,6 +104,7 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(struct csinn_tensor *ker
     int in_c = kernel->dim[1];
     int maxk = kernel->dim[2] * kernel->dim[3];
 
+    csinn_tensor_copy(params->conv_extra.kernel_tm, kernel);
     params->conv_extra.kernel_tm->data =
         (int8_t *)shl_mem_alloc(out_c * in_c * maxk * sizeof(int8_t));
 
@@ -112,7 +113,7 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(struct csinn_tensor *ker
         int8_t *ker_tm_ptr = params->conv_extra.kernel_tm->data + g * out_cp * in_c * maxk;
         im2col_gemm_reorder_kernel_packn_per_group_int8(ker_ptr, ker_tm_ptr, out_cp, in_c, maxk);
     }
-
+    kernel->data = NULL;
     // FIXME: free params->conv_extra.kernel_tm->data
     // memcpy(kernel_data, pa_reorder, group * m * k * sizeof(__fp16));
     // shl_mem_free(pa_reorder);

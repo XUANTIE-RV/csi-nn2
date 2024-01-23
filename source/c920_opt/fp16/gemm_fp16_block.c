@@ -483,7 +483,7 @@ static inline void gemm_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp1
  * k_blk: K_BLK, K_tail
  *
  * dst - output: [m, n]
- * sa - kernel:  [m/m_blk, k/k_blk, m_blk/8, 8, k_blk]
+ * sa - kernel:  [m/m_blk, k/k_blk, m_blk/8, k_blk, 8]
  * sb - input:   [n/n_blk, k/k_blk, n_blk/pack2n, k_blk, pack2n]
  * bias:         [m]
  ************************************************************/
@@ -529,7 +529,7 @@ void shl_c920_gemm_block_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp
                 __fp16 *out = output_data + m_idx * n + n_idx;
                 const __fp16 *ker = kernel_data + m_idx * k + k_idx * m_block;
                 const __fp16 *in = input_data + n_idx * k + k_idx * n_block;
-                gemm_8xpack2n_fp16(out, ker, in, bias, m_block, n_block, k_block, n, k_idx);
+                gemm_8xpack2n_fp16(out, ker, in, bias + m_idx, m_block, n_block, k_block, n, k_idx);
                 k_idx += k_block;
             }
 

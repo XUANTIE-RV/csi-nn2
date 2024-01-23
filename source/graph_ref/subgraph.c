@@ -352,6 +352,7 @@ static void set_sub_session(struct csinn_session *sub_sess, struct csinn_params_
 {
     struct csinn_session *base_sess = params->sess;
     sub_sess->base_api = params->api;
+    sub_sess->profiler_level = base_sess->profiler_level;
     if (params->api == CSINN_TH1520) {
         sub_sess->base_dtype = base_sess->base_dtype;
         sub_sess->debug_level = base_sess->debug_level;
@@ -384,6 +385,11 @@ int shl_subgraph_setup(struct shl_node *n)
     struct shl_ref_graph *sgraph = n->data;
     struct shl_node *init_node = sgraph->layer[0];
     struct csinn_params_base *init_params = init_node->data;
+    struct csinn_session *ori_sess = init_params->sess;
+
+    SHL_TRACE_CALL(
+        shl_trace_duration_begin(ori_sess->trace, __func__, SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
+
     struct csinn_session *sub_sess = csinn_alloc_session();
     set_sub_session(sub_sess, init_params, sgraph);
     csinn_session_init(sub_sess);
@@ -586,6 +592,8 @@ int shl_subgraph_setup(struct shl_node *n)
             }
             default:
                 shl_debug_error("%s unknown op\n", __func__);
+                SHL_TRACE_CALL(shl_trace_duration_end(ori_sess->trace, __func__,
+                                                      SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
                 return CSINN_FALSE;
         }
     }
@@ -605,6 +613,9 @@ int shl_subgraph_setup(struct shl_node *n)
     }
 
     csinn_session_setup(sub_sess);
+
+    SHL_TRACE_CALL(
+        shl_trace_duration_end(ori_sess->trace, __func__, SHL_TRACE_EVENT_CPU_OPERATOR, NULL));
 
     return ret;
 }
@@ -901,6 +912,47 @@ static int is_memory_op(enum csinn_op_enum op)
     return 0;
 }
 
+static int is_subgraph_nodes_th1520(enum csinn_op_enum op)
+{
+    enum csinn_op_enum ops[CSINN_OP_SIZE] = {
+        CSINN_OP_CONV1D,
+        CSINN_OP_CONV2D,
+        CSINN_OP_CONV2D_RELU,
+        CSINN_OP_CONV2D_RELU6,
+        CSINN_OP_CONV2D_CHANNEL,
+        CSINN_OP_CONV2D_CHANNEL_RELU,
+        CSINN_OP_CONV2D_CHANNEL_RELU6,
+        CSINN_OP_DEPTHWISE_CONV1D,
+        CSINN_OP_DEPTHWISE_CONV2D,
+        CSINN_OP_DEPTHWISE_CONV2D_RELU,
+        CSINN_OP_DEPTHWISE_CONV2D_RELU6,
+        CSINN_OP_DEPTHWISE_CONV2D_CHANNEL,
+        CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU,
+        CSINN_OP_DEPTHWISE_CONV2D_CHANNEL_RELU6,
+        CSINN_OP_GROUP_CONV1D,
+        CSINN_OP_GROUP_CONV2D,
+        CSINN_OP_GROUP_CONV2D_RELU,
+        CSINN_OP_GROUP_CONV2D_RELU6,
+        CSINN_OP_GROUP_CONV2D_CHANNEL,
+        CSINN_OP_GROUP_CONV2D_CHANNEL_RELU,
+        CSINN_OP_CONV3D,
+        CSINN_OP_DECONV2D,
+        CSINN_OP_DEPTHWISE_DECONV2D,
+        CSINN_OP_GROUP_DECONV2D,
+        CSINN_OP_DECONV3D,
+        CSINN_OP_FULLYCONNECTED,
+
+        CSINN_OP_ADD,
+    };
+
+    for (int idx = 0; idx < CSINN_OP_SIZE; idx++) {
+        if (ops[idx] == op) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void shl_subgraph_fvisit_fuse(struct shl_ref_graph *graph, struct shl_node *node)
 {
     /* CPU nodes needn't be added into subgraph. */
@@ -921,7 +973,8 @@ void shl_subgraph_fvisit_fuse(struct shl_ref_graph *graph, struct shl_node *node
 
     int is_th1520 = shl_subgraph_get_device(node) == CSINN_TH1520 ? 1 : 0;
     int is_profiler = params->sess->profiler_level == CSINN_PROFILER_LEVEL_UNSET ? 0 : 1;
-    if (shl_gref_is_root_node(graph, node) || (is_profiler && is_th1520)) {
+    if (shl_gref_is_root_node(graph, node) ||
+        (is_profiler && is_th1520 && is_subgraph_nodes_th1520(node->type))) {
         // if (shl_gref_is_root_node(graph, node) || (is_profiler && !is_th1520) ||
         //     (is_profiler && is_th1520 && !is_memory_op(node->type) && node->type !=
         //     CSINN_OP_ADD)) {
@@ -1047,12 +1100,12 @@ void shl_subgraph_fvisit_fuse(struct shl_ref_graph *graph, struct shl_node *node
                 td->is_hybrid_quantization_type &&
                 (is_concat_case || is_before_concat || is_abnormal_concat || is_special_reshape);
 
-            int is_th1520_profiler = 0;
-            if (is_profiler && is_th1520 && !is_memory_op(i_node->type)) {
-                is_th1520_profiler = 1;
-            }
+            // int is_th1520_profiler = 0;
+            // if (is_profiler && is_th1520 && !is_memory_op(i_node->type)) {
+            //     is_th1520_profiler = 1;
+            // }
 
-            if (!is_restrict && !filter_flag && !is_th1520_profiler) {
+            if (!is_restrict && !filter_flag) {
                 /* add current node into its i-th input subgraph. */
                 node->subgraph_idx = i_node->subgraph_idx;
                 struct shl_ref_graph *sgraph = graph->layer[i_node->subgraph_idx]->data;
@@ -1126,18 +1179,30 @@ void shl_subgraph_fvisit_fuse(struct shl_ref_graph *graph, struct shl_node *node
                     // }
                     find_flag = shl_is_restricted_by_node(m_node->subgraph_idx,
                                                           graph->layer[in_m_subgraph_index], graph);
+
+                    if (is_profiler && is_th1520) {
+                        struct shl_ref_graph *curr_in_sgraph =
+                            graph->layer[in_m_subgraph_index]->data;
+                        for (int kk = 0; kk < curr_in_sgraph->layer_index; kk++) {
+                            if (is_subgraph_nodes_th1520(curr_in_sgraph->layer[kk]->type)) {
+                                find_flag = 1;
+                                break;
+                            }
+                        }
+                    }
+
                     if (find_flag) {
                         is_restrict2 = 1;
                         break;
                     }
                 }
 
-                int is_th1520_profiler = 0;
-                if (is_profiler && is_th1520 && !is_memory_op(sgraph->layer[0]->type)) {
-                    is_th1520_profiler = 1;
-                }
+                // int is_th1520_profiler = 0;
+                // if (is_profiler && is_th1520 && !is_memory_op(sgraph->layer[0]->type)) {
+                //     is_th1520_profiler = 1;
+                // }
 
-                if (!is_restrict && !is_restrict2 && !is_th1520_profiler) {
+                if (!is_restrict && !is_restrict2) {
                     /* can fuse subgraph into current subgraph. */
                     for (int n = 0; n < sgraph->layer_index; n++) {
                         struct shl_node *subgraph_node = sgraph->layer[n];

@@ -18,16 +18,15 @@
 
 #include "shl_gref.h"
 
-int shl_gref_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
-                      struct csinn_tensor *weights, struct csinn_rms_norm_params *params)
+int shl_gref_rms_norm(struct csinn_tensor *input, struct csinn_tensor *weights,
+                      struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
-    shl_gref_diso_op(input, output, weights, CSINN_OP_RMS_NORM, params);
+    shl_gref_diso_op(input, weights, output, CSINN_OP_RMS_NORM, params);
     return CSINN_TRUE;
 }
 
-int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *weights,
-                                  struct csinn_rms_norm_params *params)
+int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *weights,
+                                  struct csinn_tensor *output, struct csinn_rms_norm_params *params)
 {
     shl_tensor_try_nc1xc0_to_ndarray_shape(input);
     output->dim_count = input->dim_count;
@@ -35,6 +34,6 @@ int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tenso
         output->dim[i] = input->dim[i];
     }
 
-    SHL_DEBUG_CALL(shl_rms_norm_debug_info(input, output, weights, params, __func__));
+    SHL_DEBUG_CALL(shl_rms_norm_debug_info(input, weights, output, params, __func__));
     return CSINN_TRUE;
 }

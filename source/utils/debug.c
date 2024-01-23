@@ -268,8 +268,8 @@ int shl_layer_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *o
     return CSINN_TRUE;
 }
 
-int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
-                            struct csinn_tensor *weights, struct csinn_rms_norm_params *params,
+int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *weights,
+                            struct csinn_tensor *output, struct csinn_rms_norm_params *params,
                             const char *name)
 {
     shl_debug_print_siso_base(input, output, &(params->base), name);
@@ -1025,6 +1025,12 @@ char *op_strings[] = {
     [CSINN_OP_ERF] = "erf",
     [CSINN_OP_CAST] = "cast",
     [CSINN_OP_DECONV2D] = "deconv2d",
+    [CSINN_OP_RMS_NORM] = "rms_norm",
+    [CSINN_OP_ROPE] = "rope",
+    [CSINN_OP_SILU] = "silu",
+    [CSINN_OP_LLM_POS] = "llm_pos",
+    [CSINN_OP_EMBEDDING] = "embedding",
+    [CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION] = "scaled_dot_product_attention",
 };
 
 // #define FREQ 50  // FPGA: 50MHz
@@ -1166,7 +1172,7 @@ static char *shl_debug_filter_invalid_char(char *src)
     return dst;
 }
 
-int __attribute__((weak)) shl_dump_output_tensor(struct shl_node *node)
+int __attribute__((weak)) shl_dump_output_tensor(struct shl_node *node, char **output_filenames)
 {
 #ifndef SHL_BUILD_RTOS
     const char TENSOR_DUMP_DIR[] = "shl_dump";
@@ -1197,22 +1203,25 @@ int __attribute__((weak)) shl_dump_output_tensor(struct shl_node *node)
         snprintf(filename, 1024, "%s/%s_%s.txt", TENSOR_DUMP_DIR, output_name, shape);
         struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(output);
         shl_debug_dump_data(foutput, filename);
+        strcpy(output_filenames[i], filename);
         shl_ref_tensor_transform_free_f32(foutput);
         shl_mem_free(output_name);
     }
     if (node->type == CSINN_OP_CONV2D || node->type == CSINN_OP_DEPTHWISE_CONV2D ||
         node->type == CSINN_OP_FULLYCONNECTED && is_cpu_node) {
         // dump output
-        struct csinn_tensor *kernel_node = node->in[1]->data;
-        char shape[128] = {0};
-        shl_debug_shape2string(kernel_node->dim, kernel_node->dim_count, shape, 128);
-        char *kernel_name = shl_debug_filter_invalid_char(kernel_node->name);
         char filename[1024] = {0};
-        snprintf(filename, 1024, "%s/%s_%s.txt", TENSOR_DUMP_DIR, kernel_name, shape);
-        struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(kernel_node);
-        shl_debug_dump_data(foutput, filename);
-        shl_ref_tensor_transform_free_f32(foutput);
-        shl_mem_free(kernel_name);
+        char shape[128] = {0};
+        struct csinn_tensor *kernel_node = node->in[1]->data;
+        if (kernel_node->data) {
+            shl_debug_shape2string(kernel_node->dim, kernel_node->dim_count, shape, 128);
+            char *kernel_name = shl_debug_filter_invalid_char(kernel_node->name);
+            snprintf(filename, 1024, "%s/%s_%s.txt", TENSOR_DUMP_DIR, kernel_name, shape);
+            struct csinn_tensor *foutput = shl_ref_tensor_transform_f32(kernel_node);
+            shl_debug_dump_data(foutput, filename);
+            shl_ref_tensor_transform_free_f32(foutput);
+            shl_mem_free(kernel_name);
+        }
 
         // dump input
         struct csinn_tensor *input_node = node->in[0]->data;

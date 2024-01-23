@@ -26,6 +26,8 @@ int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_te
     const int out_nodes = weights->dim[weights_dims_count - 2];
     const int in_nodes = weights->dim[weights_dims_count - 1];
     struct csinn_callback *cb = params->base.cb;
+    struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
 
     if (params->base.quant_type != CSINN_QUANT_INT8_ASYM_W_SYM) {
         cb->exec = shl_ref_fullyconnected_quant;
@@ -34,6 +36,7 @@ int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_te
 
     // enable fuse zeropoint to bias
     if (!params->fc_extra.fuse_zp2bias) {
+        params->fc_extra.fuse_zp2bias = true;
         int32_t *bias_data = (int32_t *)bias->data;
         int8_t *weights_data = (int8_t *)weights->data;
         int32_t input_zp = input->qinfo->zero_point;
@@ -58,8 +61,9 @@ int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_te
         shl_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
                                 &(weights->qinfo[i].shift));
     }
-
-    shl_rvv_fc_gemm_reorder_weight_int8(weights);
+    if (!binary_model_op_init) {
+        shl_rvv_fc_gemm_reorder_weight_int8(weights);
+    }
     cb->exec = shl_rvv_fullyconnected_gemm_int8;
 
     return CSINN_TRUE;

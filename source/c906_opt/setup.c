@@ -18,6 +18,7 @@
 
 #include "c906/c906.h"
 #include "c906/cap.h"
+#include "c906/perf.h"
 
 static struct shl_cb_op_list shl_c906_cb_op_list;
 
@@ -53,6 +54,18 @@ int shl_c906_reg_op_cap(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name,
         shl_debug_info("%s: cannot find c906 caps\n", __func__);
     } else {
         cb->caps = caps;
+    }
+
+    return CSINN_TRUE;
+}
+
+int shl_c906_reg_op_perf(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *perf)
+{
+    struct csinn_callback *cb = shl_cb_list_match(&shl_c906_cb_op_list, dtype, op_name);
+    if (cb == NULL) {
+        shl_debug_info("%s: cannot find c906 perf\n", __func__);
+    } else {
+        cb->perf = perf;
     }
 
     return CSINN_TRUE;
@@ -725,4 +738,65 @@ void __attribute__((weak)) shl_target_init_c906()
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_SPLIT, shl_c906_split_cap);
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_SUB, shl_c906_sub_cap);
     shl_c906_reg_op_cap(CSINN_DTYPE_FLOAT16, CSINN_OP_REDUCE_SUM, shl_c906_reduce_sum_cap);
+
+    /* register perf functions */
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV2D, shl_c906_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_GROUP_CONV2D, shl_c906_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_DEPTHWISE_CONV2D,
+                         shl_c906_depthwise_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_CONV1D, shl_c906_conv1d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_MAXPOOL2D, shl_c906_maxpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_AVGPOOL2D, shl_c906_avgpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_DIV, shl_c906_div_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_ABS, shl_c906_abs_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_ADD, shl_c906_add_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_CLIP, shl_c906_clip_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_CONCAT, shl_c906_concat_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_GLOBAL_AVGPOOL2D,
+                         shl_c906_global_avgpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_GLOBAL_MAXPOOL2D,
+                         shl_c906_global_maxpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_LEAKY_RELU, shl_c906_leaky_relu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_MINIMUM, shl_c906_minimum_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_MUL, shl_c906_mul_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_PRELU, shl_c906_prelu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_RELU, shl_c906_relu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_RELU1, shl_c906_relu1_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_RELU6, shl_c906_relu6_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_SPLIT, shl_c906_split_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT32, CSINN_OP_SUB, shl_c906_sub_perf);
+
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV2D, shl_c906_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_c906_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_DEPTHWISE_CONV2D,
+                         shl_c906_depthwise_conv2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_FULLYCONNECTED,
+                         shl_c906_fullyconnected_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_CONV1D, shl_c906_conv1d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_DEPTHWISE_CONV1D,
+                         shl_c906_depthwise_conv1d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_MAXPOOL2D, shl_c906_maxpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_AVGPOOL2D, shl_c906_avgpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_DIV, shl_c906_div_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_ABS, shl_c906_abs_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_ADD, shl_c906_add_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_CLIP, shl_c906_clip_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_CONCAT, shl_c906_concat_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_AVGPOOL2D,
+                         shl_c906_global_avgpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_GLOBAL_MAXPOOL2D,
+                         shl_c906_global_maxpool2d_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_LEAKY_RELU, shl_c906_leaky_relu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_LRN, shl_c906_lrn_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_MATMUL, shl_c906_matmul_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_MINIMUM, shl_c906_minimum_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_MUL, shl_c906_mul_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_PRELU, shl_c906_prelu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_RELU, shl_c906_relu_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_RELU1, shl_c906_relu1_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_RELU6, shl_c906_relu6_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_RESHAPE, shl_c906_reshape_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_SPLIT, shl_c906_split_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_SUB, shl_c906_sub_perf);
+    shl_c906_reg_op_perf(CSINN_DTYPE_FLOAT16, CSINN_OP_REDUCE_SUM, shl_c906_reduce_sum_perf);
 }

@@ -156,8 +156,11 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_int8(struct csinn_tensor *
     int in_c = kernel->dim[1];
     int maxk = kernel->dim[2] * kernel->dim[3];
 
+    csinn_tensor_copy(params->conv_extra.kernel_tm, kernel);
+
 #ifdef SHL_USE_DOT_INT8
     int in_c4 = ((in_c - 1) & -4) + 4;  // align 4 for input_channel
+    params->conv_extra.kernel_tm->dim[1] = in_c4;
     params->conv_extra.kernel_tm->data =
         (int8_t *)shl_mem_alloc(out_c * in_c4 * maxk * sizeof(int8_t));
     int8_t *pa_reorder = (int8_t *)params->conv_extra.kernel_tm->data;
@@ -177,6 +180,7 @@ void shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_int8(struct csinn_tensor *
         im2col_gemm_reorder_kernel_pack1ton_per_group_int8(ker_ptr, ker_tm_ptr, out_cp, in_c, maxk);
     }
 #endif  // SHL_USE_DOT_INT8
+    kernel->data = NULL;
 }
 
 int shl_rvv_common_conv_gemm_pack1ton_int8(

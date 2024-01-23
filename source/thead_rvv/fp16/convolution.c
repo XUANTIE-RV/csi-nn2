@@ -61,7 +61,9 @@ int shl_rvv_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
         if (params->group == 1 && kernel_h == 3 && kernel_w == 3 && stride_h == 1 &&
             stride_w == 1 && dilation_h == 1 && dilation_w == 1) {
             params->conv_extra.conv_mode = CSINN_DIRECT;
-            shl_rvv_conv3x3s1_direct_reorder_kernel_pack4n_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                shl_rvv_conv3x3s1_direct_reorder_kernel_pack4n_fp16(kernel, params);
+            }
             cb->exec = shl_rvv_conv3x3s1_direct_fp16_nhwc;
             return CSINN_TRUE;
         }
@@ -95,16 +97,20 @@ int shl_rvv_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *ou
                 return CSINN_TRUE;
             } else {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
-                // TODO: params->conv_extra.kernel_tm in binary model
-                struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+                if (!binary_model_op_init) {
+                    struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
+                    if ((in_h < 13) && (in_w < 13)) {
+                        shl_rvv_wg_b4f3s1_trans_kernel_packn_fp16(kernel, t_kernel);
+                    } else {
+                        shl_rvv_wg_b6f3s1_trans_kernel_packn_fp16(kernel, t_kernel);
+                    }
+                    params->conv_extra.kernel_tm = t_kernel;
+                }
                 if ((in_h < 13) && (in_w < 13)) {
-                    shl_rvv_wg_b4f3s1_trans_kernel_packn_fp16(kernel, t_kernel);
                     cb->exec = shl_rvv_wg_b4f3s1_packn_fp16;
                 } else {
-                    shl_rvv_wg_b6f3s1_trans_kernel_packn_fp16(kernel, t_kernel);
                     cb->exec = shl_rvv_wg_b6f3s1_packn_fp16;
                 }
-                params->conv_extra.kernel_tm = t_kernel;
             }
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
