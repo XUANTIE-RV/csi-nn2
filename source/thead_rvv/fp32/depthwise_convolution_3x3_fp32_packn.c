@@ -61,7 +61,7 @@ int shl_rvv_dwconv3x3s1_packn_fp32(struct csinn_tensor *input, struct csinn_tens
     in_w = in_w + params->pad_left + params->pad_right;
 
 #pragma omp parallel for num_threads(1)
-    for (int c = 0; c + packn - 1 < in_c; c += packn) {
+    for (int c = 0; c < in_c - (packn - 1); c += packn) {
         float *out0 = output_data + c * out_h * out_w;
         float *out1 = out0 + out_w * packn;
 
@@ -579,7 +579,7 @@ int shl_rvv_dwconv3x3s2_packn_fp32(struct csinn_tensor *input, struct csinn_tens
     int tailstep = (in_w - 2 * out_w + in_w) * packn;
 
 #pragma omp parallel for num_threads(1)
-    for (int c = 0; c + packn - 1 < in_c; c += packn) {
+    for (int c = 0; c < in_c - (packn - 1); c += packn) {
         float *out0 = output_data + c * out_h * out_w;
 
         const float *r0 = input_padd_buf + c * in_h * in_w;

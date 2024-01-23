@@ -18,7 +18,7 @@
 
 #include "./valid_data/activation.dat"
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_leaky_relu(void *input_data, void *ref_data, int (*func)(), int in_c, int in_h,

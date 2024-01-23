@@ -16,8 +16,7 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
+#include "testutil.h"
 
 void op_test_run(struct csinn_tensor *input, struct csinn_tensor *output,
                  struct csinn_siso_params *params, float *output_data, float diff)

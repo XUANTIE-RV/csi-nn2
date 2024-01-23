@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of where_softmax(layer).\n");
 
@@ -30,8 +28,8 @@ int main(int argc, char** argv)
     struct csinn_tensor *y = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_where_softmax_params *params =
-        (csinn_where_softmax_params *)csinn_alloc_params(sizeof(struct csinn_where_softmax_params), sess);
+    struct csinn_where_softmax_params *params = (csinn_where_softmax_params *)csinn_alloc_params(
+        sizeof(struct csinn_where_softmax_params), sess);
 
     if (argc == 1) {
         printf("please assign the input data.\n");
@@ -65,9 +63,9 @@ int main(int argc, char** argv)
     params->base.api = CSINN_API;
 
     condition->data = (float *)(buffer + 2 + shape_rank);
-    y->data         = (float *)(buffer + 2 + shape_rank + in_size);
+    y->data = (float *)(buffer + 2 + shape_rank + in_size);
     reference->data = (float *)(buffer + 2 + shape_rank + in_size * 2);
-    output->data    = reference->data;
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
     float *c_data = (float *)condition->data;
@@ -77,13 +75,13 @@ int main(int argc, char** argv)
     }
     condition->data = data_u8;
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_where_softmax_op(condition, y, output, params, CSINN_QUANT_FLOAT32,
                           csinn_where_softmax_init, csinn_where_softmax, &difference);
-#elif (DTYPE==16)
+#elif (DTYPE == 16)
     test_where_softmax_op(condition, y, output, params, CSINN_QUANT_FLOAT16,
                           csinn_where_softmax_init, csinn_where_softmax, &difference);
-#elif (DTYPE==8)
+#elif (DTYPE == 8)
     test_where_softmax_op(condition, y, output, params, CSINN_QUANT_INT8_SYM,
                           csinn_where_softmax_init, csinn_where_softmax, &difference);
 #endif

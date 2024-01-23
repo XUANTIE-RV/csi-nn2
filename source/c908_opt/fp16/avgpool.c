@@ -63,10 +63,10 @@ int shl_c908_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
             if (pad_left == 0 && pad_top == 0) {
                 // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
                 if (in_h % 2 == 1 && params->ceil_mode == 1) {
-                    if (params->pad_down) params->pad_down++;
+                    if (params->pad_down == 0) params->pad_down++;
                 }
                 if (in_w % 2 == 1 && params->ceil_mode == 1) {
-                    if (params->pad_right) params->pad_right++;
+                    if (params->pad_right == 0) params->pad_right++;
                 }
                 // end consider ceil_mode 2x2s2p0
                 cb->exec = (elempack % packn == 0) ? shl_rvv_avgpool2x2s2_packn_fp16

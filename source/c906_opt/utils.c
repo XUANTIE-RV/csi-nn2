@@ -352,3 +352,18 @@ int shl_c906_get_fcsr()
                  : "memory");
     return f_flag;
 }
+
+bool shl_c906_get_binary_model_op_init(struct csinn_session *sess)
+{
+    struct shl_c906_option *option = shl_c906_get_graph_option(sess);
+    if (option && option->base.binary_model_op_init) {
+        return true;
+    } else {
+        return false;
+    }
+}
+void shl_c906_set_binary_model_op_init(struct csinn_session *sess, bool value)
+{
+    struct shl_c906_option *option = shl_c906_get_graph_option(sess);
+    option->base.binary_model_op_init = value;
+}

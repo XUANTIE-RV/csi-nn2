@@ -87,14 +87,6 @@ int shl_rvv_conv1x1s1_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor 
                                 struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                 struct csinn_conv2d_params *params)
 {
-    const int vlen = csrr_vlenb() * 8;
-    if (vlen == 128) {
-        return shl_rvv_common_conv1x1_gemm_fp32(input, output, kernel, bias, params,
-                                                shl_rvv_reorder_input_z8_fp32,
-                                                shl_rvv_gemm_8x8_fp32);
-    } else if (vlen >= 256) {
-        return shl_rvv_common_conv1x1_gemm_fp32(input, output, kernel, bias, params,
-                                                shl_rvv256_reorder_input_z16_fp32,
-                                                shl_rvv256_gemm_8x16_fp32);
-    }
+    return shl_rvv_common_conv1x1_gemm_fp32(input, output, kernel, bias, params,
+                                            shl_rvv_reorder_input_z8_fp32, shl_rvv_gemm_8x8_fp32);
 }

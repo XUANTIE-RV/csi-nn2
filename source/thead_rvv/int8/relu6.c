@@ -21,5 +21,5 @@
 int shl_rvv_relu6_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_relu_params *params)
 {
-    return shl_rvv_siso_callback_base(input, output, params, shl_rvv_relu6_fp32);
+    return shl_rvv_siso_callback_dtype_only(input, output, params, shl_rvv_relu6_fp32);
 }

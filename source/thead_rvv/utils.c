@@ -1743,24 +1743,27 @@ static int rvv_tensor_layout_dtype_convert(struct csinn_tensor *src, struct csin
     csinn_tensor_copy(tmp, src);
     tmp->data = shl_mem_alloc(csinn_tensor_byte_size(src));
 
+    int ret;
     if ((src->layout == CSINN_LAYOUT_NC1DHWC0 && dst->layout == CSINN_LAYOUT_NCDHW) ||
         (src->layout == CSINN_LAYOUT_NC1HWC0 && dst->layout == CSINN_LAYOUT_NCHW) ||
         (src->layout == CSINN_LAYOUT_NC1WC0 && dst->layout == CSINN_LAYOUT_NCW) ||
         (src->layout == CSINN_LAYOUT_NC1C0 && dst->layout == CSINN_LAYOUT_NC)) {
         tmp->layout = dst->layout;
-        tmp->dtype = src->dtype;
         int ret1 = rvv_tensor_layout_convert(src, tmp);
+        tmp->dtype = src->dtype;
+        memcpy(tmp->qinfo, src->qinfo, sizeof(struct csinn_quant_info) * src->quant_channel);
         int ret2 = rvv_tensor_dtype_convert(tmp, dst);
-        return (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
+        ret = (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
     } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NC1DHWC0) ||
                (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NC1HWC0) ||
                (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NC1WC0) ||
                (src->layout == CSINN_LAYOUT_NC && dst->layout == CSINN_LAYOUT_NC1C0)) {
         tmp->dtype = dst->dtype;
-        tmp->layout = src->layout;
+        memcpy(tmp->qinfo, dst->qinfo, sizeof(struct csinn_quant_info) * dst->quant_channel);
         int ret1 = rvv_tensor_dtype_convert(src, tmp);
+        tmp->layout = src->layout;
         int ret2 = rvv_tensor_layout_convert(tmp, dst);
-        return (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
+        ret = (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
     } else if ((src->layout == CSINN_LAYOUT_NCDHW && dst->layout == CSINN_LAYOUT_NDHWC) ||
                (src->layout == CSINN_LAYOUT_NCHW && dst->layout == CSINN_LAYOUT_NHWC) ||
                (src->layout == CSINN_LAYOUT_NCW && dst->layout == CSINN_LAYOUT_NWC) ||
@@ -1768,18 +1771,20 @@ static int rvv_tensor_layout_dtype_convert(struct csinn_tensor *src, struct csin
                (src->layout == CSINN_LAYOUT_NHWC && dst->layout == CSINN_LAYOUT_NCHW) ||
                (src->layout == CSINN_LAYOUT_NWC && dst->layout == CSINN_LAYOUT_NCW)) {
         tmp->dtype = dst->dtype;
-        tmp->layout = src->layout;
+        memcpy(tmp->qinfo, dst->qinfo, sizeof(struct csinn_quant_info) * dst->quant_channel);
         int ret1 = rvv_tensor_dtype_convert(src, tmp);
+        tmp->layout = src->layout;
         int ret2 = rvv_tensor_layout_convert(tmp, dst);
+        ret = (ret1 == CSINN_TRUE && ret2 == CSINN_TRUE) ? CSINN_TRUE : CSINN_FALSE;
     } else {
         shl_debug_error("Unsupported convert layout from %d to %d, dtype from %d to %d\n",
                         src->layout, dst->layout, src->dtype, dst->dtype);
-        return CSINN_FALSE;
+        ret = CSINN_FALSE;
     }
 
     shl_mem_free(tmp->data);
     csinn_free_tensor(tmp);
-    return CSINN_TRUE;
+    return ret;
 }
 
 int shl_rvv_tensor_data_convert(struct csinn_tensor *src, struct csinn_tensor *dst)
@@ -1852,6 +1857,33 @@ struct csinn_tensor *shl_rvv_tensor_transform_f32(struct csinn_tensor *input)
     }
 }
 
+struct csinn_tensor *shl_rvv_tensor_transform_dtype_f32(struct csinn_tensor *input)
+{
+    struct csinn_tensor *ret = csinn_alloc_tensor(NULL);
+    csinn_tensor_copy(ret, input);
+    if (ret->qinfo != NULL) {
+        shl_mem_free(ret->qinfo);
+        ret->qinfo = NULL;
+    }
+    ret->quant_channel = 0;
+    ret->dtype = CSINN_DTYPE_FLOAT32;
+    if (ret->dim_count == 0) {
+        return ret;
+    }
+    int input_size = csinn_tensor_size(input);
+    if (input_size == 0) {
+        return ret;
+    }
+    ret->data = shl_mem_alloc(input_size * sizeof(float));
+    if (rvv_tensor_dtype_convert(input, ret) == CSINN_TRUE) {
+        return ret;
+    } else {
+        shl_mem_free(ret->data);
+        csinn_free_tensor(ret);
+        return NULL;
+    }
+}
+
 int shl_rvv_siso_callback_base(struct csinn_tensor *input, struct csinn_tensor *output,
                                void *params, void *cb)
 {
@@ -1880,4 +1912,53 @@ int shl_rvv_siso_callback_base(struct csinn_tensor *input, struct csinn_tensor *
     shl_ref_tensor_transform_free_f32(finput);
     shl_ref_tensor_transform_free_f32(foutput);
     return ret;
+}
+
+// Only convert dtype, output layout is the same as input
+int shl_rvv_siso_callback_dtype_only(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     void *params, void *cb)
+{
+    output->layout = input->layout;
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = input->dim[i];
+    }
+
+    int (*callback)() = cb;
+    struct csinn_tensor *finput = shl_rvv_tensor_transform_dtype_f32(input);
+    struct csinn_tensor *foutput = shl_rvv_tensor_transform_dtype_f32(output);
+    if (finput == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        finput = shl_ref_tensor_transform_f32(input);
+    }
+    if (foutput == NULL) {
+        shl_debug_warning(
+            "shl_rvv_tensor_transform_f32 is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        foutput = shl_ref_tensor_transform_f32(output);
+    }
+    int ret = callback(finput, foutput, params);
+    if (shl_rvv_tensor_data_convert(foutput, output) != CSINN_TRUE) {
+        shl_debug_warning(
+            "shl_rvv_tensor_data_convert is not optimized to achieve under this condition on RVV, "
+            "call reference func replaced.\n");
+        csinn_tensor_data_convert(output, foutput);
+    }
+    shl_ref_tensor_transform_free_f32(finput);
+    shl_ref_tensor_transform_free_f32(foutput);
+    return ret;
+}
+
+void shl_mem_copy_f32(float *output, const float *input, uint32_t length)
+{
+    while (length > 0) {
+        int vl = vsetvl_e32m4(length);
+        vfloat32m4_t _f32 = vle32_v_f32m4(input, vl);
+        input += vl;
+        vse32_v_f32m4(output, _f32, vl);
+        output += vl;
+        length -= vl;
+    }
 }

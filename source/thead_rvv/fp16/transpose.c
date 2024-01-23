@@ -114,6 +114,20 @@ int shl_rvv_transpose_fp16(struct csinn_tensor *input, struct csinn_tensor *outp
         int outer_size = input->dim[1];
         transpose_021_fp16(input->data, output->data, batch, inner_size, outer_size);
         return CSINN_TRUE;
+    } else if (params->permute_num == 4 && params->permute[0] == 0 && params->permute[1] == 1 &&
+               params->permute[2] == 3 && params->permute[3] == 2) {
+        int batch = input->dim[0] * input->dim[1];
+        int inner_size = input->dim[3];
+        int outer_size = input->dim[2];
+        transpose_021_fp16(input->data, output->data, batch, inner_size, outer_size);
+        return CSINN_TRUE;
+    } else if (params->permute_num == 5 && params->permute[0] == 0 && params->permute[1] == 1 &&
+               params->permute[2] == 3 && params->permute[3] == 4 && params->permute[4] == 2) {
+        int batch = input->dim[0] * input->dim[1];
+        int inner_size = input->dim[3] * input->dim[4];
+        int outer_size = input->dim[2];
+        transpose_021_fp16(input->data, output->data, batch, inner_size, outer_size);
+        return CSINN_TRUE;
     }
 
     int tail = shl_rvv_transpose_get_tail(params->permute, params->permute_num);

@@ -19,43 +19,55 @@
 #include "rvv/rvv.h"
 
 /*************************************************************
-    note: VLEN = 128/256
-*************************************************************/
-static void shl_rvv_reorder_weight_npackn_fp32(float *src, float *dst, int m, int k, int ldx)
+ * packn = vlenb / sizeof(float)
+ * n_blk: pack2n/packn/n_tail
+ *
+ * src: [n, k]
+ * dst: [n/n_blk, k, n_blk]
+ ************************************************************/
+static void reorder_weight_npack2n_fp32(const float *src, float *dst, int n, int k)
 {
-    const int packn = csrr_vlenb() / sizeof(float);  // VLEN128=4  VLEN256=8
-    int vl = vsetvl_e32m1(packn);
+    const int packn = csrr_vlenb() / sizeof(float);
+    const int pack2n = packn * 2;
 
-    while (m > 0) {
-        vl = vsetvl_e32m1(m);
-        float *in_ptr = src;
+    int i = 0;
+    int vl = vsetvl_e32m2(pack2n);
+    for (; i + pack2n - 1 < n; i += pack2n) {
+        const float *s_ptr = src + i * k;
         for (int j = 0; j < k; j++) {
-            vfloat32m1_t _input = vlse32_v_f32m1(in_ptr, k * sizeof(float), vl);
-            in_ptr++;
-            vse32_v_f32m1(dst, _input, vl);
+            vfloat32m2_t _src = vlse32_v_f32m2(s_ptr, k * sizeof(float), vl);
+            vse32_v_f32m2(dst, _src, vl);
+            s_ptr += 1;
             dst += vl;
         }
-        src += vl * k;
-        m -= vl;
+    }
+    while (i < n) {
+        int vl = vsetvl_e32m1(n - i);
+        const float *s_ptr = src + i * k;
+        for (int j = 0; j < k; j++) {
+            vfloat32m1_t _src = vlse32_v_f32m1(s_ptr, k * sizeof(float), vl);
+            vse32_v_f32m1(dst, _src, vl);
+            s_ptr += 1;
+            dst += vl;
+        }
+        i += vl;
     }
 }
 
-void shl_rvv_fc_gemv_transform_weight_fp32(struct csinn_tensor *weights)
+void shl_rvv_fc_gemm_reorder_weight_fp32(struct csinn_tensor *weights)
 {
     float *weight_data = (float *)weights->data;
-
     int n = weights->dim[0];  // out_nodes
     int k = weights->dim[1];  // in_nodes
-
     float *pa_reorder = (float *)shl_mem_alloc(n * k * sizeof(float));
-    shl_rvv_reorder_weight_npackn_fp32(weight_data, pa_reorder, n, k, k);
+    reorder_weight_npack2n_fp32(weight_data, pa_reorder, n, k);
     memcpy(weight_data, pa_reorder, n * k * sizeof(float));
     shl_mem_free(pa_reorder);
 }
 
-int shl_rvv_fullyconnected_packn_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
-                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                      struct csinn_fc_params *params)
+int shl_rvv_fullyconnected_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                     struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                     struct csinn_fc_params *params)
 {
     if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp32(input);
@@ -76,38 +88,14 @@ int shl_rvv_fullyconnected_packn_fp32(struct csinn_tensor *input, struct csinn_t
     int output_depth = weights->dim[weights_dims_count - 2];  // output_nodes
     int accum_depth = weights->dim[weights_dims_count - 1];   // input_nodes
 
-    bool flag_bias = 1;  // default: fc layer include bias
-    if (bias_data == NULL) {
-        flag_bias = 0;
-        bias_data = (float *)shl_mem_alloc(output_depth * sizeof(float));
-    }
-    const int packn = csrr_vlenb() / sizeof(float);  // VLEN128=4  VLEN256=8
-    int vl = vsetvl_e32m1(packn);
+    int m = batches;
+    int n = output_depth;
+    int k = accum_depth;
 
-    for (int b = 0; b < batches; b++) {
-        float *init_output = output_data + b * output_depth;
-        float *init_input = input_data + b * accum_depth;
-        float *init_weight = weights_data;
-        float *init_bias = bias_data;
+    float *input_reorder = (float *)shl_mem_alloc(m * k * sizeof(float));
+    shl_rvv_reorder_a_block_12xk_fp32(input_data, input_reorder, m, k, m, k);
+    shl_rvv_gemm_a0b1_12xpack2n_fp32(output_data, input_reorder, weights_data, bias_data, m, k, n);
 
-        int n = output_depth;
-        while (n > 0) {
-            vl = vsetvl_e32m1(n);
-            vfloat32m1_t _acc = vle32_v_f32m1(init_bias, vl);
-            init_bias += vl;
-            for (int k = 0; k < accum_depth; k++) {
-                vfloat32m1_t _weight = vle32_v_f32m1(init_weight, vl);
-                _acc = vfmacc_vf_f32m1(_acc, init_input[k], _weight, vl);
-                init_weight += vl;
-            }
-            vse32_v_f32m1(init_output, _acc, vl);
-            init_output += vl;
-            n -= vl;
-        }
-    }
-    if (!flag_bias) {
-        shl_mem_free(bias_data);
-        bias_data = NULL;
-    }
+    shl_mem_free(input_reorder);
     return CSINN_TRUE;
 }

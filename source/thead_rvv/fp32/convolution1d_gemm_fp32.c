@@ -94,15 +94,12 @@ int shl_rvv_conv1d_im2col_gemm_fp32(struct csinn_tensor *input, struct csinn_ten
             float *pa = kernel_data + g * m * k;
             float *pb = pb_reorder;
             float *pc = output_data;
-            if (vlen == 128) {
-                // pack
-                shl_rvv_reorder_input_z8_fp32(im2col_data, pb, k, n, n);
-                // GEMM
-                shl_rvv_gemm_8x8_fp32(pc, pa, pb, bias_data + g * m, m, k, n, n);
-            } else if (vlen >= 256) {
-                shl_rvv256_reorder_input_z16_fp32(im2col_data, pb, k, n, n);
-                shl_rvv256_gemm_8x16_fp32(pc, pa, pb, bias_data + g * m, m, k, n, n);
-            }
+
+            // pack
+            shl_rvv_reorder_input_z8_fp32(im2col_data, pb, k, n, n);
+            // GEMM
+            shl_rvv_gemm_8x8_fp32(pc, pa, pb, bias_data + g * m, m, k, n, n);
+
             input_data += in_ch / group * in_width;
             output_data += m * n;
         }

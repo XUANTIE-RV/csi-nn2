@@ -131,8 +131,6 @@ int shl_c906_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *ma
 /* pack */
 void shl_c906_reorder_kernel(float *a, float *sa, int m, int k, int ldx);
 
-void shl_c906_reorder_input(float *b, float *sb, int k, int n, int ldx);
-
 void shl_c906_reorder_input_1(float *b, float *sb, int k, int n, int ldx);
 
 /* gemm */
@@ -146,22 +144,7 @@ void shl_c906_conv1x1s1_sgemm_transform_kernel(struct csinn_tensor *kernel,
 void shl_c906_conv_im2col_sgemm_transform_kernel(struct csinn_tensor *kernel,
                                                  struct csinn_conv2d_params *params);
 
-void shl_c906_conv3x3s1_winograd23_transform_kernel(struct csinn_tensor *o_kernel,
-                                                    struct csinn_tensor *t_kernel);
-
-void shl_c906_conv3x3s1_winograd43_transform_kernel(struct csinn_tensor *o_kernel,
-                                                    struct csinn_tensor *t_kernel);
-
-void shl_c906_conv3x3s1_winograd64_transform_kernel(struct csinn_tensor *o_kernel,
-                                                    struct csinn_tensor *t_kernel);
-
-void shl_c906_conv3x3s1_winograd64_transform_kernel_1(struct csinn_tensor *o_kernel,
-                                                      struct csinn_tensor *t_kernel);
-
 void shl_c906_conv3x3s1_winograd64_transform_kernel_pack4(struct csinn_tensor *o_kernel,
-                                                          struct csinn_tensor *t_kernel);
-
-void shl_c906_conv3x3s1_winograd43_transform_kernel_pack4(struct csinn_tensor *o_kernel,
                                                           struct csinn_tensor *t_kernel);
 
 /* convolution optimization */
@@ -181,37 +164,9 @@ int shl_c906_conv_im2col_sgemm_fuse_relu(struct csinn_tensor *input, struct csin
                                          struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                          struct csinn_conv2d_params *params);
 
-int shl_c906_conv3x3s1_winograd23(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                  struct csinn_conv2d_params *params);
-
-int shl_c906_conv3x3s1_winograd43(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                  struct csinn_conv2d_params *params);
-
-int shl_c906_conv3x3s1_winograd64(struct csinn_tensor *input, struct csinn_tensor *output,
-                                  struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                  struct csinn_conv2d_params *params);
-
-int shl_c906_conv3x3s1_winograd64_1(struct csinn_tensor *input, struct csinn_tensor *output,
-                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                    struct csinn_conv2d_params *params);
-
 int shl_c906_conv3x3s1_winograd64_pack4(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                         struct csinn_conv2d_params *params);
-
-int shl_c906_conv3x3s1_winograd43_pack4(struct csinn_tensor *input, struct csinn_tensor *output,
-                                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                        struct csinn_conv2d_params *params);
-
-void shl_c906_conv3x3s1(struct csinn_tensor *input, struct csinn_tensor *output,
-                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                        struct csinn_conv2d_params *params);
-
-void shl_c906_conv3x3s2(struct csinn_tensor *input, struct csinn_tensor *output,
-                        struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                        struct csinn_conv2d_params *params);
 
 /* depthwise convolution optimization */
 int shl_c906_dwconv3x3s1(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -316,18 +271,6 @@ int shl_c906_concat_fp16(struct csinn_tensor **input, struct csinn_tensor *outpu
 int shl_c906_split_fp16(struct csinn_tensor *input, struct csinn_tensor **output,
                         struct csinn_split_params *params);
 
-int shl_c906_fullyconnected_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                 struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                 struct csinn_fc_params *params);
-
-int shl_c906_fullyconnected_pack8_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                       struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                       struct csinn_fc_params *params);
-
-int shl_c906_fullyconnected_pack8_fp16_1(struct csinn_tensor *input, struct csinn_tensor *output,
-                                         struct csinn_tensor *weights, struct csinn_tensor *bias,
-                                         struct csinn_fc_params *params);
-
 int shl_c906_fullyconnected_pack16_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                         struct csinn_tensor *weights, struct csinn_tensor *bias,
                                         struct csinn_fc_params *params);
@@ -338,35 +281,17 @@ int shl_c906_fullyconnected_pack16_output16_fp16(struct csinn_tensor *input,
                                                  struct csinn_tensor *bias,
                                                  struct csinn_fc_params *params);
 
-void shl_c906_reorder_weight_n8_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx);
-
 void shl_c906_reorder_weight_n16_fp16(__fp16 *src, __fp16 *dst, int m, int k, int ldx);
 
 /* pack fp16 */
 void shl_c906_reorder_kernel_fp16(__fp16 *a, __fp16 *sa, int m, int k, int ldx);
-void shl_c906_reorder_input_fp16(__fp16 *b, __fp16 *sb, int k, int n, int ldx);
-
 void shl_c906_reorder_input_fp16_1(__fp16 *b, __fp16 *sb, int k, int n, int ldx);
-
-void shl_c906_reorder_matrix_z8_fp16(__fp16 *src, __fp16 *dst, int k, int n, int ldx);
-void shl_c906_reorder_matrix_z16_fp16(__fp16 *src, __fp16 *dst, int k, int n, int ldx);
 
 /* gemm fp16 */
 void shl_c906_sgemm_kernel_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int m, int k,
                                 int n, int ldc, __fp16 *bias);
 void shl_c906_sgemm_kernel_fp16_1(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int m, int k,
                                   int n, int ldc, __fp16 *bias);
-
-/* gemv fp16 */
-void shl_c906_gemv_pack8_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int k, int n,
-                              int ldc, __fp16 *bias);
-void shl_c906_gemv_pack16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int k, int n,
-                               int ldc, __fp16 *bias);
-
-void shl_c906_gemv_trans_pack8_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int k, int n,
-                                    int ldc, __fp16 *bias);
-void shl_c906_gemv_trans_pack16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, int k, int n,
-                                     int ldc, __fp16 *bias);
 
 /* kernel transform fp16 */
 void shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(struct csinn_tensor *kernel,
@@ -378,9 +303,6 @@ void shl_c906_conv_im2col_sgemm_transform_kernel_fp16(struct csinn_tensor *kerne
 void shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(struct csinn_tensor *kernel,
                                                              struct csinn_conv2d_params *params);
 
-void shl_c906_conv3x3s1_winograd43_transform_kernel_pack8_fp16(struct csinn_tensor *o_kernel,
-                                                               struct csinn_tensor *t_kernel);
-
 void shl_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(struct csinn_tensor *o_kernel,
                                                                struct csinn_tensor *t_kernel);
 
@@ -389,31 +311,14 @@ int shl_c906_conv1x1s1_sgemm_fp16(struct csinn_tensor *input, struct csinn_tenso
                                   struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                   struct csinn_conv2d_params *params);
 
-int shl_c906_conv1x1s1_batch_gemv_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                                       struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                       struct csinn_conv2d_params *params);
-
 int shl_c906_conv_im2col_sgemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
                                     struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                     struct csinn_conv2d_params *params);
-
-int shl_c906_conv3x3s1_winograd43_pack8_fp16(struct csinn_tensor *input,
-                                             struct csinn_tensor *output,
-                                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                                             struct csinn_conv2d_params *params);
 
 int shl_c906_conv3x3s1_winograd64_pack8_fp16(struct csinn_tensor *input,
                                              struct csinn_tensor *output,
                                              struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                              struct csinn_conv2d_params *params);
-
-void shl_c906_conv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                             struct csinn_conv2d_params *params);
-
-void shl_c906_conv3x3s2_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
-                             struct csinn_tensor *kernel, struct csinn_tensor *bias,
-                             struct csinn_conv2d_params *params);
 
 /* depthwise convolution optimization for fp16*/
 int shl_c906_dwconv3x3s1_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -540,5 +445,7 @@ struct shl_c906_option {
 
 int shl_c906_set_packn_layout(struct csinn_session *sess, bool packn_layout);
 struct shl_c906_option *shl_c906_get_graph_option(struct csinn_session *sess);
+bool shl_c906_get_binary_model_op_init(struct csinn_session *sess);
+void shl_c906_set_binary_model_op_init(struct csinn_session *sess, bool value);
 
 #endif  // INCLUDE_SHL_C906_H_

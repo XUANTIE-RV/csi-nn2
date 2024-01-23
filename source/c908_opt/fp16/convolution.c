@@ -53,30 +53,37 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
+    bool binary_model_op_init = shl_c908_get_binary_model_op_init(sess);
+
     // packn
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv1x1s1_gemm_reorder_kernel_packn_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv1x1s1_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv1x1s1_gemm_reorder_kernel_packn_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv1x1s1_gemm_packn_fp16;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1 &&
                    dilation_h == 1 && dilation_w == 1) {
             if (params->group > 1 || (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8)) {
                 params->conv_extra.conv_mode = CSINN_GEMM;
-                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                    shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
-                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                    shl_c908_conv_im2col_gemm_reorder_kernel_packn_fp16(kernel, params);
+                if (!binary_model_op_init) {
+                    if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                        shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
+                    } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                        shl_c908_conv_im2col_gemm_reorder_kernel_packn_fp16(kernel, params);
+                    }
                 }
                 cb->exec = shl_c908_conv_im2col_gemm_packn_fp16;
                 return CSINN_TRUE;
             } else {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
+                // TODO: params->conv_extra.kernel_tm in binary model
                 struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
                 if ((in_h < 13) && (in_w < 13)) {
                     shl_c908_ncxhwx_wg_b4f3s1_trans_kernel_packn_fp16(kernel, t_kernel);
@@ -89,10 +96,12 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
             }
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv_im2col_gemm_reorder_kernel_packn_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv_im2col_gemm_reorder_kernel_packn_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv_im2col_gemm_reorder_kernel_packn_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv_im2col_gemm_packn_fp16;
         }
@@ -103,17 +112,21 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv1x1s1_gemm_reorder_kernel_pack1ton_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv1x1s1_gemm_reorder_kernel_pack1ton_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv1x1s1_gemm_reorder_kernel_pack1ton_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv1x1s1_gemm_reorder_kernel_pack1ton_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv1x1s1_gemm_pack1ton_fp16;
         } else {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv_im2col_gemm_reorder_kernel_pack1ton_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv_im2col_gemm_reorder_kernel_pack1ton_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv_im2col_gemm_reorder_kernel_pack1ton_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv_im2col_gemm_pack1ton_fp16;
         }
@@ -124,17 +137,21 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv1x1s1_gemm_reorder_kernel_packnto1_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv1x1s1_gemm_reorder_kernel_packnto1_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv1x1s1_gemm_reorder_kernel_packnto1_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv1x1s1_gemm_packnto1_fp16;
         } else {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv_im2col_gemm_reorder_kernel_packnto1_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv_im2col_gemm_reorder_kernel_packnto1_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv_im2col_gemm_reorder_kernel_packnto1_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv_im2col_gemm_packnto1_fp16;
         }
@@ -145,17 +162,21 @@ int shl_c908_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         params->conv_extra.conv_mode = CSINN_GEMM;
         if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
             dilation_w == 1) {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv1x1s1_gemm_reorder_kernel_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv1x1s1_gemm_reorder_kernel_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv1x1s1_gemm_reorder_kernel_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv1x1s1_gemm_reorder_kernel_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv1x1s1_gemm_fp16;
         } else {
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_rvv_conv_im2col_gemm_reorder_kernel_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c908_conv_im2col_gemm_reorder_kernel_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_rvv_conv_im2col_gemm_reorder_kernel_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c908_conv_im2col_gemm_reorder_kernel_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c908_conv_im2col_gemm_fp16;
         }

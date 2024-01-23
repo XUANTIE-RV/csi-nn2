@@ -1,9 +1,41 @@
-# Distribution / packaging
-install/
-riscv_build/
-csky_build/
-riscv_elf_build/
-x86_build/
-install_nn2/
-tools/
-.vscode/
+# Visual Studio Code
+.vscode
+
+# default install dir
+install_nn2
+
+# tests
+tests/python_ref/*.bin
+tests/**/*.o
+tests/**/*.elf
+
+# example
+example/*.o
+example/*.elf
+
+# default build dir
+openvx_build
+e907_build
+rvv_build
+rvv_nodot_build
+rvm_build
+c906_static_build
+c906_so_build
+c906_elf_build
+c908_build
+c920_build
+th1520_build
+pnna_build
+android_build
+pnna_x86_build
+x86_ref_build
+c920_build_so/
+x86_ref_build_so/
+c920v2_build/
+
+# config files
+script/kconfig/__pycache__/
+.config
+.config.old
+config.cmake
+mconf_config.h

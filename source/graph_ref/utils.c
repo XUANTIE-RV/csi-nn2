@@ -127,7 +127,18 @@ int shl_gref_diso_infer_shape(struct csinn_tensor *input0, struct csinn_tensor *
             return CSINN_FALSE;
         }
     }
-    output->layout = input0->dim_count >= input1->dim_count ? input0->layout : input1->layout;
+
+    if (input0->dim_count == input1->dim_count) {
+        output->layout = input0->is_const ? input1->layout : input0->layout;
+    } else {
+        bool use_input0_layout = input0->dim_count >= input1->dim_count ? true : false;
+        if ((use_input0_layout && input0->is_const) || (!use_input0_layout && input1->is_const)) {
+            shl_debug_error("%s: Diso shape infer fail!\n", __func__);
+        } else {
+            output->layout = use_input0_layout ? input0->layout : input1->layout;
+        }
+    }
+
     output->dim_count = dim_count;
     return CSINN_TRUE;
 }

@@ -73,11 +73,11 @@ int shl_c920_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_c920_reorder_kernel_block_8xk_fp32(mat0_data, in0, dim_m, dim_k, MATMUL_M_BLK,
-                                                       MATMUL_K_BLK);
+                shl_c920_reorder_a_block_8xk_fp32(mat0_data, in0, dim_m, dim_k, MATMUL_M_BLK,
+                                                  MATMUL_K_BLK);
                 if (!(mat1->is_const)) {
-                    shl_rvv_reorder_input_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n,
-                                                              MATMUL_K_BLK, MATMUL_N_BLK);
+                    shl_rvv_reorder_b_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n,
+                                                          MATMUL_K_BLK, MATMUL_N_BLK);
                 } else {
                     in1 = mat1_data;
                 }
@@ -98,15 +98,15 @@ int shl_c920_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
             float *in1;
             if (!(mat1->is_const)) {
                 in1 = (float *)shl_mem_alloc(dim_k * dim_n * sizeof(float));
-                shl_rvv_reorder_input_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n,
-                                                          MATMUL_K_BLK, MATMUL_N_BLK);
+                shl_rvv_reorder_b_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n, MATMUL_K_BLK,
+                                                      MATMUL_N_BLK);
             } else {
                 in1 = mat1_data;
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_c920_reorder_kernel_block_8xk_fp32(mat0_data, in0, dim_m, dim_k, MATMUL_M_BLK,
-                                                       MATMUL_K_BLK);
+                shl_c920_reorder_a_block_8xk_fp32(mat0_data, in0, dim_m, dim_k, MATMUL_M_BLK,
+                                                  MATMUL_K_BLK);
 
                 shl_c920_gemm_block_8xpack2n_fp32(output_data, in0, in1, NULL, dim_m, dim_k, dim_n,
                                                   MATMUL_M_BLK, MATMUL_K_BLK, MATMUL_N_BLK);
@@ -133,14 +133,16 @@ int shl_c920_matmul_init_fp32(struct csinn_tensor *mat0, struct csinn_tensor *ma
                               struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
     struct csinn_callback *cb = params->base.cb;
+    struct csinn_session *sess = params->base.sess;
+    bool binary_model_op_init = shl_c920_get_binary_model_op_init(sess);
     if (!params->trans_a && !params->trans_b) {
-        if (mat0->dtype == CSINN_DTYPE_FLOAT32) {
-            if (mat1->dtype == CSINN_DTYPE_FLOAT32) {
+        if (mat0->dtype == CSINN_DTYPE_FLOAT32 && mat1->dtype == CSINN_DTYPE_FLOAT32) {
+            if (!binary_model_op_init) {
                 if (mat1->is_const) {
                     shl_rvv_matmul_reorder_weight_fp32(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
                 }
-                cb->exec = shl_c920_matmul_fp32;
             }
+            cb->exec = shl_c920_matmul_fp32;
         }
     }
     if (cb->exec == NULL) {

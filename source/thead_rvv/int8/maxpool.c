@@ -137,8 +137,11 @@ int shl_rvv_global_maxpool2d_init_int8(struct csinn_tensor *input, struct csinn_
         if (shl_is_first_layer_input(input, sess)) {
             elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        elempack = in_c % packn == 0 ? packn : 1;
     }
 
     cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_int8
                                        : shl_ref_global_maxpool2d_quant;
+    return CSINN_TRUE;
 }

@@ -52,13 +52,14 @@ int shl_rvv_fullyconnected_init_int8(struct csinn_tensor *input, struct csinn_te
         }
     }
 
-    shl_rvv_fc_gemm_transform_weight_int8(weights);
     // support channel quantization
     for (int i = 0; i < weights->quant_channel; i++) {
         float real_scale = input->qinfo->scale * weights->qinfo[i].scale / output->qinfo->scale;
         shl_quantize_multiplier(real_scale, &(weights->qinfo[i].multiplier),
                                 &(weights->qinfo[i].shift));
     }
+
+    shl_rvv_fc_gemm_reorder_weight_int8(weights);
     cb->exec = shl_rvv_fullyconnected_gemm_int8;
 
     return CSINN_TRUE;

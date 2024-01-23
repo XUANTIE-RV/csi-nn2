@@ -21,8 +21,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "csi_nn.h"
-#include "test_utils.h"
+#include "testutil.h"
 
 #define LAYER_TEST_DISO(OP, STYPE, SPARAMS)                                             \
     void test_##OP##_##STYPE(struct csinn_tensor *input0, struct csinn_tensor *input1,  \

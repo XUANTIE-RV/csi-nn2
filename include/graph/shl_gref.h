@@ -359,6 +359,11 @@ int shl_gref_sigmoid(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_gref_sigmoid_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                  struct csinn_sigmoid_params *params);
 
+int shl_gref_silu(struct csinn_tensor *input, struct csinn_tensor *output,
+                  struct csinn_sigmoid_params *params);
+int shl_gref_silu_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_sigmoid_params *params);
+
 int shl_gref_softsign(struct csinn_tensor *input, struct csinn_tensor *output,
                       struct csinn_siso_params *params);
 int shl_gref_softsign_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -957,6 +962,12 @@ int shl_gref_data_convert(struct csinn_tensor *input, struct csinn_tensor *outpu
 int shl_gref_data_convert_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
                                       struct csinn_siso_params *params);
 
+int shl_gref_rope(struct csinn_tensor *input, struct csinn_tensor *output,
+                  struct csinn_rope_params *params);
+
+int shl_gref_rope_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_rope_params *params);
+
 int shl_gref_cast(struct csinn_tensor *input, struct csinn_tensor *output,
                   struct csinn_cast_params *params);
 int shl_gref_cast_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -969,6 +980,33 @@ int shl_gref_instance_norm(struct csinn_tensor *input, struct csinn_tensor *scal
 int shl_gref_instance_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *scales,
                                        struct csinn_tensor *bias, struct csinn_tensor *output,
                                        struct csinn_instance_norm_params *params);
+
+int shl_gref_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
+                      struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+
+int shl_gref_rms_norm_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                  struct csinn_tensor *weights,
+                                  struct csinn_rms_norm_params *params);
+
+int shl_gref_llm_pos(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_llm_pos_params *params);
+
+int shl_gref_llm_pos_infer_shape(struct csinn_tensor *input, struct csinn_tensor *output,
+                                 struct csinn_llm_pos_params *params);
+
+int shl_gref_embedding(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                       struct csinn_tensor *output, struct csinn_diso_params *params);
+
+int shl_gref_embedding_infer_shape(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                                   struct csinn_tensor *output, struct csinn_diso_params *params);
+
+int shl_gref_scaled_dot_product_attention(struct csinn_tensor *query, struct csinn_tensor *key,
+                                          struct csinn_tensor *value, struct csinn_tensor *output,
+                                          struct csinn_scale_dot_attention_params *params);
+
+int shl_gref_scaled_dot_product_attention_infer_shape(
+    struct csinn_tensor *query, struct csinn_tensor *key, struct csinn_tensor *value,
+    struct csinn_tensor *output, struct csinn_scale_dot_attention_params *params);
 
 struct shl_ref_graph *shl_subgraph_establish(struct shl_ref_graph *ograph);
 struct shl_ref_graph *shl_gref_get_graph(struct csinn_session *sess);

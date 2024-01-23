@@ -29,7 +29,7 @@ g_flow = ""
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--board", action="store", default="c906", help="board option: c906|c908|anole|x86_ref|c920"
+        "--board", action="store", default="c906", help="board option: c906|c908|anole|x86_ref|c920|c920v2"
     )
     parser.addoption(
         "--accuracy", action="store", default="0.99", help="error measures accuracy"

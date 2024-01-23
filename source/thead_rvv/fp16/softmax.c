@@ -48,6 +48,7 @@ int shl_rvv_softmax_fp16(struct csinn_tensor *input, struct csinn_tensor *output
     __fp16 *output_data = (__fp16 *)output->data;
 
     int axis = params->axis;
+    axis = axis < 0 ? axis + input->dim_count : axis;
     // FlatSize() = outer_size * inner_size * cnt;
     int64_t outer_size = 1;
     for (int i = 0; i < axis; i++) {

@@ -62,10 +62,10 @@ int shl_rvv_matmul_block_fp32(struct csinn_tensor *mat0, struct csinn_tensor *ma
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp32(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp32(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
                 if (!(mat1->is_const)) {
-                    shl_rvv_reorder_input_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n, K_BLK,
-                                                              N_BLK);
+                    shl_rvv_reorder_b_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n, K_BLK,
+                                                          N_BLK);
                 } else {
                     in1 = mat1_data;
                 }
@@ -86,14 +86,13 @@ int shl_rvv_matmul_block_fp32(struct csinn_tensor *mat0, struct csinn_tensor *ma
             float *in1;
             if (!(mat1->is_const)) {
                 in1 = (float *)shl_mem_alloc(dim_k * dim_n * sizeof(float));
-                shl_rvv_reorder_input_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n, K_BLK,
-                                                          N_BLK);
+                shl_rvv_reorder_b_block_pack2nxk_fp32(mat1_data, in1, dim_k, dim_n, K_BLK, N_BLK);
             } else {
                 in1 = mat1_data;
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp32(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp32(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
 
                 shl_rvv_gemm_block_12xpack2n_fp32(output_data, in0, in1, NULL, dim_m, dim_k, dim_n,
                                                   M_BLK, K_BLK, N_BLK);
@@ -137,7 +136,7 @@ void shl_rvv_matmul_reorder_weight_fp32(struct csinn_tensor *mat1, const int K_B
 
     for (int b = 0; b < batch; b++) {
         float *init_mat = mat1_data + b * k * n;
-        shl_rvv_reorder_input_block_pack2nxk_fp32(init_mat, mat_reorder, k, n, K_BLK, N_BLK);
+        shl_rvv_reorder_b_block_pack2nxk_fp32(init_mat, mat_reorder, k, n, K_BLK, N_BLK);
         memcpy(init_mat, mat_reorder, k * n * sizeof(float));
     }
 

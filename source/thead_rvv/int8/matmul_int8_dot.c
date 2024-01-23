@@ -432,8 +432,6 @@ void shl_rvv_matmul_8xmf2_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *
                 vint8m2_t _in = vle8_v_i8m2(in_ptr, vl * 4);
                 in_ptr += vl * 4;
 
-                int8_t *tmp_k_ptr = (int8_t *)k32_ptr;
-
                 // q1 * q2
                 _acc0 = vmaqa_vx_i32m2(_acc0, k32_ptr[0], _in, vl);
                 // - z1 * q2

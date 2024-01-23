@@ -18,18 +18,24 @@ def transpose_f32(test_dtype, test_vlen, test_type):
     input_dim_count = int(np.random.randint(4, high=5, size=1))
     input_shape = []
 
-    if "trans4_0_1_2_3" in test_type:       
+    if "trans4_0_1_2_3" in test_type:
         input_dim_count    = 4
         layout = np.array([0,1,2,3])
-    elif "trans4_0_2_3_1" in test_type:       
+    elif "trans4_0_2_3_1" in test_type:
         input_dim_count    = 4
         layout = np.array([0,2,3,1])
-    elif "trans4_0_2_1_3" in test_type:       
+    elif "trans4_0_2_1_3" in test_type:
         input_dim_count    = 4
         layout = np.array([0,2,1,3])
-    elif "trans3_0_2_1" in test_type:       
+    elif "trans3_0_2_1" in test_type:
         input_dim_count    = 3
         layout = np.array([0,2,1])
+    elif "trans4_0_1_3_2" in test_type:
+        input_dim_count    = 4
+        layout = np.array([0,1,3,2])
+    elif "trans5_0_1_3_4_2" in test_type:
+        input_dim_count    = 5
+        layout = np.array([0,1,3,4,2])
     else:
         layout = np.arange(input_dim_count)
         np.random.shuffle(layout)
@@ -45,7 +51,7 @@ def transpose_f32(test_dtype, test_vlen, test_type):
     src_in_1   = src_in.flatten()
     src_out_1 = src_out.flatten()
 
-    
+
 
     total_size = (len(src_in_1) + len(src_out_1)) + 1 + input_dim_count*3
 

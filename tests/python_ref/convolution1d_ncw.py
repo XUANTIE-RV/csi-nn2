@@ -7,7 +7,7 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def convolution_f32():
+def convolution_f32(test_type):
     para = []
     # init the input data and parameters
     batch       = int(np.random.randint(1, high=4, size=1))
@@ -16,6 +16,12 @@ def convolution_f32():
     stride_x    = int(np.random.randint(1, high=3, size=1))
     kernel_x    = int(np.random.randint(stride_x + 1, high=7, size=1))
     dilation_x  = int(np.random.randint(1, high=5, size=1))
+
+    if test_type == "conv1s1":
+        stride_x    = 1
+        kernel_x    = 1
+        dilation_x  = 1
+
     kernel_x_t  = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     pad_left    = pad_right = 0
 
@@ -85,5 +91,6 @@ def convolution_f32():
 
 
 if __name__ == '__main__':
-    convolution_f32()
+    test_type = sys.argv[1]
+    convolution_f32(test_type)
     print("end")

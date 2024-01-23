@@ -26,7 +26,7 @@ static inline float fast_exp32(float y)
         uint32_t x;
     } data = {y};
 
-    data.x = (12102203 * y + 1064866804);
+    data.x = (12102203 * y + 1064866816);
 
     return data.d;
 }
@@ -41,6 +41,7 @@ int shl_rvv_softmax_fp32(struct csinn_tensor *input, struct csinn_tensor *output
     float *output_data = (float *)output->data;
 
     int axis = params->axis;
+    axis = axis < 0 ? axis + input->dim_count : axis;
     // FlatSize() = outer_size * inner_size * cnt;
     int64_t outer_size = 1;
     for (int i = 0; i < axis; i++) {

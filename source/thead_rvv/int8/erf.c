@@ -21,5 +21,5 @@
 int shl_rvv_erf_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_siso_params *params)
 {
-    return shl_rvv_siso_callback_base(input, output, params, shl_rvv_erf_fp32);
+    return shl_rvv_siso_callback_dtype_only(input, output, params, shl_rvv_erf_fp32);
 }

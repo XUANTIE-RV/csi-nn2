@@ -771,11 +771,6 @@ pack2nx4_k2_end:
     flh             fa3, 14(a2)
     addi            a2, a2, 16
 
-    vle16.v         v3, (t3)
-    add             t3, t3, t0  // +packn
-    vle16.v         v4, (t3)
-    add             t3, t3, t0  // +packn
-
     vfmacc.vf       v8, fa0, v5
     vfmacc.vf       v20, fa0, v6
     vfmacc.vf       v9, fa1, v5

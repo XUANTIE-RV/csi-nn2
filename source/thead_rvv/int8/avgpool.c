@@ -67,6 +67,7 @@ int shl_rvv_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor 
             cb->exec = shl_ref_avgpool2d_quant;
         }
     }
+    return CSINN_TRUE;
 }
 
 int shl_rvv_global_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -88,8 +89,11 @@ int shl_rvv_global_avgpool2d_init_int8(struct csinn_tensor *input, struct csinn_
         if (shl_is_first_layer_input(input, sess)) {
             elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        elempack = in_c % packn == 0 ? packn : 1;
     }
 
     cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_int8
                                        : shl_ref_global_avgpool2d_quant;
+    return CSINN_TRUE;
 }

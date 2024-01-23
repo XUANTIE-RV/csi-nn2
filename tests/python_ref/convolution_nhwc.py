@@ -95,6 +95,15 @@ def convolution_f32(test_dtype, test_vlen, test_type):
                 in_size_x   = int(np.random.randint(13, high=20, size=1)) #width
                 in_size_y   = int(np.random.randint(13, high=20, size=1)) #height
 
+    elif "direct_3x3s1" == test_type:
+        stride_x    = 1
+        stride_y    = 1
+        kernel_x    = 3
+        kernel_y    = 3
+        dilation_x  = 1
+        dilation_y  = 1
+        in_channel  = int(np.random.randint(2, high=10, size=1))
+        out_channel = int(np.random.randint(1, high=10, size=1))
 
 
 

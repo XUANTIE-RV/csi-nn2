@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -63,15 +61,15 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_sqrt_init,
-                  csinn_sqrt, &difference);
-#elif (DTYPE==16)
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_sqrt_init,
-                  csinn_sqrt, &difference);
-#elif (DTYPE==8)
-    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_sqrt_init,
-                  csinn_sqrt, &difference);
+#if (DTYPE == 32)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_sqrt_init, csinn_sqrt,
+                  &difference);
+#elif (DTYPE == 16)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_sqrt_init, csinn_sqrt,
+                  &difference);
+#elif (DTYPE == 8)
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_sqrt_init, csinn_sqrt,
+                  &difference);
 #endif
 
     return done_testing();

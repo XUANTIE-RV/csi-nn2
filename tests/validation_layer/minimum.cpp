@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -30,51 +27,64 @@ int main(int argc, char **argv)
     struct csinn_tensor *input1 = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_diso_params *params = (csinn_diso_params *)csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
-    int in_size = 1, out_size = 1;
+    struct csinn_diso_params *params =
+        (csinn_diso_params *)csinn_alloc_params(sizeof(struct csinn_diso_params), sess);
+
+    int in_size0, in_size1, out_size;
 
     int *buffer = read_input_data_f32(argv[1]);
+
     input0->dim_count = buffer[0];
-    input1->dim_count = input0->dim_count;
-    output->dim_count = input0->dim_count;
+    input1->dim_count = buffer[1];
+    output->dim_count = buffer[2];
+    in_size0 = 1;
+    in_size1 = 1;
+    out_size = 1;
     for (int i = 0; i < input0->dim_count; i++) {
-        input0->dim[i] = buffer[i + 1];
-        input1->dim[i] = input0->dim[i];
-        output->dim[i] = input0->dim[i];
-        in_size *= input0->dim[i];
+        input0->dim[i] = buffer[3 + i];
+        in_size0 *= input0->dim[i];
+    }
+    for (int i = 0; i < input1->dim_count; i++) {
+        input1->dim[i] = buffer[3 + input0->dim_count + i];
+        in_size1 *= input1->dim[i];
+    }
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = buffer[3 + input0->dim_count + input1->dim_count + i];
+        out_size *= output->dim[i];
     }
 
-    out_size = in_size;
-
     input0->dtype = CSINN_DTYPE_FLOAT32;
-    input0->layout = CSINN_LAYOUT_NCHW;
     input0->is_const = 0;
     input0->quant_channel = 1;
+    set_layout(input0);
+
     input1->dtype = CSINN_DTYPE_FLOAT32;
-    input1->layout = CSINN_LAYOUT_NCHW;
     input1->is_const = 0;
     input1->quant_channel = 1;
+    set_layout(input1);
+
     output->dtype = CSINN_DTYPE_FLOAT32;
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
     params->base.api = CSINN_API;
 
-    input0->data = (float *)(buffer + 1 + input0->dim_count);
-    input1->data = (float *)(buffer + 1 + input0->dim_count + in_size);
-    reference->data = (float *)(buffer + 1 + input0->dim_count + 2 * in_size);
+    int start = 3 + input0->dim_count + input1->dim_count + output->dim_count;
+    input0->data = (float *)(buffer + start);
+    input1->data = (float *)(buffer + start + in_size0);
+    reference->data = (float *)(buffer + start + in_size0 + in_size1);
     output->data = reference->data;
-    float difference = argc > 2 ? atof(argv[2]) : 0.99;
+    float difference = argc > 2 ? atof(argv[2]) : 0.9;
 
-#if (DTYPE==32)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_minimum_init, csinn_minimum,
-                   &difference);
-#elif (DTYPE==16)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT16, csinn_minimum_init, csinn_minimum,
-                   &difference);
-#elif (DTYPE==8)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_ASYM, csinn_minimum_init, csinn_minimum,
-                   &difference);
+#if (DTYPE == 32)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_minimum_init,
+                   csinn_minimum, &difference);
+#elif (DTYPE == 16)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT16, csinn_minimum_init,
+                   csinn_minimum, &difference);
+#elif (DTYPE == 8)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_ASYM, csinn_minimum_init,
+                   csinn_minimum, &difference);
 #endif
     return done_testing();
 }

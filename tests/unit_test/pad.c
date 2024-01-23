@@ -19,7 +19,7 @@
 #include "./valid_data/pad.dat"
 
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_pad(void *input_data, void *ref_data, void (*func)(), int in_c, int in_h, int in_w,

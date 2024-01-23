@@ -1,0 +1,73 @@
+LIB_DIR = ../../c920v2_build
+INCLUDE = -I../../include -I../../include/shl_public -I../utils -I./layer
+CFLAGS = -O0 -g3 -static
+CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+CFLAGS += -DCSINN_API=18
+LIB_NAME = shl_c920v2
+CC = riscv64-unknown-linux-gnu-gcc
+CPLUS = riscv64-unknown-linux-gnu-g++
+TYPE=?
+
+test_objs =
+
+test_objs += abs.o
+test_objs += add.o
+test_objs += averagepool.o
+test_objs += broadcast_to.o
+test_objs += div.o
+test_objs += clip.o
+test_objs += concat.o
+test_objs += convolution_nhwc.o
+test_objs += convolution.o
+test_objs += convolution1d.o
+test_objs += group_convolution.o
+test_objs += depthwise_convolution.o
+test_objs += depthwise_convolution_nhwc.o
+test_objs += depthwise_convolution1d.o
+test_objs += erf.o
+test_objs += fullyconnected.o
+test_objs += gather.o
+test_objs += global_avgpool.o
+test_objs += global_maxpool.o
+test_objs += layer_norm.o
+test_objs += leaky_relu.o
+test_objs += maxpool.o
+test_objs += mul.o
+test_objs += minimum.o
+test_objs += matmul.o
+test_objs += pad.o
+test_objs += prelu.o
+test_objs += relu.o
+test_objs += relu1.o
+test_objs += relu6.o
+test_objs += split.o
+test_objs += sub.o
+test_objs += lrn.o
+test_objs += reshape.o
+test_objs += sigmoid.o
+test_objs += softmax.o
+test_objs += strided_slice.o
+test_objs += sum_stride.o
+test_objs += transpose.o
+test_objs += reduce_sum.o
+test_objs += deconvolution.o
+
+
+
+utils_objs =
+utils_objs += ../utils/test_utils.o
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.cpp
+	$(CPLUS) -c $(CFLAGS) $(INCLUDE) -D DTYPE=$(TYPE) $< -o $@
+	$(CPLUS) $@  $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.asm

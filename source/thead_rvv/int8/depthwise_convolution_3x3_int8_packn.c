@@ -600,7 +600,7 @@ int shl_rvv_dwconv3x3s1_packn_int8(struct csinn_tensor *input, struct csinn_tens
     }
 #elif defined RVV_0_7_1
 #pragma omp parallel for num_threads(1)
-    for (int c = 0; c + packn - 1 < in_c; c += packn) {
+    for (int c = 0; c < in_c - (packn - 1); c += packn) {
         int8_t *out0 = output_data + c * out_h * out_w;
         int8_t *out1 = out0 + out_w * packn;
 
@@ -1244,7 +1244,7 @@ int shl_rvv_dwconv3x3s2_packn_int8(struct csinn_tensor *input, struct csinn_tens
     }
 #elif defined RVV_0_7_1
 #pragma omp parallel for num_threads(1)
-    for (int c = 0; c + packn - 1 < in_c; c += packn) {
+    for (int c = 0; c < in_c - (packn - 1); c += packn) {
         int8_t *out0 = output_data + c * out_h * out_w;
 
         int8_t *r0 = input_padd_buf + c * in_h * in_w;

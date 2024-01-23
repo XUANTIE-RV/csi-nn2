@@ -1373,8 +1373,8 @@ int shl_c906_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
     struct csinn_callback *cb = params->base.cb;
     cb->exec = NULL;
 
-    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
-        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+    if (params->base.sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(params->base.sess);
         if (option && option->base.use_packn_layout) {
             shl_debug_error("%s: unsupport packn\n", __func__);
             return CSINN_UNSUPPORT_LAYOUT;
@@ -1392,10 +1392,10 @@ int shl_c906_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
             if (pad_left == 0 && pad_top == 0) {
                 // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
                 if (input_h % 2 == 1 && params->ceil_mode == 1) {
-                    if (params->pad_down) params->pad_down++;
+                    if (params->pad_down == 0) params->pad_down++;
                 }
                 if (input_w % 2 == 1 && params->ceil_mode == 1) {
-                    if (params->pad_right) params->pad_right++;
+                    if (params->pad_right == 0) params->pad_right++;
                 }
                 // end consider ceil_mode 2x2s2p0
                 cb->exec = avgpool2x2s2_fp16;
@@ -1406,11 +1406,11 @@ int shl_c906_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor
             if (pad_left == 0 && pad_top == 0) {
                 // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
                 if (input_h % 2 == 0 && params->ceil_mode == 1) {
-                    if (params->pad_down)
+                    if (params->pad_down == 0)
                         params->pad_down++;  // origin pad_down mast be equal to zero ?
                 }
                 if (input_w % 2 == 0 && params->ceil_mode == 1) {
-                    if (params->pad_right) params->pad_right++;
+                    if (params->pad_right == 0) params->pad_right++;
                 }
                 // end consider ceil_mode 3x3s2p0
                 cb->exec = avgpool3x3s2_fp16;

@@ -1,0 +1,27 @@
+BasedOnStyle: Google
+
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+
+BreakBeforeBraces: Custom
+ColumnLimit: 100
+DisableFormat: false
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+SpacesInAngles:  false
+SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false

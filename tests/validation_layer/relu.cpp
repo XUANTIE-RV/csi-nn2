@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -30,50 +27,48 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_relu_params *params = (csinn_relu_params *)csinn_alloc_params(sizeof(struct csinn_relu_params), sess);
-    int in_size;
+    struct csinn_relu_params *params =
+        (csinn_relu_params *)csinn_alloc_params(sizeof(struct csinn_relu_params), sess);
+    int in_size = 1, out_size = 1;
 
     int *buffer = read_input_data_f32(argv[1]);
-    input->dim[0] = buffer[0];
-    input->dim[1] = buffer[1];
-    input->dim[2] = buffer[2];
-    input->dim[3] = buffer[3];
+    input->dim_count = buffer[0];
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < input->dim_count; i++) {
+        input->dim[i] = buffer[i + 1];
+        output->dim[i] = input->dim[i];
+        in_size *= input->dim[i];
+    }
 
-    output->dim[0] = input->dim[0];
-    output->dim[1] = input->dim[1];
-    output->dim[2] = input->dim[2];
-    output->dim[3] = input->dim[3];
-
-    input->dim_count = 4;
-    output->dim_count = 4;
     input->dtype = CSINN_DTYPE_FLOAT32;
     input->layout = CSINN_LAYOUT_NCHW;
     input->is_const = 0;
     input->quant_channel = 1;
+    set_layout(input);
+
     output->dtype = CSINN_DTYPE_FLOAT32;
     output->layout = CSINN_LAYOUT_NCHW;
     output->is_const = 0;
     output->quant_channel = 1;
-    in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
+    set_layout(output);
     params->base.api = CSINN_API;
 
-    input->data = (float *)(buffer + 4);
-    reference->data = (float *)(buffer + 4 + in_size);
+    input->data = (float *)(buffer + 1 + input->dim_count);
+    reference->data = (float *)(buffer + 1 + input->dim_count + in_size);
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_relu_init, csinn_relu,
-                    &difference);
-#elif (DTYPE==16)
+                  &difference);
+#elif (DTYPE == 16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_relu_init, csinn_relu,
                   &difference);
-#elif (DTYPE==8)
+#elif (DTYPE == 8)
     test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_relu_init, csinn_relu,
                   &difference);
 #endif
-
 
     return done_testing();
 }

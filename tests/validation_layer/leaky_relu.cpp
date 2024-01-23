@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -30,7 +27,8 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_relu_params *params = (csinn_relu_params *)csinn_alloc_params(sizeof(struct csinn_relu_params), sess);
+    struct csinn_relu_params *params =
+        (csinn_relu_params *)csinn_alloc_params(sizeof(struct csinn_relu_params), sess);
     int in_size;
 
     int *buffer = read_input_data_f32(argv[1]);
@@ -66,18 +64,16 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-
-#if (DTYPE==32)
-    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_leaky_relu_init, csinn_leaky_relu,
-                  &difference);
-#elif (DTYPE==16)
+#if (DTYPE == 32)
+    test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_leaky_relu_init,
+                  csinn_leaky_relu, &difference);
+#elif (DTYPE == 16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_leaky_relu_init,
                   csinn_leaky_relu, &difference);
-#elif (DTYPE==8)
-    test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_leaky_relu_init, csinn_leaky_relu,
-                  &difference);
+#elif (DTYPE == 8)
+    test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_leaky_relu_init,
+                  csinn_leaky_relu, &difference);
 #endif
-
 
     return done_testing();
 }

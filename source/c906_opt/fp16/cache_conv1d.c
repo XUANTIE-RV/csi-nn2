@@ -22,6 +22,7 @@ int shl_c906_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *
                                struct csinn_tensor *weight, struct csinn_tensor *bias,
                                struct csinn_cache_conv1d_params *params)
 {
+    bool binary_model_op_init = shl_c906_get_binary_model_op_init(params->base.sess);
     size_t data_size =
         output->dim[0] * output->dim[1] * output->dim[2] * sizeof(__fp16);  // 512*13*2
     asr_buffer_init_c906(&params->asr_buffer, 2 * data_size, data_size);
@@ -35,12 +36,13 @@ int shl_c906_cache_conv1d_init(struct csinn_tensor *input, struct csinn_tensor *
         if (k % 16 != 0) {
             shl_debug_error("out_nodes num should be multiple of 16\n");
         }
-        __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
-        shl_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
-
-        shl_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
+        if (!binary_model_op_init) {
+            __fp16 *pa_reorder = (__fp16 *)shl_mem_alloc(n * k * sizeof(__fp16));
+            shl_c906_reorder_weight_n16_fp16(weight_data, pa_reorder, n, k, k);
+            shl_c906_memcpy(weight_data, pa_reorder, n * k * sizeof(__fp16));
+            shl_mem_free(pa_reorder);
+        }
         params->data = weight_data;
-        shl_mem_free(pa_reorder);
 
         cb->exec = shl_c906_cache_conv1d_fp16;
     }

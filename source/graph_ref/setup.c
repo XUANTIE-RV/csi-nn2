@@ -78,6 +78,9 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
     struct csinn_params_base *params = node->data;
     int (*func)();
     func = fn;
+    if (!func) {
+        shl_debug_fatal("Can't find exec func %s\n", node->name);
+    }
     int ret = CSINN_TRUE;
     struct csinn_tensor **inputs;
     struct csinn_tensor **outputs;
@@ -187,6 +190,9 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_UNSTACK:
         case CSINN_OP_CAST:
         case CSINN_OP_YUV_RGB_SCALE:
+        case CSINN_OP_SILU:
+        case CSINN_OP_ROPE:
+        case CSINN_OP_LLM_POS:
             ret = func(node->in[0]->data, node->out[0]->data, params);
             break;
         case CSINN_OP_ADD:
@@ -227,6 +233,7 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_UNSORTED_SEGMENT_SUM:
         case CSINN_OP_SUB:
         case CSINN_OP_XOR:
+        case CSINN_OP_EMBEDDING:
             ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
             break;
         case CSINN_OP_CONV1D:
@@ -289,6 +296,13 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
         case CSINN_OP_WHERE_SOFTMAX:
             ret = func(node->in[0]->data, node->in[1]->data, node->out[0]->data, params);
             break;
+        case CSINN_OP_RMS_NORM:
+            ret = func(node->in[0]->data, node->out[0]->data, node->in[1]->data, params);
+            break;
+        case CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION:
+            ret = func(node->in[0]->data, node->in[1]->data, node->in[2]->data, node->out[0]->data,
+                       params);
+            break;
         case CSINN_OP_ALL:
             shl_debug_error("unsupported CSINN_OP_ALL\n");
             break;
@@ -323,7 +337,7 @@ int shl_gref_call_layer_func(void *fn, struct shl_node *node)
             shl_debug_error("unsupported CSINN_OP_TOPK\n");
             break;
         default:
-            shl_debug_error("unknown op\n");
+            shl_debug_error("%s: unknown op %d\n", __func__, node->type);
             return CSINN_FALSE;
     }
     return ret;
@@ -738,6 +752,8 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_SOFTMAX:
             case CSINN_OP_SQRT:
             case CSINN_OP_ERF:
+            case CSINN_OP_TANH:
+            case CSINN_OP_LEAKY_RELU:
                 shl_gref_siso_infer_shape(n->in[0]->data, n->out[0]->data, params);
                 break;
             case CSINN_OP_ADD:
@@ -814,6 +830,14 @@ static void session_dynamic_infer_shape(struct csinn_session *sess)
             case CSINN_OP_MEAN:
                 shl_gref_mean_infer_shape(n->in[0]->data, n->out[0]->data,
                                           (struct csinn_reduce_params *)params);
+                break;
+            case CSINN_OP_EMBEDDING:
+                shl_gref_embedding_infer_shape(n->in[0]->data, n->in[1]->data, n->out[0]->data,
+                                               (struct csinn_diso_params *)params);
+                break;
+            case CSINN_OP_FLATTEN:
+                shl_gref_flatten_infer_shape(n->in[0]->data, n->out[0]->data,
+                                             (struct csinn_flatten_params *)params);
                 break;
             default:
                 shl_debug_error("[infer_shape]:unknown op %d\n", n->type);
@@ -1128,6 +1152,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_ELU_DISABLED
     cb_map[CSINN_OP_ELU].est = shl_gref_elu;
 #endif
+#ifndef CONFIG_GRAPH_REFERENCE_EMBEDDING_DISABLED
+    cb_map[CSINN_OP_EMBEDDING].est = shl_gref_embedding;
+#endif
 #ifndef CONFIG_GRAPH_REFERENCE_EQUAL_DISABLED
     cb_map[CSINN_OP_EQUANL].est = shl_gref_equal;
 #endif
@@ -1205,6 +1232,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_LESS_DISABLED
     cb_map[CSINN_OP_LESS].est = shl_gref_less;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LLM_POS_DISABLED
+    cb_map[CSINN_OP_LLM_POS].est = shl_gref_llm_pos;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_LOG_SOFTMAX_DISABLED
     cb_map[CSINN_OP_LOG_SOFTMAX].est = shl_gref_log_softmax;
@@ -1345,6 +1375,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_ROIPOOL_DISABLED
     cb_map[CSINN_OP_ROIPOOL].est = shl_gref_roipool;
 #endif
+#ifndef CONFIG_GRAPH_REFERENCE_ROPE_DISABLED
+    cb_map[CSINN_OP_ROPE].est = shl_gref_rope;
+#endif
 #ifndef CONFIG_GRAPH_REFERENCE_ROUND_DISABLED
     cb_map[CSINN_OP_ROUND].est = shl_gref_round;
 #endif
@@ -1383,6 +1416,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_SIGMOID_DISABLED
     cb_map[CSINN_OP_SIGMOID].est = shl_gref_sigmoid;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SILU_DISABLED
+    cb_map[CSINN_OP_SILU].est = shl_gref_silu;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_SIGN_DISABLED
     cb_map[CSINN_OP_SIGN].est = shl_gref_sign;
@@ -1483,7 +1519,12 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_ONE_HOT_DISABLED
     cb_map[CSINN_OP_ONE_HOT].est = shl_gref_one_hot;
 #endif
-
+#ifndef CONFIG_GRAPH_REFERENCE_RMS_NORM_DISABLED
+    cb_map[CSINN_OP_RMS_NORM].est = shl_gref_rms_norm;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SCALED_DOT_PRODUCT_ATTENTION_DISABLED
+    cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION].est = shl_gref_scaled_dot_product_attention;
+#endif
     return cb_map;
 }
 

@@ -1,0 +1,36 @@
+LIB_DIR = ../../rvv_nodot_build
+INCLUDE = -I../../include -I../../include/shl_public -I../utils -I./layer
+CFLAGS = -O0 -g3 -static
+CFLAGS += -march=rv64gcv_zfh_xtheadc -mabi=lp64d
+CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
+CFLAGS += -DCSINN_API=15
+LIB_NAME = shl_rvv_nodot
+CC = riscv64-unknown-linux-gnu-gcc
+CPLUS = riscv64-unknown-linux-gnu-g++
+TYPE=?
+
+test_objs =
+
+test_objs += convolution.o
+test_objs += convolution1d.o
+test_objs += group_convolution.o
+test_objs += fullyconnected.o
+test_objs += matmul.o
+test_objs += deconvolution.o
+
+utils_objs =
+utils_objs += ../utils/test_utils.o
+
+all: csi
+
+csi: $(utils_objs) $(test_objs)
+
+$(utils_objs): %.o: %.c
+	$(CC) -c $(CFLAGS) $(INCLUDE) $< -o $@
+
+$(test_objs): %.o: %.cpp
+	$(CPLUS) -c $(CFLAGS) $(INCLUDE) -D DTYPE=$(TYPE) $< -o $@
+	$(CPLUS) $@  $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
+
+clean:
+	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.asm

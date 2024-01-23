@@ -392,37 +392,69 @@ float shl_ref_int8_to_float(int8_t i, struct csinn_tensor *t)
 
 int16_t shl_ref_float32_to_float16(float value)
 {
-    int16_t ret;
-    if (value > -6.1e-5 && value < 6.1e-5) {
-        /* to small for f16, ignore to 0 */
-        return 0;
+    if (value > 65519.0) {
+        shl_debug_warning("Saturate to f16 max value: 65504 (%f)\n", value);
+        return 0x7BFF;
     }
-    if (value > 65504) {
-        shl_debug_error("too large f32 to f16\n");
-        /* saturate to f16 max value: 65504 */
-        value = 65504;
+    if (value < -65519.0) {
+        shl_debug_warning("Saturate to f16 min value: -65504 (%f)\n", value);
+        return 0xFBFF;
     }
-    int32_t org_format = *(int32_t *)&value;
-    int16_t sign = (org_format & 0x80000000) >> 16;
-    int16_t frac = (org_format & 0x7fffff) >> 13;
-    int16_t exp = (((((org_format >> 23) & 0xff) - 128) + 16) & 0x1f) << 10;
-    ret = sign | frac | exp;
-    return ret;
+
+    union FP32 {
+        uint32_t u;
+        float f;
+    };
+
+    const union FP32 f32inf = {255UL << 23};
+    const union FP32 f16inf = {31UL << 23};
+    const union FP32 magic = {15UL << 23};
+    const uint32_t sign_mask = 0x80000000U;
+    const uint32_t round_mask = ~0xFFFU;
+
+    union FP32 in;
+    in.f = value;
+    uint32_t sign = in.u & sign_mask;
+    in.u ^= sign;
+
+    int16_t out = 0;
+
+    if (in.u >= f32inf.u) {
+        out = (in.u > f32inf.u) ? (int16_t)0x7FFFU : (int16_t)0x7C00U;
+    } else {
+        in.u &= round_mask;
+        in.f *= magic.f;
+        in.u -= round_mask;
+        if (in.u > f16inf.u) {
+            in.u = f16inf.u;
+        }
+        out = (int16_t)(in.u >> 13);
+    }
+
+    out |= (int16_t)(sign >> 16);
+
+    return out;
 }
 
 float shl_ref_float16_to_float32(int16_t value)
 {
-    float ret;
-    if (value == 0) {
-        return 0;
+    union FP32 {
+        uint32_t u;
+        float f;
+    };
+
+    const union FP32 magic = {(254UL - 15UL) << 23};
+    const union FP32 was_inf_nan = {(127UL + 16UL) << 23};
+    union FP32 out;
+
+    out.u = (value & 0x7FFFU) << 13;
+    out.f *= magic.f;
+    if (out.f >= was_inf_nan.f) {
+        out.u |= 255UL << 23;
     }
-    int32_t ret_format = 0;
-    int32_t sign = (value & 0x8000) << 16;
-    int32_t frac = (value & 0x3ff) << 13;
-    int32_t exp = (((((value >> 10) & 0x1f) - 16) + 128) & 0xff) << 23;
-    ret_format = sign | frac | exp;
-    ret = *(float *)&ret_format;
-    return ret;
+    out.u |= (value & 0x8000UL) << 16;
+
+    return out.f;
 }
 
 int16_t shl_ref_float32_to_bfloat16(float value)

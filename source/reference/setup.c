@@ -300,6 +300,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_ELU_DISABLED
         cb_map[CSINN_OP_ELU][i].exec = shl_ref_elu_quant;
 #endif
+#ifndef CONFIG_C_REFERENCE_EMBEDDING_DISABLED
+        cb_map[CSINN_OP_EMBEDDING][i].exec = shl_ref_embedding_quant;
+#endif
 #ifndef CONFIG_C_REFERENCE_EQUAL_DISABLED
         cb_map[CSINN_OP_EQUANL][i].exec = shl_ref_equal_quant;
 #endif
@@ -369,6 +372,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_C_REFERENCE_LESS_DISABLED
         cb_map[CSINN_OP_LESS][i].exec = shl_ref_less_quant;
+#endif
+#ifndef CONFIG_C_REFERENCE_LLM_POS_DISABLED
+        cb_map[CSINN_OP_LLM_POS][i].exec = shl_ref_llm_pos_quant;
 #endif
 #ifndef CONFIG_C_REFERENCE_LOG_SOFTMAX_DISABLED
         cb_map[CSINN_OP_LOG_SOFTMAX][i].exec = shl_ref_log_softmax_quant;
@@ -495,6 +501,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_ROIPOOL_DISABLED
         cb_map[CSINN_OP_ROIPOOL][i].exec = shl_ref_roipool_quant;
 #endif
+#ifndef CONFIG_C_REFERENCE_ROPE_DISABLED
+        cb_map[CSINN_OP_ROPE][i].exec = shl_ref_rope_quant;
+#endif
 #ifndef CONFIG_C_REFERENCE_ROUND_DISABLED
         cb_map[CSINN_OP_ROUND][i].exec = shl_ref_round_quant;
 #endif
@@ -526,6 +535,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_C_REFERENCE_SIGMOID_DISABLED
         cb_map[CSINN_OP_SIGMOID][i].exec = shl_ref_sigmoid_quant;
+#endif
+#ifndef CONFIG_C_REFERENCE_SILU_DISABLED
+        cb_map[CSINN_OP_SILU][i].exec = shl_ref_silu_quant;
 #endif
 #ifndef CONFIG_C_REFERENCE_SIGN_DISABLED
         cb_map[CSINN_OP_SIGN][i].exec = shl_ref_sign_quant;
@@ -666,6 +678,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
         cb_map[CSINN_OP_INSTANCE_NORM][i].exec = shl_ref_instance_norm_quant;
 #endif
+#ifndef CONFIG_C_REFERENCE_RMS_NORM_DISABLED
+        cb_map[CSINN_OP_RMS_NORM][i].exec = shl_ref_rms_norm_quant;
+#endif
     }
 
     for (int i = CSINN_DTYPE_INT4; i < CSINN_DTYPE_FLOAT64; i++) {
@@ -677,10 +692,20 @@ static void *setup_cb_map()
 #ifndef CONFIG_C_REFERENCE_RESHAPE_DISABLED
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].exec = shl_ref_reshape;
     cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_INT64].init = shl_ref_reshape_init;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_BOOL].exec = shl_ref_reshape;
+    cb_map[CSINN_OP_RESHAPE][CSINN_DTYPE_BOOL].init = shl_ref_reshape_init;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_CONCAT_DISABLED
     cb_map[CSINN_OP_CONCAT][CSINN_DTYPE_INT64].exec = shl_ref_concat_quant;
+#endif
+
+#ifndef CONFIG_C_REFERENCE_MUL_DISABLED
+    cb_map[CSINN_OP_MUL][CSINN_DTYPE_INT64].exec = shl_ref_mul_quant;
+#endif
+
+#ifndef CONFIG_C_REFERENCE_ADD_DISABLED
+    cb_map[CSINN_OP_ADD][CSINN_DTYPE_INT64].exec = shl_ref_add_quant;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_AND_DISABLED
@@ -753,6 +778,17 @@ static void *setup_cb_map()
 
 #ifndef CONFIG_C_REFERENCE_INSTANCE_NORM_DISABLED
     cb_map[CSINN_OP_INSTANCE_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_instance_norm_f32;
+#endif
+
+#ifndef CONFIG_C_REFERENCE_RMS_NORM_DISABLED
+    cb_map[CSINN_OP_RMS_NORM][CSINN_DTYPE_FLOAT32].exec = shl_ref_rms_norm_f32;
+#endif
+
+#ifndef CONFIG_C_REFERENCE_SCALED_DOT_PRODUCT_ATTENTION_DISABLED
+    cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT16].exec =
+        shl_ref_scaled_dot_product_attention_quant;
+    cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][CSINN_DTYPE_FLOAT32].exec =
+        shl_ref_scaled_dot_product_attention_f32;
 #endif
 
 #ifndef CONFIG_C_REFERENCE_CAST_DISABLED
@@ -859,6 +895,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_ELU_DISABLED
         cb_map[CSINN_OP_ELU][i].est = shl_gref_elu;
 #endif
+#ifndef CONFIG_GRAPH_REFERENCE_EMBEDDING_DISABLED
+        cb_map[CSINN_OP_EMBEDDING][i].est = shl_gref_embedding;
+#endif
 #ifndef CONFIG_GRAPH_REFERENCE_EQUAL_DISABLED
         cb_map[CSINN_OP_EQUANL][i].est = shl_gref_equal;
 #endif
@@ -927,6 +966,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_LESS_DISABLED
         cb_map[CSINN_OP_LESS][i].est = shl_gref_less;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_LLM_POS_DISABLED
+        cb_map[CSINN_OP_LLM_POS][i].est = shl_gref_llm_pos;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_LOG_SOFTMAX_DISABLED
         cb_map[CSINN_OP_LOG_SOFTMAX][i].est = shl_gref_log_softmax;
@@ -1010,6 +1052,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_PSROIPOOLING_DISABLED
         cb_map[CSINN_OP_PSROIPOOLING][i].est = shl_gref_psroipooling;
 #endif
+#ifndef CONFIG_GRAPH_REFERENCE_SQUEEZE_DISABLED
+        cb_map[CSINN_OP_SQUEEZE][i].est = shl_gref_squeeze;
+#endif
 #ifndef CONFIG_GRAPH_REFERENCE_REDUCE_LOGSUMEXP_DISABLED
         cb_map[CSINN_OP_REDUCE_LOGSUMEXP][i].est = shl_gref_reduce_logsumexp;
 #endif
@@ -1052,6 +1097,9 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_ROIPOOL_DISABLED
         cb_map[CSINN_OP_ROIPOOL][i].est = shl_gref_roipool;
 #endif
+#ifndef CONFIG_GRAPH_REFERENCE_ROPE_DISABLED
+        cb_map[CSINN_OP_ROPE][i].est = shl_gref_rope;
+#endif
 #ifndef CONFIG_GRAPH_REFERENCE_ROUND_DISABLED
         cb_map[CSINN_OP_ROUND][i].est = shl_gref_round;
 #endif
@@ -1083,6 +1131,9 @@ static void *setup_cb_map()
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_SIGMOID_DISABLED
         cb_map[CSINN_OP_SIGMOID][i].est = shl_gref_sigmoid;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SILU_DISABLED
+        cb_map[CSINN_OP_SILU][i].est = shl_gref_silu;
 #endif
 #ifndef CONFIG_GRAPH_REFERENCE_SIGN_DISABLED
         cb_map[CSINN_OP_SIGN][i].est = shl_gref_sign;
@@ -1199,8 +1250,15 @@ static void *setup_cb_map()
 #ifndef CONFIG_GRAPH_REFERENCE_WHERE_SOFTMAX_DISABLED
         cb_map[CSINN_OP_WHERE_SOFTMAX][i].est = shl_gref_where_softmax;
 #endif
-#ifndef CONFIG_GRAPH__REFERENCE_INSTANCE_NORM_DISABLED
+#ifndef CONFIG_GRAPH_REFERENCE_INSTANCE_NORM_DISABLED
         cb_map[CSINN_OP_INSTANCE_NORM][i].est = shl_gref_instance_norm;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_RMS_NORM_DISABLED
+        cb_map[CSINN_OP_RMS_NORM][i].est = shl_gref_rms_norm;
+#endif
+#ifndef CONFIG_GRAPH_REFERENCE_SCALED_DOT_PRODUCT_ATTENTION_DISABLED
+        cb_map[CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION][i].est =
+            shl_gref_scaled_dot_product_attention;
 #endif
     }
 #endif

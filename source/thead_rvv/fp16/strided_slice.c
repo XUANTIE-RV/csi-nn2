@@ -33,6 +33,22 @@ int shl_rvv_strided_slice_fp16(struct csinn_tensor *input, struct csinn_tensor *
     if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
         shl_rvv_tensor_nc1xc0_to_ndarray_replace_fp16(input);
     }
+    if (output->layout >= CSINN_LAYOUT_NC1C0 && output->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        int in_c1 = output->dim[1];
+        const int packn = csrr_vlenb() / sizeof(__fp16);
+        output->dim[1] = in_c1 * packn;
+        output->dim[output->dim_count - 1] = 0;
+        output->dim_count = output->dim_count - 1;
+        if (output->layout == CSINN_LAYOUT_NC1DHWC0) {
+            output->layout = CSINN_LAYOUT_NCDHW;
+        } else if (output->layout == CSINN_LAYOUT_NC1HWC0) {
+            output->layout = CSINN_LAYOUT_NCHW;
+        } else if (output->layout == CSINN_LAYOUT_NC1WC0) {
+            output->layout = CSINN_LAYOUT_NCW;
+        } else if (output->layout == CSINN_LAYOUT_NC1C0) {
+            output->layout = CSINN_LAYOUT_NC;
+        }
+    }
 
     __fp16 *input_data = (__fp16 *)input->data;
     __fp16 *output_data = (__fp16 *)output->data;

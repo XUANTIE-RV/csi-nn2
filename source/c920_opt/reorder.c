@@ -23,8 +23,7 @@
  * dst: [M_BLOCK/m_blk, K_BLOCK, m_blk]
  * m_blk: 8/4/2/1
  ************************************************************/
-static inline void reorder_kernel_8xk_fp32(float *src, float *dst, int M_BLOCK, int K_BLOCK,
-                                           int lda)
+static inline void reorder_a_8xk_fp32(float *src, float *dst, int M_BLOCK, int K_BLOCK, int lda)
 {
     int i = 0;
     for (; i + 7 < M_BLOCK; i += 8) {
@@ -112,8 +111,8 @@ static inline void reorder_kernel_8xk_fp32(float *src, float *dst, int M_BLOCK, 
  * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
-void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
-                                            const int K_BLK)
+void shl_c920_reorder_a_block_8xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
+                                       const int K_BLK)
 {
     const int MIN_M_BLK = 8;
 
@@ -132,7 +131,7 @@ void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k
             }
             float *s_ptr = src + m_idx * k + k_idx;
             float *d_ptr = dst + m_idx * k + k_idx * m_block;
-            reorder_kernel_8xk_fp32(s_ptr, d_ptr, m_block, k_block, k);
+            reorder_a_8xk_fp32(s_ptr, d_ptr, m_block, k_block, k);
             k_idx += k_block;
         }
         m_idx += m_block;
@@ -144,8 +143,7 @@ void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k
  * dst: [M_BLOCK/m_blk, K_BLOCK, m_blk]
  * m_blk: 8/4/2/1
  ************************************************************/
-static inline void reorder_kernel_8xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOCK, int K_BLOCK,
-                                           int lda)
+static inline void reorder_a_8xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOCK, int K_BLOCK, int lda)
 {
     int i = 0;
     for (; i + 7 < M_BLOCK; i += 8) {
@@ -233,8 +231,8 @@ static inline void reorder_kernel_8xk_fp16(__fp16 *src, __fp16 *dst, int M_BLOCK
  * m_blk: M_BLK, M_tail
  * k_blk: K_BLK, K_tail
  ************************************************************/
-void shl_c920_reorder_kernel_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
-                                            const int K_BLK)
+void shl_c920_reorder_a_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
+                                       const int K_BLK)
 {
     const int MIN_M_BLK = 8;
 
@@ -253,7 +251,7 @@ void shl_c920_reorder_kernel_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int
             }
             __fp16 *s_ptr = src + m_idx * k + k_idx;
             __fp16 *d_ptr = dst + m_idx * k + k_idx * m_block;
-            reorder_kernel_8xk_fp16(s_ptr, d_ptr, m_block, k_block, k);
+            reorder_a_8xk_fp16(s_ptr, d_ptr, m_block, k_block, k);
             k_idx += k_block;
         }
         m_idx += m_block;

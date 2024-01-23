@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
+// list begin/end/stride has same length with input->dim_count
 int main(int argc, char **argv)
 {
     init_testsuite("Testing function of strided_slice(layer).\n");
@@ -29,8 +28,8 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_strided_slice_params *params =
-        (csinn_strided_slice_params *)csinn_alloc_params(sizeof(struct csinn_strided_slice_params), sess);
+    struct csinn_strided_slice_params *params = (csinn_strided_slice_params *)csinn_alloc_params(
+        sizeof(struct csinn_strided_slice_params), sess);
     int in_size = 1;
     int out_size = 1;
 
@@ -50,6 +49,8 @@ int main(int argc, char **argv)
         params->stride[i] = buffer[4 + input->dim_count + 3 * i];
     }
     output->dim_count = input->dim_count;
+    params->slice_count = input->dim_count;  // slice_count constrain
+
     for (int i = 0; i < output->dim_count; i++) {
         if (i < params->slice_count) {
             output->dim[i] = ceil((float)(params->end[i] - params->begin[i]) / params->stride[i]);
@@ -57,6 +58,7 @@ int main(int argc, char **argv)
             output->dim[i] = input->dim[i];
         }
     }
+
     out_size = buffer[2 + input->dim_count + 3 * params->slice_count];
     params->base.api = CSINN_API;
     input->dtype = CSINN_DTYPE_FLOAT32;
@@ -75,15 +77,15 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_strided_slice_init,
-                   csinn_strided_slice, &difference);
-#elif (DTYPE==16)
+                  csinn_strided_slice, &difference);
+#elif (DTYPE == 16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_strided_slice_init,
-                   csinn_strided_slice, &difference);
-#elif (DTYPE==8)
+                  csinn_strided_slice, &difference);
+#elif (DTYPE == 8)
     test_unary_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_strided_slice_init,
-                   csinn_strided_slice, &difference);
+                  csinn_strided_slice, &difference);
 #endif
 
     return done_testing();

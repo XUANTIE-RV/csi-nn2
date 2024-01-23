@@ -26,6 +26,9 @@ void shl_c920v2_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, 
                        void *exec, void *est, void *cap)
 {
     static int i = 0;
+    if (i >= C920V2_OP_PATTERN_MAX) {
+        shl_debug_error("C920V2 callback length is greater than C920V2_OP_PATTERN_MAX!\n");
+    }
     shl_c920v2_cb_table[i].shl_cb_key = op_name * CSINN_DTYPE_SIZE + dtype;
     shl_c920v2_cb_table[i].shl_cb_value.init = init;
     shl_c920v2_cb_table[i].shl_cb_value.exec = exec;
@@ -86,10 +89,15 @@ void shl_c920v2_session_deinit(struct csinn_session *sess)
     struct shl_ref_graph *graph = shl_gref_get_graph(sess);
     shl_mem_free(graph->input);
     shl_mem_free(graph->output);
+    shl_mem_free(graph->layer);
     struct shl_c920v2_option *c920v2_option = shl_c920v2_get_graph_option(sess);
     if (c920v2_option) {
         shl_mem_free(c920v2_option);
     }
+    shl_mem_free(graph);
+    shl_mem_free(sess->td);
+    shl_mem_free(sess->input);
+    shl_mem_free(sess->output);
 }
 
 static int pre_init(struct shl_node *node)

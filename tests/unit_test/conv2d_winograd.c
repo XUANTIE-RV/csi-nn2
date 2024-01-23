@@ -18,7 +18,7 @@
 
 #include "./valid_data/conv2d.dat"
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_conv2d_winograd3x3s1_trans(void *kernel_data, void *ref_kernel, void (*reorder)(),

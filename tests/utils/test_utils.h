@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "csi_nn.h"
 #include "shl_ref.h"
 
 #ifdef __cplusplus

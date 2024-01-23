@@ -214,6 +214,22 @@ int shl_diso_debug_info(struct csinn_tensor *input0, struct csinn_tensor *input1
     return CSINN_TRUE;
 }
 
+int shl_llm_pos_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_llm_pos_params *params, const char *name)
+{
+    shl_debug_print_siso_base(input, output, &(params->base), name);
+    shl_debug_info(")\n");
+    return CSINN_TRUE;
+}
+
+int shl_rope_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_rope_params *params, const char *name)
+{
+    shl_debug_print_siso_base(input, output, &(params->base), name);
+    shl_debug_info(")\n");
+    return CSINN_TRUE;
+}
+
 int shl_conv1d_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_tensor *kernel, struct csinn_tensor *bias,
                           struct csinn_conv1d_params *params, const char *name)
@@ -247,6 +263,14 @@ int shl_fullyconnected_debug_info(struct csinn_tensor *input, struct csinn_tenso
 int shl_layer_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                               struct csinn_tensor *gamma, struct csinn_tensor *beta,
                               struct csinn_layer_norm_params *params, const char *name)
+{
+    shl_debug_print_siso_base(input, output, &(params->base), name);
+    return CSINN_TRUE;
+}
+
+int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *weights, struct csinn_rms_norm_params *params,
+                            const char *name)
 {
     shl_debug_print_siso_base(input, output, &(params->base), name);
     return CSINN_TRUE;
@@ -776,6 +800,14 @@ int shl_sigmoid_debug_info(struct csinn_tensor *input, struct csinn_tensor *outp
     return CSINN_TRUE;
 }
 
+int shl_silu_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_sigmoid_params *params, const char *name)
+{
+    shl_debug_print_siso_base(input, output, &(params->base), name);
+    shl_debug_info(")\n");
+    return CSINN_TRUE;
+}
+
 int shl_slice_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_slice_params *params, const char *name)
 {
@@ -911,6 +943,15 @@ int shl_cast_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
 {
     shl_debug_print_siso_base(input, output, &(params->base), name);
     shl_debug_info("dtype=%d", params->dtype);
+    return CSINN_TRUE;
+}
+
+int shl_scaled_dot_product_attention_debug_info(
+    struct csinn_tensor *query, struct csinn_tensor *key, struct csinn_tensor *value,
+    struct csinn_tensor *output, struct csinn_scale_dot_attention_params *params, const char *name)
+{
+    shl_debug_print_siso_base(query, output, &(params->base), name);
+    shl_debug_info(")\n");
     return CSINN_TRUE;
 }
 
@@ -1089,7 +1130,7 @@ int shl_benchmark_layer(struct shl_node *n, uint64_t start_time, uint64_t end_ti
     return CSINN_TRUE;
 }
 
-static uint32_t shl_debug_shape2string(uint32_t *shape, uint32_t dim_count, char *buf,
+static uint32_t shl_debug_shape2string(int32_t *shape, uint32_t dim_count, char *buf,
                                        uint32_t buf_sz)
 {
     if (NULL == shape || NULL == buf || dim_count == 0 || buf_sz == 0) {

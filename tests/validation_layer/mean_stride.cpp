@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -91,15 +88,15 @@ int main(int argc, char **argv)
     params->base.api = CSINN_API;
     params->base.layout = CSINN_LAYOUT_NCHW;
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_mean_init, csinn_mean,
-                   &difference);
-#elif (DTYPE==16)
+                  &difference);
+#elif (DTYPE == 16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_mean_init, csinn_mean,
-                   &difference);
-#elif (DTYPE==8)
+                  &difference);
+#elif (DTYPE == 8)
     test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_mean_init, csinn_mean,
-                   &difference);
+                  &difference);
 #endif
 
     return done_testing();

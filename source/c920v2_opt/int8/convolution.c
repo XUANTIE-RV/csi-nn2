@@ -74,7 +74,6 @@ int shl_c920v2_conv2d_init_int8(struct csinn_tensor *input, struct csinn_tensor 
                     shl_rvv_conv_im2col_gemm_reorder_kernel_packn_int8(kernel, params);
                 }
                 cb->exec = shl_rvv_conv_im2col_gemm_packn_int8;
-                return CSINN_TRUE;
             } else {
                 params->conv_extra.conv_mode = CSINN_WINOGRAD;
                 struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);

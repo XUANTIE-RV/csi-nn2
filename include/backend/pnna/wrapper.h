@@ -35,6 +35,7 @@ int shl_pnna_create_tensor_internal(struct csinn_tensor *t, struct shl_pnna_targ
 int shl_pnna_set_output_internal(int index, struct csinn_tensor *t,
                                  struct shl_pnna_target_data *td);
 int shl_pnna_update_input_internal(int index, void *buffer, struct csinn_session *sess);
+int shl_pnna_update_output_internal(int index, void *buffer, struct csinn_session *sess);
 int shl_pnna_get_output_internal(int index, struct csinn_tensor *output,
                                  struct shl_pnna_target_data *td);
 void shl_pnna_set_input_strides_internal(struct shl_pnna_target_data *td, int byte_size,

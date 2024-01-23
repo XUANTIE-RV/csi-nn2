@@ -51,6 +51,8 @@ int shl_c908_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn
         out_elempack = out_c % packn == 0 ? packn : 1;
     }
 
+    bool binary_model_op_init = shl_c908_get_binary_model_op_init(sess);
+
     // enable fuse zeropoint to bias
     if (!params->conv_extra.fuse_zp2bias) {
         params->conv_extra.fuse_zp2bias = true;
@@ -74,7 +76,9 @@ int shl_c908_depthwise_conv2d_init_int8(struct csinn_tensor *input, struct csinn
     }
 
     if (in_elempack % packn == 0 && out_elempack % packn == 0) {
-        shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
+        if (!binary_model_op_init) {
+            shl_rvv_dwconv_reorder_kernel_packn_int8(kernel, params);
+        }
         if (kernel_h == 3 && kernel_w == 3 && stride_h == 1 && stride_w == 1) {
             cb->exec = shl_rvv_dwconv3x3s1_packn_int8;
         } else if (kernel_h == 3 && kernel_w == 3 && stride_h == 2 && stride_w == 2) {

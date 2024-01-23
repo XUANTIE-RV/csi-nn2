@@ -41,13 +41,15 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
     int32_t dilation_w = params->dilation_width;
     struct csinn_callback *cb = params->base.cb;
 
-    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
-        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+    if (params->base.sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(params->base.sess);
         if (option && option->base.use_packn_layout) {
             shl_debug_error("%s: unsupport packn\n", __func__);
             return CSINN_UNSUPPORT_LAYOUT;
         }
     }
+
+    bool binary_model_op_init = shl_c906_get_binary_model_op_init(params->base.sess);
 
     // check
     int out_height = (in_h + params->pad_top + params->pad_down - kernel_h) / stride_h + 1;
@@ -71,10 +73,12 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
     if (kernel_h == 1 && kernel_w == 1 && stride_h == 1 && stride_w == 1 && dilation_h == 1 &&
         dilation_w == 1) {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16_w_int8(kernel, params);
-        } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-            shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
+        if (!binary_model_op_init) {
+            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                shl_c906_conv1x1s1_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                shl_c906_conv1x1s1_sgemm_transform_kernel_fp16(kernel, params);
+            }
         }
         cb->exec = shl_c906_conv1x1s1_sgemm_fp16;
         // winograd convolution condition:
@@ -82,10 +86,12 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
                dilation_h == 1 && dilation_w == 1) {
         if (params->group > 1 || (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8)) {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c906_conv_im2col_sgemm_fp16;
             return CSINN_TRUE;
@@ -93,25 +99,30 @@ int shl_c906_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
         // pack4 for winograd convolution
         if ((out_c % 8 == 0) && (in_c % 8 == 0)) {
             params->conv_extra.conv_mode = CSINN_WINOGRAD;
+            // TODO: params->conv_extra.kernel_tm in binary model
             struct csinn_tensor *t_kernel = csinn_alloc_tensor(NULL);
             shl_c906_conv3x3s1_winograd64_transform_kernel_pack8_fp16(kernel, t_kernel);
             params->conv_extra.kernel_tm = t_kernel;
             cb->exec = shl_c906_conv3x3s1_winograd64_pack8_fp16;
         } else {
             params->conv_extra.conv_mode = CSINN_GEMM;
-            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-                shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
-            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            if (!binary_model_op_init) {
+                if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                    shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+                } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                    shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+                }
             }
             cb->exec = shl_c906_conv_im2col_sgemm_fp16;
         }
     } else {
         params->conv_extra.conv_mode = CSINN_GEMM;
-        if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
-            shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
-        } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
-            shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+        if (!binary_model_op_init) {
+            if (kernel->is_const && kernel->dtype == CSINN_DTYPE_INT8) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16_w_int8(kernel, params);
+            } else if (kernel->dtype == CSINN_DTYPE_FLOAT16) {
+                shl_c906_conv_im2col_sgemm_transform_kernel_fp16(kernel, params);
+            }
         }
         cb->exec = shl_c906_conv_im2col_sgemm_fp16;
     }

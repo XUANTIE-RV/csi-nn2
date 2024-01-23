@@ -1207,6 +1207,32 @@ int csinn_sigmoid(struct csinn_tensor *input, struct csinn_tensor *output,
                   struct csinn_sigmoid_params *params);
 
 /**
+ * @brief       Sigmoid Linear Unit initialization function
+ *
+ * @param[in]   input   Pointer to the input tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Sigmoid parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_silu_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_sigmoid_params *params);
+
+/**
+ * @brief       Calculate <code>silu</code> for each element of input tensor.
+ *
+ * @param[in]   input   Pointer to the input tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Sigmoid parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_silu(struct csinn_tensor *input, struct csinn_tensor *output,
+               struct csinn_sigmoid_params *params);
+
+/**
  * @brief       Hard sigmoid initialization function
  *
  * @param[in]   input   Pointer to the input tensor
@@ -4510,6 +4536,34 @@ int csinn_layer_norm(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_layer_norm_params *params);
 
 /**
+ * @brief       RMS normalization initialization function
+ *
+ * @param[in]   input       Pointer to the input tensor
+ * @param[out]  output      Pointer to the output tensor
+ * @param[in]   weights     coefficient
+ * @param[in]   params      RMS normalization parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_rms_norm_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+
+/**
+ * @brief       RMS normalization function
+ *
+ * @param[in]   input       Pointer to the input tensor
+ * @param[out]  output      Pointer to the output tensor
+ * @param[in]   weights     coefficient
+ * @param[in]   params      Layer normalization parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_rms_norm(struct csinn_tensor *input, struct csinn_tensor *output,
+                   struct csinn_tensor *weights, struct csinn_rms_norm_params *params);
+
+/**
  * @brief       Cache matmul initialization function
  *
  * @param[in]   input   Pointer to the input tensor
@@ -4655,6 +4709,118 @@ int csinn_data_convert_init(struct csinn_tensor *input, struct csinn_tensor *out
  */
 int csinn_data_convert(struct csinn_tensor *input, struct csinn_tensor *output,
                        struct csinn_siso_params *params);
+
+/**
+ * @brief       Rotary positional embedding initialization function
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  RoPE parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_rope_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                    struct csinn_rope_params *params);
+
+/**
+ * @brief       Calculate <code>RoPE</code> for each element of input tensor.
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  RoPE parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_rope(struct csinn_tensor *input, struct csinn_tensor *output,
+               struct csinn_rope_params *params);
+
+/**
+ * @brief       LLM pos initialization function
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  cache parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_llm_pos_init(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_llm_pos_params *params);
+
+/**
+ * @brief       Calculate <code>llm_pos</code> for each element of input tensor.
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  cache parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_llm_pos(struct csinn_tensor *input, struct csinn_tensor *output,
+                  struct csinn_llm_pos_params *params);
+
+/**
+ * @brief       Embedding initialization function
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[in]   weight  Pointer to the input1 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Embedding parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_embedding_init(struct csinn_tensor *input, struct csinn_tensor *weight,
+                         struct csinn_tensor *output, struct csinn_diso_params *params);
+
+/**
+ * @brief       Calculate <code>embedding</code> for each element of input tensor.
+ *
+ * @param[in]   input   Pointer to the input0 tensor
+ * @param[in]   weight  Pointer to the input1 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Embedding parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_embedding(struct csinn_tensor *input, struct csinn_tensor *weight,
+                    struct csinn_tensor *output, struct csinn_diso_params *params);
+
+/**
+ * @brief       Scale dot product attention initialization function
+ *
+ * @param[in]   query   Pointer to the input0 tensor
+ * @param[in]   key     Pointer to the input1 tensor
+ * @param[in]   value   Pointer to the input2 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Embedding parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_scaled_dot_product_attention_init(struct csinn_tensor *query, struct csinn_tensor *key,
+                                            struct csinn_tensor *value, struct csinn_tensor *output,
+                                            struct csinn_scale_dot_attention_params *params);
+
+/**
+ * @brief       Calculate <code>scale dot product attention</code> for input tensor.
+ *
+ * @param[in]   query   Pointer to the input0 tensor
+ * @param[in]   key     Pointer to the input1 tensor
+ * @param[in]   value   Pointer to the input2 tensor
+ * @param[out]  output  Pointer to the output tensor
+ * @param[in]   params  Embedding parameter descriptor
+ * @return      On success, the return value is 1.
+ *              If an error occurred while executing the function, the return value is less than or
+ *              equal to 0.
+ */
+int csinn_scaled_dot_product_attention(struct csinn_tensor *query, struct csinn_tensor *key,
+                                       struct csinn_tensor *value, struct csinn_tensor *output,
+                                       struct csinn_scale_dot_attention_params *params);
 
 #ifdef __cplusplus
 }

@@ -19,7 +19,7 @@
 #include "./valid_data/dwconv2d.dat"
 
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_dwconv2d(void *input_data, void *kernel_data, void *bias_data, void *ref_data,

@@ -14,32 +14,29 @@ endif()
 if (CONFIG_CUSTOM_SOURCE_SELECT)
     add_definitions(-DSHL_MCONF_CONFIG)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+else()
+    set(CONFIG_USE_SHL_DEBUG ON)
+    set(CONFIG_SHL_LAYER_BENCHMARK ON)
 endif()
 
-file (STRINGS "${CMAKE_CURRENT_BINARY_DIR}/../version" SHL_VERSION)
+file (STRINGS "version" SHL_VERSION)
 set(SHL_MAJOR_VERSION 2)
 SET(so_symlink_target ${CMAKE_INSTALL_PREFIX}/lib/libshl.so)
 SET(a_symlink_target ${CMAKE_INSTALL_PREFIX}/lib/libshl.a)
 
 if(CONFIG_BUILD_X86_REF)
     # build x86_ref lib
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/x86_ref.cmake)
-    endif()
     include(cmake/rules.cmake)
 
     set(SHL_LIB_TARGET "ref_x86_target")
     set(SHL_LIB_NAME shl_ref_x86)
-    LIST(APPEND SHL_BUILD_SRC_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS})
+    LIST(APPEND SHL_BUILD_SRC_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${LLM_SRCS})
     set(SHL_BUILD_C_FLAGS -DSHL_AVX_OPT -DSHL_BUILD_REF -DSHL_BUILD_GREF -fPIC -mavx -mfma -fopenmp)
     include(cmake/target_build.cmake)
 endif()
 
 if(CONFIG_BUILD_RISCV_RVV)
     # build rvv a
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/rvv.cmake)
-    endif()
     include(cmake/rules.cmake)
     LIST(APPEND RVV_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS})
     add_library(rvv_static STATIC ${RVV_LST})
@@ -50,11 +47,21 @@ if(CONFIG_BUILD_RISCV_RVV)
     install(TARGETS rvv_static DESTINATION lib)
 endif()
 
+if(CONFIG_BUILD_RISCV_RVV_NODOT)
+    # build rvv a without xtheadvdot extension
+    include(cmake/rules.cmake)
+    LIST(APPEND RVV_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS})
+    add_library(rvv_static STATIC ${RVV_LST})
+    SET_TARGET_PROPERTIES(rvv_static PROPERTIES OUTPUT_NAME "shl_rvv_nodot")
+    set(RVV_BUILD_FLAGS -ffp-contract=off -march=rv64gcv_zfh_xtheadc -mabi=lp64d -DSHL_BUILD_RVV -DSHL_BUILD_REF -DSHL_BUILD_GREF)
+    target_compile_options(rvv_static PRIVATE ${RVV_BUILD_FLAGS})
+
+    install(TARGETS rvv_static DESTINATION lib)
+endif()
+
 if(CONFIG_BUILD_RISCV_C906)
     # build c906 lib
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c906_static.cmake)
-    endif()
+    set(CONFIG_GRAPH_REFERENCE_TVMGEN ON)
     include(cmake/rules.cmake)
 
     set(SHL_LIB_TARGET "c906_lib")
@@ -67,9 +74,6 @@ endif()
 
 if(CONFIG_BUILD_RISCV_RVM)
     # build rvm a
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/rvm.cmake)
-    endif()
     include(cmake/rules.cmake)
     LIST(APPEND RVM_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${THEAD_MATRIX_SRCS} ${RVM_SRCS})
     add_library(rvm_static STATIC ${RVM_LST})
@@ -82,9 +86,6 @@ endif()
 
 if(CONFIG_BUILD_RISCV_C908)
     # build c908 lib
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c908.cmake)
-    endif()
     include(cmake/rules.cmake)
 
     set(SHL_LIB_TARGET "c908_lib")
@@ -96,9 +97,7 @@ endif()
 
 if(CONFIG_BUILD_RISCV_C920)
     # build c920 lib
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c920.cmake)
-    endif()
+    set(CONFIG_GRAPH_REFERENCE_TVMGEN ON)
     include(cmake/rules.cmake)
 
     set(SHL_LIB_TARGET "c920_lib")
@@ -111,9 +110,7 @@ endif()
 
 if(CONFIG_BUILD_RISCV_C920V2)
     # build c920v2 lib
-    if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
-        include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c920v2.cmake)
-    endif()
+    set(CONFIG_GRAPH_REFERENCE_TVMGEN ON)
     include(cmake/rules.cmake)
 
     set(SHL_LIB_TARGET "c920v2_lib")
@@ -124,14 +121,13 @@ if(CONFIG_BUILD_RISCV_C920V2)
     target_include_directories(${SHL_LIB_TARGET} PRIVATE module/dlpack/include/)
 endif()
 
-
 if(CONFIG_BUILD_RISCV_ELF_C906)
     # build c906 elf a
     if (NOT CONFIG_CUSTOM_SOURCE_SELECT)
         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/c906_elf.cmake)
     endif()
     include(cmake/rules.cmake)
-    LIST(APPEND C906_LST ${NN2_SRCS} ${REF_SRCS} ${GREF_SRCS} ${THEAD_RVV_SRCS} ${C906_SRCS})
+    LIST(APPEND C906_LST ${NN2_SRCS} ${REF_SRCS_MOD} ${GREF_SRCS_MOD} ${THEAD_RVV_SRCS_MOD} ${C906_SRCS_MOD})
     add_library(c906_elf_static STATIC ${C906_LST})
     SET_TARGET_PROPERTIES(c906_elf_static PROPERTIES OUTPUT_NAME "shl_c906_rtos")
     set(C906_BUILD_FLAGS -ffp-contract=off -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d -mcmodel=medany -DSHL_BUILD_C906 -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_RTOS -DSHL_BUILD_RVV)
@@ -146,7 +142,7 @@ if(CONFIG_BUILD_RISCV_ELF_E907)
         include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/e907.cmake)
     endif()
     include(cmake/rules.cmake)
-    LIST(APPEND E907_LST ${NN2_SRCS} ${REF_SRCS} ${E907_SRCS} ${GREF_SRCS})
+    LIST(APPEND E907_LST ${NN2_SRCS} ${REF_SRCS_MOD} ${E907_SRCS_MOD} ${GREF_SRCS_MOD})
     add_library(e907_elf_static STATIC ${E907_LST})
     SET_TARGET_PROPERTIES(e907_elf_static PROPERTIES OUTPUT_NAME "shl_e907")
     set(E907_BUILD_FLAGS -march=rv32imafcpzpsfoperand_xtheade -mabi=ilp32f -mcmodel=medlow -g2 -Os -DSHL_BUILD_REF -DSHL_BUILD_GREF -DSHL_BUILD_E907 -DSHL_BUILD_RTOS)

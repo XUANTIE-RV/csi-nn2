@@ -21,7 +21,7 @@
 int shl_gref_hard_sigmoid(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_sigmoid_params *params)
 {
-    shl_gref_siso_op(input, output, CSINN_OP_SIGMOID, params);
+    shl_gref_siso_op(input, output, CSINN_OP_HARD_SIGMOID, params);
     return CSINN_TRUE;
 }
 

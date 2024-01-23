@@ -224,6 +224,13 @@ config CONFIG_THEAD_RVV_ERF_FP16
 	help
 		Select SHL build v extension optimized erf
 
+config CONFIG_THEAD_RVV_ERF_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer erf int8"
+	default y
+	help
+		Select SHL build v extension optimized erf
+
 config THEAD_RVV_FULLYCONNECTED_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer fullyconnected fp32"
@@ -532,6 +539,13 @@ config THEAD_RVV_RELU6_FP16
 	help
 		Select SHL build v extension optimized relu6
 
+config THEAD_RVV_RELU6_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer relu6 int8"
+	default y
+	help
+		Select SHL build v extension optimized relu6
+
 config THEAD_RVV_RESHAPE_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer reshape fp32"
@@ -553,6 +567,27 @@ config THEAD_RVV_RESHAPE_INT8
 	help
 		Select SHL build v extension optimized reshape
 
+config THEAD_RVV_RMS_NORM_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer rms_norm fp32"
+	default y
+	help
+		Select SHL build v extension optimized rms_norm
+
+config THEAD_RVV_RMS_NORM_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer rms_norm fp16"
+	default y
+	help
+		Select SHL build v extension optimized rms_norm
+
+config THEAD_RVV_RMS_NORM_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer rms_norm int8"
+	default y
+	help
+		Select SHL build v extension optimized rms_norm
+
 config THEAD_RVV_SIGMOID_FP32
 	depends on THEAD_RVV_SOURCE
 	bool "Layer sigmoid fp32"
@@ -566,6 +601,34 @@ config THEAD_RVV_SIGMOID_FP16
 	default y
 	help
 		Select SHL build v extension optimized sigmoid
+
+config THEAD_RVV_SIGMOID_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer sigmoid int8"
+	default y
+	help
+		Select SHL build v extension optimized sigmoid
+
+config THEAD_RVV_SILU_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer silu fp32"
+	default y
+	help
+		Select SHL build v extension optimized silu
+
+config THEAD_RVV_SILU_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer silu fp16"
+	default y
+	help
+		Select SHL build v extension optimized silu
+
+config THEAD_RVV_SILU_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer silu int8"
+	default y
+	help
+		Select SHL build v extension optimized silu
 
 config THEAD_RVV_SUB_FP32
 	depends on THEAD_RVV_SOURCE
@@ -601,6 +664,34 @@ config THEAD_RVV_SOFTMAX_FP16
 	default y
 	help
 		Select SHL build v extension optimized softmax
+
+config THEAD_RVV_SOFTMAX_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer softmax int8"
+	default y
+	help
+		Select SHL build v extension optimized softmax
+
+config THEAD_RVV_SPLIT_FP32
+	depends on THEAD_RVV_SOURCE
+	bool "Layer split fp32"
+	default y
+	help
+		Select SHL build v extension optimized split
+
+config THEAD_RVV_SPLIT_FP16
+	depends on THEAD_RVV_SOURCE
+	bool "Layer split fp16"
+	default y
+	help
+		Select SHL build v extension optimized split
+
+config THEAD_RVV_SPLIT_INT8
+	depends on THEAD_RVV_SOURCE
+	bool "Layer split int8"
+	default y
+	help
+		Select SHL build v extension optimized split
 
 config THEAD_RVV_STRIDED_SLICE_FP16
 	depends on THEAD_RVV_SOURCE

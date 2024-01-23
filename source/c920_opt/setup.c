@@ -26,6 +26,9 @@ void shl_c920_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, vo
                      void *exec, void *est, void *cap)
 {
     static int i = 0;
+    if (i >= C920_OP_PATTERN_MAX) {
+        shl_debug_error("C920 callback length is greater than C920_OP_PATTERN_MAX!\n");
+    }
     shl_c920_cb_table[i].shl_cb_key = op_name * CSINN_DTYPE_SIZE + dtype;
     shl_c920_cb_table[i].shl_cb_value.init = init;
     shl_c920_cb_table[i].shl_cb_value.exec = exec;
@@ -86,10 +89,15 @@ void shl_c920_session_deinit(struct csinn_session *sess)
     struct shl_ref_graph *graph = shl_gref_get_graph(sess);
     shl_mem_free(graph->input);
     shl_mem_free(graph->output);
+    shl_mem_free(graph->layer);
     struct shl_c920_option *c920_option = shl_c920_get_graph_option(sess);
     if (c920_option) {
         shl_mem_free(c920_option);
     }
+    shl_mem_free(graph);
+    shl_mem_free(sess->td);
+    shl_mem_free(sess->input);
+    shl_mem_free(sess->output);
 }
 
 static int pre_init(struct shl_node *node)
@@ -390,6 +398,14 @@ void shl_target_init_c920()
                     shl_gref_conv2d, shl_c920_conv2d_cap);
     shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_GROUP_CONV2D, shl_c920_conv2d_init_fp16, NULL,
                     shl_gref_group_conv2d, shl_c920_conv2d_cap);
+#endif
+#ifndef CONFIG_C920_FULLYCONNECTED_FP32_DISABLED
+    shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_FULLYCONNECTED, shl_c920_fullyconnected_init_fp32,
+                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap);
+#endif
+#ifndef CONFIG_C920_FULLYCONNECTED_FP16_DISABLED
+    shl_c920_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_FULLYCONNECTED, shl_c920_fullyconnected_init_fp16,
+                    NULL, shl_gref_fullyconnected, shl_c920_fullyconnected_cap);
 #endif
 #ifndef CONFIG_C920_MATMUL_FP32_DISABLED
     shl_c920_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_MATMUL, shl_c920_matmul_init_fp32, NULL,

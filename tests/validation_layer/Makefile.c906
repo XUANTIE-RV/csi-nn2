@@ -1,5 +1,5 @@
 LIB_DIR = ../../c906_static_build
-INCLUDE = -I../../include -I../utils -I./layer
+INCLUDE = -I../../include -I../../include/shl_public -I../utils -I./layer
 CFLAGS = -O0 -g3 -static
 CFLAGS += -march=rv64gcv0p7_zfh_xtheadc -mabi=lp64d
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
@@ -45,6 +45,9 @@ test_objs += reshape.o
 test_objs += softmax.o
 test_objs += sum_stride.o
 test_objs += transpose.o
+test_objs += reduce_sum.o
+test_objs += sigmoid.o
+test_objs += deconvolution.o
 
 
 

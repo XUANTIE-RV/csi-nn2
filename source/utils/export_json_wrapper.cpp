@@ -29,7 +29,7 @@ extern "C" {
 #include <map>
 #include <vector>
 
-#include "../../module/json/json.hpp"
+#include "json/json.hpp"
 using json = nlohmann::ordered_json;
 
 NLOHMANN_JSON_SERIALIZE_ENUM(csinn_mem_type_enum,

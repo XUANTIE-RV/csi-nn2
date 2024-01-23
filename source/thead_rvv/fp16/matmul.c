@@ -62,10 +62,10 @@ int shl_rvv_matmul_block_fp16(struct csinn_tensor *mat0, struct csinn_tensor *ma
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
                 if (!(mat1->is_const)) {
-                    shl_rvv_reorder_input_block_pack2nxk_fp16(mat1_data, in1, dim_k, dim_n, K_BLK,
-                                                              N_BLK);
+                    shl_rvv_reorder_b_block_pack2nxk_fp16(mat1_data, in1, dim_k, dim_n, K_BLK,
+                                                          N_BLK);
                 } else {
                     in1 = mat1_data;
                 }
@@ -88,14 +88,13 @@ int shl_rvv_matmul_block_fp16(struct csinn_tensor *mat0, struct csinn_tensor *ma
             __fp16 *in1;
             if (!(mat1->is_const)) {
                 in1 = (__fp16 *)shl_mem_alloc(dim_k * dim_n * sizeof(__fp16));
-                shl_rvv_reorder_input_block_pack2nxk_fp16(mat1_data, in1, dim_k, dim_n, K_BLK,
-                                                          N_BLK);
+                shl_rvv_reorder_b_block_pack2nxk_fp16(mat1_data, in1, dim_k, dim_n, K_BLK, N_BLK);
             } else {
                 in1 = mat1_data;
             }
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
 
                 shl_rvv_gemm_block_12xpack2n_fp16(output_data, in0, in1, NULL, dim_m, dim_k, dim_n,
                                                   M_BLK, K_BLK, N_BLK);
@@ -151,8 +150,6 @@ int shl_rvv_matmul_block_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_ten
 
     int32_t zp = mat1->qinfo->zero_point;
     float scale = mat1->qinfo->scale;
-
-    int api = params->base.api;
     int size1 = csinn_tensor_size(mat1);
 
     if (!params->trans_a && !params->trans_b) {
@@ -162,7 +159,7 @@ int shl_rvv_matmul_block_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_ten
             shl_rvv_dequantize_i8_to_f16(mat1_data, in1, size1, zp, scale);
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
 
                 shl_rvv_gemm_block_12xpack2n_fp16(output_data, in0, in1 + b * dim_k * dim_n, NULL,
                                                   dim_m, dim_k, dim_n, M_BLK, K_BLK, N_BLK);
@@ -178,7 +175,7 @@ int shl_rvv_matmul_block_fp16_w_int8(struct csinn_tensor *mat0, struct csinn_ten
             shl_rvv_dequantize_i8_to_f16(mat1_data, in1, size1, zp, scale);
 
             for (int b = 0; b < batches_a; b++) {
-                shl_rvv_reorder_kernel_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
+                shl_rvv_reorder_a_block_12xk_fp16(mat0_data, in0, dim_m, dim_k, M_BLK, K_BLK);
 
                 shl_rvv_gemm_block_12xpack2n_fp16(output_data, in0, in1, NULL, dim_m, dim_k, dim_n,
                                                   M_BLK, K_BLK, N_BLK);
@@ -271,10 +268,7 @@ void shl_rvv_matmul_reorder_weight_fp16_w_int8(struct csinn_tensor *mat1, const 
             int n_block = N_BLK;
             int n_idx = 0;
             while (n_idx < n) {
-                while (!(n_idx + n_block - 1 < n)) {
-                    n_block /= 2;
-                }
-                if (n_block < MIN_N_BLOCK) {
+                if (n - n_idx < n_block) {
                     n_block = n - n_idx;
                 }
                 int8_t *s_ptr = init_mat + k_idx * n + n_idx;
@@ -311,7 +305,7 @@ void shl_rvv_matmul_reorder_weight_fp16(struct csinn_tensor *mat1, const int K_B
 
     for (int b = 0; b < batch; b++) {
         __fp16 *init_mat = mat1_data + b * k * n;
-        shl_rvv_reorder_input_block_pack2nxk_fp16(init_mat, mat_reorder, k, n, K_BLK, N_BLK);
+        shl_rvv_reorder_b_block_pack2nxk_fp16(init_mat, mat_reorder, k, n, K_BLK, N_BLK);
         memcpy(init_mat, mat_reorder, k * n * sizeof(__fp16));
     }
 
@@ -327,6 +321,8 @@ int shl_rvv_matmul_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
     } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
         return shl_rvv_matmul_block_fp16(mat0, mat1, output, params, MATMUL_M_BLK, MATMUL_K_BLK,
                                          MATMUL_N_BLK);
+    } else {
+        return CSINN_FALSE;
     }
 }
 

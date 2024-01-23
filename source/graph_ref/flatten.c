@@ -33,7 +33,26 @@ int shl_gref_flatten_infer_shape(struct csinn_tensor *input, struct csinn_tensor
     for (int i = 0; i < input->dim_count; i++) {
         in_size *= input->dim[i];
     }
-    output->dim_count = 1;
-    output->dim[0] = in_size;
+
+    int32_t axis = params->axis < 0 ? params->axis + input->dim_count : params->axis;
+    if (axis >= input->dim_count) {
+        shl_debug_fatal(
+            "flatten axis must less than input dim count, but flatten %s, get axis %d, input dim "
+            "count %d",
+            params->base.name, params->axis, input->dim_count);
+    }
+
+    output->dim_count = 2;
+    if (axis == 0) {
+        output->dim[0] = 1;
+        output->dim[1] = in_size;
+    } else {
+        int outer_size = 1;
+        for (int i = 0; i < axis; i++) {
+            outer_size *= input->dim[i];
+        }
+        output->dim[0] = outer_size;
+        output->dim[1] = in_size / outer_size;
+    }
     return CSINN_TRUE;
 }

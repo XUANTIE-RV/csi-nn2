@@ -1,5 +1,5 @@
 LIB_DIR = ../../c908_build
-INCLUDE = -I../../include -I../utils -I./layer
+INCLUDE = -I../../include -I../../include/shl_public -I../utils -I./layer
 CFLAGS = -O0 -g3 -static
 CFLAGS += -march=rv64gcv_zfh_xtheadc_xtheadvdot -mabi=lp64d
 CFLAGS += -ffunction-sections -fdata-sections -Wl,--gc-sections
@@ -46,12 +46,12 @@ test_objs += reshape.o
 test_objs += softmax.o
 test_objs += sum_stride.o
 test_objs += transpose.o
+test_objs += reduce_sum.o
 
 
 
 utils_objs =
 utils_objs += ../utils/test_utils.o
-# template_objs += ./layer/common.o
 
 all: csi
 
@@ -62,7 +62,7 @@ $(utils_objs): %.o: %.c
 
 $(test_objs): %.o: %.cpp
 	$(CPLUS) -c $(CFLAGS) $(INCLUDE) -D DTYPE=$(TYPE) $< -o $@
-	$(CPLUS) $@  $(CFLAGS) $(BOARD) $(utils_objs) $(template_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
+	$(CPLUS) $@  $(CFLAGS) $(BOARD) $(utils_objs) -L$(LIB_DIR) -l$(LIB_NAME) -lc -lm -o $@.elf -lgcov
 
 clean:
 	rm -rf  $(test_objs) $(utils_objs) *.a *.asm *.elf *.asm

@@ -1,0 +1,37 @@
+#!/bin/sh -x
+
+./add.o.elf add_graph_data_f32.bin
+./avgpool.o.elf avgpool2d_nchw_data_f32.bin
+./concat.o.elf concat_data_f32.bin
+./convolution.o.elf convolution_nchw_data_f32.bin
+./deconvolution.o.elf deconvolution_nchw_data_f32.bin
+./depth_to_space.o.elf depth_to_space_data_f32.bin
+./depthwise_convolution.o.elf depthwise_convolution_nchw_data_f32.bin
+# ./div.o.elf div_data_f32.bin
+./flatten.o.elf flatten_data_f32.bin
+./fullyconnected.o.elf fullyconnected_data_f32.bin
+./global_avgpool.o.elf global_avgpool2d_nchw_data_f32.bin
+./global_maxpool.o.elf global_maxpool2d_nchw_data_f32.bin
+./group_convolution.o.elf group_convolution_nchw_data_f32.bin
+./leaky_relu.o.elf leaky_relu_data_f32.bin
+./lrn.o.elf lrn_data_f32.bin
+./maximum.o.elf maximum_data_f32.bin
+./maxpool.o.elf maxpool2d_nchw_data_f32.bin
+./mean.o.elf mean_graph_data_f32.bin
+./minimum.o.elf minimum_data_f32.bin
+./mul.o.elf mul_data_f32.bin
+./pad.o.elf pad_nchw_data_f32.bin
+./prelu.o.elf prelu_nhwc_data_f32.bin
+./relu.o.elf relu_data_f32.bin
+./relu1.o.elf relu1_data_f32.bin
+./relu6.o.elf relu6_data_f32.bin
+./reshape.o.elf reshape_data_f32.bin
+./resize_bilinear.o.elf resize_bilinear_nchw_data_f32.bin
+./resize_nearest_neighbor.o.elf resize_nearestneighbor_data_f32.bin
+./sigmoid.o.elf sigmoid_data_f32.bin
+./space_to_depth.o.elf space_to_depth_data_f32.bin
+./split.o.elf split_graph_data_f32.bin
+./squeeze.o.elf squeeze_data_f32.bin
+./sub.o.elf sub_data_f32.bin
+./tanh.o.elf tanh_data_f32.bin
+./transpose.o.elf transpose_data_f32.bin

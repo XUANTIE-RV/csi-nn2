@@ -411,10 +411,10 @@ int shl_c906_clip_cap(struct csinn_tensor *input, struct csinn_tensor *output,
     return common_all_support(input, &(params->base));
 }
 
-int shl_c906_concat_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_c906_concat_cap(struct csinn_tensor **input, struct csinn_tensor *output,
                         struct csinn_clip_params *params)
 {
-    return common_all_support(input, &(params->base));
+    return common_all_support(input[0], &(params->base));
 }
 
 int shl_c906_global_avgpool2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,

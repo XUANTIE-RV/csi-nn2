@@ -35,6 +35,20 @@ config C920_GEMM_FP16
 	help
 		Select SHL build v extension optimized gemm
 
+config C920_FULLYCONNECTED_FP32
+	depends on C920_SOURCE
+	bool "Layer fullyconnected fp32"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
+config C920_FULLYCONNECTED_FP16
+	depends on C920_SOURCE
+	bool "Layer fullyconnected fp16"
+	default y
+	help
+		Select SHL build v extension optimized fullyconnected
+
 config C920_MATMUL_FP32
 	depends on C920_SOURCE
 	bool "Layer matmul fp32"

@@ -34,6 +34,17 @@ int shl_c920_conv2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
     return common_all_support(input, &(params->base));
 }
 
+int shl_c920_fullyconnected_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                struct csinn_fc_params *params)
+{
+    if ((input->dtype != CSINN_DTYPE_FLOAT16) && (input->dtype != CSINN_DTYPE_FLOAT32)) {
+        return CSINN_OPT_UNSUPPORTED;
+    }
+
+    return CSINN_OPT_INTRINSIC;
+}
+
 int shl_c920_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {

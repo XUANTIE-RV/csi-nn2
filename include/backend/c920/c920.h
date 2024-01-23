@@ -36,6 +36,14 @@ int shl_c920_conv2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor *o
                               struct csinn_tensor *kernel, struct csinn_tensor *bias,
                               struct csinn_conv2d_params *params);
 
+int shl_c920_fullyconnected_init_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                      struct csinn_fc_params *params);
+
+int shl_c920_fullyconnected_init_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                      struct csinn_fc_params *params);
+
 int shl_c920_matmul_init_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                               struct csinn_tensor *output, struct csinn_matmul_params *params);
 int shl_c920_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
@@ -76,17 +84,30 @@ void shl_c920_ncxhwx_gemm_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __f
                                         __fp16 *bias, int m, int k, int n, bool fuse_relu);
 
 /************************************* gemm block *************************************/
-void shl_c920_reorder_kernel_block_8xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
-                                            const int K_BLK);
+void shl_c920_reorder_a_block_8xk_fp32(float *src, float *dst, int m, int k, const int M_BLK,
+                                       const int K_BLK);
 void shl_c920_gemm_block_8xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
                                        int m, int k, int n, const int M_BLK, const int K_BLK,
                                        const int N_BLK);
 
-void shl_c920_reorder_kernel_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
-                                            const int K_BLK);
+void shl_c920_reorder_a_block_8xk_fp16(__fp16 *src, __fp16 *dst, int m, int k, const int M_BLK,
+                                       const int K_BLK);
 void shl_c920_gemm_block_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb,
                                        __fp16 *bias, int m, int k, int n, const int M_BLK,
                                        const int K_BLK, const int N_BLK);
+
+/************************************ fullyconnected **********************************/
+void shl_c920_gemm_a0b1_8xpack2n_fp32(float *dst, const float *sa, const float *sb, float *bias,
+                                      int M, int K, int N);
+void shl_c920_gemm_a0b1_8xpack2n_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
+                                      int M, int K, int N);
+
+int shl_c920_fullyconnected_gemm_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                      struct csinn_fc_params *params);
+int shl_c920_fullyconnected_gemm_fp16(struct csinn_tensor *input, struct csinn_tensor *output,
+                                      struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                      struct csinn_fc_params *params);
 
 /*************************************** matmul ***************************************/
 int shl_c920_matmul_fp32(struct csinn_tensor *mat0, struct csinn_tensor *mat1,

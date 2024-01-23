@@ -24,3 +24,19 @@ int csrr_xrlenb()
     asm volatile("csrr %0, xrlenb" : "=r"(a) : : "memory");
     return a;
 }
+
+bool shl_rvm_get_binary_model_op_init(struct csinn_session *sess)
+{
+    struct shl_rvm_option *option = shl_rvm_get_graph_option(sess);
+    if (option && option->binary_model_op_init) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void shl_rvm_set_binary_model_op_init(struct csinn_session *sess, bool value)
+{
+    struct shl_rvm_option *option = shl_rvm_get_graph_option(sess);
+    option->binary_model_op_init = value;
+}

@@ -82,5 +82,10 @@ int shl_rvv_erf_fp32(struct csinn_tensor *input, struct csinn_tensor *output,
         size -= vl;
     }
 
+    output->layout = input->layout;
+    output->dim_count = input->dim_count;
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = input->dim[i];
+    }
     return CSINN_TRUE;
 }

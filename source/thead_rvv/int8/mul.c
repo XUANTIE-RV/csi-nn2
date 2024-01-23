@@ -18,6 +18,7 @@
 
 #include "rvv/rvv.h"
 
+#if 0
 /************************************************************************************
  * (1) s2*(q2-z2) = s0*(q0-z0) * s1*(q1-z1)
  * (2) q2 = [ (q0-z0) * (q1-z1) * (s0*s1/s2) ] + z2
@@ -67,6 +68,7 @@ static void elementwise_mul_int8(struct csinn_tensor *input0, struct csinn_tenso
         size -= vl;
     }
 }
+#endif
 
 static void elementwise_mul_int8_trans_fp16(struct csinn_tensor *input0,
                                             struct csinn_tensor *input1,

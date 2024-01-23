@@ -19,7 +19,7 @@
 #include "./valid_data/gemm.dat"
 
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_gemm_reorderA(void *ma_data, void *ref_ma_data, void (*reorder)(), int m, int k,

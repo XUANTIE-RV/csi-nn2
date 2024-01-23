@@ -703,6 +703,7 @@ int shl_subgraph_run_init(struct shl_node *n)
     for (int i = 0; i < sgraph->input_num; i++) {
         csinn_update_input(i, sgraph->input[i]->data, params->sess);
     }
+    return CSINN_TRUE;
 }
 
 int shl_subgraph_run_deinit(struct shl_node *node, struct shl_ref_graph *graph)

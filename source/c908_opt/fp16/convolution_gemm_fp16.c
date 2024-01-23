@@ -43,14 +43,6 @@ int shl_c908_conv_im2col_gemm_fp16(struct csinn_tensor *input, struct csinn_tens
                                    struct csinn_tensor *kernel, struct csinn_tensor *bias,
                                    struct csinn_conv2d_params *params)
 {
-    const int vlen = csrr_vlenb() * 8;
-    if (vlen == 128) {
-        return shl_rvv_common_conv_gemm_fp16(input, output, kernel, bias, params,
-                                             shl_c908_reorder_input_z24_fp16,
-                                             shl_c908_gemm_8x24_fp16);
-    } else if (vlen >= 256) {
-        return shl_rvv_common_conv_gemm_fp16(input, output, kernel, bias, params,
-                                             shl_c908_reorder_input_z32_fp16_v256,
-                                             shl_c908_gemm_8x32_fp16_v256);
-    }
+    return shl_rvv_common_conv_gemm_fp16(input, output, kernel, bias, params,
+                                         shl_c908_reorder_input_z24_fp16, shl_c908_gemm_8x24_fp16);
 }

@@ -34,5 +34,6 @@ int shl_gref_transpose_infer_shape(struct csinn_tensor *input, struct csinn_tens
     for (int i = 0; i < params->permute_num; i++) {
         output->dim[i] = input->dim[perm[i]];
     }
+    SHL_DEBUG_CALL(shl_transpose_debug_info(input, output, params, __func__));
     return CSINN_TRUE;
 }

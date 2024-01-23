@@ -312,43 +312,10 @@ void shl_c908_gemm_8x8_int8_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
                                 int32_t *shift);
 void shl_c908_reorder_input_z12_int8(int8_t *src, int8_t *dst, int k, int n, int ldc);
 
-/*********************************** VLEN = 256 ***********************************/
-/*********************************** VLEN = 256 ***********************************/
-/*********************************** VLEN = 256 ***********************************/
-
-void shl_c908_reorder_input_z16_fp32_v256(float *src, float *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x16_fp32_v256(float *dst, const float *sa, const float *sb, float *bias, int m,
-                                  int k, int n, int ldc);
-
-void shl_c908_reorder_input_z32_fp16_v256(__fp16 *src, __fp16 *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x32_fp16_v256(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
-                                  int m, int k, int n, int ldc);
-
-void shl_c908_reorder_input_z16_int8_v256_dot(int8_t *src, int8_t *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x16_int8_v256_dot(int8_t *dst, const int8_t *sa, const int8_t *sb,
-                                      int32_t *bias, int m, int k, int n, int ldc, int32_t out_zp,
-                                      int32_t *mult, int32_t *shift);
-
 void shl_c908_f32_to_u8(const float *input, uint8_t *output, int32_t offset, float *scale,
                         uint32_t length);
 void shl_c908_f32_to_i8(const float *input, int8_t *output, int32_t offset, float *scale,
                         uint32_t length);
-
-#ifdef SHL_UNUSED_REGISTER_BLK
-void shl_c908_reorder_input_z8_fp32(float *src, float *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x8_fp32(float *dst, const float *sa, const float *sb, float *bias, int m, int k,
-                            int n, int ldc);
-void shl_c908_reorder_input_z16_fp16(__fp16 *src, __fp16 *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x16_fp16(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias, int m,
-                             int k, int n, int ldc);
-
-void shl_c908_reorder_input_z24_fp32_v256(float *src, float *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x24_fp32_v256(float *dst, const float *sa, const float *sb, float *bias, int m,
-                                  int k, int n, int ldc);
-void shl_c908_reorder_input_z48_fp16_v256(__fp16 *src, __fp16 *dst, int k, int n, int ldc);
-void shl_c908_gemm_8x48_fp16_v256(__fp16 *dst, const __fp16 *sa, const __fp16 *sb, __fp16 *bias,
-                                  int m, int k, int n, int ldc);
-#endif
 
 #ifdef SHL_USE_DOT_INT4
 int shl_c908_conv2d_init_int4(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -366,5 +333,7 @@ struct shl_c908_option {
 
 int shl_c908_set_packn_layout(struct csinn_session *sess, bool packn_layout);
 struct shl_c908_option *shl_c908_get_graph_option(struct csinn_session *sess);
+bool shl_c908_get_binary_model_op_init(struct csinn_session *sess);
+void shl_c908_set_binary_model_op_init(struct csinn_session *sess, bool value);
 
 #endif  // INCLUDE_SHL_C908_H_

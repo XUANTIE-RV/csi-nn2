@@ -180,6 +180,10 @@ int shl_layer_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *o
                               struct csinn_tensor *gamma, struct csinn_tensor *beta,
                               struct csinn_layer_norm_params *params, const char *name);
 
+int shl_rms_norm_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                            struct csinn_tensor *weights, struct csinn_rms_norm_params *params,
+                            const char *name);
+
 int shl_softmax_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_softmax_params *params, const char *name);
 
@@ -253,6 +257,9 @@ int shl_shuffle_channel_debug_info(struct csinn_tensor *input, struct csinn_tens
 int shl_sigmoid_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                            struct csinn_sigmoid_params *params, const char *name);
 
+int shl_silu_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_sigmoid_params *params, const char *name);
+
 int shl_slice_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                          struct csinn_slice_params *params, const char *name);
 
@@ -295,5 +302,15 @@ int shl_where_softmax_debug_info(struct csinn_tensor *condition, struct csinn_te
 
 int shl_cast_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_cast_params *params, const char *name);
+
+int shl_rope_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_rope_params *params, const char *name);
+
+int shl_llm_pos_debug_info(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_llm_pos_params *params, const char *name);
+
+int shl_scaled_dot_product_attention_debug_info(
+    struct csinn_tensor *query, struct csinn_tensor *key, struct csinn_tensor *value,
+    struct csinn_tensor *output, struct csinn_scale_dot_attention_params *params, const char *name);
 
 #endif  // INCLUDE_SHL_DEBUG_H_

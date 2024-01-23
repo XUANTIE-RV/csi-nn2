@@ -22,6 +22,7 @@
     note: support flexible vlen
 *************************************************************/
 
+#if 0
 // FIXME: precision loss
 int layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                     struct csinn_tensor *gamma, struct csinn_tensor *beta,
@@ -163,6 +164,7 @@ int layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
 
     return CSINN_TRUE;
 }
+#endif
 
 int shl_rvv_layer_norm_int8(struct csinn_tensor *input, struct csinn_tensor *output,
                             struct csinn_tensor *gamma, struct csinn_tensor *beta,

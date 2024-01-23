@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -95,15 +92,15 @@ int main(int argc, char **argv)
     }
     indices->data = data_i64;
 
-#if (DTYPE==32)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT32, csinn_gather_init, csinn_gather,
-                   &difference);
-#elif (DTYPE==16)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT16, csinn_gather_init, csinn_gather,
-                   &difference);
-#elif (DTYPE==8)
-    test_gather_op(input, indices, output, params, CSINN_QUANT_INT8_ASYM, csinn_gather_init, csinn_gather,
-                   &difference);
+#if (DTYPE == 32)
+    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT32, csinn_gather_init,
+                   csinn_gather, &difference);
+#elif (DTYPE == 16)
+    test_gather_op(input, indices, output, params, CSINN_QUANT_FLOAT16, csinn_gather_init,
+                   csinn_gather, &difference);
+#elif (DTYPE == 8)
+    test_gather_op(input, indices, output, params, CSINN_QUANT_INT8_ASYM, csinn_gather_init,
+                   csinn_gather, &difference);
 #endif
 
     return done_testing();

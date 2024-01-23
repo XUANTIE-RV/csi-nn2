@@ -48,14 +48,13 @@ export PATH=${PWD}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH
 下载源码
 
 ```
-git clone -b 2.4 https://github.com/T-head-Semi/csi-nn2.git
-cd csi-nn2
-git submodule update --init --recursive
+git clone https://github.com/T-head-Semi/csi-nn2.git
 ```
 
 编译 c906
 
 ```
+cd csi-nn2
 make nn2_c906
 ```
 
@@ -88,7 +87,6 @@ NOTE: 原始 mobilenetv1 中每层 conv2d 后接一层 batch norm，示例中假
 
 - [T-HEAD 芯片开放社区](https://occ.t-head.cn/)
 - [SHL 应用在 MLPerf tiny](https://github.com/mlcommons/tiny_results_v0.7/tree/main/open/Alibaba)
-- [使用反馈](https://survey.taobao.com/apps/zhiliao/En_DWvP1t)
 
 # 致谢
 

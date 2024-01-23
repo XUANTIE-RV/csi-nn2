@@ -33,7 +33,34 @@ static int check_input_dim_count(struct csinn_tensor *input, struct csinn_tensor
     return CSINN_FALSE;
 }
 
-static void fill_input_dim(struct csinn_tensor *input, struct csinn_tensor *output)
+static inline void infer_layout_by_dim(struct csinn_tensor *t)
+{
+    if (t->layout >= CSINN_LAYOUT_NC1C0 && t->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        if (t->dim_count == 3)
+            t->layout = CSINN_LAYOUT_NC1C0;
+        else if (t->dim_count == 4)
+            t->layout = CSINN_LAYOUT_NC1WC0;
+        else if (t->dim_count == 5)
+            t->layout = CSINN_LAYOUT_NC1HWC0;
+        else if (t->dim_count == 6)
+            t->layout = CSINN_LAYOUT_NC1DHWC0;
+    } else if (t->layout >= CSINN_LAYOUT_N && t->layout <= CSINN_LAYOUT_NCDHW) {
+        if (t->dim_count == 1)
+            t->layout = CSINN_LAYOUT_N;
+        else if (t->dim_count == 2)
+            t->layout = CSINN_LAYOUT_NC;
+        else if (t->dim_count == 3)
+            t->layout = CSINN_LAYOUT_NCW;
+        else if (t->dim_count == 4)
+            t->layout = CSINN_LAYOUT_NCHW;
+        else if (t->dim_count == 5)
+            t->layout = CSINN_LAYOUT_NCDHW;
+        else if (t->dim_count == 6)
+            t->layout = CSINN_LAYOUT_NLCDHW;
+    }
+}
+
+static void adjust_input_dim(struct csinn_tensor *input, struct csinn_tensor *output)
 {
     int in_dim_count = input->dim_count;
     int target_dim_count = output->dim_count;
@@ -45,34 +72,28 @@ static void fill_input_dim(struct csinn_tensor *input, struct csinn_tensor *outp
     }
     if (in_dim_count < target_dim_count) {
         input->dim_count = target_dim_count;
-        if (input->layout >= CSINN_LAYOUT_NC1C0 && input->layout <= CSINN_LAYOUT_NC1DHWC0) {
-            if (input->dim_count == 3)
-                input->layout = CSINN_LAYOUT_NC1C0;
-            else if (input->dim_count == 4)
-                input->layout = CSINN_LAYOUT_NC1WC0;
-            else if (input->dim_count == 5)
-                input->layout = CSINN_LAYOUT_NC1HWC0;
-            else if (input->dim_count == 6)
-                input->layout = CSINN_LAYOUT_NC1DHWC0;
-        } else if (input->layout >= CSINN_LAYOUT_N && input->layout <= CSINN_LAYOUT_NCDHW) {
-            if (input->dim_count == 1)
-                input->layout = CSINN_LAYOUT_N;
-            else if (input->dim_count == 2)
-                input->layout = CSINN_LAYOUT_NC;
-            else if (input->dim_count == 3)
-                input->layout = CSINN_LAYOUT_NCW;
-            else if (input->dim_count == 4)
-                input->layout = CSINN_LAYOUT_NCHW;
-            else if (input->dim_count == 5)
-                input->layout = CSINN_LAYOUT_NCDHW;
-            else if (input->dim_count == 6)
-                input->layout = CSINN_LAYOUT_NLCDHW;
-        }
+        infer_layout_by_dim(input);
         for (int i = target_dim_count - 1; i >= target_dim_count - in_dim_count; i--) {
             input->dim[i] = input->dim[i - (target_dim_count - in_dim_count)];
         }
         for (int i = target_dim_count - in_dim_count - 1; i >= 0; i--) {
             input->dim[i] = 1;
+        }
+    } else if (in_dim_count > target_dim_count) {
+        bool reduce = true;
+        int b = in_dim_count - target_dim_count;
+        for (int i = 0; i < b; i++) {
+            if (input->dim[i] != 1) {
+                reduce = false;
+                break;
+            }
+        }
+        if (reduce) {
+            input->dim_count = target_dim_count;
+            infer_layout_by_dim(input);
+            for (int i = 0; i < target_dim_count; i++) {
+                input->dim[i] = input->dim[i + b];
+            }
         }
     }
 }
@@ -279,6 +300,9 @@ static void tensor_try_ndarray_to_nc1xc0_int8(struct csinn_tensor *t)
 int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                      struct csinn_tensor *output, void *binary_op_callback[])
 {
+    adjust_input_dim(input0, output);
+    adjust_input_dim(input1, output);
+
     if (!check_input_dim_count(input0, output)) {
         shl_debug_error("input0 dim_count greater than output!\n");
         return CSINN_FALSE;
@@ -288,24 +312,21 @@ int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_t
         return CSINN_FALSE;
     }
 
-    fill_input_dim(input0, output);
-    fill_input_dim(input1, output);
-
     const int packn = csrr_vlenb() / sizeof(float);
 
     struct csinn_tensor *in1_extra;
     bool in1_extra_flag = false;
 
     if (input0->layout >= CSINN_LAYOUT_NC1C0 && input0->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        in1_extra = csinn_alloc_tensor(NULL);
+        csinn_tensor_copy(in1_extra, input1);
+        in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
+        memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
+        in1_extra_flag = true;
         if (input1->is_const) {
-            in1_extra = csinn_alloc_tensor(NULL);
-            csinn_tensor_copy(in1_extra, input1);
-            in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
-            memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
             transform_layout_weight_to_activation(in1_extra);
-            in1_extra_flag = true;
-            input1 = in1_extra;
         }
+        input1 = in1_extra;
         tensor_try_ndarray_to_nc1xc0_fp32(input1);
         layout_try_ndarray_to_nc1xc0(output, packn);
     } else if (input0->layout >= CSINN_LAYOUT_N && input0->layout <= CSINN_LAYOUT_NCDHW) {
@@ -364,6 +385,7 @@ int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_t
         }
     }
 
+    shl_mem_free(idx);
     if (in1_extra_flag) {
         shl_mem_free(in1_extra->data);
         csinn_free_tensor(in1_extra);
@@ -375,6 +397,9 @@ int shl_rvv_binary_op_broadcast_fp32(struct csinn_tensor *input0, struct csinn_t
 int shl_rvv_binary_op_broadcast_fp16(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                      struct csinn_tensor *output, void *binary_op_callback[])
 {
+    adjust_input_dim(input0, output);
+    adjust_input_dim(input1, output);
+
     if (!check_input_dim_count(input0, output)) {
         shl_debug_error("input0 dim_count greater than output!\n");
         return CSINN_FALSE;
@@ -384,24 +409,21 @@ int shl_rvv_binary_op_broadcast_fp16(struct csinn_tensor *input0, struct csinn_t
         return CSINN_FALSE;
     }
 
-    fill_input_dim(input0, output);
-    fill_input_dim(input1, output);
-
     const int packn = csrr_vlenb() / sizeof(__fp16);
 
     struct csinn_tensor *in1_extra;
     bool in1_extra_flag = false;
 
     if (input0->layout >= CSINN_LAYOUT_NC1C0 && input0->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        in1_extra = csinn_alloc_tensor(NULL);
+        csinn_tensor_copy(in1_extra, input1);
+        in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
+        memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
+        in1_extra_flag = true;
         if (input1->is_const) {
-            in1_extra = csinn_alloc_tensor(NULL);
-            csinn_tensor_copy(in1_extra, input1);
-            in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
-            memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
             transform_layout_weight_to_activation(in1_extra);
-            in1_extra_flag = true;
-            input1 = in1_extra;
         }
+        input1 = in1_extra;
         tensor_try_ndarray_to_nc1xc0_fp16(input1);
         layout_try_ndarray_to_nc1xc0(output, packn);
     } else if (input0->layout >= CSINN_LAYOUT_N && input0->layout <= CSINN_LAYOUT_NCDHW) {
@@ -460,6 +482,7 @@ int shl_rvv_binary_op_broadcast_fp16(struct csinn_tensor *input0, struct csinn_t
         }
     }
 
+    shl_mem_free(idx);
     if (in1_extra_flag) {
         shl_mem_free(in1_extra->data);
         csinn_free_tensor(in1_extra);
@@ -471,6 +494,9 @@ int shl_rvv_binary_op_broadcast_fp16(struct csinn_tensor *input0, struct csinn_t
 int shl_rvv_binary_op_broadcast_int8(struct csinn_tensor *input0, struct csinn_tensor *input1,
                                      struct csinn_tensor *output, void *binary_op_callback[])
 {
+    adjust_input_dim(input0, output);
+    adjust_input_dim(input1, output);
+
     if (!check_input_dim_count(input0, output)) {
         shl_debug_error("input0 dim_count greater than output!\n");
         return CSINN_FALSE;
@@ -480,24 +506,21 @@ int shl_rvv_binary_op_broadcast_int8(struct csinn_tensor *input0, struct csinn_t
         return CSINN_FALSE;
     }
 
-    fill_input_dim(input0, output);
-    fill_input_dim(input1, output);
-
     const int packn = csrr_vlenb() / sizeof(int8_t) / 2;
 
     struct csinn_tensor *in1_extra;
     bool in1_extra_flag = false;
 
     if (input0->layout >= CSINN_LAYOUT_NC1C0 && input0->layout <= CSINN_LAYOUT_NC1DHWC0) {
+        in1_extra = csinn_alloc_tensor(NULL);
+        csinn_tensor_copy(in1_extra, input1);
+        in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
+        memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
+        in1_extra_flag = true;
         if (input1->is_const) {
-            in1_extra = csinn_alloc_tensor(NULL);
-            csinn_tensor_copy(in1_extra, input1);
-            in1_extra->data = shl_mem_alloc(csinn_tensor_byte_size(input1));
-            memcpy(in1_extra->data, input1->data, csinn_tensor_byte_size(input1));
             transform_layout_weight_to_activation(in1_extra);
-            in1_extra_flag = true;
-            input1 = in1_extra;
         }
+        input1 = in1_extra;
         tensor_try_ndarray_to_nc1xc0_int8(input1);
         layout_try_ndarray_to_nc1xc0(output, packn);
     } else if (input0->layout >= CSINN_LAYOUT_N && input0->layout <= CSINN_LAYOUT_NCDHW) {
@@ -560,6 +583,7 @@ int shl_rvv_binary_op_broadcast_int8(struct csinn_tensor *input0, struct csinn_t
         }
     }
 
+    shl_mem_free(idx);
     if (in1_extra_flag) {
         shl_mem_free(in1_extra->data);
         csinn_free_tensor(in1_extra);

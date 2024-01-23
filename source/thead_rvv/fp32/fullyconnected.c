@@ -30,9 +30,9 @@ int shl_rvv_fullyconnected_init_fp32(struct csinn_tensor *input, struct csinn_te
     struct csinn_session *sess = params->base.sess;
     bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (!binary_model_op_init) {
-        shl_rvv_fc_gemv_transform_weight_fp32(weights);
+        shl_rvv_fc_gemm_reorder_weight_fp32(weights);
     }
-    cb->exec = shl_rvv_fullyconnected_packn_fp32;
+    cb->exec = shl_rvv_fullyconnected_gemm_fp32;
 
     return CSINN_TRUE;
 }

@@ -34,6 +34,9 @@ int shl_gref_reshape_infer_shape(struct csinn_tensor *input, struct csinn_tensor
     output->dim_count = params->shape_num;
     for (int i = 0; i < output->dim_count; i++) {
         if (params->shape[i] == -1) {
+            if (index >= 0) {
+                shl_debug_warning("Multiple axes with a value of -1");
+            }
             index = i;
         } else if (params->shape[i] == 0) {
             // By default, when any value in the ‘shape’ input is equal to zero the corresponding
@@ -44,8 +47,16 @@ int shl_gref_reshape_infer_shape(struct csinn_tensor *input, struct csinn_tensor
             reshape_size *= params->shape[i];
         }
     }
+
     if (index >= 0) {
         output->dim[index] = total_size / reshape_size;
     }
+
+    for (int i = 0; i < output->dim_count; i++) {
+        output->dim[i] = output->dim[i] < 0 ? 1 : output->dim[i];
+    }
+
+    SHL_DEBUG_CALL(shl_reshape_debug_info(input, output, params, __func__));
+
     return CSINN_TRUE;
 }

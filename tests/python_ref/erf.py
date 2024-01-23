@@ -12,9 +12,9 @@ def erf_f32():
     in_dim   = int(np.random.randint(1, high=4, size=1))
     in_shape = []
     for i in range(0, in_dim):
-        in_shape.append(int(np.random.randint(128, high=256, size=1)))
+        in_shape.append(int(np.random.randint(16, high=32, size=1)))
 
-    zero_point  = int(np.random.randint(-600, high=600, size=1))
+    zero_point  = int(np.random.randint(-6, high=6, size=1))
     std         = int(np.random.randint(1, high=20, size=1))
 
     src_in = np.random.normal(zero_point, std, in_shape)

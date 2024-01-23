@@ -6,10 +6,10 @@ import struct
 import numpy as np
 import tensorflow as tf
 
-def fullconnected_f32():
+def fullconnected_f32(test_type):
     para = []
     # init the input data and parameters
-    batch       = int(np.random.randint(4, high=16, size=1))
+    batch       = int(np.random.randint(15, high=16, size=1))
     in_size     = int(np.random.randint(64, high=256, size=1))
     out_size    = int(np.random.randint(64, high=256, size=1))
 
@@ -19,6 +19,9 @@ def fullconnected_f32():
     std2        = int(np.random.randint(1, high=2, size=1))
     zero_point3 = int(np.random.randint(1, high=3, size=1))
     std3        = int(np.random.randint(1, high=2, size=1))
+
+    if  "out16" in test_type:
+        out_size = out_size//16*16
 
     src_in = np.random.normal(zero_point1, std1, (batch, in_size))
     weight = np.random.normal(zero_point2, std2, (in_size, out_size))
@@ -44,6 +47,7 @@ def fullconnected_f32():
     para.append(batch)
     para.append(in_size)
     para.append(out_size)
+    print(para)
 
     with open("fullyconnected_data_f32.bin", "wb") as fp:
         data = struct.pack(('%di' % len(para)), *para)
@@ -62,5 +66,5 @@ def fullconnected_f32():
 
 
 if __name__ == '__main__':
-    fullconnected_f32()
+    fullconnected_f32(sys.argv[1])
     print("end")

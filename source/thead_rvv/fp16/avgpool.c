@@ -66,10 +66,10 @@ int shl_rvv_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_tensor 
                 if (pad_left == 0 && pad_top == 0) {
                     // adjust pad according to ceil_mode (ceil mode on caffe pytorch..)
                     if (in_h % 2 == 1 && params->ceil_mode == 1) {
-                        if (params->pad_down) params->pad_down++;
+                        if (params->pad_down == 0) params->pad_down++;
                     }
                     if (in_w % 2 == 1 && params->ceil_mode == 1) {
-                        if (params->pad_right) params->pad_right++;
+                        if (params->pad_right == 0) params->pad_right++;
                     }
                     // end consider ceil_mode 2x2s2p0
                     cb->exec = shl_rvv_avgpool2x2s2_fp16;
@@ -136,8 +136,11 @@ int shl_rvv_global_avgpool2d_init_fp16(struct csinn_tensor *input, struct csinn_
         if (shl_is_first_layer_input(input, sess)) {
             elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        elempack = in_c % packn == 0 ? packn : 1;
     }
 
     cb->exec = (elempack % packn == 0) ? shl_rvv_global_avgpool2d_packn_fp16
                                        : shl_rvv_global_avgpool2d_fp16;
+    return CSINN_TRUE;
 }

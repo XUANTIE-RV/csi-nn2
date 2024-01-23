@@ -955,6 +955,12 @@ int shl_ref_sigmoid_f32(struct csinn_tensor *input, struct csinn_tensor *output,
 int shl_ref_sigmoid_quant(struct csinn_tensor *input, struct csinn_tensor *output,
                           struct csinn_sigmoid_params *params);
 
+int shl_ref_silu_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_sigmoid_params *params);
+
+int shl_ref_silu_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_sigmoid_params *params);
+
 int shl_ref_sign_f32(struct csinn_tensor *input, struct csinn_tensor *output,
                      struct csinn_siso_params *params);
 
@@ -1185,6 +1191,40 @@ int shl_ref_instance_norm_f32(struct csinn_tensor *input, struct csinn_tensor *s
 int shl_ref_instance_norm_quant(struct csinn_tensor *input, struct csinn_tensor *scales,
                                 struct csinn_tensor *bias, struct csinn_tensor *output,
                                 struct csinn_instance_norm_params *params);
+
+int shl_ref_rms_norm_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *weight, struct csinn_rms_norm_params *params);
+
+int shl_ref_rms_norm_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                           struct csinn_tensor *weight, struct csinn_rms_norm_params *params);
+
+int shl_ref_rope_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_rope_params *params);
+
+int shl_ref_rope_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                       struct csinn_rope_params *params);
+
+int shl_ref_llm_pos_f32(struct csinn_tensor *input, struct csinn_tensor *output,
+                        struct csinn_llm_pos_params *params);
+
+int shl_ref_llm_pos_quant(struct csinn_tensor *input, struct csinn_tensor *output,
+                          struct csinn_llm_pos_params *params);
+
+int shl_ref_embedding_f32(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                          struct csinn_tensor *output, struct csinn_diso_params *params);
+
+int shl_ref_embedding_quant(struct csinn_tensor *input0, struct csinn_tensor *input1,
+                            struct csinn_tensor *output, struct csinn_diso_params *params);
+
+int shl_ref_scaled_dot_product_attention_f32(struct csinn_tensor *query, struct csinn_tensor *key,
+                                             struct csinn_tensor *value,
+                                             struct csinn_tensor *output,
+                                             struct csinn_scale_dot_attention_params *params);
+
+int shl_ref_scaled_dot_product_attention_quant(struct csinn_tensor *query, struct csinn_tensor *key,
+                                               struct csinn_tensor *value,
+                                               struct csinn_tensor *output,
+                                               struct csinn_scale_dot_attention_params *params);
 
 int32_t shl_ref_max_internal_s32(int32_t a, int32_t b);
 int32_t shl_ref_min_internal_s32(int32_t a, int32_t b);

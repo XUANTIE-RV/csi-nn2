@@ -19,7 +19,7 @@
 #include "./valid_data/fullyconnected.dat"
 
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_fc_reorder(void *weight_data, void *ref_weight, void (*reorder)(), int in_nodes,
@@ -91,21 +91,21 @@ int main(int argc, char **argv)
 {
     init_testsuite("Test function of fullyconnected for RVV.\n");
 
-    verify_fc_reorder(fc_fp32_weight, fc_fp32_weight_ref, shl_rvv_fc_gemv_transform_weight_fp32, 17,
+    verify_fc_reorder(fc_fp32_weight, fc_fp32_weight_ref, shl_rvv_fc_gemm_reorder_weight_fp32, 17,
                       31, CSINN_DTYPE_FLOAT32);
     verify_fc_compute(fc_fp32_in, fc_fp32_weight_ref, fc_fp32_bias, fc_fp32_out,
-                      shl_rvv_fullyconnected_packn_fp32, 17, 31, CSINN_DTYPE_FLOAT32);
+                      shl_rvv_fullyconnected_gemm_fp32, 17, 31, CSINN_DTYPE_FLOAT32);
 
-    verify_fc_reorder(fc_fp16_weight, fc_fp16_weight_ref, shl_rvv_fc_gemv_transform_weight_fp16, 17,
+    verify_fc_reorder(fc_fp16_weight, fc_fp16_weight_ref, shl_rvv_fc_gemm_reorder_weight_fp16, 17,
                       31, CSINN_DTYPE_FLOAT16);
     verify_fc_compute(fc_fp16_in, fc_fp16_weight_ref, fc_fp16_bias, fc_fp16_out,
-                      shl_rvv_fullyconnected_packn_fp16, 17, 31, CSINN_DTYPE_FLOAT16);
+                      shl_rvv_fullyconnected_gemm_fp16, 17, 31, CSINN_DTYPE_FLOAT16);
 
     // verify_fc_reorder(fc_int8_weight, fc_int8_weight_ref,
-    //                   shl_rvv_fc_gemv_transform_weight_int8,
+    //                   shl_rvv_fc_gemm_reorder_weight_int8,
     //                   17, 31, CSINN_DTYPE_INT8);
     // verify_fc_compute(fc_int8_in, fc_int8_weight_ref, fc_int8_bias, fc_int8_out,
-    //                   shl_rvv_fullyconnected_packn_int8, 17, 31, CSINN_DTYPE_INT8);
+    //                   shl_rvv_fullyconnected_gemm_int8, 17, 31, CSINN_DTYPE_INT8);
 
     return done_testing();
 }

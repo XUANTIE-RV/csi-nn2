@@ -60,7 +60,7 @@ int shl_rvv_mul_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
 int shl_rvv_div_cap(struct csinn_tensor *input0, struct csinn_tensor *input1,
                     struct csinn_tensor *output, struct csinn_diso_params *params);
 
-int shl_rvv_concat_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+int shl_rvv_concat_cap(struct csinn_tensor **input, struct csinn_tensor *output,
                        struct csinn_clip_params *params);
 
 int shl_rvv_leaky_relu_cap(struct csinn_tensor *input, struct csinn_tensor *output,
@@ -111,5 +111,17 @@ int shl_rvv_gather_cap(struct csinn_tensor *input, struct csinn_tensor *indices,
 
 int shl_rvv_erf_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                     struct csinn_clip_params *params);
+
+int shl_rvv_strided_slice_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                              struct csinn_strided_slice_params *params);
+
+int shl_rvv_split_cap(struct csinn_tensor *input, struct csinn_tensor **output,
+                      struct csinn_split_params *params);
+
+int shl_rvv_silu_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                     struct csinn_sigmoid_params *params);
+
+int shl_rvv_rms_norm_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                         struct csinn_tensor *weight, struct csinn_rms_norm_params *params);
 
 #endif  // INCLUDE_SHL_RVV_CAP_H_

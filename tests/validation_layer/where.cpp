@@ -16,11 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of where(layer).\n");
 
@@ -31,7 +29,8 @@ int main(int argc, char** argv)
     struct csinn_tensor *y = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_where_params *params = (csinn_where_params *)csinn_alloc_params(sizeof(struct csinn_where_params), sess);
+    struct csinn_where_params *params =
+        (csinn_where_params *)csinn_alloc_params(sizeof(struct csinn_where_params), sess);
 
     if (argc == 1) {
         printf("please assign the input data.\n");
@@ -68,10 +67,10 @@ int main(int argc, char** argv)
     params->base.api = CSINN_API;
 
     condition->data = (float *)(buffer + 1 + shape_rank);
-    x->data         = (float *)(buffer + 1 + shape_rank + in_size);
-    y->data         = (float *)(buffer + 1 + shape_rank + in_size * 2);
+    x->data = (float *)(buffer + 1 + shape_rank + in_size);
+    y->data = (float *)(buffer + 1 + shape_rank + in_size * 2);
     reference->data = (float *)(buffer + 1 + shape_rank + in_size * 3);
-    output->data    = reference->data;
+    output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
     float *c_data = (float *)condition->data;
@@ -81,15 +80,15 @@ int main(int argc, char** argv)
     }
     condition->data = data_u8;
 
-#if (DTYPE==32)
-    test_where_op(condition, x, y, output, params, CSINN_QUANT_FLOAT32,
-                  csinn_where_init, csinn_where, &difference);
-#elif (DTYPE==16)
-    test_where_op(condition, x, y, output, params, CSINN_QUANT_FLOAT16,
-                  csinn_where_init, csinn_where, &difference);
-#elif (DTYPE==8)
-    test_where_op(condition, x, y, output, params, CSINN_QUANT_INT8_SYM,
-                  csinn_where_init, csinn_where, &difference);
+#if (DTYPE == 32)
+    test_where_op(condition, x, y, output, params, CSINN_QUANT_FLOAT32, csinn_where_init,
+                  csinn_where, &difference);
+#elif (DTYPE == 16)
+    test_where_op(condition, x, y, output, params, CSINN_QUANT_FLOAT16, csinn_where_init,
+                  csinn_where, &difference);
+#elif (DTYPE == 8)
+    test_where_op(condition, x, y, output, params, CSINN_QUANT_INT8_SYM, csinn_where_init,
+                  csinn_where, &difference);
 #endif
 
     return done_testing();

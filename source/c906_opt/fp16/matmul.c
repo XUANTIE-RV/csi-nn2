@@ -491,16 +491,19 @@ static void shl_c906_matmul_reorder_weight_z32_int8(struct csinn_tensor *mat1)
 int shl_c906_matmul_init_fp16(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                               struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
+    bool binary_model_op_init = shl_c906_get_binary_model_op_init(params->base.sess);
     struct csinn_callback *cb = params->base.cb;
     const int dim_k = mat1->dim[mat1->dim_count - (params->trans_b ? 1 : 2)];
     if (!params->trans_a && !params->trans_b) {
         if (mat0->dtype == CSINN_DTYPE_FLOAT16) {
-            if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
-                shl_c906_matmul_reorder_weight_z32_int8(mat1);
-            } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
-                if (dim_k > MATMUL_K_BLK) {
-                    if (mat1->is_const) {
-                        shl_rvv_matmul_reorder_weight_fp16(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+            if (!binary_model_op_init) {
+                if (mat1->is_const && mat1->dtype == CSINN_DTYPE_INT8) {
+                    shl_c906_matmul_reorder_weight_z32_int8(mat1);
+                } else if (mat1->dtype == CSINN_DTYPE_FLOAT16) {
+                    if (dim_k > MATMUL_K_BLK) {
+                        if (mat1->is_const) {
+                            shl_rvv_matmul_reorder_weight_fp16(mat1, MATMUL_K_BLK, MATMUL_N_BLK);
+                        }
                     }
                 }
             }

@@ -51,5 +51,7 @@ int shl_gref_matmul_infer_shape(struct csinn_tensor *mat0, struct csinn_tensor *
     }
     output->dim[output->dim_count - 2] = mat0->dim[mat0->dim_count - (params->trans_a ? 1 : 2)];
     output->dim[output->dim_count - 1] = mat1->dim[mat1->dim_count - (params->trans_b ? 2 : 1)];
+
+    SHL_DEBUG_CALL(shl_matmul_debug_info(mat0, mat1, output, params, __func__));
     return CSINN_TRUE;
 }

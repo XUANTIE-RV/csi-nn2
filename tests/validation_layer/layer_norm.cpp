@@ -16,12 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of layer_norm(layer)\n");
 
@@ -32,7 +29,8 @@ int main(int argc, char** argv)
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
     struct csinn_tensor *gamma = csinn_alloc_tensor(sess);
     struct csinn_tensor *beta = csinn_alloc_tensor(sess);
-    struct csinn_layer_norm_params *params = (csinn_layer_norm_params *)csinn_alloc_params(sizeof(struct csinn_layer_norm_params), sess);
+    struct csinn_layer_norm_params *params =
+        (csinn_layer_norm_params *)csinn_alloc_params(sizeof(struct csinn_layer_norm_params), sess);
 
     int *buffer = read_input_data_f32(argv[1]);
     input->dim[0] = buffer[0];
@@ -82,21 +80,21 @@ int main(int argc, char** argv)
     params->center = true;
     params->scale = true;
 
-    input->data     = (float *)(buffer + 5);
+    input->data = (float *)(buffer + 5);
     reference->data = (float *)(buffer + 5 + in_size);
-    gamma->data     = (float *)(buffer + 5 + in_size + out_size);
-    beta->data      = (float *)(buffer + 5 + in_size + out_size + norm_size);
-    output->data    = reference->data;
+    gamma->data = (float *)(buffer + 5 + in_size + out_size);
+    beta->data = (float *)(buffer + 5 + in_size + out_size + norm_size);
+    output->data = reference->data;
 
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT32, csinn_layer_norm_init,
                     csinn_layer_norm, &difference);
-#elif (DTYPE==16)
+#elif (DTYPE == 16)
     test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_FLOAT16, csinn_layer_norm_init,
                     csinn_layer_norm, &difference);
-#elif (DTYPE==8)
+#elif (DTYPE == 8)
     test_ternary_op(input, output, gamma, beta, params, CSINN_QUANT_INT8_SYM, csinn_layer_norm_init,
                     csinn_layer_norm, &difference);
 #endif

@@ -31,14 +31,14 @@ int shl_rvv_fullyconnected_init_fp16(struct csinn_tensor *input, struct csinn_te
     bool binary_model_op_init = shl_rvv_get_binary_model_op_init(sess);
     if (!binary_model_op_init) {
         if (weights->is_const && weights->dtype == CSINN_DTYPE_INT8) {
-            shl_rvv_fc_gemv_transform_weight_fp16_w_int8(weights);
+            shl_rvv_fc_gemm_reorder_weight_fp16_w_int8(weights);
         } else if (weights->dtype == CSINN_DTYPE_FLOAT16) {
-            shl_rvv_fc_gemv_transform_weight_fp16(weights);
+            shl_rvv_fc_gemm_reorder_weight_fp16(weights);
         } else {
             shl_debug_error("weights unsupport dtype: %d\n", weights->dtype);
             return CSINN_FALSE;
         }
     }
-    cb->exec = shl_rvv_fullyconnected_packn_fp16;
+    cb->exec = shl_rvv_fullyconnected_gemm_fp16;
     return CSINN_TRUE;
 }

@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
+#include "c906/c906.h"
 #include "csi_nn.h"
-#include "shl_c906.h"
 #include "test_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of relu fp16.\n");
 
@@ -50,9 +50,9 @@ int main(int argc, char** argv)
     in_size = input->dim[0] * input->dim[1] * input->dim[2] * input->dim[3];
     params->base.api = CSINN_API;
 
-    input->data      = (__fp16 *)(fp16_buffer);
-    reference->data  = (__fp16 *)(fp16_buffer + in_size);
-    output->data     = malloc(in_size * sizeof(__fp16));
+    input->data = (__fp16 *)(fp16_buffer);
+    reference->data = (__fp16 *)(fp16_buffer + in_size);
+    output->data = malloc(in_size * sizeof(__fp16));
     float difference = argc > 2 ? atof(argv[2]) : 0.1;
 
     shl_c906_relu_fp16(input, output, params);  // TODO: use nn2_api

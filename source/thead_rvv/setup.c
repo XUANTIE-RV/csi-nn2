@@ -19,13 +19,16 @@
 #include "rvv/cap.h"
 #include "rvv/rvv.h"
 
-#define RVV_OP_PATTERN_MAX 100
+#define RVV_OP_PATTERN_MAX 120
 static struct shl_cb_table shl_rvv_cb_table[RVV_OP_PATTERN_MAX];
 
 void shl_rvv_reg_op(enum csinn_dtype_enum dtype, enum csinn_op_enum op_name, void *init, void *exec,
                     void *est, void *cap)
 {
     static int i = 0;
+    if (i >= RVV_OP_PATTERN_MAX) {
+        shl_debug_error("RVV callback length is greater than RVV_OP_PATTERN_MAX!\n");
+    }
     shl_rvv_cb_table[i].shl_cb_key = op_name * CSINN_DTYPE_SIZE + dtype;
     shl_rvv_cb_table[i].shl_cb_value.init = init;
     shl_rvv_cb_table[i].shl_cb_value.exec = exec;
@@ -409,7 +412,7 @@ void __attribute__((weak)) shl_target_init_rvv()
 #endif
 #ifndef CONFIG_THEAD_RVV_STRIDED_SLICE_FP16_DISABLED
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_STRIDED_SLICE, NULL, shl_rvv_strided_slice_fp16,
-                   shl_gref_strided_slice, NULL);
+                   shl_gref_strided_slice, shl_rvv_strided_slice_cap);
 #endif
 #ifndef CONFIG_THEAD_RVV_ERF_FP32_DISABLED
     shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_ERF, NULL, shl_rvv_erf_fp32, shl_gref_erf,
@@ -422,6 +425,42 @@ void __attribute__((weak)) shl_target_init_rvv()
 #ifndef CONFIG_THEAD_RVV_ERF_INT8_DISABLED
     shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_ERF, NULL, shl_rvv_erf_int8, shl_gref_erf,
                    shl_rvv_erf_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SPLIT_FP32_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_SPLIT, NULL, shl_rvv_split_fp32, shl_gref_split,
+                   shl_rvv_split_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SPLIT_FP16_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SPLIT, NULL, shl_rvv_split_fp16, shl_gref_split,
+                   shl_rvv_split_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SPLIT_INT8_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_SPLIT, NULL, shl_rvv_split_int8, shl_gref_split,
+                   shl_rvv_split_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SILU_FP32_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_SILU, NULL, shl_rvv_silu_fp32, shl_gref_silu,
+                   shl_rvv_silu_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SILU_FP16_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_SILU, NULL, shl_rvv_silu_fp16, shl_gref_silu,
+                   shl_rvv_silu_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_SILU_INT8_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_SILU, NULL, shl_rvv_silu_int8, shl_gref_silu,
+                   shl_rvv_silu_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_RMS_NORM_FP32_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT32, CSINN_OP_RMS_NORM, NULL, shl_rvv_rms_norm_fp32,
+                   shl_gref_rms_norm, shl_rvv_rms_norm_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_RMS_NORM_FP16_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_FLOAT16, CSINN_OP_RMS_NORM, NULL, shl_rvv_rms_norm_fp16,
+                   shl_gref_rms_norm, shl_rvv_rms_norm_cap);
+#endif
+#ifndef CONFIG_THEAD_RVV_RMS_NORM_INT8_DISABLED
+    shl_rvv_reg_op(CSINN_DTYPE_INT8, CSINN_OP_RMS_NORM, NULL, shl_rvv_rms_norm_int8,
+                   shl_gref_rms_norm, shl_rvv_rms_norm_cap);
 #endif
 
 #ifdef SHL_USE_DOT_INT4

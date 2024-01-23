@@ -35,15 +35,15 @@
         a4: element length
 
  *************************************************************************************************/
-#define SHL_C906_F32_TO_8 shl_c920_f32_to_i8
-#define SHL_C906_F32_TO_8_SIGNED
+#define SHL_C920_F32_TO_8 shl_c920_f32_to_i8
+#define SHL_C920_F32_TO_8_SIGNED
 
     .file           "shl_c920_f32_to_i8.S"
-    .section        .text.SHL_C906_F32_TO_8, "ax", @progbits
+    .section        .text.SHL_C920_F32_TO_8, "ax", @progbits
     .align          5
-    .global         SHL_C906_F32_TO_8
-    .type           SHL_C906_F32_TO_8, @function
+    .global         SHL_C920_F32_TO_8
+    .type           SHL_C920_F32_TO_8, @function
 
-#include "../c906_opt/shl_c906_f32_to_u8.S"
+#include "./shl_c920_f32_to_u8.S"
 
-#undef SHL_C906_F32_TO_8_SIGNED
+#undef SHL_C920_F32_TO_8_SIGNED

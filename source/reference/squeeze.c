@@ -34,4 +34,5 @@ int shl_ref_squeeze_quant(struct csinn_tensor *input, struct csinn_tensor *outpu
                           struct csinn_squeeze_params *params)
 {
     shl_ref_siso_callback_base(input, output, params, shl_ref_squeeze);
+    return CSINN_TRUE;
 }

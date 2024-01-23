@@ -26,7 +26,7 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
     kernel_y    = int(np.random.randint(stride_y, high=7, size=1))
     dilation_x  = int(np.random.randint(1, high=2, size=1))
     dilation_y  = int(np.random.randint(1, high=2, size=1))
-
+    pad_left = pad_right = pad_top = pad_down = 1
 
     packn = int(getpackn(test_dtype, test_vlen))
     n = int(np.random.randint(1, high=2, size=1))
@@ -42,12 +42,32 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
             kernel_x    = 3
             kernel_y    = 3
             out_channel = 8 + 4 + 2 + 1
+            in_size_y = 5
+            in_size_x = 29
         elif test_type == "pack1_conv3x3s1":
             stride_x    = 1
             stride_y    = 1
             kernel_x    = 3
             kernel_y    = 3
             out_channel = 8 + 4 + 2 + 1
+            in_size_y = 3
+            in_size_x = 15
+        elif test_type == "pack1_conv5x5s2":
+            stride_x    = 2
+            stride_y    = 2
+            kernel_x    = 5
+            kernel_y    = 5
+            out_channel = 8 + 4 + 2 + 1
+            in_size_y = 7
+            in_size_x = 31
+        elif test_type == "pack1_conv5x5s1":
+            stride_x    = 1
+            stride_y    = 1
+            kernel_x    = 5
+            kernel_y    = 5
+            out_channel = 8 + 4 + 2 + 1
+            in_size_y = 5
+            in_size_x = 17
 
     elif "packn_" in test_type:
         in_channel  = packn * n
@@ -57,28 +77,47 @@ def depthwise_convolution_f32(test_dtype, test_vlen, test_type):
             stride_y    = 2
             kernel_x    = 3
             kernel_y    = 3
+            in_size_y = 5
+            in_size_x = 29
         elif test_type == "packn_conv3x3s1":
             stride_x    = 1
             stride_y    = 1
             kernel_x    = 3
             kernel_y    = 3
+            in_size_y = 3
+            in_size_x = 15
+        elif test_type == "packn_conv5x5s2":
+            stride_x    = 2
+            stride_y    = 2
+            kernel_x    = 5
+            kernel_y    = 5
+            in_size_y = 7
+            in_size_x = 31
+        elif test_type == "packn_conv5x5s1":
+            stride_x    = 1
+            stride_y    = 1
+            kernel_x    = 5
+            kernel_y    = 5
+            in_size_y = 5
+            in_size_x = 17
+    else:
+        in_channel  = int(np.random.randint(3, high=7, size=1))
+        out_channel = int(np.random.randint(3, high=7, size=1))
 
 
+    # kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
+    # kernel_y_t = kernel_y + (kernel_y - 1) * (dilation_y - 1)
+    # pad_left   = pad_right = pad_top = pad_down = 0
 
+    # pad_x      = (in_size_x - kernel_x_t) -  int((in_size_x - kernel_x_t) / stride_x) * stride_x
+    # if(pad_x !=0):
+    #     pad_left   = int(np.random.randint(0, high=pad_x, size=1))
+    #     pad_right  = pad_x - pad_left
 
-    kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
-    kernel_y_t = kernel_y + (kernel_y - 1) * (dilation_y - 1)
-    pad_left   = pad_right = pad_top = pad_down = 0
-
-    pad_x      = (in_size_x - kernel_x_t) -  int((in_size_x - kernel_x_t) / stride_x) * stride_x
-    if(pad_x !=0):
-        pad_left   = int(np.random.randint(0, high=pad_x, size=1))
-        pad_right  = pad_x - pad_left
-
-    pad_y      = (in_size_y - kernel_y_t) -  int((in_size_y - kernel_y_t) / stride_y) * stride_y
-    if(pad_y != 0):
-        pad_top    = int(np.random.randint(0, high=pad_y, size=1))
-        pad_down   = pad_y - pad_top
+    # pad_y      = (in_size_y - kernel_y_t) -  int((in_size_y - kernel_y_t) / stride_y) * stride_y
+    # if(pad_y != 0):
+    #     pad_top    = int(np.random.randint(0, high=pad_y, size=1))
+    #     pad_down   = pad_y - pad_top
     zero_point1 = int(np.random.randint(-2, high=2, size=1))
     std1        = int(np.random.randint(1, high=3, size=1))
     zero_point2 = int(np.random.randint(-2, high=2, size=1))

@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -92,15 +90,15 @@ int main(int argc, char **argv)
     params->split_index = split_index;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
-    test_split_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_split_init,
-                  csinn_split, &difference);
-#elif (DTYPE==16)
-    test_split_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_split_init,
-                  csinn_split, &difference);
-#elif (DTYPE==8)
-    test_split_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_split_init,
-                  csinn_split, &difference);
+#if (DTYPE == 32)
+    test_split_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_split_init, csinn_split,
+                  &difference);
+#elif (DTYPE == 16)
+    test_split_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_split_init, csinn_split,
+                  &difference);
+#elif (DTYPE == 8)
+    test_split_op(input, output, params, CSINN_QUANT_INT8_SYM, csinn_split_init, csinn_split,
+                  &difference);
 #endif
     return done_testing();
 }

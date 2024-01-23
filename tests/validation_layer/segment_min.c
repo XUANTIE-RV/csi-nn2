@@ -16,8 +16,7 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
+#include "testutil.h"
 
 int main(int argc, char **argv)
 {

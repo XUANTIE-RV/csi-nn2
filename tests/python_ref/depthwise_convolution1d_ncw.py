@@ -7,23 +7,31 @@ import numpy as np
 from torch import tensor
 from torch.nn import functional as fn
 
-def depthwise_convolution1d_f32():
+def depthwise_convolution1d_f32(test_type):
     para = []
     batch = int(np.random.randint(1, high=4, size=1))
     in_size_x  = int(np.random.randint(32, high=64, size=1))
     in_channel = int(np.random.randint(2, high=32, size=1))
-    stride_x   = int(np.random.randint(1, high=3, size=1))
     dilation_x = int(np.random.randint(1, high=5, size=1))
-    kernel_x   = int(np.random.randint(stride_x + 1, high=7, size=1))
+    depth_multiplier = int(np.random.randint(1, high=2, size=1))
 
-    depth_multiplier = int(np.random.randint(1, high=4, size=1))
+    if test_type == "random":
+        stride_x   = int(np.random.randint(1, high=3, size=1))
+        kernel_x   = int(np.random.randint(stride_x + 1, high=7, size=1))
+        dilation_x = 1
+    elif test_type == "8s1":
+        stride_x   = 1
+        kernel_x   = 8
+        dilation_x = 1
+        depth_multiplier = 1
+
     out_channel = in_channel * depth_multiplier
 
     kernel_x_t = kernel_x + (kernel_x - 1) * (dilation_x - 1)
     pad_left   = pad_right = 0
 
     pad_x      = (in_size_x - kernel_x_t) -  int((in_size_x - kernel_x_t) / stride_x) * stride_x
-    if(pad_x !=0):
+    if(pad_x != 0):
         pad_left   = int(np.random.randint(0, high=pad_x, size=1))
         pad_right  = pad_x - pad_left
 
@@ -60,16 +68,16 @@ def depthwise_convolution1d_f32():
     total_size = (len(src_in_1) + len(src_out_1)) + len(weight_1) + len(bias) + 17
 
     para.append(total_size)
-    para.append(batch)       # 0 
-    para.append(in_channel)  # 1 
-    para.append(in_size_x)   # 2 
-    para.append(stride_x)    # 3 
-    para.append(kernel_x)    # 4 
-    para.append(pad_left)    # 5 
-    para.append(pad_right)   # 6 
-    para.append(out_channel) # 7 
-    para.append(dilation_x)  # 8 
-    para.append(out_size_x)  # 9 
+    para.append(batch)       # 0
+    para.append(in_channel)  # 1
+    para.append(in_size_x)   # 2
+    para.append(stride_x)    # 3
+    para.append(kernel_x)    # 4
+    para.append(pad_left)    # 5
+    para.append(pad_right)   # 6
+    para.append(out_channel) # 7
+    para.append(dilation_x)  # 8
+    para.append(out_size_x)  # 9
     print(para)
 
     with open("depthwise_convolution1d_ncw_data_f32.bin", "wb") as fp:
@@ -89,5 +97,6 @@ def depthwise_convolution1d_f32():
 
 
 if __name__ == '__main__':
-    depthwise_convolution1d_f32()
+    test_type = sys.argv[1]
+    depthwise_convolution1d_f32(test_type)
     print("end")

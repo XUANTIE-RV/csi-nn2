@@ -26,6 +26,10 @@ int shl_c920_conv2d_cap(struct csinn_tensor *input, struct csinn_tensor *output,
                         struct csinn_tensor *kernel, struct csinn_tensor *bias,
                         struct csinn_conv2d_params *params);
 
+int shl_c920_fullyconnected_cap(struct csinn_tensor *input, struct csinn_tensor *output,
+                                struct csinn_tensor *weights, struct csinn_tensor *bias,
+                                struct csinn_fc_params *params);
+
 int shl_c920_matmul_cap(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                         struct csinn_tensor *output, struct csinn_matmul_params *params);
 

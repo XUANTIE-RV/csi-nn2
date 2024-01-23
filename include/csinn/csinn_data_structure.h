@@ -59,6 +59,9 @@ enum csinn_mem_type_enum {
     CSINN_MEM_TYPE_ASP42,               /**< Structed sparsity 4:2 */
     CSINN_MEM_TYPE_ASP41,               /**< Structed sparsity 4:1 */
     CSINN_MEM_TYPE_CPU_ACC,             /**< Accelerator driver or others alloced CPU memory */
+    CSINN_MEM_TYPE_BLOCK_Q2_K,          /**< Block quantization from llama.cpp */
+    CSINN_MEM_TYPE_BLOCK_Q4_0,          /**< Block quantization from llama.cpp */
+    CSINN_MEM_TYPE_BLOCK_Q8_0,          /**< Block quantization from llama.cpp */
 };
 
 /** CSI-NN quant type */
@@ -76,6 +79,9 @@ enum csinn_quant_enum {
     CSINN_QUANT_INT4_ASYM_W_SYM, /**< Signed 4-bit Asymmetric activation and Symmetric weight */
     CSINN_QUANT_INT8_ASYM_W_SYM, /**< Signed 8-bit Asymmetric activation and Symmetric weight */
     CSINN_QUANT_FLOAT16_W_INT8,  /**< 16-bit floating-point and 8-bit symmetric weight */
+    CSINN_QUANT_BLOCK_Q2_K,      /**< Block quantization from llama.cpp */
+    CSINN_QUANT_BLOCK_Q4_0,      /**< Block quantization from llama.cpp */
+    CSINN_QUANT_BLOCK_Q8_0,      /**< Block quantization from llama.cpp */
     CSINN_QUANT_SIZE,
 };
 
@@ -312,6 +318,12 @@ enum csinn_op_enum {
     CSINN_OP_XOR,
     CSINN_OP_YUV_RGB_SCALE,
     CSINN_OP_INSTANCE_NORM,
+    CSINN_OP_RMS_NORM,
+    CSINN_OP_ROPE,
+    CSINN_OP_SILU,
+    CSINN_OP_LLM_POS,
+    CSINN_OP_EMBEDDING,
+    CSINN_OP_SCALED_DOT_PRODUCT_ATTENTION,
 
     CSINN_OP_SIZE,
 
@@ -862,6 +874,7 @@ struct csinn_reverse_params {
 /** CSI-NN flatten params */
 struct csinn_flatten_params {
     struct csinn_params_base base; /**< The basic information of the operator */
+    int32_t axis;                  /**< Axis */
 };
 
 /** CSI-NN crop params */
@@ -1186,6 +1199,49 @@ struct csinn_conv1d_params {
 struct csinn_instance_norm_params {
     struct csinn_params_base base; /**< The basic information of the operator */
     float epsilon;
+};
+
+/** CSI-NN rms normalization params */
+struct csinn_rms_norm_params {
+    struct csinn_params_base base; /**< The basic information of the operator */
+    float epsilon;
+    int32_t axis;
+};
+
+/** CSI-NN Rotary positional embedding params */
+struct csinn_rope_params {
+    struct csinn_params_base base; /**< The basic information of the operator */
+    float freq_base;
+    float freq_scale;
+    float xpos_base;
+    int32_t xpos_down;
+    int32_t n_dims;
+    int32_t *pos;
+};
+
+/** CSI-NN LLM position OP type */
+enum csinn_llm_pos_enum {
+    CSINN_LLM_POS_UNSET = 0,      /**< Default do nothing */
+    CSINN_LLM_POS_CACHE_COPY_IN,  /**< llama2 cache in */
+    CSINN_LLM_POS_CACHE_COPY_OUT, /**< llama2 cache out */
+    CSINN_LLM_POS_MASK,           /**< llama2 mask */
+};
+
+/** CSI-NN Position OP params */
+struct csinn_llm_pos_params {
+    struct csinn_params_base base; /**< The basic information of the operator */
+    int32_t bsz;                   /**< batch size, dynamic set */
+    int32_t seqlen;                /**< seqlen, dynamic set */
+    int32_t *pos;
+    int32_t mode;
+    void *cache_buffer;
+};
+
+/** CSI-NN scaled_dot_product_attention params */
+struct csinn_scale_dot_attention_params {
+    struct csinn_params_base base; /**< The basic information of the operator */
+    bool casual;
+    bool transpose_v;  // if transpose_v = true, v should be [batch,np,dim_head,sk]
 };
 
 /**

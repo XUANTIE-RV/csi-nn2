@@ -16,8 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -29,7 +27,8 @@ int main(int argc, char **argv)
     struct csinn_tensor *input = csinn_alloc_tensor(sess);
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
-    struct csinn_clip_params *params = (csinn_clip_params *)csinn_alloc_params(sizeof(struct csinn_clip_params), sess);
+    struct csinn_clip_params *params =
+        (csinn_clip_params *)csinn_alloc_params(sizeof(struct csinn_clip_params), sess);
     int in_size = 0;
     int out_size = 0;
 
@@ -67,15 +66,15 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
+#if (DTYPE == 32)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT32, csinn_clip_init, csinn_clip,
-                   &difference);
-#elif (DTYPE==16)
+                  &difference);
+#elif (DTYPE == 16)
     test_unary_op(input, output, params, CSINN_QUANT_FLOAT16, csinn_clip_init, csinn_clip,
-                   &difference);
-#elif (DTYPE==8)
+                  &difference);
+#elif (DTYPE == 8)
     test_unary_op(input, output, params, CSINN_QUANT_INT8_ASYM, csinn_clip_init, csinn_clip,
-                   &difference);
+                  &difference);
 #endif
 
     return done_testing();

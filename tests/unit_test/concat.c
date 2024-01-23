@@ -19,7 +19,7 @@
 #include "./valid_data/concat.dat"
 
 #include "csi_nn.h"
-#include "shl_thead_rvv.h"
+#include "rvv/rvv.h"
 #include "test_utils.h"
 
 void verify_concat(void *input0_data, void *input1_data, void *ref_data, int (*func)(), int in_c,

@@ -35,8 +35,8 @@ int shl_c906_depthwise_conv2d_init_fp16(struct csinn_tensor *input, struct csinn
     int32_t stride_w = params->stride_width;
     struct csinn_callback *cb = params->base.cb;
 
-    if (input->sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
-        struct shl_c906_option *option = shl_c906_get_graph_option(input->sess);
+    if (params->base.sess->base_run_mode == CSINN_RM_CPU_GRAPH) {
+        struct shl_c906_option *option = shl_c906_get_graph_option(params->base.sess);
         if (option && option->base.use_packn_layout) {
             shl_debug_error("%s: unsupport packn\n", __func__);
             return CSINN_UNSUPPORT_LAYOUT;

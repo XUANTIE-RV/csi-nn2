@@ -20,10 +20,24 @@ import tensorflow as tf
 # sess = tf.Session()
 # c = sess.run(b)
 
-def stride_slice_f32():
+def stride_slice_f32(test_type):
     para = []
     # init the input data and parameters
-    in_dim   = int(np.random.randint(1, high=4, size=1))
+    if test_type == "len1":
+        in_dim = 1
+    elif test_type == "len2":
+        in_dim = 2
+    elif test_type == "len3":
+        in_dim = 3
+    elif test_type == "len4":
+        in_dim = 4
+    elif test_type == "len5":
+        in_dim = 5
+    elif test_type == "len6":
+        in_dim = 6
+    else:
+        in_dim   = int(np.random.randint(1, high=7, size=1))
+
     in_shape = []
     for i in range(0, in_dim):
         in_shape.append(int(np.random.randint(5, high=10, size=1)))
@@ -44,7 +58,7 @@ def stride_slice_f32():
         end.append(in_shape[i])
         stride.append(1)
 
-    zero_point = int(np.random.randint(-600, high=600, size=1))
+    zero_point = int(np.random.randint(-6, high=6, size=1))
     std        = int(np.random.randint(1, high=20, size=1))
 
     src_in = np.random.normal(zero_point, std, in_shape)
@@ -56,7 +70,7 @@ def stride_slice_f32():
     src_in_1  = src_in.flatten()
     src_out_1 = src_out.flatten()
 
-    total_size = (len(src_in_1) + len(src_out_1)) + 3 + in_dim + 3 * slice_count
+    total_size = (len(src_in_1) + len(src_out_1)) + 3 + in_dim + 3 * in_dim
 
     para.append(total_size)
     para.append(in_dim)
@@ -90,5 +104,6 @@ def stride_slice_f32():
 
 
 if __name__ == '__main__':
-    stride_slice_f32()
+    test_type = sys.argv[1]
+    stride_slice_f32(test_type)
     print("end")

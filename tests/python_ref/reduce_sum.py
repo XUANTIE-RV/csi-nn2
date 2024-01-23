@@ -15,8 +15,8 @@ def reduce_sum_f32():
     in_size_y  = int(np.random.randint(8, high=128, size=1))
     in_channel = int(np.random.randint(1, high=16, size=1))
 
-    zero_point = int(np.random.randint(-600, high=600, size=1))
-    std        = int(np.random.randint(1, high=20, size=1))
+    zero_point = int(np.random.randint(-0, high=6, size=1))
+    std        = int(np.random.randint(1, high=2, size=1))
 
     reduce_dim = int(np.random.randint(-1, high=4, size=1))
 

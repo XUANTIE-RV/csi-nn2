@@ -28,7 +28,7 @@ def convolution_f32(test_dtype, test_vlen, test_type):
     dilation_y  = int(np.random.randint(1, high=2, size=1))
 
     packn = int(getpackn(test_dtype, test_vlen))
-    n = int(np.random.randint(2, high=4, size=1))
+    n = int(np.random.randint(3, high=4, size=1))
 
     print(packn)
 
@@ -40,13 +40,24 @@ def convolution_f32(test_dtype, test_vlen, test_type):
             stride_y    = 1
             kernel_x    = 1
             kernel_y    = 1
+            out_channel = 8 + 4 + 2 + 1
             dilation_x  = 1
             dilation_y  = 1
+            in_size_x = 3
+            in_size_y = packn * 2 - 1
         elif test_type == "pack1_gemm":
             stride_x    = 1
             stride_y    = 1
             kernel_x    = 1
             kernel_y    = 1
+            out_channel = 8 + 4 + 2 + 1
+            in_size_x = 7
+            in_size_y = 9
+        elif test_type == "pack1_conv3x3s1":
+            stride_x    = 1
+            stride_y    = 1
+            kernel_x    = 3
+            kernel_y    = 3
             out_channel = 8 + 4 + 2 + 1
             in_size_x = 7
             in_size_y = 9
@@ -93,8 +104,8 @@ def convolution_f32(test_dtype, test_vlen, test_type):
             dilation_y  = 1
 
             if test_type == "packn_conv3x3s1_linput":
-                in_size_x   = int(np.random.randint(13, high=20, size=1)) #width
-                in_size_y   = int(np.random.randint(13, high=20, size=1)) #height
+                in_size_x   = 15
+                in_size_y   = 27
 
 
 

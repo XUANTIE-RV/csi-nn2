@@ -135,8 +135,11 @@ int shl_rvv_global_maxpool2d_init_fp16(struct csinn_tensor *input, struct csinn_
         if (shl_is_first_layer_input(input, sess)) {
             elempack = 1;
         }
+    } else if (sess->base_run_mode == CSINN_RM_LAYER) {
+        elempack = in_c % packn == 0 ? packn : 1;
     }
 
     cb->exec = (elempack % packn == 0) ? shl_rvv_global_maxpool2d_packn_fp16
                                        : shl_rvv_global_maxpool2d_fp16;
+    return CSINN_TRUE;
 }

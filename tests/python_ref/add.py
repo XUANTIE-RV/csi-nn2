@@ -17,53 +17,75 @@ def add_f32():
     std1        = int(np.random.randint(1, high=20, size=1))
     zero_point2 = int(np.random.randint(-6, high=6, size=1))
     std2        = int(np.random.randint(1, high=20, size=1))
-    vector  = 0
 
-    size_all = batch*in_size_y*in_size_x*in_channel
-
-    src_in1 = np.random.normal(zero_point1, std1, (batch, in_size_y, in_size_x, in_channel))
-    src_in1 = src_in1.astype(np.float32)
+    out_shape = [batch, in_size_y, in_size_x, in_channel]
 
     if(sys.argv[1] == "common"):
-        src_in2 = np.random.normal(zero_point2, std2, (batch, in_size_y, in_size_x, in_channel))
-        src_in2 = src_in2.astype(np.float32)
-        size2   = size_all
-        src_out = np.add(src_in1, src_in2)
-    else:
-        if(sys.argv[1] == "vector"):
-            vector = 1
-            src_in2 = np.random.normal(zero_point2, std2, in_channel)
-            src_in2 = src_in2.astype(np.float32)
-            size2   = in_channel
-            src_out = np.add(src_in1, src_in2)
+        in0_dim = in1_dim = 4
+        in0_shape = in1_shape = out_shape
+    elif (sys.argv[1] == "a_scalar"):
+        in0_dim = 1
+        in1_dim = 4
+        in0_shape = [1]
+        in1_shape = out_shape
+    elif (sys.argv[1] == "a_outer"):
+        in0_dim = in1_dim = 4
+        in0_shape = [out_shape[0], out_shape[1], 1, 1]
+        in1_shape = out_shape
+    elif (sys.argv[1] == "a_inner"):
+        in0_dim = 2
+        in1_dim = 4
+        in0_shape = [out_shape[2], out_shape[3]]
+        in1_shape = out_shape
+    elif (sys.argv[1] == "b_scalar"):
+        in0_dim = 4
+        in1_dim = 1
+        in0_shape = out_shape
+        in1_shape = [1]
+    elif (sys.argv[1] == "b_outer"):
+        in0_dim = in1_dim = 4
+        in0_shape = out_shape
+        in1_shape = [out_shape[0], out_shape[1], 1, 1]
+    elif (sys.argv[1] == "b_inner"):
+        in0_dim = 4
+        in1_dim = 2
+        in0_shape = out_shape
+        in1_shape = [out_shape[2], out_shape[3]]
+    elif (sys.argv[1] == "broadcast_ab"):
+        in0_dim = in1_dim = 4
+        in0_shape = [out_shape[i] if np.random.choice([0, 1]) else 1 for i in range(len(out_shape))]
+        in1_shape = [out_shape[i] if np.random.choice([0, 1]) else 1 for i in range(len(out_shape))]
 
-        elif(sys.argv[1] == "size1"):
-            vector = 2
-            src_in2 = np.random.normal(zero_point2, std2, 1)
-            src_in2 = src_in2.astype(np.float32)
-            size2   = 1
-            src_out = np.add(src_in1, src_in2)
+    size1   = 1
+    for i in in0_shape:
+        size1 *= i
+    size2   = 1
+    for i in in1_shape:
+        size2 *= i
 
-        elif(sys.argv[1] == "flag0"):
-            vector = 3
-            src_in2 = np.random.normal(zero_point2, std2, (in_size_y, in_size_x, 1))
-            src_in2 = src_in2.astype(np.float32)
-            size2   = in_size_y * in_size_x
-            src_out = np.add(src_in1, src_in2)
+    src_in1 = np.random.normal(zero_point1, std1, in0_shape)
+    src_in1 = src_in1.astype(np.float32)
+    src_in2 = np.random.normal(zero_point2, std2, in1_shape)
+    src_in2 = src_in2.astype(np.float32)
+    src_out = np.add(src_in1, src_in2)
 
-    src_in_1  = src_in1.reshape(size_all)
+    src_in_1  = src_in1.reshape(size1)
     src_in_2  = src_in2.reshape(size2)
+    src_out_1 = src_out.reshape(src_out.size)
 
-    src_out_1 = src_out.reshape(size_all)
+    total_size = (len(src_in_1) + len(src_in_2) + len(src_out_1)) + 4 + 2 + in0_dim + in1_dim
 
-    total_size = (len(src_in_1) + len(src_in_2) + len(src_out_1)) + 5
-
-    para.append(total_size)
-    para.append(batch)
-    para.append(in_size_y)
-    para.append(in_size_x)
-    para.append(in_channel)
-    para.append(vector)
+    para.append(total_size)         # 0
+    para.append(src_out.shape[0])   # 1
+    para.append(src_out.shape[1])   # 2
+    para.append(src_out.shape[2])   # 3
+    para.append(src_out.shape[3])   # 4
+    para.append(in0_dim)            # 5
+    para.append(in1_dim)            # 6
+    for i in range(0, in0_dim):
+        para.append(in0_shape[i])   # 7 ~ 7+in0_dim-1
+    for i in range(0, in1_dim):
+        para.append(in1_shape[i])   # 7+in0_dim ~ 7+in0_dim+in1_dim-1
     print(para)
 
     with open("add_data_f32.bin", "wb") as fp:

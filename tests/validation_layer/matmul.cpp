@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
 
 int main(int argc, char **argv)
@@ -66,7 +63,7 @@ int main(int argc, char **argv)
     input0->quant_channel = 1;
     input1->dtype = CSINN_DTYPE_FLOAT32;
     input1->layout = CSINN_LAYOUT_NCHW;
-    input1->is_const = 0;
+    input1->is_const = 1;
     input1->quant_channel = 1;
     output->dtype = CSINN_DTYPE_FLOAT32;
     output->layout = CSINN_LAYOUT_NCHW;
@@ -80,15 +77,18 @@ int main(int argc, char **argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_matmul_init, csinn_matmul,
-                   &difference);
-#elif (DTYPE==16)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT16, csinn_matmul_init, csinn_matmul,
-                   &difference);
-#elif (DTYPE==8)
-    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_ASYM, csinn_matmul_init, csinn_matmul,
-                   &difference);
+#if (DTYPE == 32)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT32, csinn_matmul_init,
+                   csinn_matmul, &difference);
+#elif (DTYPE == 16)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_FLOAT16, csinn_matmul_init,
+                   csinn_matmul, &difference);
+#elif (DTYPE == 8)
+    test_binary_op(input0, input1, output, params, CSINN_QUANT_INT8_ASYM, csinn_matmul_init,
+                   csinn_matmul, &difference);
+#elif (DTYPE == 168)
+    test_matmul_op_fp16_w_int8(input0, input1, output, params, CSINN_QUANT_FLOAT16_W_INT8,
+                               csinn_matmul_init, csinn_matmul, &difference);
 #endif
 
     return done_testing();

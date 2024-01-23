@@ -16,13 +16,9 @@
  * limitations under the License.
  */
 
-#include "csi_nn.h"
-#include "shl_thead_rvv.h"
-#include "test_utils.h"
 #include "testutil.h"
-#include "shl_utils.h"
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     init_testsuite("Testing function of prelu(layer).\n");
 
@@ -32,7 +28,8 @@ int main(int argc, char** argv)
     struct csinn_tensor *output = csinn_alloc_tensor(sess);
     struct csinn_tensor *reference = csinn_alloc_tensor(sess);
     struct csinn_tensor *alpha_data = csinn_alloc_tensor(sess);
-    struct csinn_prelu_params *params = (csinn_prelu_params *)csinn_alloc_params(sizeof(struct csinn_prelu_params), sess);
+    struct csinn_prelu_params *params =
+        (csinn_prelu_params *)csinn_alloc_params(sizeof(struct csinn_prelu_params), sess);
     int in_size, out_size, alpha_size;
 
     if (argc == 1) {
@@ -77,15 +74,15 @@ int main(int argc, char** argv)
     output->data = reference->data;
     float difference = argc > 2 ? atof(argv[2]) : 0.99;
 
-#if (DTYPE==32)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT32, csinn_prelu_init, csinn_prelu,
-                   &difference);
-#elif (DTYPE==16)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT16, csinn_prelu_init, csinn_prelu,
-                   &difference);
-#elif (DTYPE==8)
-    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_INT8_ASYM, csinn_prelu_init, csinn_prelu,
-                   &difference);
+#if (DTYPE == 32)
+    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT32, csinn_prelu_init,
+                   csinn_prelu, &difference);
+#elif (DTYPE == 16)
+    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_FLOAT16, csinn_prelu_init,
+                   csinn_prelu, &difference);
+#elif (DTYPE == 8)
+    test_binary_op(input, alpha_data, output, params, CSINN_QUANT_INT8_ASYM, csinn_prelu_init,
+                   csinn_prelu, &difference);
 #endif
 
     return done_testing();

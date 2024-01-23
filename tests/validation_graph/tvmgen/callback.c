@@ -18,7 +18,7 @@
 
 #include "csi_nn.h"
 #include "shl_gref.h"
-#include "shl_tvmgen.h"
+#include "tvmgen/shl_tvmgen.h"
 
 static int reg_func_in = 0;
 

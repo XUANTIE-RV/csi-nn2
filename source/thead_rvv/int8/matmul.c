@@ -121,7 +121,7 @@ int shl_rvv_matmul_common_int8(struct csinn_tensor *mat0, struct csinn_tensor *m
     return CSINN_TRUE;
 }
 
-void shl_rvv_matmul_reorder_weight_int8(struct csinn_tensor *mat1)
+void shl_rvv_matmul_reorder_weight_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1)
 {
     int8_t *mat1_data = (int8_t *)mat1->data;
     int dims_count = mat1->dim_count;
@@ -136,7 +136,12 @@ void shl_rvv_matmul_reorder_weight_int8(struct csinn_tensor *mat1)
     for (int b = 0; b < batch; b++) {
         int8_t *init_mat = mat1_data + b * k * n;
 #ifdef SHL_USE_DOT_INT8
-        shl_rvv_matmul_reorder_mat1_zmf2n4_int8_dot(init_mat, mat_reorder, k, n, n);
+        // XXX: use -z in dot has problems when z=-128
+        if (mat0->qinfo->zero_point == INT8_MIN || mat1->qinfo->zero_point == INT8_MIN) {
+            shl_rvv_matmul_reorder_mat1_zpackn_int8(init_mat, mat_reorder, k, n, n);
+        } else {
+            shl_rvv_matmul_reorder_mat1_zmf2n4_int8_dot(init_mat, mat_reorder, k, n, n);
+        }
 #else
         shl_rvv_matmul_reorder_mat1_zpackn_int8(init_mat, mat_reorder, k, n, n);
 #endif  // SHL_USE_DOT_INT8
@@ -150,9 +155,16 @@ int shl_rvv_matmul_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat1,
                         struct csinn_tensor *output, struct csinn_matmul_params *params)
 {
 #ifdef SHL_USE_DOT_INT8
-    return shl_rvv_matmul_common_int8(
-        mat0, mat1, output, params, shl_rvv_matmul_reorder_mat0_n8z4_int8_dot,
-        shl_rvv_matmul_reorder_mat1_zmf2n4_int8_dot, shl_rvv_matmul_8xmf2_int8_dot);
+    // XXX: use -z in dot has problems when z=-128
+    if (mat0->qinfo->zero_point == INT8_MIN || mat1->qinfo->zero_point == INT8_MIN) {
+        return shl_rvv_matmul_common_int8(
+            mat0, mat1, output, params, shl_rvv_matmul_reorder_mat0_n4_int8,
+            shl_rvv_matmul_reorder_mat1_zpackn_int8, shl_rvv_matmul_4xpackn_int8);
+    } else {
+        return shl_rvv_matmul_common_int8(
+            mat0, mat1, output, params, shl_rvv_matmul_reorder_mat0_n8z4_int8_dot,
+            shl_rvv_matmul_reorder_mat1_zmf2n4_int8_dot, shl_rvv_matmul_8xmf2_int8_dot);
+    }
 #else
     return shl_rvv_matmul_common_int8(
         mat0, mat1, output, params, shl_rvv_matmul_reorder_mat0_n4_int8,
@@ -167,7 +179,7 @@ int shl_rvv_matmul_init_int8(struct csinn_tensor *mat0, struct csinn_tensor *mat
     if (!params->trans_a && !params->trans_b) {
         if (mat0->dtype == CSINN_DTYPE_INT8 && mat1->dtype == CSINN_DTYPE_INT8) {
             if (mat1->is_const) {
-                shl_rvv_matmul_reorder_weight_int8(mat1);
+                shl_rvv_matmul_reorder_weight_int8(mat0, mat1);
             }
             cb->exec = shl_rvv_matmul_int8;
         }

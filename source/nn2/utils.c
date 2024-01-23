@@ -251,30 +251,41 @@ int csinn_tensor_size(struct csinn_tensor *tensor)
 int csinn_tensor_byte_size(struct csinn_tensor *tensor)
 {
     int size = csinn_tensor_size(tensor);
+    int ret = 0;
     switch (tensor->dtype) {
         case CSINN_DTYPE_INT4:
             /* FIXME: round to byte */
-            size = (size + 1) / 2;
+            ret = (size + 1) / 2;
+            break;
+        case CSINN_DTYPE_INT8:
+        case CSINN_DTYPE_UINT8:
+            ret = size;
             break;
         case CSINN_DTYPE_INT16:
         case CSINN_DTYPE_UINT16:
         case CSINN_DTYPE_FLOAT16:
         case CSINN_DTYPE_BFLOAT16:
-            size *= 2;
+            ret = size * 2;
             break;
         case CSINN_DTYPE_INT32:
         case CSINN_DTYPE_UINT32:
         case CSINN_DTYPE_FLOAT32:
-            size *= 4;
+            ret = size * 4;
             break;
         case CSINN_DTYPE_INT64:
         case CSINN_DTYPE_FLOAT64:
-            size *= 8;
+            ret = size * 8;
             break;
         default:
             break;
     }
-    return size;
+    /* space for scale */
+    if (tensor->mtype == CSINN_MEM_TYPE_BLOCK_Q8_0) {
+        ret += size / 32 * sizeof(int16_t);
+    } else if (tensor->mtype == CSINN_MEM_TYPE_BLOCK_Q4_0) {
+        ret += size / 32 * sizeof(int16_t);
+    }
+    return ret;
 }
 /**
  * @}
@@ -334,6 +345,7 @@ void csinn_tensor_copy(struct csinn_tensor *dest, struct csinn_tensor *src)
     memcpy(dest->qinfo, src->qinfo, sizeof(struct csinn_quant_info) * src->quant_channel);
     dest->sess = src->sess;
     dest->is_const = src->is_const;
+    dest->mtype = src->mtype;
 }
 /**
  * @}
@@ -418,10 +430,10 @@ static float int32_to_float_base(int32_t i, struct csinn_tensor *t, int index)
 static int32_t float_to_int32_base(float i, struct csinn_tensor *t, int index)
 {
     float ret = nearbyint(i / t->qinfo[index].scale) + t->qinfo[index].zero_point;
-    if (ret > 2147483647) {
-        return 2147483647;
-    } else if (ret < -2147483648) {
-        return -2147483648;
+    if (ret > 2147483647.0) {
+        return 2147483647.0;
+    } else if (ret < -2147483648.0) {
+        return -2147483648.0;
     } else {
         return ret;
     }
@@ -1980,12 +1992,70 @@ static void ncx_fp32_to_nxc_fp16(struct csinn_tensor *dest, struct csinn_tensor 
     }
 }
 
+static int block_dequantize_q4(struct csinn_tensor *dst, struct csinn_tensor *src)
+{
+    if (dst->dtype != CSINN_DTYPE_FLOAT32 || src->dtype != CSINN_DTYPE_INT4) {
+        shl_debug_error("%s: unsupported convert dtype\n", __func__);
+        return CSINN_FALSE;
+    }
+    float *dst_data = dst->data;
+    int8_t *src_data = src->data;
+    int16_t *scale_data = src->data + csinn_tensor_size(src) / 2;
+    int block_size = 32;
+    int block_num = csinn_tensor_size(src) / block_size;
+
+    for (int i = 0; i < block_num; i++) {
+        for (int j = 0; j < block_size / 2; j++) {
+            int input_index = i * block_size / 2 + j;
+            int output_index = i * block_size + j;
+            int8_t value = src_data[input_index];
+            float fp32_scale = float16_to_float32_base(scale_data[input_index * 2 / block_size]);
+            dst_data[output_index] = ((float)(value & 0xf) - 8) * fp32_scale;
+            dst_data[output_index + block_size / 2] =
+                ((float)((value & 0xf0) >> 4) - 8) * fp32_scale;
+            ;
+        }
+    }
+
+    return CSINN_TRUE;
+}
+
+static int block_dequantize_q8(struct csinn_tensor *dst, struct csinn_tensor *src)
+{
+    if (dst->dtype != CSINN_DTYPE_FLOAT32 || src->dtype != CSINN_DTYPE_INT8) {
+        shl_debug_error("%s: unsupported convert dtype\n", __func__);
+        return CSINN_FALSE;
+    }
+    float *dst_data = dst->data;
+    int8_t *src_data = src->data;
+    int16_t *scale_data = src->data + csinn_tensor_size(src);
+    int block_size = 32;
+    int block_num = csinn_tensor_size(src) / block_size;
+
+    for (int i = 0; i < block_num; i++) {
+        for (int j = 0; j < block_size; j++) {
+            int index = i * block_size + j;
+            int8_t value = src_data[index];
+            float fp32_scale = float16_to_float32_base(scale_data[index / block_size]);
+            dst_data[index] = (float)value * fp32_scale;
+        }
+    }
+
+    return CSINN_TRUE;
+}
+
 /**
  * @addtogroup TENSOR
  * @{
  */
 int csinn_tensor_data_convert(struct csinn_tensor *dest, struct csinn_tensor *src)
 {
+    if (src->mtype == CSINN_MEM_TYPE_BLOCK_Q8_0) {
+        return block_dequantize_q8(dest, src);
+    } else if (src->mtype == CSINN_MEM_TYPE_BLOCK_Q4_0) {
+        return block_dequantize_q4(dest, src);
+    }
+
     if (dest->layout == src->layout && dest->dtype == src->dtype) {
         memcpy(dest->data, src->data, csinn_tensor_byte_size(src));
         return CSINN_TRUE;
