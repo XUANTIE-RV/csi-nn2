@@ -50,6 +50,7 @@ Download source code
 
 ```
 git clone https://github.com/T-head-Semi/csi-nn2.git
+git submodule update --init --recursive
 ```
 
 compile c906
