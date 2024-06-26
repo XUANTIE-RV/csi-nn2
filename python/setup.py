@@ -68,7 +68,7 @@ def get_package_data_files():
 setup(
     name="shl-python",
     version=__version__,
-    description="SHL: Structure of Heterogeneous Library from T-HEAD",
+    description="SHL: Structure of Heterogeneous Library from XuanTie",
     zip_safe=False,
     entry_points={"console_scripts": ["shl = shl.main:main"]},
     install_requires=[
@@ -76,5 +76,5 @@ setup(
     packages=find_packages(),
     package_dir={"shl": "shl"},
     package_data={"shl": get_package_data_files()},
-    url="https://github.com/T-head-Semi/csi-nn2",
+    url="https://github.com/XUANTIE-RV/csi-nn2",
 )

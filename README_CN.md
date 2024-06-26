@@ -1,6 +1,6 @@
  [English](./README.md) | 简体中文
 
-SHL 是 T-HEAD 提供的一组针对玄铁 CPU 平台的神经网络库 API。抽象了各种常用的网络层的接口，并且提供一系列已优化的二进制库。
+SHL 是 XuanTie 提供的一组针对玄铁 CPU 平台的神经网络库 API。抽象了各种常用的网络层的接口，并且提供一系列已优化的二进制库。
 
 SHL 的特性：
 
@@ -37,7 +37,7 @@ pip3 install hhb
 
 以 Ubuntu 上编译 c906 优化为例。
 
-编译 C906 需要用到 T-HEAD RISC-V GCC， 从 OCC 下载 GCC 2.6 版本，解压并设置路径。
+编译 C906 需要用到 XuanTie RISC-V GCC， 从 OCC 下载 GCC 2.6 版本，解压并设置路径。
 
 ```
 wget https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1663142514282/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1-20220906.tar.gz
@@ -48,7 +48,7 @@ export PATH=${PWD}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH
 下载源码
 
 ```
-git clone https://github.com/T-head-Semi/csi-nn2.git
+git clone https://github.com/XUANTIE-RV/csi-nn2.git
 ```
 
 编译 c906
@@ -85,7 +85,7 @@ NOTE: 原始 mobilenetv1 中每层 conv2d 后接一层 batch norm，示例中假
 
 # 资源
 
-- [T-HEAD 芯片开放社区](https://occ.t-head.cn/)
+- [XuanTie 芯片开放社区](https://occ.t-head.cn/)
 - [SHL 应用在 MLPerf tiny](https://github.com/mlcommons/tiny_results_v0.7/tree/main/open/Alibaba)
 
 # 致谢

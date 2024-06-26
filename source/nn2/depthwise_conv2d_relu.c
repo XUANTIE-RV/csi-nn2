@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2016-2023 T-Head Semiconductor Co., Ltd. All rights reserved.
+ * Copyright (C) 2016-2023 C-SKY Microsystems Co., Ltd. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *

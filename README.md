@@ -1,7 +1,7 @@
 English | [简体中文](./README_CN.md)
 
-SHL(Structure of Heterogeneous Library, Chinese name: ShiHulan) is a high-performance Heterogeneous computing library provided by T-HEAD.
-The interface of SHL uses T-HEAD neural network library API for XuanTie CPU platform: CSI-NN2, and provides a series of optimized binary libraries.
+SHL(Structure of Heterogeneous Library, Chinese name: ShiHulan) is a high-performance Heterogeneous computing library provided by XuanTie.
+The interface of SHL uses XuanTie neural network library API for XuanTie CPU platform: CSI-NN2, and provides a series of optimized binary libraries.
 
 Features for SHL:
 
@@ -38,7 +38,7 @@ binary libary is at /usr/local/lib/python3.6/dist-packages/tvm/install_nn2/
 
 Here is one example to build C906 library.
 
-We need to install T-HEAD RISC-V GCC 2.6, which can get from T-HEAD OCC, download, decompress, and set path environment.
+We need to install XuanTie RISC-V GCC 2.6, which can get from XuanTie OCC, download, decompress, and set path environment.
 
 ```
 wget https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1663142514282/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1-20220906.tar.gz
@@ -49,7 +49,7 @@ export PATH=${PWD}/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH
 Download source code
 
 ```
-git clone https://github.com/T-head-Semi/csi-nn2.git
+git clone https://github.com/XUANTIE-RV/csi-nn2.git
 ```
 
 compile c906
@@ -87,7 +87,7 @@ NOTE: Original mobilenetv1's every conv2d has one BN(batch norm), but the exampl
 
 # Resources
 
-- [T-HEAD Open Chip Community](https://xrvm.com/)
+- [XuanTie Open Chip Community](https://xrvm.com/)
 - [Use SHL to run MLPerf tiny](https://github.com/mlcommons/tiny_results_v0.7/tree/main/open/Alibaba)
 
 ## Acknowledgement
