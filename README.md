@@ -102,3 +102,9 @@ SHL refers to the following projects:
 - [CMSIS_5](https://github.com/ARM-software/CMSIS_5)
 - [ONNX](https://github.com/onnx/onnx)
 - [XNNPACK](https://github.com/google/XNNPACK)
+
+## Tutorials & Examples
+
+For additional resources related to AI model optimization, compilation, and deployment on RISC-V platforms:
+
+* [XuanTie AI Computing Resources](https://www.xrvm.cn/markets/edge-computing-ai)
